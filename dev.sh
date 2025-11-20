@@ -24,10 +24,8 @@ sleep 2
 
 # Start Electron
 echo "⚡ Starting Electron..."
-cd apps/desktop
-NODE_ENV=development bun run dev &
+NODE_ENV=development NODE_OPTIONS='--import tsx' ./node_modules/.bin/electron apps/desktop &
 ELECTRON_PID=$!
-cd ../..
 
 echo "✅ Development environment ready!"
 echo ""

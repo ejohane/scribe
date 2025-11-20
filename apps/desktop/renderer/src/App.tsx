@@ -5,20 +5,30 @@
 import { useState, useEffect } from 'react';
 import { CoreClient } from '@scribe/core-client';
 
-// Initialize Core Client
-const coreClient = new CoreClient();
-
-// Check if we're running in Electron
-if (window.scribeAPI) {
-  coreClient.initialize(async (message) => {
-    return await window.scribeAPI.sendRPCRequest(message);
-  });
+// Declare the window.scribeAPI type
+declare global {
+  interface Window {
+    scribeAPI?: {
+      sendRPCRequest: (message: unknown) => Promise<unknown>;
+    };
+  }
 }
 
 export function App() {
   const [status, setStatus] = useState<string>('Connecting...');
+  const [coreClient] = useState(() => new CoreClient());
 
   useEffect(() => {
+    // Initialize Core Client when component mounts
+    if (window.scribeAPI) {
+      coreClient.initialize(async (message) => {
+        return await window.scribeAPI!.sendRPCRequest(message);
+      });
+    } else {
+      setStatus('Error: Not running in Electron environment');
+      return;
+    }
+
     // Test the connection to Core Engine
     const testConnection = async () => {
       try {
@@ -30,7 +40,7 @@ export function App() {
     };
 
     testConnection();
-  }, []);
+  }, [coreClient]);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'system-ui' }}>

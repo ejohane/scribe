@@ -10,12 +10,14 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
+    "test": "bun test",
     "lint": "eslint src",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
+    "@types/bun": "^1.3.2",
     "typescript": "^5.7.2"
   }
 }

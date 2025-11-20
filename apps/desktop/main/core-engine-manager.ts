@@ -86,8 +86,13 @@ export class CoreEngineManager {
       id,
     };
 
+    console.log('[CoreEngineManager] Sending request:', JSON.stringify(message));
+
     return new Promise((resolve, reject) => {
-      this.requestCallbacks.set(id, resolve);
+      this.requestCallbacks.set(id, (response: any) => {
+        console.log('[CoreEngineManager] Received response:', response);
+        resolve(response);
+      });
 
       this.process!.stdin!.write(JSON.stringify(message) + '\n', (error) => {
         if (error) {

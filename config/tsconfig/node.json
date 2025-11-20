@@ -3,9 +3,10 @@
   "display": "Node.js",
   "extends": "./base.json",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["node"]
+    "target": "ES2022",
+    "types": ["node", "bun-types"]
   }
 }

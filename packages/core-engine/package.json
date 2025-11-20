@@ -12,6 +12,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "build": "tsc --noEmit",
+    "test": "bun test",
     "lint": "eslint src",
     "clean": "rm -rf dist"
   },
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
+    "@types/bun": "^1.3.2",
     "@types/node": "^22.10.1",
     "typescript": "^5.7.2"
   }

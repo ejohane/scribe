@@ -11,6 +11,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+console.log('[Main] __dirname:', __dirname);
+console.log('[Main] __filename:', __filename);
+
 let mainWindow: BrowserWindow | null = null;
 let coreEngineManager: CoreEngineManager | null = null;
 
@@ -18,11 +21,14 @@ let coreEngineManager: CoreEngineManager | null = null;
  * Create the main application window.
  */
 function createWindow() {
+  const preloadPath = path.join(__dirname, '../preload/index.js');
+  console.log('[Main] Preload path:', preloadPath);
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
     },

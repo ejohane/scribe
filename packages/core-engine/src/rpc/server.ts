@@ -44,6 +44,8 @@ export class JSONRPCServer {
     this.handlers.set(method, handler);
   }
 
+  private buffer = '';
+
   /**
    * Start the JSON-RPC server.
    */
@@ -54,12 +56,31 @@ export class JSONRPCServer {
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', async (chunk) => {
       try {
-        const data = chunk.toString();
-        const request = JSON.parse(data) as JSONRPCRequest;
-        const response = await this.handleRequest(request);
-        process.stdout.write(JSON.stringify(response) + '\n');
+        // Append to buffer
+        this.buffer += chunk.toString();
+
+        // Process complete lines (messages end with \n)
+        const lines = this.buffer.split('\n');
+
+        // Keep the last incomplete line in the buffer
+        this.buffer = lines.pop() || '';
+
+        // Process each complete line
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          console.log('[RPC Server] Received:', line);
+
+          try {
+            const request = JSON.parse(line) as JSONRPCRequest;
+            const response = await this.handleRequest(request);
+            process.stdout.write(JSON.stringify(response) + '\n');
+          } catch (error) {
+            console.error('[RPC Server] Error parsing request:', error);
+          }
+        }
       } catch (error) {
-        console.error('[RPC Server] Error processing request:', error);
+        console.error('[RPC Server] Error processing data:', error);
       }
     });
   }
