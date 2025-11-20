@@ -13,8 +13,11 @@ import type {
   FilePath,
   HeadingIndex,
   HeadingId,
+  PeopleIndex,
+  PersonId,
+  PersonMentionRef,
 } from '@scribe/domain-model';
-import { normalizeHeading } from '@scribe/utils';
+import { normalizeHeading, normalizePersonName } from '@scribe/utils';
 
 /**
  * Resolution status for links and embeds.
@@ -404,10 +407,104 @@ export function resolveLinkRefWithHeading(
 }
 
 /**
- * Resolve a person mention.
+ * Resolution status for person mentions.
  */
-export function resolvePerson(personName: string): string {
-  // TODO: Implement person resolution and note creation
-  // For now, return normalized person name
-  return personName.trim();
+export type PersonResolutionStatus = 'resolved' | 'unresolved';
+
+/**
+ * Person mention resolution result for @Person references.
+ */
+export interface PersonResolutionResult {
+  /**
+   * The resolution status.
+   * - 'resolved': Person was found in the PeopleIndex
+   * - 'unresolved': Person was not found (may need to be created)
+   */
+  status: PersonResolutionStatus;
+
+  /**
+   * The resolved person ID (only present when status is 'resolved').
+   */
+  personId?: PersonId;
+
+  /**
+   * The normalized person name used for lookup.
+   * This can be used as a suggested PersonId for creating a new person.
+   */
+  normalizedName: string;
+}
+
+/**
+ * Resolve a person mention (@Person).
+ *
+ * This implements the person resolution algorithm:
+ * 1. Normalize the person name (trim whitespace, preserve case)
+ * 2. Look up in PeopleIndex.byName (case-sensitive match)
+ * 3. Return resolved if found, unresolved if not
+ *
+ * Person names are normalized differently than note titles:
+ * - Whitespace is trimmed
+ * - Original casing is preserved (case-sensitive matching)
+ * - No lowercasing or further normalization
+ *
+ * When unresolved, the caller can choose to:
+ * - Create a new person file in people/ folder
+ * - Show a warning/suggestion to the user
+ * - Track as an unlinked mention
+ *
+ * @param personName - The raw person name from @Person syntax
+ * @param peopleIndex - The people index to search
+ * @returns Person resolution result with status and ID
+ *
+ * @example
+ * ```ts
+ * const result = resolvePersonMention('Erik', peopleIndex);
+ * if (result.status === 'resolved') {
+ *   console.log(`Found person: ${result.personId}`);
+ * } else {
+ *   console.log(`Person not found: ${result.normalizedName}`);
+ *   // Optionally create people/${result.normalizedName}.md
+ * }
+ * ```
+ */
+export function resolvePersonMention(
+  personName: string,
+  peopleIndex: PeopleIndex
+): PersonResolutionResult {
+  // Step 1: Normalize the person name
+  const normalizedName = normalizePersonName(personName);
+
+  // Step 2: Look up in PeopleIndex
+  const personId = peopleIndex.byName.get(normalizedName);
+
+  // Step 3: Return result
+  if (personId) {
+    return {
+      status: 'resolved',
+      personId,
+      normalizedName,
+    };
+  }
+
+  return {
+    status: 'unresolved',
+    normalizedName,
+  };
+}
+
+/**
+ * Resolve a PersonMentionRef object (convenience wrapper).
+ *
+ * This is a convenience wrapper around resolvePersonMention that accepts
+ * a PersonMentionRef object from the parser.
+ *
+ * @param mention - The person mention reference from parsed note
+ * @param peopleIndex - The people index to search
+ * @returns Person resolution result
+ */
+export function resolvePersonMentionRef(
+  mention: PersonMentionRef,
+  peopleIndex: PeopleIndex
+): PersonResolutionResult {
+  return resolvePersonMention(mention.personName, peopleIndex);
 }

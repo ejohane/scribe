@@ -10,6 +10,8 @@ import {
   normalizeForLookup,
   resolveHeadingLink,
   resolveLinkRefWithHeading,
+  resolvePersonMention,
+  resolvePersonMentionRef,
 } from './index.js';
 import { NoteRegistry } from '@scribe/domain-model';
 import type {
@@ -19,6 +21,9 @@ import type {
   HeadingIndex,
   Heading,
   HeadingId,
+  PeopleIndex,
+  Person,
+  PersonMentionRef,
 } from '@scribe/domain-model';
 import { generateHeadingId } from '@scribe/utils';
 
@@ -729,5 +734,258 @@ describe('resolveLinkRefWithHeading', () => {
     const result = resolveLinkRefWithHeading(link, registry, headingIndex);
     expect(result.status).toBe('unresolved');
     expect((result as any).noteId).toBe('note-1');
+  });
+});
+
+describe('resolvePersonMention', () => {
+  let peopleIndex: PeopleIndex;
+
+  beforeEach(() => {
+    peopleIndex = {
+      byId: new Map(),
+      byName: new Map(),
+      mentionsByPerson: new Map(),
+      peopleByNote: new Map(),
+    };
+  });
+
+  /**
+   * Helper to add a person to the index.
+   */
+  function addPerson(id: string, name: string): void {
+    const person: Person = {
+      id,
+      noteId: `people/${id}.md`,
+      path: `people/${id}.md`,
+      name,
+      metadata: {},
+    };
+
+    peopleIndex.byId.set(id, person);
+    peopleIndex.byName.set(name, id);
+  }
+
+  describe('successful resolution', () => {
+    test('resolves existing person by name', () => {
+      addPerson('erik', 'Erik');
+
+      const result = resolvePersonMention('Erik', peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('erik');
+      expect(result.normalizedName).toBe('Erik');
+    });
+
+    test('resolves person with trimmed whitespace', () => {
+      addPerson('erik', 'Erik');
+
+      const result = resolvePersonMention('  Erik  ', peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('erik');
+      expect(result.normalizedName).toBe('Erik');
+    });
+
+    test('resolves person with multi-word name', () => {
+      addPerson('john-doe', 'John Doe');
+
+      const result = resolvePersonMention('John Doe', peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('john-doe');
+      expect(result.normalizedName).toBe('John Doe');
+    });
+
+    test('resolves multiple different people', () => {
+      addPerson('erik', 'Erik');
+      addPerson('alice', 'Alice');
+      addPerson('bob', 'Bob');
+
+      const result1 = resolvePersonMention('Erik', peopleIndex);
+      expect(result1.status).toBe('resolved');
+      expect(result1.personId).toBe('erik');
+
+      const result2 = resolvePersonMention('Alice', peopleIndex);
+      expect(result2.status).toBe('resolved');
+      expect(result2.personId).toBe('alice');
+
+      const result3 = resolvePersonMention('Bob', peopleIndex);
+      expect(result3.status).toBe('resolved');
+      expect(result3.personId).toBe('bob');
+    });
+  });
+
+  describe('unresolved cases', () => {
+    test('returns unresolved when person does not exist', () => {
+      const result = resolvePersonMention('Nonexistent', peopleIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.personId).toBeUndefined();
+      expect(result.normalizedName).toBe('Nonexistent');
+    });
+
+    test('returns normalized name for creating new person', () => {
+      const result = resolvePersonMention('  New Person  ', peopleIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.normalizedName).toBe('New Person');
+    });
+
+    test('returns unresolved for empty name', () => {
+      const result = resolvePersonMention('', peopleIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.normalizedName).toBe('');
+    });
+
+    test('returns unresolved when index is empty', () => {
+      const result = resolvePersonMention('Anyone', peopleIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.personId).toBeUndefined();
+    });
+  });
+
+  describe('case sensitivity', () => {
+    test('is case-sensitive for person names', () => {
+      addPerson('erik', 'Erik');
+
+      const result = resolvePersonMention('erik', peopleIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.normalizedName).toBe('erik');
+    });
+
+    test('requires exact case match', () => {
+      addPerson('alice', 'Alice');
+
+      const resultLower = resolvePersonMention('alice', peopleIndex);
+      expect(resultLower.status).toBe('unresolved');
+
+      const resultUpper = resolvePersonMention('ALICE', peopleIndex);
+      expect(resultUpper.status).toBe('unresolved');
+
+      const resultCorrect = resolvePersonMention('Alice', peopleIndex);
+      expect(resultCorrect.status).toBe('resolved');
+    });
+
+    test('preserves casing in normalized name', () => {
+      const result1 = resolvePersonMention('Erik', peopleIndex);
+      expect(result1.normalizedName).toBe('Erik');
+
+      const result2 = resolvePersonMention('ERIK', peopleIndex);
+      expect(result2.normalizedName).toBe('ERIK');
+
+      const result3 = resolvePersonMention('erik', peopleIndex);
+      expect(result3.normalizedName).toBe('erik');
+    });
+  });
+
+  describe('edge cases', () => {
+    test('handles single character names', () => {
+      addPerson('a', 'A');
+
+      const result = resolvePersonMention('A', peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('a');
+    });
+
+    test('handles names with special characters', () => {
+      addPerson('oneal', "O'Neal");
+
+      const result = resolvePersonMention("O'Neal", peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('oneal');
+    });
+
+    test('handles names with hyphens', () => {
+      addPerson('jean-luc', 'Jean-Luc');
+
+      const result = resolvePersonMention('Jean-Luc', peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('jean-luc');
+    });
+
+    test('handles names with numbers', () => {
+      addPerson('r2d2', 'R2D2');
+
+      const result = resolvePersonMention('R2D2', peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('r2d2');
+    });
+
+    test('handles very long names', () => {
+      const longName = 'Alexander Hamilton Washington Jefferson';
+      addPerson('alexander', longName);
+
+      const result = resolvePersonMention(longName, peopleIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.personId).toBe('alexander');
+    });
+
+    test('handles whitespace-only name', () => {
+      const result = resolvePersonMention('   ', peopleIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.normalizedName).toBe('');
+    });
+  });
+});
+
+describe('resolvePersonMentionRef', () => {
+  let peopleIndex: PeopleIndex;
+
+  beforeEach(() => {
+    peopleIndex = {
+      byId: new Map(),
+      byName: new Map(),
+      mentionsByPerson: new Map(),
+      peopleByNote: new Map(),
+    };
+  });
+
+  function addPerson(id: string, name: string): void {
+    const person: Person = {
+      id,
+      noteId: `people/${id}.md`,
+      path: `people/${id}.md`,
+      name,
+      metadata: {},
+    };
+    peopleIndex.byId.set(id, person);
+    peopleIndex.byName.set(name, person.id);
+  }
+
+  test('resolves PersonMentionRef object', () => {
+    addPerson('erik', 'Erik');
+
+    const mention: PersonMentionRef = {
+      raw: '@Erik',
+      personName: 'Erik',
+      position: { line: 1, column: 0 },
+    };
+
+    const result = resolvePersonMentionRef(mention, peopleIndex);
+    expect(result.status).toBe('resolved');
+    expect(result.personId).toBe('erik');
+    expect(result.normalizedName).toBe('Erik');
+  });
+
+  test('handles unresolved PersonMentionRef', () => {
+    const mention: PersonMentionRef = {
+      raw: '@Unknown',
+      personName: 'Unknown',
+      position: { line: 5, column: 10 },
+    };
+
+    const result = resolvePersonMentionRef(mention, peopleIndex);
+    expect(result.status).toBe('unresolved');
+    expect(result.personId).toBeUndefined();
+    expect(result.normalizedName).toBe('Unknown');
+  });
+
+  test('trims whitespace from PersonMentionRef', () => {
+    addPerson('alice', 'Alice');
+
+    const mention: PersonMentionRef = {
+      raw: '@  Alice  ',
+      personName: '  Alice  ',
+      position: { line: 1, column: 0 },
+    };
+
+    const result = resolvePersonMentionRef(mention, peopleIndex);
+    expect(result.status).toBe('resolved');
+    expect(result.personId).toBe('alice');
   });
 });
