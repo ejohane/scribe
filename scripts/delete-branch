@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Script to delete a git worktree and its tmux session
+# Usage: delete-branch <branch-name>
+
+if [ -z "$1" ]; then
+    echo "Usage: delete-branch <branch-name>"
+    echo "  branch-name: Name of the branch/worktree to delete"
+    exit 1
+fi
+
+BRANCH_NAME="$1"
+WORKTREE_DIR=".branches/${BRANCH_NAME}"
+
+# Get the root of the git repository
+GIT_ROOT=$(git rev-parse --show-toplevel)
+
+# Full path to worktree
+WORKTREE_PATH="${GIT_ROOT}/${WORKTREE_DIR}"
+
+# Check if we're currently in the worktree we're trying to delete
+CURRENT_DIR=$(pwd)
+if [[ "$CURRENT_DIR" == "$WORKTREE_PATH"* ]]; then
+    echo "Error: Cannot delete the worktree you're currently in"
+    echo "Please switch to a different directory first"
+    exit 1
+fi
+
+# Check if we're in the tmux session we're trying to delete
+if [ -n "$TMUX" ]; then
+    CURRENT_SESSION=$(tmux display-message -p '#S')
+    if [ "$CURRENT_SESSION" = "$BRANCH_NAME" ]; then
+        echo "Error: Cannot delete the tmux session you're currently in"
+        echo "Please switch to a different session first"
+        exit 1
+    fi
+fi
+
+# Check if worktree exists
+WORKTREE_EXISTS=false
+if [ -d "$WORKTREE_PATH" ]; then
+    WORKTREE_EXISTS=true
+fi
+
+# Check if tmux session exists
+TMUX_EXISTS=false
+if tmux has-session -t "$BRANCH_NAME" 2>/dev/null; then
+    TMUX_EXISTS=true
+fi
+
+# Check if branch exists
+BRANCH_EXISTS=false
+if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
+    BRANCH_EXISTS=true
+fi
+
+if [ "$WORKTREE_EXISTS" = false ] && [ "$TMUX_EXISTS" = false ] && [ "$BRANCH_EXISTS" = false ]; then
+    echo "Error: No worktree, tmux session, or branch found for '${BRANCH_NAME}'"
+    exit 1
+fi
+
+# Show what will be deleted
+echo "The following will be deleted:"
+[ "$WORKTREE_EXISTS" = true ] && echo "  ✓ Worktree: ${WORKTREE_DIR}"
+[ "$TMUX_EXISTS" = true ] && echo "  ✓ Tmux session: ${BRANCH_NAME}"
+[ "$BRANCH_EXISTS" = true ] && echo "  ✓ Git branch: ${BRANCH_NAME}"
+echo ""
+read -p "Continue? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Aborted"
+    exit 1
+fi
+
+# Kill tmux session if it exists
+if [ "$TMUX_EXISTS" = true ]; then
+    echo "Killing tmux session '${BRANCH_NAME}'..."
+    tmux kill-session -t "${BRANCH_NAME}"
+    echo "✓ Tmux session killed"
+fi
+
+# Remove worktree if it exists
+if [ "$WORKTREE_EXISTS" = true ]; then
+    echo "Removing worktree at ${WORKTREE_DIR}..."
+    git worktree remove "${WORKTREE_PATH}"
+    echo "✓ Worktree removed"
+fi
+
+# Delete branch if it exists
+if [ "$BRANCH_EXISTS" = true ]; then
+    echo "Deleting branch '${BRANCH_NAME}'..."
+    git branch -D "${BRANCH_NAME}"
+    echo "✓ Branch deleted"
+fi
+
+echo ""
+echo "Cleanup complete!"
