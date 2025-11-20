@@ -5,6 +5,7 @@
  * Manages note registry, people index, tag index, folder index, etc.
  */
 
+import { NoteRegistry } from '@scribe/domain-model';
 import type { AppState, ParsedNote } from '@scribe/domain-model';
 
 /**
@@ -12,12 +13,7 @@ import type { AppState, ParsedNote } from '@scribe/domain-model';
  */
 export function createAppState(): AppState {
   return {
-    noteRegistry: {
-      byId: new Map(),
-      byPath: new Map(),
-      byTitle: new Map(),
-      byAlias: new Map(),
-    },
+    noteRegistry: new NoteRegistry(),
     peopleIndex: {
       byId: new Map(),
       byName: new Map(),
@@ -58,21 +54,29 @@ export function createAppState(): AppState {
  * Add or update a note in the index.
  */
 export function indexNote(state: AppState, note: ParsedNote): void {
-  // TODO: Implement full indexing logic
-  state.noteRegistry.byId.set(note.id, note);
-  state.noteRegistry.byPath.set(note.path, note.id);
+  // Check if note already exists - if so, update; otherwise add
+  const existing = state.noteRegistry.getNoteById(note.id);
+  if (existing) {
+    state.noteRegistry.update(note);
+  } else {
+    state.noteRegistry.add(note);
+  }
+  // TODO: Update other indices (tags, people, headings, etc.)
 }
 
 /**
  * Remove a note from the index.
  */
 export function removeNote(state: AppState, noteId: string): void {
-  // TODO: Implement full removal logic
-  const note = state.noteRegistry.byId.get(noteId);
-  if (note) {
-    state.noteRegistry.byId.delete(noteId);
-    state.noteRegistry.byPath.delete(note.path);
+  // Check if note exists before trying to remove
+  const note = state.noteRegistry.getNoteById(noteId);
+  if (!note) {
+    return; // Nothing to remove
   }
+
+  // Remove from note registry
+  state.noteRegistry.remove(noteId);
+  // TODO: Implement full removal logic for other indices
 }
 
 export * from './types.js';
