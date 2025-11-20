@@ -1,0 +1,11 @@
+{
+  "extends": "@scribe/tsconfig/electron.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["main/**/*", "preload/**/*"],
+  "exclude": ["node_modules", "dist", "out", "renderer"]
+}
