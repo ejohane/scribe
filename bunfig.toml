@@ -1,0 +1,16 @@
+# Bun configuration for Scribe monorepo
+
+[install]
+# Use workspaces
+workspaces = true
+
+# Frozen lockfile in CI
+frozen-lockfile = false
+
+[install.cache]
+# Cache dependencies
+dir = ".bun-cache"
+
+[test]
+# Test configuration
+preload = ["./test/setup.ts"]

@@ -1,0 +1,5 @@
+{
+  "extends": "@scribe/tsconfig/base.json",
+  "files": [],
+  "references": []
+}
