@@ -416,6 +416,448 @@ function updateEmbedIndex(state: AppState, parsed: ParsedNote): void {
 }
 
 /**
+ * Delta between two ParsedNote versions.
+ */
+export interface ParsedNoteDelta {
+  /**
+   * Note ID.
+   */
+  noteId: string;
+  /**
+   * Old version of the note (undefined if newly created).
+   */
+  oldNote?: ParsedNote;
+  /**
+   * New version of the note.
+   */
+  newNote: ParsedNote;
+  /**
+   * Tags that were added.
+   */
+  addedTags: string[];
+  /**
+   * Tags that were removed.
+   */
+  removedTags: string[];
+  /**
+   * Headings that were added.
+   */
+  addedHeadings: any[];
+  /**
+   * Headings that were removed.
+   */
+  removedHeadings: any[];
+  /**
+   * People mentions that were added.
+   */
+  addedPeopleMentions: any[];
+  /**
+   * People mentions that were removed.
+   */
+  removedPeopleMentions: any[];
+  /**
+   * Links that were added.
+   */
+  addedLinks: any[];
+  /**
+   * Links that were removed.
+   */
+  removedLinks: any[];
+  /**
+   * Embeds that were added.
+   */
+  addedEmbeds: any[];
+  /**
+   * Embeds that were removed.
+   */
+  removedEmbeds: any[];
+  /**
+   * Whether the title changed.
+   */
+  titleChanged: boolean;
+  /**
+   * Whether the path changed.
+   */
+  pathChanged: boolean;
+}
+
+/**
+ * Compute delta between two ParsedNote versions.
+ *
+ * @param oldNote - Previous version (undefined if newly created)
+ * @param newNote - New version
+ * @returns Delta object describing changes
+ */
+export function computeNoteDelta(
+  oldNote: ParsedNote | undefined,
+  newNote: ParsedNote
+): ParsedNoteDelta {
+  const noteId = newNote.id;
+
+  // Compute tag changes
+  const oldTags = new Set(oldNote?.allTags ?? []);
+  const newTags = new Set(newNote.allTags);
+  const addedTags = Array.from(newTags).filter((tag) => !oldTags.has(tag));
+  const removedTags = Array.from(oldTags).filter((tag) => !newTags.has(tag));
+
+  // Compute heading changes
+  const oldHeadingIds = new Set((oldNote?.headings ?? []).map((h) => h.id));
+  const newHeadingIds = new Set(newNote.headings.map((h) => h.id));
+  const addedHeadings = newNote.headings.filter((h) => !oldHeadingIds.has(h.id));
+  const removedHeadings = (oldNote?.headings ?? []).filter((h) => !newHeadingIds.has(h.id));
+
+  // Compute people mention changes
+  const oldMentionKeys = new Set(
+    (oldNote?.peopleMentions ?? []).map(
+      (m) => `${m.personName}:${m.position.line}:${m.position.column}`
+    )
+  );
+  const newMentionKeys = new Set(
+    newNote.peopleMentions.map((m) => `${m.personName}:${m.position.line}:${m.position.column}`)
+  );
+  const addedPeopleMentions = newNote.peopleMentions.filter(
+    (m) => !oldMentionKeys.has(`${m.personName}:${m.position.line}:${m.position.column}`)
+  );
+  const removedPeopleMentions = (oldNote?.peopleMentions ?? []).filter(
+    (m) => !newMentionKeys.has(`${m.personName}:${m.position.line}:${m.position.column}`)
+  );
+
+  // Compute link changes
+  const oldLinkKeys = new Set(
+    (oldNote?.links ?? []).map((l) => `${l.noteName}:${l.position.line}:${l.position.column}`)
+  );
+  const newLinkKeys = new Set(
+    newNote.links.map((l) => `${l.noteName}:${l.position.line}:${l.position.column}`)
+  );
+  const addedLinks = newNote.links.filter(
+    (l) => !oldLinkKeys.has(`${l.noteName}:${l.position.line}:${l.position.column}`)
+  );
+  const removedLinks = (oldNote?.links ?? []).filter(
+    (l) => !newLinkKeys.has(`${l.noteName}:${l.position.line}:${l.position.column}`)
+  );
+
+  // Compute embed changes
+  const oldEmbedKeys = new Set(
+    (oldNote?.embeds ?? []).map((e) => `${e.noteName}:${e.position.line}:${e.position.column}`)
+  );
+  const newEmbedKeys = new Set(
+    newNote.embeds.map((e) => `${e.noteName}:${e.position.line}:${e.position.column}`)
+  );
+  const addedEmbeds = newNote.embeds.filter(
+    (e) => !oldEmbedKeys.has(`${e.noteName}:${e.position.line}:${e.position.column}`)
+  );
+  const removedEmbeds = (oldNote?.embeds ?? []).filter(
+    (e) => !newEmbedKeys.has(`${e.noteName}:${e.position.line}:${e.position.column}`)
+  );
+
+  // Check title and path changes
+  const titleChanged = oldNote ? oldNote.resolvedTitle !== newNote.resolvedTitle : false;
+  const pathChanged = oldNote ? oldNote.path !== newNote.path : false;
+
+  return {
+    noteId,
+    oldNote,
+    newNote,
+    addedTags,
+    removedTags,
+    addedHeadings,
+    removedHeadings,
+    addedPeopleMentions,
+    removedPeopleMentions,
+    addedLinks,
+    removedLinks,
+    addedEmbeds,
+    removedEmbeds,
+    titleChanged,
+    pathChanged,
+  };
+}
+
+/**
+ * Apply incremental update to indices using computed delta.
+ *
+ * This is more efficient than re-registering the entire note
+ * when only small changes occurred.
+ *
+ * @param state - AppState to update
+ * @param delta - Computed delta
+ */
+export function applyNoteDelta(state: AppState, delta: ParsedNoteDelta): void {
+  const { noteId, oldNote, newNote } = delta;
+
+  // 1. Update note registry
+  if (oldNote) {
+    state.noteRegistry.update(newNote);
+  } else {
+    state.noteRegistry.add(newNote);
+  }
+
+  // 2. Update folder index (if path changed or new note)
+  if (!oldNote || delta.pathChanged) {
+    updateFolderIndex(state, newNote);
+  }
+
+  // 3. Update tag index (only if tags changed)
+  if (delta.addedTags.length > 0 || delta.removedTags.length > 0) {
+    updateTagIndexDelta(state, noteId, delta.removedTags, delta.addedTags);
+  }
+
+  // 4. Update heading index (only if headings changed)
+  if (delta.addedHeadings.length > 0 || delta.removedHeadings.length > 0) {
+    updateHeadingIndexDelta(state, noteId, delta.removedHeadings, delta.addedHeadings);
+  }
+
+  // 5. Update people index (only if mentions changed or this is a person note)
+  if (
+    delta.addedPeopleMentions.length > 0 ||
+    delta.removedPeopleMentions.length > 0 ||
+    newNote.path.startsWith('people/')
+  ) {
+    updatePeopleIndex(state, newNote);
+  }
+
+  // 6. Update embed index (only if embeds changed)
+  if (delta.addedEmbeds.length > 0 || delta.removedEmbeds.length > 0) {
+    updateEmbedIndex(state, newNote);
+  }
+
+  // 7. TODO: Update graph index with delta
+  // 8. TODO: Update search index with new plainText
+  // 9. TODO: Recompute unlinked mentions if title/aliases changed
+}
+
+/**
+ * Update tag index with delta (efficiently).
+ */
+function updateTagIndexDelta(
+  state: AppState,
+  noteId: string,
+  removedTags: string[],
+  addedTags: string[]
+): void {
+  // Remove old tags
+  const currentTags = state.tagIndex.tagsByNote.get(noteId) || new Set();
+  for (const tagId of removedTags) {
+    currentTags.delete(tagId);
+    const notesForTag = state.tagIndex.notesByTag.get(tagId);
+    if (notesForTag) {
+      notesForTag.delete(noteId);
+      const tag = state.tagIndex.tags.get(tagId);
+      if (tag) {
+        tag.usageCount = Math.max(0, tag.usageCount - 1);
+      }
+      if (notesForTag.size === 0) {
+        state.tagIndex.notesByTag.delete(tagId);
+        state.tagIndex.tags.delete(tagId);
+      }
+    }
+  }
+
+  // Add new tags
+  for (const tagId of addedTags) {
+    currentTags.add(tagId);
+
+    // Track tag
+    if (!state.tagIndex.tags.has(tagId)) {
+      const tag: Tag = {
+        id: tagId,
+        name: tagId.replace('tag:', ''),
+        usageCount: 0,
+      };
+      state.tagIndex.tags.set(tagId, tag);
+    }
+
+    // Increment usage count
+    const tag = state.tagIndex.tags.get(tagId);
+    if (tag) {
+      tag.usageCount++;
+    }
+
+    // Track note in tag
+    let notesForTag = state.tagIndex.notesByTag.get(tagId);
+    if (!notesForTag) {
+      notesForTag = new Set();
+      state.tagIndex.notesByTag.set(tagId, notesForTag);
+    }
+    notesForTag.add(noteId);
+  }
+
+  // Update the tagsByNote set
+  if (currentTags.size > 0) {
+    state.tagIndex.tagsByNote.set(noteId, currentTags);
+  } else {
+    state.tagIndex.tagsByNote.delete(noteId);
+  }
+}
+
+/**
+ * Update heading index with delta (efficiently).
+ */
+function updateHeadingIndexDelta(
+  state: AppState,
+  noteId: string,
+  removedHeadings: any[],
+  addedHeadings: any[]
+): void {
+  // Remove old headings
+  for (const heading of removedHeadings) {
+    state.headingIndex.byId.delete(heading.id);
+  }
+
+  // Get current heading IDs for this note
+  const currentHeadingIds = state.headingIndex.headingsByNote.get(noteId) || [];
+  const headingIdSet = new Set(currentHeadingIds);
+
+  // Remove deleted heading IDs
+  for (const heading of removedHeadings) {
+    headingIdSet.delete(heading.id);
+  }
+
+  // Add new headings
+  for (const heading of addedHeadings) {
+    const headingEntity: Heading = {
+      id: heading.id,
+      noteId: noteId,
+      level: heading.level,
+      text: heading.rawText,
+      normalized: heading.normalized,
+      line: heading.line,
+    };
+    state.headingIndex.byId.set(heading.id, headingEntity);
+    headingIdSet.add(heading.id);
+  }
+
+  // Update the headingsByNote mapping
+  if (headingIdSet.size > 0) {
+    state.headingIndex.headingsByNote.set(noteId, Array.from(headingIdSet));
+  } else {
+    state.headingIndex.headingsByNote.delete(noteId);
+  }
+}
+
+/**
+ * Handle file change events from the vault watcher.
+ *
+ * @param state - AppState to update
+ * @param events - Array of vault change events
+ * @returns Promise that resolves when all changes are processed
+ */
+export async function handleVaultChanges(state: AppState, events: any[]): Promise<void> {
+  for (const event of events) {
+    try {
+      switch (event.type) {
+        case 'add':
+          await handleFileCreated(state, event);
+          break;
+        case 'change':
+          await handleFileModified(state, event);
+          break;
+        case 'remove':
+          await handleFileDeleted(state, event);
+          break;
+        case 'rename':
+          await handleFileRenamed(state, event);
+          break;
+        default:
+          console.warn(`[Indexing] Unknown event type: ${event.type}`);
+      }
+    } catch (error) {
+      console.error(`[Indexing] Error handling event ${event.type} for ${event.path}:`, error);
+    }
+  }
+}
+
+/**
+ * Handle file created event.
+ */
+async function handleFileCreated(state: AppState, event: any): Promise<void> {
+  console.log(`[Indexing] File created: ${event.path}`);
+
+  // Read and parse the file
+  const { readFileSync, statSync } = await import('fs');
+  const absolutePath = event.path; // TODO: Resolve absolute path from vault
+  const content = readFileSync(absolutePath, 'utf-8');
+  const stats = statSync(absolutePath);
+
+  const rawFile: RawFile = {
+    path: event.path,
+    content,
+    lastModified: stats.mtimeMs,
+  };
+
+  const parsed = parseNote(rawFile);
+
+  // Register the new note (no delta needed for new files)
+  registerParsedNote(state, parsed);
+
+  console.log(`[Indexing] Registered new note: ${parsed.id}`);
+}
+
+/**
+ * Handle file modified event.
+ */
+async function handleFileModified(state: AppState, event: any): Promise<void> {
+  console.log(`[Indexing] File modified: ${event.path}`);
+
+  // Get the old note
+  const oldNote = state.noteRegistry.getNoteById(event.id);
+
+  // Read and parse the file
+  const { readFileSync, statSync } = await import('fs');
+  const absolutePath = event.path; // TODO: Resolve absolute path from vault
+  const content = readFileSync(absolutePath, 'utf-8');
+  const stats = statSync(absolutePath);
+
+  const rawFile: RawFile = {
+    path: event.path,
+    content,
+    lastModified: stats.mtimeMs,
+  };
+
+  const newNote = parseNote(rawFile);
+
+  // Compute delta
+  const delta = computeNoteDelta(oldNote, newNote);
+
+  // Apply delta
+  applyNoteDelta(state, delta);
+
+  console.log(
+    `[Indexing] Updated note: ${newNote.id} (${delta.addedTags.length} tags added, ${delta.removedTags.length} removed)`
+  );
+}
+
+/**
+ * Handle file deleted event.
+ */
+async function handleFileDeleted(state: AppState, event: any): Promise<void> {
+  console.log(`[Indexing] File deleted: ${event.path}`);
+
+  // Remove the note
+  removeNote(state, event.id);
+
+  console.log(`[Indexing] Removed note: ${event.id}`);
+}
+
+/**
+ * Handle file renamed event.
+ */
+async function handleFileRenamed(state: AppState, event: any): Promise<void> {
+  console.log(`[Indexing] File renamed: ${event.oldPath} -> ${event.path}`);
+
+  // Strategy: treat as delete + create
+  // First remove the old note
+  if (event.oldId) {
+    removeNote(state, event.oldId);
+  }
+
+  // Then create the new note
+  await handleFileCreated(state, event);
+
+  console.log(`[Indexing] Renamed note: ${event.oldId} -> ${event.id}`);
+}
+
+/**
  * Add or update a note in the index.
  */
 export function indexNote(state: AppState, note: ParsedNote): void {
