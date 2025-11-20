@@ -10,7 +10,7 @@ import { debounce } from '@scribe/utils';
 /**
  * File change event type.
  */
-export type FileChangeType = 'add' | 'change' | 'unlink';
+export type FileChangeType = 'add' | 'change' | 'unlink' | 'rename';
 
 /**
  * File change event.
@@ -18,6 +18,10 @@ export type FileChangeType = 'add' | 'change' | 'unlink';
 export interface FileChangeEvent {
   type: FileChangeType;
   path: string;
+  /**
+   * Old path for rename events.
+   */
+  oldPath?: string;
 }
 
 /**
@@ -53,6 +57,7 @@ export class FileWatcher {
   private onChange?: (events: FileChangeEvent[]) => void;
   private pendingEvents: FileChangeEvent[] = [];
   private flushEvents: () => void;
+  private pathCache = new Map<string, boolean>();
 
   constructor(private options: FileWatcherOptions) {
     // Create debounced flush function
@@ -77,9 +82,19 @@ export class FileWatcher {
       ignoreInitial: this.options.ignoreInitial !== false,
     });
 
-    this.watcher.on('add', (path) => this.handleEvent({ type: 'add', path }));
-    this.watcher.on('change', (path) => this.handleEvent({ type: 'change', path }));
-    this.watcher.on('unlink', (path) => this.handleEvent({ type: 'unlink', path }));
+    this.watcher.on('add', (path) => {
+      this.pathCache.set(path, true);
+      this.handleEvent({ type: 'add', path });
+    });
+
+    this.watcher.on('change', (path) => {
+      this.handleEvent({ type: 'change', path });
+    });
+
+    this.watcher.on('unlink', (path) => {
+      this.pathCache.delete(path);
+      this.handleEvent({ type: 'unlink', path });
+    });
   }
 
   /**
@@ -89,6 +104,7 @@ export class FileWatcher {
     if (this.watcher) {
       await this.watcher.close();
       this.watcher = undefined;
+      this.pathCache.clear();
     }
   }
 
