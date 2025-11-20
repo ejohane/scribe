@@ -5,7 +5,16 @@
  * Resolves wiki links, person mentions, and creates person notes.
  */
 
-import type { NoteRegistry, LinkRef, EmbedRef, NoteId, FilePath } from '@scribe/domain-model';
+import type {
+  NoteRegistry,
+  LinkRef,
+  EmbedRef,
+  NoteId,
+  FilePath,
+  HeadingIndex,
+  HeadingId,
+} from '@scribe/domain-model';
+import { normalizeHeading } from '@scribe/utils';
 
 /**
  * Resolution status for links and embeds.
@@ -236,6 +245,162 @@ export function resolveEmbedRef(
   options?: ResolutionOptions
 ): LinkResolutionResult {
   return resolveNoteLink(embed.noteName, registry, options);
+}
+
+/**
+ * Resolution status for heading links.
+ */
+export type HeadingResolutionStatus =
+  | 'resolved'
+  | 'unresolved'
+  | 'ambiguous-note'
+  | 'note-unresolved';
+
+/**
+ * Heading resolution result for [[Note#Heading]] links.
+ */
+export interface HeadingResolutionResult {
+  /**
+   * The resolution status.
+   * - 'resolved': Both note and heading were successfully resolved
+   * - 'unresolved': Note was resolved but heading was not found
+   * - 'ambiguous-note': Multiple notes matched, cannot resolve heading
+   * - 'note-unresolved': Note itself could not be resolved
+   */
+  status: HeadingResolutionStatus;
+
+  /**
+   * The resolved note ID (present when note is resolved).
+   */
+  noteId?: NoteId;
+
+  /**
+   * The resolved heading ID (only present when status is 'resolved').
+   */
+  headingId?: HeadingId;
+
+  /**
+   * Candidate note IDs when note resolution is ambiguous.
+   */
+  noteCandidates?: NoteId[];
+}
+
+/**
+ * Resolve a heading link reference ([[Note#Heading]]).
+ *
+ * This implements the two-phase resolution algorithm:
+ * 1. Resolve the note portion using resolveNoteLink
+ * 2. If note is resolved, resolve the heading anchor within that note
+ *
+ * The heading text is normalized using the same rules as heading creation
+ * (lowercase, spaces to hyphens, special chars removed) to match against
+ * the HeadingIndex.
+ *
+ * @param noteName - The note name from [[Note#Heading]]
+ * @param headingText - The heading text from [[Note#Heading]]
+ * @param registry - The note registry
+ * @param headingIndex - The heading index
+ * @param options - Optional resolution configuration for note resolution
+ * @returns Heading resolution result with status and IDs
+ *
+ * @example
+ * ```ts
+ * const result = resolveHeadingLink('Plan', 'Goals and Scope', registry, headingIndex);
+ * if (result.status === 'resolved') {
+ *   console.log(`Resolved to: ${result.noteId}#${result.headingId}`);
+ * } else if (result.status === 'ambiguous-note') {
+ *   console.log(`Ambiguous note: ${result.noteCandidates?.length} candidates`);
+ * } else if (result.status === 'unresolved') {
+ *   console.log(`Note found but heading not found`);
+ * }
+ * ```
+ */
+export function resolveHeadingLink(
+  noteName: string,
+  headingText: string,
+  registry: NoteRegistry,
+  headingIndex: HeadingIndex,
+  options?: ResolutionOptions
+): HeadingResolutionResult {
+  // Step 1: Resolve the note
+  const noteResult = resolveNoteLink(noteName, registry, options);
+
+  // If note is unresolved, propagate that status
+  if (noteResult.status === 'unresolved') {
+    return {
+      status: 'note-unresolved',
+    };
+  }
+
+  // If note is ambiguous, propagate that status
+  if (noteResult.status === 'ambiguous') {
+    return {
+      status: 'ambiguous-note',
+      noteCandidates: noteResult.candidates,
+    };
+  }
+
+  // Note is resolved, now resolve the heading
+  const noteId = noteResult.targetId!;
+
+  // Step 2: Resolve the heading within the note
+  const normalizedHeading = normalizeHeading(headingText);
+
+  // Get all headings for this note
+  const headingIds = headingIndex.headingsByNote.get(noteId);
+  if (!headingIds || headingIds.length === 0) {
+    // Note has no headings
+    return {
+      status: 'unresolved',
+      noteId,
+    };
+  }
+
+  // Find matching heading
+  for (const headingId of headingIds) {
+    const heading = headingIndex.byId.get(headingId);
+    if (heading && heading.normalized === normalizedHeading) {
+      return {
+        status: 'resolved',
+        noteId,
+        headingId,
+      };
+    }
+  }
+
+  // Heading not found in note
+  return {
+    status: 'unresolved',
+    noteId,
+  };
+}
+
+/**
+ * Resolve a LinkRef with heading (convenience wrapper).
+ *
+ * This function handles LinkRef objects that may contain a heading portion.
+ * If the link has no heading, it returns a heading-specific result indicating
+ * that only the note was resolved.
+ *
+ * @param link - The link reference from parsed note
+ * @param registry - The note registry
+ * @param headingIndex - The heading index
+ * @param options - Optional resolution configuration
+ * @returns Heading resolution result
+ */
+export function resolveLinkRefWithHeading(
+  link: LinkRef,
+  registry: NoteRegistry,
+  headingIndex: HeadingIndex,
+  options?: ResolutionOptions
+): HeadingResolutionResult | LinkResolutionResult {
+  // If no heading text, just resolve the note
+  if (!link.headingText) {
+    return resolveLinkRef(link, registry, options);
+  }
+
+  // Resolve both note and heading
+  return resolveHeadingLink(link.noteName, link.headingText, registry, headingIndex, options);
 }
 
 /**

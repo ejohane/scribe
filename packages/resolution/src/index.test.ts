@@ -3,9 +3,24 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { resolveNoteLink, resolveLinkRef, resolveEmbedRef, normalizeForLookup } from './index.js';
+import {
+  resolveNoteLink,
+  resolveLinkRef,
+  resolveEmbedRef,
+  normalizeForLookup,
+  resolveHeadingLink,
+  resolveLinkRefWithHeading,
+} from './index.js';
 import { NoteRegistry } from '@scribe/domain-model';
-import type { ParsedNote, LinkRef, EmbedRef } from '@scribe/domain-model';
+import type {
+  ParsedNote,
+  LinkRef,
+  EmbedRef,
+  HeadingIndex,
+  Heading,
+  HeadingId,
+} from '@scribe/domain-model';
+import { generateHeadingId } from '@scribe/utils';
 
 /**
  * Helper to create a minimal ParsedNote for testing.
@@ -400,5 +415,319 @@ describe('resolveEmbedRef', () => {
     const result = resolveEmbedRef(embed, registry);
     expect(result.status).toBe('ambiguous');
     expect(result.candidates).toHaveLength(2);
+  });
+});
+
+describe('resolveHeadingLink', () => {
+  let registry: NoteRegistry;
+  let headingIndex: HeadingIndex;
+
+  beforeEach(() => {
+    registry = new NoteRegistry();
+    headingIndex = {
+      byId: new Map(),
+      headingsByNote: new Map(),
+    };
+  });
+
+  /**
+   * Helper to add a heading to the index.
+   */
+  function addHeading(
+    noteId: string,
+    text: string,
+    normalized: string,
+    level: number = 2,
+    line: number = 1
+  ): void {
+    const headingId = generateHeadingId(noteId, text);
+
+    const heading: Heading = {
+      id: headingId,
+      noteId,
+      level,
+      text,
+      normalized,
+      line,
+    };
+
+    headingIndex.byId.set(headingId, heading);
+
+    const headings = headingIndex.headingsByNote.get(noteId) || [];
+    headings.push(headingId);
+    headingIndex.headingsByNote.set(noteId, headings);
+  }
+
+  describe('successful resolution', () => {
+    test('resolves note and heading', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Goals and Scope', 'goals-and-scope');
+
+      const result = resolveHeadingLink('Plan', 'Goals and Scope', registry, headingIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.noteId).toBe('note-1');
+      expect(result.headingId).toBeDefined();
+    });
+
+    test('handles case-insensitive heading matching', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Goals and Scope', 'goals-and-scope');
+
+      const result = resolveHeadingLink('plan', 'GOALS AND SCOPE', registry, headingIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.noteId).toBe('note-1');
+    });
+
+    test('normalizes heading text with special characters', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Q&A Section', 'qa-section');
+
+      const result = resolveHeadingLink('Plan', 'Q&A Section', registry, headingIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.noteId).toBe('note-1');
+    });
+
+    test('normalizes heading text with multiple spaces', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Multiple   Spaces', 'multiple-spaces');
+
+      const result = resolveHeadingLink('Plan', 'Multiple   Spaces', registry, headingIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.noteId).toBe('note-1');
+    });
+
+    test('resolves when note has multiple headings', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Introduction', 'introduction', 2, 1);
+      addHeading('note-1', 'Goals and Scope', 'goals-and-scope', 2, 5);
+      addHeading('note-1', 'Timeline', 'timeline', 2, 10);
+
+      const result = resolveHeadingLink('Plan', 'Goals and Scope', registry, headingIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.noteId).toBe('note-1');
+    });
+  });
+
+  describe('heading not found', () => {
+    test('returns unresolved when heading not in note', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Introduction', 'introduction');
+
+      const result = resolveHeadingLink('Plan', 'Nonexistent', registry, headingIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.noteId).toBe('note-1');
+      expect(result.headingId).toBeUndefined();
+    });
+
+    test('returns unresolved when note has no headings', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+
+      const result = resolveHeadingLink('Plan', 'Any Heading', registry, headingIndex);
+      expect(result.status).toBe('unresolved');
+      expect(result.noteId).toBe('note-1');
+      expect(result.headingId).toBeUndefined();
+    });
+  });
+
+  describe('note resolution failures', () => {
+    test('returns note-unresolved when note does not exist', () => {
+      const result = resolveHeadingLink('Nonexistent', 'Introduction', registry, headingIndex);
+      expect(result.status).toBe('note-unresolved');
+      expect(result.noteId).toBeUndefined();
+      expect(result.headingId).toBeUndefined();
+    });
+
+    test('returns ambiguous-note when multiple notes match', () => {
+      const note1 = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      const note2 = createNote({
+        id: 'note-2',
+        path: 'projects/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note1);
+      registry.add(note2);
+
+      const result = resolveHeadingLink('Plan', 'Introduction', registry, headingIndex);
+      expect(result.status).toBe('ambiguous-note');
+      expect(result.noteId).toBeUndefined();
+      expect(result.headingId).toBeUndefined();
+      expect(result.noteCandidates).toHaveLength(2);
+      expect(result.noteCandidates).toContain('note-1');
+      expect(result.noteCandidates).toContain('note-2');
+    });
+  });
+
+  describe('edge cases', () => {
+    test('handles empty heading text', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Introduction', 'introduction');
+
+      const result = resolveHeadingLink('Plan', '', registry, headingIndex);
+      expect(result.status).toBe('unresolved');
+    });
+
+    test('handles heading text with only whitespace', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'Introduction', 'introduction');
+
+      const result = resolveHeadingLink('Plan', '   ', registry, headingIndex);
+      expect(result.status).toBe('unresolved');
+    });
+
+    test('handles heading with underscores', () => {
+      const note = createNote({
+        id: 'note-1',
+        path: 'notes/plan.md',
+        resolvedTitle: 'Plan',
+      });
+      registry.add(note);
+      addHeading('note-1', 'my_variable_name', 'my_variable_name');
+
+      const result = resolveHeadingLink('Plan', 'my_variable_name', registry, headingIndex);
+      expect(result.status).toBe('resolved');
+      expect(result.noteId).toBe('note-1');
+    });
+  });
+});
+
+describe('resolveLinkRefWithHeading', () => {
+  let registry: NoteRegistry;
+  let headingIndex: HeadingIndex;
+
+  beforeEach(() => {
+    registry = new NoteRegistry();
+    headingIndex = {
+      byId: new Map(),
+      headingsByNote: new Map(),
+    };
+  });
+
+  function addHeading(noteId: string, text: string, normalized: string, level: number = 2): void {
+    const headingId = generateHeadingId(noteId, text);
+    const heading: Heading = {
+      id: headingId,
+      noteId,
+      level,
+      text,
+      normalized,
+      line: 1,
+    };
+    headingIndex.byId.set(headingId, heading);
+    const headings = headingIndex.headingsByNote.get(noteId) || [];
+    headings.push(headingId);
+    headingIndex.headingsByNote.set(noteId, headings);
+  }
+
+  test('resolves link with heading', () => {
+    const note = createNote({
+      id: 'note-1',
+      path: 'notes/plan.md',
+      resolvedTitle: 'Plan',
+    });
+    registry.add(note);
+    addHeading('note-1', 'Goals', 'goals');
+
+    const link: LinkRef = {
+      raw: '[[Plan#Goals]]',
+      targetText: 'Plan#Goals',
+      noteName: 'Plan',
+      headingText: 'Goals',
+      position: { line: 1, column: 0 },
+    };
+
+    const result = resolveLinkRefWithHeading(link, registry, headingIndex);
+    expect(result.status).toBe('resolved');
+    expect((result as any).noteId).toBe('note-1');
+    expect((result as any).headingId).toBeDefined();
+  });
+
+  test('resolves link without heading (returns LinkResolutionResult)', () => {
+    const note = createNote({
+      id: 'note-1',
+      path: 'notes/plan.md',
+      resolvedTitle: 'Plan',
+    });
+    registry.add(note);
+
+    const link: LinkRef = {
+      raw: '[[Plan]]',
+      targetText: 'Plan',
+      noteName: 'Plan',
+      position: { line: 1, column: 0 },
+    };
+
+    const result = resolveLinkRefWithHeading(link, registry, headingIndex);
+    expect(result.status).toBe('resolved');
+    expect((result as any).targetId).toBe('note-1');
+  });
+
+  test('handles unresolved heading', () => {
+    const note = createNote({
+      id: 'note-1',
+      path: 'notes/plan.md',
+      resolvedTitle: 'Plan',
+    });
+    registry.add(note);
+
+    const link: LinkRef = {
+      raw: '[[Plan#Nonexistent]]',
+      targetText: 'Plan#Nonexistent',
+      noteName: 'Plan',
+      headingText: 'Nonexistent',
+      position: { line: 1, column: 0 },
+    };
+
+    const result = resolveLinkRefWithHeading(link, registry, headingIndex);
+    expect(result.status).toBe('unresolved');
+    expect((result as any).noteId).toBe('note-1');
   });
 });
