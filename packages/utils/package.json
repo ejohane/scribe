@@ -14,6 +14,9 @@
     "lint": "eslint src",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@scribe/domain-model": "workspace:*"
+  },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
