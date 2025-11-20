@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Script to create a new git worktree and tmux session
+# Usage: new-branch <branch-name> [base-branch]
+
+if [ -z "$1" ]; then
+    echo "Usage: new-branch <branch-name> [base-branch]"
+    echo "  branch-name: Name of the new branch to create"
+    echo "  base-branch: Optional base branch (defaults to current branch)"
+    exit 1
+fi
+
+BRANCH_NAME="$1"
+BASE_BRANCH="${2:-HEAD}"
+WORKTREE_DIR=".branches/${BRANCH_NAME}"
+
+# Get the root of the git repository
+GIT_ROOT=$(git rev-parse --show-toplevel)
+
+# Full path to worktree
+WORKTREE_PATH="${GIT_ROOT}/${WORKTREE_DIR}"
+
+# Check if worktree already exists
+if [ -d "$WORKTREE_PATH" ]; then
+    echo "Error: Worktree directory already exists: $WORKTREE_PATH"
+    exit 1
+fi
+
+# Check if branch already exists
+if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
+    echo "Error: Branch '${BRANCH_NAME}' already exists"
+    exit 1
+fi
+
+# Create the worktree
+echo "Creating worktree for branch '${BRANCH_NAME}' at ${WORKTREE_DIR}..."
+git worktree add -b "${BRANCH_NAME}" "${WORKTREE_PATH}" "${BASE_BRANCH}"
+
+# Check if we're inside a tmux session
+if [ -n "$TMUX" ]; then
+    # We're in tmux, create a new session in a detached state
+    echo "Creating tmux session '${BRANCH_NAME}'..."
+    tmux new-session -d -s "${BRANCH_NAME}" -c "${WORKTREE_PATH}"
+    echo "✓ Worktree created at: ${WORKTREE_PATH}"
+    echo "✓ Tmux session '${BRANCH_NAME}' created"
+    echo ""
+    echo "To switch to the new session, run:"
+    echo "  tmux switch-client -t ${BRANCH_NAME}"
+else
+    # We're not in tmux, create and attach to the session
+    echo "Creating and attaching to tmux session '${BRANCH_NAME}'..."
+    tmux new-session -s "${BRANCH_NAME}" -c "${WORKTREE_PATH}"
+fi
