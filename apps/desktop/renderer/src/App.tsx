@@ -4,51 +4,64 @@
 
 import { useState, useEffect } from 'react';
 import { CoreClient } from '@scribe/core-client';
-
-// Declare the window.scribeAPI type
-declare global {
-  interface Window {
-    scribeAPI?: {
-      sendRPCRequest: (message: unknown) => Promise<unknown>;
-    };
-  }
-}
+import { Editor } from './components/Editor';
 
 export function App() {
-  const [status, setStatus] = useState<string>('Connecting...');
   const [coreClient] = useState(() => new CoreClient());
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // Initialize Core Client when component mounts
-    if (window.scribeAPI) {
-      coreClient.initialize(async (message) => {
-        return await window.scribeAPI!.sendRPCRequest(message);
-      });
-    } else {
-      setStatus('Error: Not running in Electron environment');
-      return;
-    }
+    coreClient.initialize(async (message) => {
+      return await window.scribeAPI.sendRPCRequest(message);
+    });
 
     // Test the connection to Core Engine
     const testConnection = async () => {
       try {
-        const result = await coreClient.ping();
-        setStatus(`Connected - ${result.status}`);
+        await coreClient.ping();
+        setIsConnected(true);
       } catch (error) {
-        setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('Core Engine connection failed:', error);
+        setIsConnected(false);
       }
     };
 
     testConnection();
   }, [coreClient]);
 
+  const handleContentChange = (content: string) => {
+    // TODO: Will implement autosave in scribe-752
+    console.log('Content changed:', content.length, 'characters');
+  };
+
+  const handleSelectionChange = (start: number, end: number) => {
+    // Selection tracking for reveal-on-cursor rendering (scribe-751)
+    console.log('Selection:', start, end);
+  };
+
+  if (!isConnected) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          fontFamily: 'system-ui',
+          color: '#666',
+        }}
+      >
+        Connecting to Core Engine...
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'system-ui' }}>
-      <h1>Scribe</h1>
-      <p>Personal note-taking system</p>
-      <p>
-        <strong>Core Engine Status:</strong> {status}
-      </p>
-    </div>
+    <Editor
+      initialContent="# Welcome to Scribe\n\nStart typing..."
+      onChange={handleContentChange}
+      onSelectionChange={handleSelectionChange}
+    />
   );
 }

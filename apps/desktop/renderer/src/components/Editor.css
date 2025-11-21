@@ -1,0 +1,120 @@
+/**
+ * Dual-layer editor styles
+ * - Input layer: transparent contentEditable surface for typing
+ * - Overlay layer: read-only surface for markdown rendering
+ * Both layers are perfectly aligned with synchronized scroll
+ */
+
+.editor-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* Input layer - transparent typing surface */
+.editor-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  overflow: auto;
+
+  /* Typography matching */
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+
+  /* Make text color transparent so overlay shows through */
+  color: transparent;
+  caret-color: #000000;
+
+  /* Remove browser styling */
+  outline: none;
+  border: none;
+
+  /* Text rendering */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Ensure consistent spacing */
+  margin: 0;
+
+  /* Allow selection highlight to show */
+  /* We keep selection styling visible for cursor positioning */
+}
+
+/* Show selection highlight */
+.editor-input::selection {
+  background: rgba(0, 123, 255, 0.2);
+  color: transparent;
+}
+
+/* Overlay layer - read-only rendered markdown */
+.editor-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  overflow: hidden; /* Scrolling happens on input layer */
+
+  /* Typography matching input layer exactly */
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+
+  color: #000000;
+
+  /* Prevent interaction */
+  pointer-events: none;
+  user-select: none;
+
+  /* Text rendering */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Ensure consistent spacing */
+  margin: 0;
+}
+
+.editor-overlay-content {
+  /* Container for rendered markdown spans */
+  /* Will be replaced with actual markdown rendering later */
+  min-height: 100%;
+}
+
+/* Ensure both layers have identical box model */
+.editor-input,
+.editor-overlay {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar for clean aesthetic (webkit browsers) */
+.editor-input::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.editor-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-input::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+
+.editor-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
