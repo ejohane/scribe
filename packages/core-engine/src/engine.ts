@@ -12,6 +12,7 @@ import {
 import type { StateChangeEvent, IndexingReadiness } from '@scribe/indexing';
 import { SearchEngine } from '@scribe/search';
 import { FileWatcher } from '@scribe/file-watcher';
+import { Vault, VaultMutations } from '@scribe/vault';
 import type { AppState } from '@scribe/domain-model';
 import { JSONRPCServer } from './rpc/server.js';
 import { registerHandlers } from './rpc/handlers.js';
@@ -34,6 +35,8 @@ export class CoreEngine {
   private searchEngine: SearchEngine;
   private fileWatcher?: FileWatcher;
   private rpcServer: JSONRPCServer;
+  private vault?: Vault;
+  private vaultMutations?: VaultMutations;
   private stateChangeUnsubscribe?: () => void;
 
   constructor(private options: CoreEngineOptions = {}) {
@@ -43,11 +46,17 @@ export class CoreEngine {
     // Initialize search engine
     this.searchEngine = new SearchEngine();
 
+    // Initialize vault if path provided
+    if (options.vaultPath) {
+      this.vault = new Vault({ vaultPath: options.vaultPath });
+      this.vaultMutations = new VaultMutations(this.vault);
+    }
+
     // Initialize JSON-RPC server
     this.rpcServer = new JSONRPCServer();
 
     // Register RPC handlers
-    registerHandlers(this.rpcServer, this.state, this.searchEngine);
+    registerHandlers(this.rpcServer, this.state, this.searchEngine, this.vaultMutations);
 
     // Subscribe to state change events
     this.stateChangeUnsubscribe = addStateChangeListener((event) => {

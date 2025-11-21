@@ -89,6 +89,29 @@ export class CoreClient {
       incoming: unknown[];
     };
   }
+
+  /**
+   * Get note content (raw markdown).
+   */
+  async getNoteContent(noteId: NoteId): Promise<string> {
+    const result = (await this.request('getNoteContent', { noteId })) as {
+      content: string;
+    };
+    return result.content;
+  }
+
+  /**
+   * Update note content (autosave).
+   */
+  async updateNoteContent(
+    noteId: NoteId,
+    content: string
+  ): Promise<{ success: boolean; path?: string }> {
+    return (await this.request('updateNoteContent', { noteId, content })) as {
+      success: boolean;
+      path?: string;
+    };
+  }
 }
 
 export * from './types.js';
