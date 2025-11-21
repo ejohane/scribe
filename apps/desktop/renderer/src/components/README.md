@@ -74,9 +74,46 @@ Tokens include:
 
 See `workers/README.md` for detailed documentation.
 
+## Reveal-on-Cursor Rendering (scribe-751) ✅
+
+The overlay now renders markdown with reveal-on-cursor behavior:
+
+### MarkdownOverlay Component
+
+- Renders parsed tokens with appropriate formatting
+- Hides markdown markers when cursor is away
+- Reveals raw markdown when cursor is nearby (±1 char buffer)
+- Smooth transitions for marker visibility
+
+### Active vs Inactive Tokens
+
+**Active (cursor nearby):**
+
+- Shows raw markdown: `**bold**`, `*italic*`, `[[link]]`
+- Color: gray (#666) to indicate edit mode
+- No formatting applied
+
+**Inactive (cursor away):**
+
+- Hides markers: shows "bold", "italic", "link"
+- Applies formatting: **bold**, _italic_, etc.
+- Color: black (#000)
+- Full typography styling
+
+### Supported Formatting
+
+- Headings with size scaling
+- Bold and italic text
+- Inline code with monospace font
+- Links with underline and color
+- List items with indentation
+
+### Graceful Fallback
+
+If parsing fails or tokens aren't ready, falls back to plain text display.
+
 ## Next Steps
 
-- **scribe-751**: Overlay will render markdown with reveal-on-cursor using tokens
 - **scribe-752**: Load/save integration with CoreClient
 - **scribe-753**: Command palette integration
 

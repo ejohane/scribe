@@ -6,6 +6,7 @@
 
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { useMarkdownParser } from '../hooks/useMarkdownParser';
+import { MarkdownOverlay } from './MarkdownOverlay';
 import './Editor.css';
 
 interface EditorProps {
@@ -19,6 +20,8 @@ interface EditorProps {
 
 export function Editor({ initialContent = '', onChange, onSelectionChange }: EditorProps) {
   const [content, setContent] = useState(initialContent);
+  const [selectionStart, setSelectionStart] = useState(0);
+  const [selectionEnd, setSelectionEnd] = useState(0);
   const inputRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,6 +72,8 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
   const handleSelectionChange = useCallback(() => {
     const offsets = getSelectionOffsets();
     if (offsets) {
+      setSelectionStart(offsets[0]);
+      setSelectionEnd(offsets[1]);
       onSelectionChange?.(offsets[0], offsets[1]);
     }
   }, [getSelectionOffsets, onSelectionChange]);
@@ -108,30 +113,15 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
 
   return (
     <div className="editor-container" ref={containerRef}>
-      {/* Read-only overlay layer - will be used for markdown rendering */}
+      {/* Read-only overlay layer - renders markdown with reveal-on-cursor */}
       <div className="editor-overlay" ref={overlayRef} aria-hidden="true">
-        {/* Token-based rendering placeholder - will be enhanced in scribe-751 */}
         <div className="editor-overlay-content">
-          {/* For now, mirror content - token rendering in scribe-751 */}
-          {content}
-          {/* Debug: show token count in dev mode */}
-          {process.env.NODE_ENV === 'development' && tokens.length > 0 && (
-            <div
-              style={{
-                position: 'fixed',
-                bottom: '10px',
-                right: '10px',
-                background: 'rgba(0,0,0,0.7)',
-                color: 'white',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                pointerEvents: 'none',
-              }}
-            >
-              {tokens.length} tokens parsed
-            </div>
-          )}
+          <MarkdownOverlay
+            tokens={tokens}
+            selectionStart={selectionStart}
+            selectionEnd={selectionEnd}
+            fallbackText={content}
+          />
         </div>
       </div>
 
