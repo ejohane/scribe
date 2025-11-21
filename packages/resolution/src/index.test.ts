@@ -13,15 +13,13 @@ import {
   resolvePersonMention,
   resolvePersonMentionRef,
 } from './index.js';
-import { NoteRegistry } from '@scribe/domain-model';
+import { NoteRegistry, HeadingRegistry, PeopleRegistry } from '@scribe/domain-model';
 import type {
   ParsedNote,
   LinkRef,
   EmbedRef,
-  HeadingIndex,
   Heading,
   HeadingId,
-  PeopleIndex,
   Person,
   PersonMentionRef,
 } from '@scribe/domain-model';
@@ -425,18 +423,21 @@ describe('resolveEmbedRef', () => {
 
 describe('resolveHeadingLink', () => {
   let registry: NoteRegistry;
-  let headingIndex: HeadingIndex;
+  let headingIndex: HeadingRegistry;
+  const headingsPerNote: Map<
+    string,
+    Array<{ level: number; text: string; line: number }>
+  > = new Map();
 
   beforeEach(() => {
     registry = new NoteRegistry();
-    headingIndex = {
-      byId: new Map(),
-      headingsByNote: new Map(),
-    };
+    headingIndex = new HeadingRegistry();
+    headingsPerNote.clear();
   });
 
   /**
    * Helper to add a heading to the index.
+   * Accumulates headings per note and then adds them all at once.
    */
   function addHeading(
     noteId: string,
@@ -445,22 +446,13 @@ describe('resolveHeadingLink', () => {
     level: number = 2,
     line: number = 1
   ): void {
-    const headingId = generateHeadingId(noteId, text);
+    // Get existing headings for this note
+    const existing = headingsPerNote.get(noteId) || [];
+    existing.push({ level, text, line });
+    headingsPerNote.set(noteId, existing);
 
-    const heading: Heading = {
-      id: headingId,
-      noteId,
-      level,
-      text,
-      normalized,
-      line,
-    };
-
-    headingIndex.byId.set(headingId, heading);
-
-    const headings = headingIndex.headingsByNote.get(noteId) || [];
-    headings.push(headingId);
-    headingIndex.headingsByNote.set(noteId, headings);
+    // Update the registry with all headings for this note
+    headingIndex.addHeadingsForNote(noteId as any, existing);
   }
 
   describe('successful resolution', () => {
@@ -646,30 +638,21 @@ describe('resolveHeadingLink', () => {
 
 describe('resolveLinkRefWithHeading', () => {
   let registry: NoteRegistry;
-  let headingIndex: HeadingIndex;
+  let headingIndex: HeadingRegistry;
 
   beforeEach(() => {
     registry = new NoteRegistry();
-    headingIndex = {
-      byId: new Map(),
-      headingsByNote: new Map(),
-    };
+    headingIndex = new HeadingRegistry();
   });
 
   function addHeading(noteId: string, text: string, normalized: string, level: number = 2): void {
-    const headingId = generateHeadingId(noteId, text);
-    const heading: Heading = {
-      id: headingId,
-      noteId,
-      level,
-      text,
-      normalized,
-      line: 1,
-    };
-    headingIndex.byId.set(headingId, heading);
-    const headings = headingIndex.headingsByNote.get(noteId) || [];
-    headings.push(headingId);
-    headingIndex.headingsByNote.set(noteId, headings);
+    headingIndex.addHeadingsForNote(noteId as any, [
+      {
+        level,
+        text,
+        line: 1,
+      },
+    ]);
   }
 
   test('resolves link with heading', () => {
@@ -738,15 +721,10 @@ describe('resolveLinkRefWithHeading', () => {
 });
 
 describe('resolvePersonMention', () => {
-  let peopleIndex: PeopleIndex;
+  let peopleIndex: PeopleRegistry;
 
   beforeEach(() => {
-    peopleIndex = {
-      byId: new Map(),
-      byName: new Map(),
-      mentionsByPerson: new Map(),
-      peopleByNote: new Map(),
-    };
+    peopleIndex = new PeopleRegistry();
   });
 
   /**
@@ -754,15 +732,14 @@ describe('resolvePersonMention', () => {
    */
   function addPerson(id: string, name: string): void {
     const person: Person = {
-      id,
-      noteId: `people/${id}.md`,
-      path: `people/${id}.md`,
+      id: id as any,
+      noteId: `people/${id}.md` as any,
+      path: `people/${id}.md` as any,
       name,
       metadata: {},
     };
 
-    peopleIndex.byId.set(id, person);
-    peopleIndex.byName.set(name, id);
+    peopleIndex.addPerson(person);
   }
 
   describe('successful resolution', () => {
@@ -924,27 +901,22 @@ describe('resolvePersonMention', () => {
 });
 
 describe('resolvePersonMentionRef', () => {
-  let peopleIndex: PeopleIndex;
+  let peopleIndex: PeopleRegistry;
 
   beforeEach(() => {
-    peopleIndex = {
-      byId: new Map(),
-      byName: new Map(),
-      mentionsByPerson: new Map(),
-      peopleByNote: new Map(),
-    };
+    peopleIndex = new PeopleRegistry();
   });
 
   function addPerson(id: string, name: string): void {
     const person: Person = {
-      id,
-      noteId: `people/${id}.md`,
-      path: `people/${id}.md`,
+      id: id as any,
+      noteId: `people/${id}.md` as any,
+      path: `people/${id}.md` as any,
       name,
       metadata: {},
     };
-    peopleIndex.byId.set(id, person);
-    peopleIndex.byName.set(name, person.id);
+
+    peopleIndex.addPerson(person);
   }
 
   test('resolves PersonMentionRef object', () => {
