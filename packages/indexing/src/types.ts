@@ -44,3 +44,90 @@ export interface IndexingOptions {
    */
   detectUnlinkedMentions?: boolean;
 }
+
+/**
+ * Event types for state change notifications.
+ */
+export type StateChangeEventType =
+  | 'note-added'
+  | 'note-updated'
+  | 'note-removed'
+  | 'indexing-started'
+  | 'indexing-progress'
+  | 'indexing-complete'
+  | 'state-snapshot';
+
+/**
+ * Event payload for state changes.
+ */
+export interface StateChangeEvent {
+  /**
+   * Type of the event.
+   */
+  type: StateChangeEventType;
+
+  /**
+   * Timestamp of the event.
+   */
+  timestamp: number;
+
+  /**
+   * Event-specific data.
+   */
+  data?: any;
+}
+
+/**
+ * Listener for state change events.
+ */
+export type StateChangeListener = (event: StateChangeEvent) => void;
+
+/**
+ * Transaction context for batching state updates.
+ */
+export interface TransactionContext {
+  /**
+   * Transaction ID.
+   */
+  id: string;
+
+  /**
+   * Start time of the transaction.
+   */
+  startTime: number;
+
+  /**
+   * Events accumulated during the transaction.
+   */
+  events: StateChangeEvent[];
+}
+
+/**
+ * Indexing readiness state.
+ */
+export interface IndexingReadiness {
+  /**
+   * Whether initial indexing is complete.
+   */
+  isReady: boolean;
+
+  /**
+   * Number of files indexed so far.
+   */
+  filesIndexed: number;
+
+  /**
+   * Total number of files to index.
+   */
+  totalFiles: number;
+
+  /**
+   * Progress percentage (0-100).
+   */
+  progress: number;
+
+  /**
+   * Whether minimum threshold for UI readiness is met.
+   */
+  isMinimallyReady: boolean;
+}

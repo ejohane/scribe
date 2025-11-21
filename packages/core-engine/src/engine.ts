@@ -2,7 +2,14 @@
  * Core Engine implementation.
  */
 
-import { createAppState } from '@scribe/indexing';
+import {
+  createAppState,
+  addStateChangeListener,
+  getIndexingReadiness,
+  handleVaultChanges,
+  publishStateSnapshot,
+} from '@scribe/indexing';
+import type { StateChangeEvent, IndexingReadiness } from '@scribe/indexing';
 import { SearchEngine } from '@scribe/search';
 import { FileWatcher } from '@scribe/file-watcher';
 import type { AppState } from '@scribe/domain-model';
@@ -27,6 +34,7 @@ export class CoreEngine {
   private searchEngine: SearchEngine;
   private fileWatcher?: FileWatcher;
   private rpcServer: JSONRPCServer;
+  private stateChangeUnsubscribe?: () => void;
 
   constructor(private options: CoreEngineOptions = {}) {
     // Initialize state
@@ -40,6 +48,11 @@ export class CoreEngine {
 
     // Register RPC handlers
     registerHandlers(this.rpcServer, this.state, this.searchEngine);
+
+    // Subscribe to state change events
+    this.stateChangeUnsubscribe = addStateChangeListener((event) => {
+      this.onStateChange(event);
+    });
   }
 
   /**
@@ -56,20 +69,64 @@ export class CoreEngine {
         debounceDelay: 300,
       });
 
-      this.fileWatcher.start((events) => {
+      this.fileWatcher.start(async (events) => {
         console.log(`[Core Engine] File changes:`, events);
-        // TODO: Process file change events
+
+        try {
+          // Process file change events using transactional updates
+          await handleVaultChanges(this.state, events);
+        } catch (error) {
+          console.error('[Core Engine] Error processing vault changes:', error);
+        }
       });
     }
+
+    // Publish initial state snapshot
+    publishStateSnapshot(this.state);
   }
 
   /**
    * Stop the Core Engine.
    */
   async stop(): Promise<void> {
+    // Unsubscribe from state changes
+    if (this.stateChangeUnsubscribe) {
+      this.stateChangeUnsubscribe();
+    }
+
     if (this.fileWatcher) {
       await this.fileWatcher.stop();
     }
     await this.rpcServer.stop();
+  }
+
+  /**
+   * Get the current indexing readiness state.
+   *
+   * @returns Indexing readiness information
+   */
+  getReadiness(): IndexingReadiness {
+    return getIndexingReadiness();
+  }
+
+  /**
+   * Get the current application state (read-only).
+   *
+   * @returns The current AppState
+   */
+  getState(): Readonly<AppState> {
+    return this.state;
+  }
+
+  /**
+   * Handle state change events.
+   *
+   * @param event - The state change event
+   */
+  private onStateChange(event: StateChangeEvent): void {
+    console.log(`[Core Engine] State changed: ${event.type}`, event.data);
+
+    // TODO: Notify connected clients via RPC about state changes
+    // This could be implemented as a JSON-RPC notification mechanism
   }
 }

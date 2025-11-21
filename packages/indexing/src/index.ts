@@ -6,7 +6,7 @@
  */
 
 import { readFileSync, statSync } from 'fs';
-import { NoteRegistry } from '@scribe/domain-model';
+import { createAppState as createDomainAppState } from '@scribe/domain-model';
 import type {
   AppState,
   ParsedNote,
@@ -19,47 +19,245 @@ import type {
 } from '@scribe/domain-model';
 import { parseNote } from '@scribe/parser';
 import type { Vault, VaultFile } from '@scribe/vault';
+import type {
+  StateChangeEvent,
+  StateChangeListener,
+  TransactionContext,
+  IndexingReadiness,
+} from './types.js';
+
+/**
+ * State change event manager.
+ */
+class StateEventManager {
+  private listeners: Set<StateChangeListener> = new Set();
+  private currentTransaction: TransactionContext | null = null;
+
+  /**
+   * Add a listener for state change events.
+   */
+  addListener(listener: StateChangeListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  /**
+   * Emit a state change event.
+   * If in a transaction, the event is queued; otherwise it's emitted immediately.
+   */
+  emit(event: StateChangeEvent): void {
+    if (this.currentTransaction) {
+      this.currentTransaction.events.push(event);
+    } else {
+      this.notifyListeners(event);
+    }
+  }
+
+  /**
+   * Start a new transaction.
+   */
+  beginTransaction(id: string): void {
+    if (this.currentTransaction) {
+      throw new Error('Transaction already in progress');
+    }
+
+    this.currentTransaction = {
+      id,
+      startTime: Date.now(),
+      events: [],
+    };
+  }
+
+  /**
+   * Commit the current transaction and emit all queued events.
+   */
+  commitTransaction(): void {
+    if (!this.currentTransaction) {
+      throw new Error('No transaction in progress');
+    }
+
+    const { events } = this.currentTransaction;
+    this.currentTransaction = null;
+
+    // Emit all queued events
+    for (const event of events) {
+      this.notifyListeners(event);
+    }
+
+    // Emit a final snapshot event if there were changes
+    if (events.length > 0) {
+      this.notifyListeners({
+        type: 'state-snapshot',
+        timestamp: Date.now(),
+        data: { eventCount: events.length },
+      });
+    }
+  }
+
+  /**
+   * Rollback the current transaction and discard all queued events.
+   */
+  rollbackTransaction(): void {
+    if (!this.currentTransaction) {
+      throw new Error('No transaction in progress');
+    }
+
+    this.currentTransaction = null;
+  }
+
+  /**
+   * Check if a transaction is in progress.
+   */
+  isInTransaction(): boolean {
+    return this.currentTransaction !== null;
+  }
+
+  /**
+   * Notify all listeners of an event.
+   */
+  private notifyListeners(event: StateChangeEvent): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error('[StateEventManager] Error in event listener:', error);
+      }
+    }
+  }
+}
+
+/**
+ * Global event manager instance.
+ */
+const eventManager = new StateEventManager();
+
+/**
+ * Indexing readiness tracker.
+ */
+class ReadinessTracker {
+  private filesIndexed = 0;
+  private totalFiles = 0;
+  private isComplete = false;
+  private minimalThreshold = 0.1; // 10% indexed = minimally ready
+
+  /**
+   * Set the total number of files to index.
+   */
+  setTotal(total: number): void {
+    this.totalFiles = total;
+    this.filesIndexed = 0;
+    this.isComplete = false;
+  }
+
+  /**
+   * Increment the count of indexed files.
+   */
+  incrementIndexed(count = 1): void {
+    this.filesIndexed += count;
+    if (this.filesIndexed >= this.totalFiles) {
+      this.isComplete = true;
+    }
+  }
+
+  /**
+   * Get current readiness state.
+   */
+  getReadiness(): IndexingReadiness {
+    const progress = this.totalFiles > 0 ? (this.filesIndexed / this.totalFiles) * 100 : 0;
+    const isMinimallyReady = progress >= this.minimalThreshold * 100;
+
+    return {
+      isReady: this.isComplete,
+      filesIndexed: this.filesIndexed,
+      totalFiles: this.totalFiles,
+      progress,
+      isMinimallyReady,
+    };
+  }
+
+  /**
+   * Reset the tracker.
+   */
+  reset(): void {
+    this.filesIndexed = 0;
+    this.totalFiles = 0;
+    this.isComplete = false;
+  }
+}
+
+/**
+ * Global readiness tracker instance.
+ */
+const readinessTracker = new ReadinessTracker();
 
 /**
  * Create an empty AppState with all indices initialized.
  */
 export function createAppState(): AppState {
+  return createDomainAppState();
+}
+
+/**
+ * Add a listener for state change events.
+ *
+ * @param listener - Callback to be invoked on state changes
+ * @returns Function to remove the listener
+ */
+export function addStateChangeListener(listener: StateChangeListener): () => void {
+  return eventManager.addListener(listener);
+}
+
+/**
+ * Get the current indexing readiness state.
+ *
+ * @returns Current readiness information
+ */
+export function getIndexingReadiness(): IndexingReadiness {
+  return readinessTracker.getReadiness();
+}
+
+/**
+ * Get a snapshot of the current application state statistics.
+ * This is a lightweight summary that can be efficiently published.
+ *
+ * @param state - The AppState to snapshot
+ * @returns State statistics snapshot
+ */
+export function getStateSnapshot(state: AppState): {
+  noteCount: number;
+  tagCount: number;
+  personCount: number;
+  folderCount: number;
+  headingCount: number;
+  embedCount: number;
+  graphNodeCount: number;
+  readiness: IndexingReadiness;
+} {
   return {
-    noteRegistry: new NoteRegistry(),
-    peopleIndex: {
-      byId: new Map(),
-      byName: new Map(),
-      mentionsByPerson: new Map(),
-      peopleByNote: new Map(),
-    },
-    tagIndex: {
-      tags: new Map(),
-      notesByTag: new Map(),
-      tagsByNote: new Map(),
-    },
-    folderIndex: {
-      folders: new Map(),
-      childrenByFolder: new Map(),
-      notesByFolder: new Map(),
-    },
-    headingIndex: {
-      byId: new Map(),
-      headingsByNote: new Map(),
-    },
-    embedIndex: {
-      embedsBySourceNote: new Map(),
-      embedsByTargetNote: new Map(),
-    },
-    graphIndex: {
-      nodes: new Map(),
-      outgoing: new Map(),
-      incoming: new Map(),
-    },
-    unlinkedMentionIndex: {
-      byNote: new Map(),
-      byTarget: new Map(),
-    },
+    noteCount: state.noteRegistry.size,
+    tagCount: state.tagIndex.size,
+    personCount: state.peopleIndex.size,
+    folderCount: state.folderIndex.size,
+    headingCount: state.headingIndex.size,
+    embedCount: state.embedIndex.size,
+    graphNodeCount: state.graphIndex.nodes.size,
+    readiness: readinessTracker.getReadiness(),
   };
+}
+
+/**
+ * Publish a state snapshot event with current state statistics.
+ *
+ * @param state - The AppState to snapshot and publish
+ */
+export function publishStateSnapshot(state: AppState): void {
+  const snapshot = getStateSnapshot(state);
+
+  eventManager.emit({
+    type: 'state-snapshot',
+    timestamp: Date.now(),
+    data: snapshot,
+  });
 }
 
 /**
@@ -76,20 +274,41 @@ export function createAppState(): AppState {
  * @returns Promise that resolves when indexing is complete
  */
 export async function performStartupIndexing(vault: Vault, state: AppState): Promise<void> {
+  // Emit indexing started event
+  eventManager.emit({
+    type: 'indexing-started',
+    timestamp: Date.now(),
+    data: {},
+  });
+
   // Step 1: Discover all markdown files
   const discovery = vault.discover();
   const files = discovery.files;
 
   console.log(`[Indexing] Starting indexing of ${files.length} files...`);
 
+  // Initialize readiness tracker
+  readinessTracker.setTotal(files.length);
+
   // Step 2: Parse all files in parallel
   const parsedNotes = await parseFilesInParallel(files);
 
   console.log(`[Indexing] Parsed ${parsedNotes.length} notes. Registering in indices...`);
 
-  // Step 3: Register all parsed notes
+  // Step 3: Register all parsed notes with progress tracking
   for (const parsed of parsedNotes) {
     registerParsedNote(state, parsed);
+    readinessTracker.incrementIndexed();
+
+    // Emit progress events periodically (every 10%)
+    const readiness = readinessTracker.getReadiness();
+    if (readiness.filesIndexed % Math.max(1, Math.floor(files.length / 10)) === 0) {
+      eventManager.emit({
+        type: 'indexing-progress',
+        timestamp: Date.now(),
+        data: readiness,
+      });
+    }
   }
 
   console.log(`[Indexing] Registration complete. Running post-processing...`);
@@ -99,6 +318,13 @@ export async function performStartupIndexing(vault: Vault, state: AppState): Pro
   // TODO: Implement unlinked mentions detection
 
   console.log(`[Indexing] Startup indexing complete. Indexed ${parsedNotes.length} notes.`);
+
+  // Emit indexing complete event
+  eventManager.emit({
+    type: 'indexing-complete',
+    timestamp: Date.now(),
+    data: readinessTracker.getReadiness(),
+  });
 }
 
 /**
@@ -744,7 +970,12 @@ function updateHeadingIndexDelta(
  */
 export async function handleVaultChanges(state: AppState, events: any[]): Promise<void> {
   for (const event of events) {
+    // Wrap each file event in a transaction
+    const transactionId = `file-${event.type}-${event.path}-${Date.now()}`;
+
     try {
+      eventManager.beginTransaction(transactionId);
+
       switch (event.type) {
         case 'add':
           await handleFileCreated(state, event);
@@ -761,9 +992,43 @@ export async function handleVaultChanges(state: AppState, events: any[]): Promis
         default:
           console.warn(`[Indexing] Unknown event type: ${event.type}`);
       }
+
+      // Commit transaction on success
+      eventManager.commitTransaction();
     } catch (error) {
       console.error(`[Indexing] Error handling event ${event.type} for ${event.path}:`, error);
+
+      // Rollback transaction on error
+      if (eventManager.isInTransaction()) {
+        eventManager.rollbackTransaction();
+      }
     }
+  }
+}
+
+/**
+ * Execute a function within a transaction context.
+ *
+ * @param fn - Function to execute
+ * @param transactionId - Optional transaction ID (generated if not provided)
+ * @returns Promise resolving to the function's return value
+ */
+export async function withTransaction<T>(
+  fn: () => T | Promise<T>,
+  transactionId?: string
+): Promise<T> {
+  const txId = transactionId || `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  try {
+    eventManager.beginTransaction(txId);
+    const result = await fn();
+    eventManager.commitTransaction();
+    return result;
+  } catch (error) {
+    if (eventManager.isInTransaction()) {
+      eventManager.rollbackTransaction();
+    }
+    throw error;
   }
 }
 
@@ -789,6 +1054,13 @@ async function handleFileCreated(state: AppState, event: any): Promise<void> {
 
   // Register the new note (no delta needed for new files)
   registerParsedNote(state, parsed);
+
+  // Emit note-added event
+  eventManager.emit({
+    type: 'note-added',
+    timestamp: Date.now(),
+    data: { noteId: parsed.id, path: parsed.path },
+  });
 
   console.log(`[Indexing] Registered new note: ${parsed.id}`);
 }
@@ -822,6 +1094,24 @@ async function handleFileModified(state: AppState, event: any): Promise<void> {
   // Apply delta
   applyNoteDelta(state, delta);
 
+  // Emit note-updated event
+  eventManager.emit({
+    type: 'note-updated',
+    timestamp: Date.now(),
+    data: {
+      noteId: newNote.id,
+      path: newNote.path,
+      delta: {
+        tagsAdded: delta.addedTags.length,
+        tagsRemoved: delta.removedTags.length,
+        headingsAdded: delta.addedHeadings.length,
+        headingsRemoved: delta.removedHeadings.length,
+        titleChanged: delta.titleChanged,
+        pathChanged: delta.pathChanged,
+      },
+    },
+  });
+
   console.log(
     `[Indexing] Updated note: ${newNote.id} (${delta.addedTags.length} tags added, ${delta.removedTags.length} removed)`
   );
@@ -835,6 +1125,13 @@ async function handleFileDeleted(state: AppState, event: any): Promise<void> {
 
   // Remove the note
   removeNote(state, event.id);
+
+  // Emit note-removed event
+  eventManager.emit({
+    type: 'note-removed',
+    timestamp: Date.now(),
+    data: { noteId: event.id, path: event.path },
+  });
 
   console.log(`[Indexing] Removed note: ${event.id}`);
 }
