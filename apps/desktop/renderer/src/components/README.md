@@ -52,10 +52,31 @@ Both layers must have **identical** typography settings:
 
 Any mismatch causes rendering offset issues.
 
+## Parser Integration (scribe-750) ✅
+
+The editor now integrates with a web worker for markdown parsing:
+
+### Parser Worker
+
+- Runs in separate thread (non-blocking)
+- Emits inline token spans with character offsets
+- Debounced parsing (100ms default) for performance
+- Supports: headings, bold, italic, code, links, lists
+
+### Token Stream
+
+Tokens include:
+
+- Character offsets (`start`, `end`)
+- Raw markdown with markers
+- Display text without markers
+- Marker positions for reveal-on-cursor
+
+See `workers/README.md` for detailed documentation.
+
 ## Next Steps
 
-- **scribe-750**: Parser worker will emit inline token spans
-- **scribe-751**: Overlay will render markdown with reveal-on-cursor
+- **scribe-751**: Overlay will render markdown with reveal-on-cursor using tokens
 - **scribe-752**: Load/save integration with CoreClient
 - **scribe-753**: Command palette integration
 

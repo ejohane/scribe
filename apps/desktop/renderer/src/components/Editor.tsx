@@ -1,9 +1,11 @@
 /**
  * Dual-layer markdown editor with contentEditable input and read-only overlay.
  * Implements selection tracking and synchronized scrolling.
+ * Integrates with markdown parser worker for live token parsing.
  */
 
 import { useRef, useCallback, useEffect, useState } from 'react';
+import { useMarkdownParser } from '../hooks/useMarkdownParser';
 import './Editor.css';
 
 interface EditorProps {
@@ -20,6 +22,9 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
   const inputRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize markdown parser worker
+  const { tokens, parse } = useMarkdownParser({ debounceMs: 100 });
 
   /**
    * Converts DOM selection to character offsets within the text content.
@@ -53,7 +58,10 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
     const text = inputRef.current.textContent || '';
     setContent(text);
     onChange?.(text);
-  }, [onChange]);
+
+    // Trigger debounced parse
+    parse(text);
+  }, [onChange, parse]);
 
   /**
    * Handle selection changes - track cursor/selection position
@@ -85,20 +93,46 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
   }, [handleSelectionChange]);
 
   /**
-   * Initialize content in contentEditable div
+   * Initialize content in contentEditable div and parse initial content
    */
   useEffect(() => {
     if (inputRef.current && inputRef.current.textContent !== content) {
       inputRef.current.textContent = content;
     }
-  }, [initialContent]); // Only on mount
+
+    // Parse initial content
+    if (initialContent) {
+      parse(initialContent);
+    }
+  }, [initialContent, parse]); // Only on mount
 
   return (
     <div className="editor-container" ref={containerRef}>
       {/* Read-only overlay layer - will be used for markdown rendering */}
       <div className="editor-overlay" ref={overlayRef} aria-hidden="true">
-        {/* For now, just mirror the content - will be replaced with rendered markdown */}
-        <div className="editor-overlay-content">{content}</div>
+        {/* Token-based rendering placeholder - will be enhanced in scribe-751 */}
+        <div className="editor-overlay-content">
+          {/* For now, mirror content - token rendering in scribe-751 */}
+          {content}
+          {/* Debug: show token count in dev mode */}
+          {process.env.NODE_ENV === 'development' && tokens.length > 0 && (
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '10px',
+                right: '10px',
+                background: 'rgba(0,0,0,0.7)',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                pointerEvents: 'none',
+              }}
+            >
+              {tokens.length} tokens parsed
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input layer - transparent contentEditable surface */}
