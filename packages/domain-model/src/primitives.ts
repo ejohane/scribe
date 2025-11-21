@@ -21,6 +21,7 @@ export type LinkTargetKind = 'note' | 'heading'; // resolved later
 // Edge types for graph relationships
 export type EdgeType =
   | 'note-links-note'
+  | 'note-links-heading'
   | 'note-embeds-note'
   | 'note-has-tag'
   | 'note-mentions-person'
