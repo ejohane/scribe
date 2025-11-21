@@ -212,6 +212,203 @@ export function getBacklinks(graph: GraphIndex, noteId: NodeId): GraphEdge[] {
 }
 
 // ============================================================================
+// Advanced Query and Filtering APIs
+// ============================================================================
+
+/**
+ * Options for filtering neighbors.
+ */
+export interface NeighborFilter {
+  /** Edge types to include */
+  edgeTypes?: EdgeType[];
+  /** Direction to search: 'in' (incoming), 'out' (outgoing), or 'both' */
+  direction?: 'in' | 'out' | 'both';
+  /** Entity types to include */
+  entityTypes?: EntityType[];
+}
+
+/**
+ * Get neighbors with optional filtering by edge type, direction, and entity type.
+ *
+ * This is the primary query interface for graph traversal.
+ *
+ * @param graph - The graph index
+ * @param nodeId - The node to get neighbors for
+ * @param filter - Optional filter criteria
+ * @returns Array of graph edges matching the filter
+ *
+ * @example
+ * // Get all notes that link to this note
+ * const backlinks = getNeighborsFiltered(graph, nodeId, {
+ *   edgeTypes: ['note-links-note'],
+ *   direction: 'in'
+ * });
+ *
+ * @example
+ * // Get all tags for this note
+ * const tags = getNeighborsFiltered(graph, nodeId, {
+ *   edgeTypes: ['note-has-tag'],
+ *   direction: 'out',
+ *   entityTypes: ['tag']
+ * });
+ */
+export function getNeighborsFiltered(
+  graph: GraphIndex,
+  nodeId: NodeId,
+  filter?: NeighborFilter
+): GraphEdge[] {
+  const edges: GraphEdge[] = [];
+  const direction = filter?.direction || 'both';
+
+  // Collect edges based on direction
+  if (direction === 'out' || direction === 'both') {
+    const outgoing = graph.outgoing.get(nodeId) || [];
+    edges.push(...outgoing);
+  }
+
+  if (direction === 'in' || direction === 'both') {
+    const incoming = graph.incoming.get(nodeId) || [];
+    edges.push(...incoming);
+  }
+
+  // Apply edge type filter
+  let filtered = edges;
+  if (filter?.edgeTypes && filter.edgeTypes.length > 0) {
+    filtered = filtered.filter((e) => filter.edgeTypes!.includes(e.type));
+  }
+
+  // Apply entity type filter
+  if (filter?.entityTypes && filter.entityTypes.length > 0) {
+    filtered = filtered.filter((e) => {
+      // Determine the target node based on direction
+      const targetId = direction === 'in' ? e.from : e.to;
+      const targetNode = graph.nodes.get(targetId);
+      return targetNode && filter.entityTypes!.includes(targetNode.entityType);
+    });
+  }
+
+  return filtered;
+}
+
+// ============================================================================
+// Entity-Centric Subview Helpers
+// ============================================================================
+
+/**
+ * Get all notes that have a specific tag.
+ *
+ * @param graph - The graph index
+ * @param tagId - The tag ID (without 'tag:' prefix)
+ * @returns Array of note node IDs
+ */
+export function getNotesWithTag(graph: GraphIndex, tagId: TagId): NodeId[] {
+  const tagNodeId = `tag:${tagId}` as NodeId;
+  const incoming = graph.incoming.get(tagNodeId) || [];
+
+  return incoming.filter((e) => e.type === 'note-has-tag').map((e) => e.from);
+}
+
+/**
+ * Get all tags used by a note.
+ *
+ * @param graph - The graph index
+ * @param noteId - The note ID (can be with or without 'note:' prefix)
+ * @returns Array of tag node IDs
+ */
+export function getTagsForNote(graph: GraphIndex, noteId: NoteId): NodeId[] {
+  const noteNodeId = noteId.startsWith('note:') ? (noteId as NodeId) : (`note:${noteId}` as NodeId);
+  const outgoing = graph.outgoing.get(noteNodeId) || [];
+
+  return outgoing.filter((e) => e.type === 'note-has-tag').map((e) => e.to);
+}
+
+/**
+ * Get all notes that mention a specific person.
+ *
+ * @param graph - The graph index
+ * @param personId - The person ID (without 'person:' prefix)
+ * @returns Array of note node IDs
+ */
+export function getNotesForPerson(graph: GraphIndex, personId: PersonId): NodeId[] {
+  const personNodeId = `person:${personId}` as NodeId;
+  const incoming = graph.incoming.get(personNodeId) || [];
+
+  return incoming.filter((e) => e.type === 'note-mentions-person').map((e) => e.from);
+}
+
+/**
+ * Get all people mentioned in a note.
+ *
+ * @param graph - The graph index
+ * @param noteId - The note ID (can be with or without 'note:' prefix)
+ * @returns Array of person node IDs
+ */
+export function getPeopleForNote(graph: GraphIndex, noteId: NoteId): NodeId[] {
+  const noteNodeId = noteId.startsWith('note:') ? (noteId as NodeId) : (`note:${noteId}` as NodeId);
+  const outgoing = graph.outgoing.get(noteNodeId) || [];
+
+  return outgoing.filter((e) => e.type === 'note-mentions-person').map((e) => e.to);
+}
+
+/**
+ * Get all notes in a specific folder.
+ *
+ * @param graph - The graph index
+ * @param folderId - The folder ID (without 'folder:' prefix)
+ * @returns Array of note node IDs
+ */
+export function getNotesInFolder(graph: GraphIndex, folderId: FolderId): NodeId[] {
+  const folderNodeId = `folder:${folderId}` as NodeId;
+  const outgoing = graph.outgoing.get(folderNodeId) || [];
+
+  return outgoing.filter((e) => e.type === 'folder-contains-note').map((e) => e.to);
+}
+
+/**
+ * Get the folder containing a note.
+ *
+ * @param graph - The graph index
+ * @param noteId - The note ID (can be with or without 'note:' prefix)
+ * @returns The folder node ID, or undefined if the note is in the root
+ */
+export function getFolderForNote(graph: GraphIndex, noteId: NoteId): NodeId | undefined {
+  const noteNodeId = noteId.startsWith('note:') ? (noteId as NodeId) : (`note:${noteId}` as NodeId);
+  const incoming = graph.incoming.get(noteNodeId) || [];
+
+  const folderEdge = incoming.find((e) => e.type === 'folder-contains-note');
+  return folderEdge?.from;
+}
+
+/**
+ * Get subfolders within a folder.
+ *
+ * @param graph - The graph index
+ * @param folderId - The folder ID (without 'folder:' prefix)
+ * @returns Array of subfolder node IDs
+ */
+export function getSubfolders(graph: GraphIndex, folderId: FolderId): NodeId[] {
+  const folderNodeId = `folder:${folderId}` as NodeId;
+  const outgoing = graph.outgoing.get(folderNodeId) || [];
+
+  return outgoing.filter((e) => e.type === 'folder-contains-folder').map((e) => e.to);
+}
+
+/**
+ * Get the parent folder of a folder.
+ *
+ * @param graph - The graph index
+ * @param folderId - The folder ID (without 'folder:' prefix)
+ * @returns The parent folder node ID, or undefined if this is a root folder
+ */
+export function getParentFolder(graph: GraphIndex, folderId: FolderId): NodeId | undefined {
+  const folderNodeId = `folder:${folderId}` as NodeId;
+  const incoming = graph.incoming.get(folderNodeId) || [];
+
+  const parentEdge = incoming.find((e) => e.type === 'folder-contains-folder');
+  return parentEdge?.from;
+}
+
+// ============================================================================
 // Node Creation Helpers
 // ============================================================================
 

@@ -16,6 +16,15 @@ import {
   hasNode,
   getNode,
   getBacklinks,
+  getNeighborsFiltered,
+  getNotesWithTag,
+  getTagsForNote,
+  getNotesForPerson,
+  getPeopleForNote,
+  getNotesInFolder,
+  getFolderForNote,
+  getSubfolders,
+  getParentFolder,
 } from './index.js';
 import type { GraphNode, GraphEdge, NodeId } from '@scribe/domain-model';
 
@@ -754,6 +763,563 @@ describe('Graph Index', () => {
       const graph = createGraphIndex();
 
       expect(getNode(graph, 'note:notes/NonExistent' as NodeId)).toBeUndefined();
+    });
+  });
+});
+
+describe('Advanced Query and Filtering APIs', () => {
+  describe('getNeighborsFiltered', () => {
+    test('filters by edge type', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const tagNode: GraphNode = {
+        id: 'tag:planning' as NodeId,
+        entityType: 'tag',
+        refId: 'planning',
+      };
+      const personNode: GraphNode = {
+        id: 'person:Erik' as NodeId,
+        entityType: 'person',
+        refId: 'Erik',
+      };
+
+      addNode(graph, noteNode);
+      addNode(graph, tagNode);
+      addNode(graph, personNode);
+
+      addEdge(graph, {
+        from: noteNode.id,
+        to: tagNode.id,
+        type: 'note-has-tag',
+      });
+      addEdge(graph, {
+        from: noteNode.id,
+        to: personNode.id,
+        type: 'note-mentions-person',
+      });
+
+      const tagEdges = getNeighborsFiltered(graph, noteNode.id, {
+        edgeTypes: ['note-has-tag'],
+      });
+
+      expect(tagEdges).toHaveLength(1);
+      expect(tagEdges[0].type).toBe('note-has-tag');
+      expect(tagEdges[0].to).toBe(tagNode.id);
+    });
+
+    test('filters by direction - outgoing only', () => {
+      const graph = createGraphIndex();
+      const noteA: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const noteB: GraphNode = {
+        id: 'note:notes/B' as NodeId,
+        entityType: 'note',
+        refId: 'notes/B',
+      };
+      const noteC: GraphNode = {
+        id: 'note:notes/C' as NodeId,
+        entityType: 'note',
+        refId: 'notes/C',
+      };
+
+      addNode(graph, noteA);
+      addNode(graph, noteB);
+      addNode(graph, noteC);
+
+      // A -> B, C -> A
+      addEdge(graph, { from: noteA.id, to: noteB.id, type: 'note-links-note' });
+      addEdge(graph, { from: noteC.id, to: noteA.id, type: 'note-links-note' });
+
+      const outgoing = getNeighborsFiltered(graph, noteA.id, {
+        direction: 'out',
+      });
+
+      expect(outgoing).toHaveLength(1);
+      expect(outgoing[0].to).toBe(noteB.id);
+    });
+
+    test('filters by direction - incoming only', () => {
+      const graph = createGraphIndex();
+      const noteA: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const noteB: GraphNode = {
+        id: 'note:notes/B' as NodeId,
+        entityType: 'note',
+        refId: 'notes/B',
+      };
+      const noteC: GraphNode = {
+        id: 'note:notes/C' as NodeId,
+        entityType: 'note',
+        refId: 'notes/C',
+      };
+
+      addNode(graph, noteA);
+      addNode(graph, noteB);
+      addNode(graph, noteC);
+
+      // A -> B, C -> A
+      addEdge(graph, { from: noteA.id, to: noteB.id, type: 'note-links-note' });
+      addEdge(graph, { from: noteC.id, to: noteA.id, type: 'note-links-note' });
+
+      const incoming = getNeighborsFiltered(graph, noteA.id, {
+        direction: 'in',
+      });
+
+      expect(incoming).toHaveLength(1);
+      expect(incoming[0].from).toBe(noteC.id);
+    });
+
+    test('filters by entity type', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const tagNode: GraphNode = {
+        id: 'tag:planning' as NodeId,
+        entityType: 'tag',
+        refId: 'planning',
+      };
+      const personNode: GraphNode = {
+        id: 'person:Erik' as NodeId,
+        entityType: 'person',
+        refId: 'Erik',
+      };
+
+      addNode(graph, noteNode);
+      addNode(graph, tagNode);
+      addNode(graph, personNode);
+
+      addEdge(graph, {
+        from: noteNode.id,
+        to: tagNode.id,
+        type: 'note-has-tag',
+      });
+      addEdge(graph, {
+        from: noteNode.id,
+        to: personNode.id,
+        type: 'note-mentions-person',
+      });
+
+      const tagEdges = getNeighborsFiltered(graph, noteNode.id, {
+        entityTypes: ['tag'],
+        direction: 'out',
+      });
+
+      expect(tagEdges).toHaveLength(1);
+      expect(tagEdges[0].to).toBe(tagNode.id);
+    });
+
+    test('combines multiple filters', () => {
+      const graph = createGraphIndex();
+      const noteA: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const noteB: GraphNode = {
+        id: 'note:notes/B' as NodeId,
+        entityType: 'note',
+        refId: 'notes/B',
+      };
+      const tagNode: GraphNode = {
+        id: 'tag:planning' as NodeId,
+        entityType: 'tag',
+        refId: 'planning',
+      };
+
+      addNode(graph, noteA);
+      addNode(graph, noteB);
+      addNode(graph, tagNode);
+
+      addEdge(graph, {
+        from: noteA.id,
+        to: noteB.id,
+        type: 'note-links-note',
+      });
+      addEdge(graph, {
+        from: noteA.id,
+        to: tagNode.id,
+        type: 'note-has-tag',
+      });
+
+      const filtered = getNeighborsFiltered(graph, noteA.id, {
+        edgeTypes: ['note-links-note'],
+        direction: 'out',
+        entityTypes: ['note'],
+      });
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].to).toBe(noteB.id);
+    });
+  });
+
+  describe('Tag-centric helpers', () => {
+    test('getNotesWithTag returns all notes with a tag', () => {
+      const graph = createGraphIndex();
+      const noteA: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const noteB: GraphNode = {
+        id: 'note:notes/B' as NodeId,
+        entityType: 'note',
+        refId: 'notes/B',
+      };
+      const tagNode: GraphNode = {
+        id: 'tag:planning' as NodeId,
+        entityType: 'tag',
+        refId: 'planning',
+      };
+
+      addNode(graph, noteA);
+      addNode(graph, noteB);
+      addNode(graph, tagNode);
+
+      addEdge(graph, {
+        from: noteA.id,
+        to: tagNode.id,
+        type: 'note-has-tag',
+      });
+      addEdge(graph, {
+        from: noteB.id,
+        to: tagNode.id,
+        type: 'note-has-tag',
+      });
+
+      const notes = getNotesWithTag(graph, 'planning');
+
+      expect(notes).toHaveLength(2);
+      expect(notes).toContain(noteA.id);
+      expect(notes).toContain(noteB.id);
+    });
+
+    test('getTagsForNote returns all tags for a note', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const tag1: GraphNode = {
+        id: 'tag:planning' as NodeId,
+        entityType: 'tag',
+        refId: 'planning',
+      };
+      const tag2: GraphNode = {
+        id: 'tag:project' as NodeId,
+        entityType: 'tag',
+        refId: 'project',
+      };
+
+      addNode(graph, noteNode);
+      addNode(graph, tag1);
+      addNode(graph, tag2);
+
+      addEdge(graph, {
+        from: noteNode.id,
+        to: tag1.id,
+        type: 'note-has-tag',
+      });
+      addEdge(graph, {
+        from: noteNode.id,
+        to: tag2.id,
+        type: 'note-has-tag',
+      });
+
+      const tags = getTagsForNote(graph, 'notes/A');
+
+      expect(tags).toHaveLength(2);
+      expect(tags).toContain(tag1.id);
+      expect(tags).toContain(tag2.id);
+    });
+
+    test('getTagsForNote handles note ID with prefix', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const tagNode: GraphNode = {
+        id: 'tag:planning' as NodeId,
+        entityType: 'tag',
+        refId: 'planning',
+      };
+
+      addNode(graph, noteNode);
+      addNode(graph, tagNode);
+
+      addEdge(graph, {
+        from: noteNode.id,
+        to: tagNode.id,
+        type: 'note-has-tag',
+      });
+
+      const tags = getTagsForNote(graph, 'note:notes/A' as any);
+
+      expect(tags).toHaveLength(1);
+      expect(tags[0]).toBe(tagNode.id);
+    });
+  });
+
+  describe('Person-centric helpers', () => {
+    test('getNotesForPerson returns all notes mentioning a person', () => {
+      const graph = createGraphIndex();
+      const noteA: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const noteB: GraphNode = {
+        id: 'note:notes/B' as NodeId,
+        entityType: 'note',
+        refId: 'notes/B',
+      };
+      const personNode: GraphNode = {
+        id: 'person:Erik' as NodeId,
+        entityType: 'person',
+        refId: 'Erik',
+      };
+
+      addNode(graph, noteA);
+      addNode(graph, noteB);
+      addNode(graph, personNode);
+
+      addEdge(graph, {
+        from: noteA.id,
+        to: personNode.id,
+        type: 'note-mentions-person',
+      });
+      addEdge(graph, {
+        from: noteB.id,
+        to: personNode.id,
+        type: 'note-mentions-person',
+      });
+
+      const notes = getNotesForPerson(graph, 'Erik');
+
+      expect(notes).toHaveLength(2);
+      expect(notes).toContain(noteA.id);
+      expect(notes).toContain(noteB.id);
+    });
+
+    test('getPeopleForNote returns all people mentioned in a note', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const person1: GraphNode = {
+        id: 'person:Erik' as NodeId,
+        entityType: 'person',
+        refId: 'Erik',
+      };
+      const person2: GraphNode = {
+        id: 'person:Alice' as NodeId,
+        entityType: 'person',
+        refId: 'Alice',
+      };
+
+      addNode(graph, noteNode);
+      addNode(graph, person1);
+      addNode(graph, person2);
+
+      addEdge(graph, {
+        from: noteNode.id,
+        to: person1.id,
+        type: 'note-mentions-person',
+      });
+      addEdge(graph, {
+        from: noteNode.id,
+        to: person2.id,
+        type: 'note-mentions-person',
+      });
+
+      const people = getPeopleForNote(graph, 'notes/A');
+
+      expect(people).toHaveLength(2);
+      expect(people).toContain(person1.id);
+      expect(people).toContain(person2.id);
+    });
+  });
+
+  describe('Folder-centric helpers', () => {
+    test('getNotesInFolder returns all notes in a folder', () => {
+      const graph = createGraphIndex();
+      const noteA: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const noteB: GraphNode = {
+        id: 'note:notes/B' as NodeId,
+        entityType: 'note',
+        refId: 'notes/B',
+      };
+      const folderNode: GraphNode = {
+        id: 'folder:notes' as NodeId,
+        entityType: 'folder',
+        refId: 'notes',
+      };
+
+      addNode(graph, noteA);
+      addNode(graph, noteB);
+      addNode(graph, folderNode);
+
+      addEdge(graph, {
+        from: folderNode.id,
+        to: noteA.id,
+        type: 'folder-contains-note',
+      });
+      addEdge(graph, {
+        from: folderNode.id,
+        to: noteB.id,
+        type: 'folder-contains-note',
+      });
+
+      const notes = getNotesInFolder(graph, 'notes');
+
+      expect(notes).toHaveLength(2);
+      expect(notes).toContain(noteA.id);
+      expect(notes).toContain(noteB.id);
+    });
+
+    test('getFolderForNote returns the containing folder', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:notes/A' as NodeId,
+        entityType: 'note',
+        refId: 'notes/A',
+      };
+      const folderNode: GraphNode = {
+        id: 'folder:notes' as NodeId,
+        entityType: 'folder',
+        refId: 'notes',
+      };
+
+      addNode(graph, noteNode);
+      addNode(graph, folderNode);
+
+      addEdge(graph, {
+        from: folderNode.id,
+        to: noteNode.id,
+        type: 'folder-contains-note',
+      });
+
+      const folder = getFolderForNote(graph, 'notes/A');
+
+      expect(folder).toBe(folderNode.id);
+    });
+
+    test('getFolderForNote returns undefined for root notes', () => {
+      const graph = createGraphIndex();
+      const noteNode: GraphNode = {
+        id: 'note:A' as NodeId,
+        entityType: 'note',
+        refId: 'A',
+      };
+
+      addNode(graph, noteNode);
+
+      const folder = getFolderForNote(graph, 'A');
+
+      expect(folder).toBeUndefined();
+    });
+
+    test('getSubfolders returns all subfolders', () => {
+      const graph = createGraphIndex();
+      const parentFolder: GraphNode = {
+        id: 'folder:notes' as NodeId,
+        entityType: 'folder',
+        refId: 'notes',
+      };
+      const subfolder1: GraphNode = {
+        id: 'folder:notes/2024' as NodeId,
+        entityType: 'folder',
+        refId: 'notes/2024',
+      };
+      const subfolder2: GraphNode = {
+        id: 'folder:notes/2025' as NodeId,
+        entityType: 'folder',
+        refId: 'notes/2025',
+      };
+
+      addNode(graph, parentFolder);
+      addNode(graph, subfolder1);
+      addNode(graph, subfolder2);
+
+      addEdge(graph, {
+        from: parentFolder.id,
+        to: subfolder1.id,
+        type: 'folder-contains-folder',
+      });
+      addEdge(graph, {
+        from: parentFolder.id,
+        to: subfolder2.id,
+        type: 'folder-contains-folder',
+      });
+
+      const subfolders = getSubfolders(graph, 'notes');
+
+      expect(subfolders).toHaveLength(2);
+      expect(subfolders).toContain(subfolder1.id);
+      expect(subfolders).toContain(subfolder2.id);
+    });
+
+    test('getParentFolder returns parent folder', () => {
+      const graph = createGraphIndex();
+      const parentFolder: GraphNode = {
+        id: 'folder:notes' as NodeId,
+        entityType: 'folder',
+        refId: 'notes',
+      };
+      const subfolder: GraphNode = {
+        id: 'folder:notes/2024' as NodeId,
+        entityType: 'folder',
+        refId: 'notes/2024',
+      };
+
+      addNode(graph, parentFolder);
+      addNode(graph, subfolder);
+
+      addEdge(graph, {
+        from: parentFolder.id,
+        to: subfolder.id,
+        type: 'folder-contains-folder',
+      });
+
+      const parent = getParentFolder(graph, 'notes/2024');
+
+      expect(parent).toBe(parentFolder.id);
+    });
+
+    test('getParentFolder returns undefined for root folders', () => {
+      const graph = createGraphIndex();
+      const rootFolder: GraphNode = {
+        id: 'folder:notes' as NodeId,
+        entityType: 'folder',
+        refId: 'notes',
+      };
+
+      addNode(graph, rootFolder);
+
+      const parent = getParentFolder(graph, 'notes');
+
+      expect(parent).toBeUndefined();
     });
   });
 });
