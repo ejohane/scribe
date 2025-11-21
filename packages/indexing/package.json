@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@scribe/domain-model": "workspace:*",
-    "@scribe/utils": "workspace:*"
+    "@scribe/parser": "workspace:*",
+    "@scribe/utils": "workspace:*",
+    "@scribe/vault": "workspace:*"
   },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
