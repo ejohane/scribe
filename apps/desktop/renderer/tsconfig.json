@@ -1,5 +1,5 @@
 {
-  "extends": "@scribe/tsconfig/react.json",
+  "extends": "../../../config/tsconfig/react.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"

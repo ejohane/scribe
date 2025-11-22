@@ -1,5 +1,5 @@
 /**
- * Dual-layer markdown editor with contentEditable input and read-only overlay.
+ * Dual-layer markdown editor with textarea input and read-only overlay.
  * Implements selection tracking and synchronized scrolling.
  * Integrates with markdown parser worker for live token parsing.
  */
@@ -22,7 +22,7 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
   const [content, setContent] = useState(initialContent);
   const [selectionStart, setSelectionStart] = useState(0);
   const [selectionEnd, setSelectionEnd] = useState(0);
-  const inputRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -30,86 +30,59 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
   const { tokens, parse } = useMarkdownParser({ debounceMs: 100 });
 
   /**
-   * Converts DOM selection to character offsets within the text content.
-   * Returns [start, end] offsets, or null if no selection.
+   * Handle input changes from textarea
    */
-  const getSelectionOffsets = useCallback((): [number, number] | null => {
-    const selection = window.getSelection();
-    if (!selection || !inputRef.current) return null;
+  const handleInput = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const text = e.target.value;
+      setContent(text);
+      onChange?.(text);
 
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-    if (!range) return null;
+      // Track selection
+      setSelectionStart(e.target.selectionStart);
+      setSelectionEnd(e.target.selectionEnd);
+      onSelectionChange?.(e.target.selectionStart, e.target.selectionEnd);
 
-    // Create a range from start of input to start of selection
-    const preRange = document.createRange();
-    preRange.selectNodeContents(inputRef.current);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    const start = preRange.toString().length;
-
-    // End offset is start + selected text length
-    const end = start + range.toString().length;
-
-    return [start, end];
-  }, []);
-
-  /**
-   * Handle input changes - extract plain text and update state
-   */
-  const handleInput = useCallback(() => {
-    if (!inputRef.current) return;
-
-    const text = inputRef.current.textContent || '';
-    setContent(text);
-    onChange?.(text);
-
-    // Trigger debounced parse
-    parse(text);
-  }, [onChange, parse]);
+      // Trigger debounced parse
+      parse(text);
+    },
+    [onChange, onSelectionChange, parse]
+  );
 
   /**
    * Handle selection changes - track cursor/selection position
    */
-  const handleSelectionChange = useCallback(() => {
-    const offsets = getSelectionOffsets();
-    if (offsets) {
-      setSelectionStart(offsets[0]);
-      setSelectionEnd(offsets[1]);
-      onSelectionChange?.(offsets[0], offsets[1]);
-    }
-  }, [getSelectionOffsets, onSelectionChange]);
+  const handleSelect = useCallback(() => {
+    if (!inputRef.current) return;
+    const start = inputRef.current.selectionStart;
+    const end = inputRef.current.selectionEnd;
+    setSelectionStart(start);
+    setSelectionEnd(end);
+    onSelectionChange?.(start, end);
+  }, [onSelectionChange]);
 
   /**
    * Sync scroll position between input layer and overlay
    */
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
     if (!overlayRef.current) return;
     overlayRef.current.scrollTop = e.currentTarget.scrollTop;
     overlayRef.current.scrollLeft = e.currentTarget.scrollLeft;
   }, []);
 
   /**
-   * Set up selection change listener
+   * Initialize content in contentEditable div on mount
    */
   useEffect(() => {
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
-    };
-  }, [handleSelectionChange]);
-
-  /**
-   * Initialize content in contentEditable div and parse initial content
-   */
-  useEffect(() => {
-    if (inputRef.current && inputRef.current.textContent !== content) {
-      inputRef.current.textContent = content;
+    if (inputRef.current) {
+      if (initialContent) {
+        inputRef.current.textContent = initialContent;
+        parse(initialContent);
+      }
+      // Focus the editor and show cursor
+      inputRef.current.focus();
     }
-
-    // Parse initial content
-    if (initialContent) {
-      parse(initialContent);
-    }
-  }, [initialContent, parse]); // Only on mount
+  }, []); // Only run on mount
 
   return (
     <div className="editor-container" ref={containerRef}>
@@ -125,16 +98,15 @@ export function Editor({ initialContent = '', onChange, onSelectionChange }: Edi
         </div>
       </div>
 
-      {/* Input layer - transparent contentEditable surface */}
-      <div
+      {/* Input layer - transparent textarea */}
+      <textarea
         className="editor-input"
         ref={inputRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
+        value={content}
+        onChange={handleInput}
+        onSelect={handleSelect}
         onScroll={handleScroll}
         spellCheck={false}
-        role="textbox"
         aria-label="Markdown editor"
       />
     </div>

@@ -13,7 +13,7 @@
   overflow: hidden;
 }
 
-/* Input layer - transparent typing surface */
+/* Input layer - transparent textarea */
 .editor-input {
   position: absolute;
   top: 0;
@@ -22,6 +22,7 @@
   height: 100%;
   padding: 40px;
   overflow: auto;
+  resize: none;
 
   /* Typography matching */
   font-family:
@@ -36,6 +37,7 @@
   /* Remove browser styling */
   outline: none;
   border: none;
+  background: transparent;
 
   /* Text rendering */
   white-space: pre-wrap;

@@ -2,5 +2,15 @@
   "name": "@scribe/tsconfig",
   "version": "0.1.0",
   "private": true,
-  "main": "base.json"
+  "main": "base.json",
+  "files": [
+    "*.json"
+  ],
+  "exports": {
+    "./*.json": "./*.json",
+    "./base.json": "./base.json",
+    "./node.json": "./node.json",
+    "./react.json": "./react.json",
+    "./electron.json": "./electron.json"
+  }
 }

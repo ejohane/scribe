@@ -23,6 +23,13 @@ export function MarkdownOverlay({
   selectionEnd,
   fallbackText,
 }: MarkdownOverlayProps) {
+  // Debug logging
+  console.log('MarkdownOverlay render:', {
+    tokensCount: tokens.length,
+    fallbackTextLength: fallbackText.length,
+    fallbackTextJSON: JSON.stringify(fallbackText),
+  });
+
   // Fallback to plain text if no tokens
   if (tokens.length === 0) {
     return <div className="markdown-overlay-fallback">{fallbackText}</div>;
@@ -98,6 +105,9 @@ function TokenSpan({ token, isActive }: { token: InlineToken; isActive: boolean 
           {token.text}
         </span>
       );
+
+    case 'newline':
+      return <span className={className}>{'\n'}</span>;
 
     case 'text':
     default:

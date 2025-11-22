@@ -5,7 +5,7 @@
  */
 
 export interface InlineToken {
-  type: 'text' | 'emphasis' | 'strong' | 'code' | 'link' | 'heading' | 'list-item';
+  type: 'text' | 'emphasis' | 'strong' | 'code' | 'link' | 'heading' | 'list-item' | 'newline';
   start: number; // Character offset from start of document
   end: number; // Character offset (exclusive)
   raw: string; // Raw markdown text including markers
@@ -40,7 +40,8 @@ function parseMarkdown(text: string): InlineToken[] {
   const lines = text.split('\n');
   let offset = 0;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const lineStart = offset;
 
     // Check for heading
@@ -61,7 +62,19 @@ function parseMarkdown(text: string): InlineToken[] {
         },
       });
 
-      offset += line.length + 1; // +1 for newline
+      offset += line.length;
+
+      // Add newline token if not the last line
+      if (i < lines.length - 1) {
+        tokens.push({
+          type: 'newline',
+          start: offset,
+          end: offset + 1,
+          raw: '\n',
+          text: '\n',
+        });
+        offset += 1;
+      }
       continue;
     }
 
@@ -84,7 +97,19 @@ function parseMarkdown(text: string): InlineToken[] {
         },
       });
 
-      offset += line.length + 1;
+      offset += line.length;
+
+      // Add newline token if not the last line
+      if (i < lines.length - 1) {
+        tokens.push({
+          type: 'newline',
+          start: offset,
+          end: offset + 1,
+          raw: '\n',
+          text: '\n',
+        });
+        offset += 1;
+      }
       continue;
     }
 
@@ -92,7 +117,19 @@ function parseMarkdown(text: string): InlineToken[] {
     const inlineTokens = parseInlineTokens(line, lineStart);
     tokens.push(...inlineTokens);
 
-    offset += line.length + 1; // +1 for newline
+    offset += line.length;
+
+    // Add newline token if not the last line
+    if (i < lines.length - 1) {
+      tokens.push({
+        type: 'newline',
+        start: offset,
+        end: offset + 1,
+        raw: '\n',
+        text: '\n',
+      });
+      offset += 1;
+    }
   }
 
   return tokens;

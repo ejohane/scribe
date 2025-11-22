@@ -1,5 +1,5 @@
 {
-  "extends": "@scribe/tsconfig/electron.json",
+  "extends": "../../config/tsconfig/electron.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
