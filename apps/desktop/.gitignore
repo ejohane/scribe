@@ -1,0 +1,6 @@
+# Build outputs
+dist/
+out/
+
+# Generated preload script
+preload/index.js

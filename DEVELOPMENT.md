@@ -62,6 +62,8 @@ Electron desktop application with three main parts:
 
 - **preload/**: Preload scripts for secure IPC
   - `index.ts`: Exposes `window.scribeAPI` to renderer
+  - `index.js`: Compiled CommonJS bundle (generated via esbuild)
+  - **Note**: Preload scripts must use CommonJS format for Electron compatibility
 
 - **renderer/**: React UI built with Vite
   - `src/App.tsx`: Main application component
@@ -687,3 +689,21 @@ bun run clean
 rm -rf node_modules
 bun install
 ```
+
+### Preload Script Issues
+
+**Problem**: `Unable to load preload script` or `Cannot use import statement outside a module`
+
+```
+VM4 sandbox_bundle:2 Unable to load preload script: .../preload/index.js
+VM4 sandbox_bundle:2 SyntaxError: Cannot use import statement outside a module
+```
+
+**Solution**: Preload scripts must be compiled to CommonJS format. Run:
+
+```bash
+cd apps/desktop
+bun run preload:build
+```
+
+The `preload:build` script uses esbuild to bundle the preload script in CommonJS format, which is required for Electron's preload environment. This script is automatically run as part of `bun run dev` and `bun run build`.

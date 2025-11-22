@@ -1,4 +1,5 @@
 {
+  "extends": "../../../config/tsconfig/electron.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
