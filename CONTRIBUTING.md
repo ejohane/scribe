@@ -40,10 +40,7 @@ Thank you for your interest in contributing to Scribe! This document provides gu
    bun run test
    ```
 
-4. **Start development**:
-   ```bash
-   bun run dev
-   ```
+4. **Ready to develop** - Development workflows will be defined as packages are implemented.
 
 ## Development Workflow
 
@@ -112,23 +109,16 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 #### Scope
 
-The scope should be the package name:
-
-- `parser`
-- `search`
-- `indexing`
-- `core-engine`
-- `desktop`
-- etc.
+The scope should be the package or component name (e.g., `config`, etc.).
 
 #### Examples
 
 ```bash
 # Good commit messages
-git commit -m "feat(parser): add support for custom frontmatter fields"
-git commit -m "fix(search): correct fuzzy search ranking algorithm"
+git commit -m "feat(config): add support for dark mode"
+git commit -m "fix(config): correct ESLint configuration"
 git commit -m "docs(readme): update installation instructions"
-git commit -m "test(indexing): add tests for note registry"
+git commit -m "test(utils): add tests for helper functions"
 
 # Bad commit messages (avoid these)
 git commit -m "update stuff"
@@ -141,14 +131,11 @@ git commit -m "WIP"
 For more complex changes:
 
 ```bash
-git commit -m "feat(parser): add support for custom frontmatter fields
+git commit -m "feat(core): add support for multiple vaults
 
-This commit adds the ability to define custom frontmatter field
-handlers through a plugin system. Custom fields can be parsed
-and validated according to user-defined schemas.
-
-Breaking change: The frontmatter API now requires field handlers
-to be registered before parsing.
+This commit adds the ability to work with multiple vaults
+simultaneously. Each vault operates independently with its own
+state and configuration.
 
 Closes #123"
 ```
@@ -169,8 +156,8 @@ git push origin feature/your-feature
 Use the same format as commit messages:
 
 ```
-feat(parser): add support for custom frontmatter fields
-fix(search): correct fuzzy search ranking algorithm
+feat(core): add support for dark mode
+fix(config): correct ESLint configuration
 ```
 
 ### PR Description
@@ -474,12 +461,12 @@ bun run build
 ### Running Specific Tests
 
 ```bash
-# Run tests for one package
-cd packages/parser
+# Run tests for a specific package
+cd packages/<package-name>
 bun test
 
 # Run a specific test file
-bun test src/parser.test.ts
+bun test src/example.test.ts
 
 # Run tests in watch mode
 bun test --watch

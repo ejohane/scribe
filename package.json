@@ -4,21 +4,16 @@
   "version": "0.1.0",
   "description": "Personal note-taking system with markdown parsing, graph visualization, and intelligent search",
   "workspaces": [
-    "apps/*",
-    "apps/desktop/renderer",
     "packages/*",
     "config/*"
   ],
   "scripts": {
-    "dev": "./dev.sh",
     "build": "turbo run build",
-    "package": "bun run build && cd apps/desktop && bun run package",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "electron-builder": "^26.0.12",
     "eslint": "^9.16.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
