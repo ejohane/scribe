@@ -1,0 +1,401 @@
+/**
+ * Tests for metadata extraction
+ */
+
+import { describe, it, expect } from 'vitest';
+import { extractMetadata, extractTitle, extractTags, extractLinks } from './metadata.js';
+import type { LexicalState } from '@scribe/shared';
+
+describe('extractTitle', () => {
+  it('should extract title from first text node', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'My Note Title',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractTitle(content)).toBe('My Note Title');
+  });
+
+  it('should return null for empty content', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [],
+      },
+    };
+
+    expect(extractTitle(content)).toBeNull();
+  });
+
+  it('should return null for content with no text', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [],
+          },
+        ],
+      },
+    };
+
+    expect(extractTitle(content)).toBeNull();
+  });
+
+  it('should trim whitespace from title', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: '  Whitespace Title  ',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractTitle(content)).toBe('Whitespace Title');
+  });
+
+  it('should truncate long titles to 200 characters', () => {
+    const longText = 'a'.repeat(300);
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: longText,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const title = extractTitle(content);
+    expect(title).toHaveLength(200);
+  });
+});
+
+describe('extractTags', () => {
+  it('should extract tags from text', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'This is a note with #scribe and #architecture tags',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const tags = extractTags(content);
+    expect(tags).toEqual(['architecture', 'scribe']);
+  });
+
+  it('should return empty array for content with no tags', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'No tags here',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractTags(content)).toEqual([]);
+  });
+
+  it('should deduplicate tags', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: '#duplicate appears #duplicate twice',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractTags(content)).toEqual(['duplicate']);
+  });
+
+  it('should extract tags from multiple paragraphs', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'First paragraph with #first',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Second paragraph with #second',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractTags(content)).toEqual(['first', 'second']);
+  });
+
+  it('should support tags with hyphens and underscores', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Tags like #multi-word and #snake_case',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractTags(content)).toEqual(['multi-word', 'snake_case']);
+  });
+});
+
+describe('extractLinks', () => {
+  it('should extract links from link nodes with note:// protocol', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'link',
+                url: 'note://note-123',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Link to note',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual(['note-123']);
+  });
+
+  it('should extract links from wiki-link style URLs', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'link',
+                url: '[[note-456]]',
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual(['note-456']);
+  });
+
+  it('should extract links from entity-reference nodes', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'entity-reference',
+                entityType: 'note',
+                id: 'note-789',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual(['note-789']);
+  });
+
+  it('should extract links from note-reference nodes', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'note-reference',
+                noteId: 'note-abc',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual(['note-abc']);
+  });
+
+  it('should return empty array for content with no links', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'No links here',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual([]);
+  });
+
+  it('should deduplicate links', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'link',
+                url: 'note://note-123',
+                children: [],
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'link',
+                url: 'note://note-123',
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual(['note-123']);
+  });
+});
+
+describe('extractMetadata', () => {
+  it('should extract all metadata from content', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'My Note Title with #scribe tag',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'link',
+                url: 'note://linked-note',
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const metadata = extractMetadata(content);
+    expect(metadata.title).toBe('My Note Title with #scribe tag');
+    expect(metadata.tags).toEqual(['scribe']);
+    expect(metadata.links).toEqual(['linked-note']);
+  });
+});

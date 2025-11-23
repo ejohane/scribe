@@ -8,6 +8,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Note, NoteId, VaultPath, LexicalState } from '@scribe/shared';
+import { extractMetadata } from '@scribe/engine-core';
 import { getNotesDir, getNoteFilePath } from './vault.js';
 
 /**
@@ -41,6 +42,8 @@ export class FileSystemVault {
 
           // Validate note structure
           if (this.isValidNote(note)) {
+            // Re-extract metadata to ensure consistency
+            note.metadata = extractMetadata(note.content);
             this.notes.set(note.id, note);
           } else {
             console.warn(`Invalid note structure in ${file}, skipping`);
@@ -84,36 +87,40 @@ export class FileSystemVault {
    */
   async create(content?: LexicalState): Promise<Note> {
     const now = Date.now();
+    const noteContent = content || this.createEmptyContent();
+
     const note: Note = {
       id: randomUUID(),
       createdAt: now,
       updatedAt: now,
-      content: content || this.createEmptyContent(),
-      metadata: {
-        title: null,
-        tags: [],
-        links: [],
-      },
+      content: noteContent,
+      metadata: extractMetadata(noteContent),
     };
 
     // Save to disk and add to memory
     await this.save(note);
 
-    return note;
+    // Return the saved note from memory (which has updated metadata)
+    return this.notes.get(note.id)!;
   }
 
   /**
    * Save a note (create or update)
    *
    * Uses atomic write: temp file → fsync → rename
+   * Metadata is automatically extracted from content before saving
    *
    * @param note - Note to save
    */
   async save(note: Note): Promise<void> {
-    // Update timestamp
+    // Extract metadata from content
+    const metadata = extractMetadata(note.content);
+
+    // Update timestamp and metadata
     const updatedNote: Note = {
       ...note,
       updatedAt: Date.now(),
+      metadata,
     };
 
     // Perform atomic write
