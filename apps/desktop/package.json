@@ -11,7 +11,7 @@
     "dev:renderer": "cd renderer && bun run dev",
     "dev:main": "cd electron/main && bun run dev",
     "dev:preload": "cd electron/preload && bun run dev",
-    "build": "turbo run build",
+    "build": "bun run build:renderer && bun run build:main && bun run build:preload",
     "build:renderer": "cd renderer && bun run build",
     "build:main": "cd electron/main && bun run build",
     "build:preload": "cd electron/preload && bun run build",
