@@ -5,9 +5,16 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import type { Command } from './commands/types';
+import type { GraphNode } from '@scribe/shared';
+import { useNoteState } from './hooks/useNoteState';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
+  const [showBacklinks, setShowBacklinks] = useState(false);
+
+  // Manage note state at app level so commands can access it
+  const noteState = useNoteState();
 
   // Register commands on mount
   useEffect(() => {
@@ -63,6 +70,31 @@ function App() {
         await window.scribe.app.openDevTools();
       },
     });
+
+    // Command: Show Backlinks
+    commandRegistry.register({
+      id: 'show-backlinks',
+      title: 'Show Backlinks',
+      description: 'Show notes that link to the current note',
+      keywords: ['backlinks', 'references', 'links', 'graph'],
+      group: 'navigation',
+      run: async (context) => {
+        const currentNoteId = context.getCurrentNoteId();
+        if (!currentNoteId) {
+          console.warn('No current note to show backlinks for');
+          return;
+        }
+
+        try {
+          const backlinks = await window.scribe.graph.backlinks(currentNoteId);
+          setBacklinkResults(backlinks);
+          setShowBacklinks(true);
+          console.log('Backlinks for current note:', backlinks);
+        } catch (error) {
+          console.error('Failed to fetch backlinks:', error);
+        }
+      },
+    });
   }, []);
 
   // Handle cmd+k to open palette
@@ -82,16 +114,32 @@ function App() {
   const handleCommandSelect = async (command: Command) => {
     await command.run({
       closePalette: () => setIsPaletteOpen(false),
-      setCurrentNoteId: () => {}, // Will be implemented when we add note switching
-      getCurrentNoteId: () => null, // Will be implemented when we add note switching
-      saveCurrentNote: async () => {}, // Will be implemented when we connect to editor
+      setCurrentNoteId: (noteId: string) => noteState.loadNote(noteId),
+      getCurrentNoteId: () => noteState.currentNoteId,
+      saveCurrentNote: async () => {
+        if (noteState.currentNote) {
+          await noteState.saveNote(noteState.currentNote.content);
+        }
+      },
     });
     setIsPaletteOpen(false);
   };
 
+  // Close backlinks view
+  const handleCloseBacklinks = () => {
+    setShowBacklinks(false);
+    setBacklinkResults([]);
+  };
+
+  // Handle backlink selection
+  const handleBacklinkSelect = (backlink: GraphNode) => {
+    noteState.loadNote(backlink.id);
+    handleCloseBacklinks();
+  };
+
   return (
     <div className="app">
-      <EditorRoot />
+      <EditorRoot noteState={noteState} />
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
@@ -99,6 +147,40 @@ function App() {
         onCommandSelect={handleCommandSelect}
         filterCommands={fuzzySearchCommands}
       />
+      {showBacklinks && (
+        <div className="backlinks-overlay" onClick={handleCloseBacklinks}>
+          <div className="backlinks-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="backlinks-header">
+              <h3>Backlinks</h3>
+              <button onClick={handleCloseBacklinks}>Close</button>
+            </div>
+            <div className="backlinks-list">
+              {backlinkResults.length === 0 ? (
+                <div className="backlinks-empty">No backlinks found</div>
+              ) : (
+                backlinkResults.map((backlink) => (
+                  <div
+                    key={backlink.id}
+                    className="backlink-item"
+                    onClick={() => handleBacklinkSelect(backlink)}
+                  >
+                    <div className="backlink-title">{backlink.title || 'Untitled'}</div>
+                    {backlink.tags.length > 0 && (
+                      <div className="backlink-tags">
+                        {backlink.tags.map((tag) => (
+                          <span key={tag} className="backlink-tag">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

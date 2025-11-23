@@ -8,7 +8,7 @@ import { ListNode, ListItemNode } from '@lexical/list';
 import { CodeNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
 
-import { useNoteState } from '../../hooks/useNoteState';
+import type { useNoteState } from '../../hooks/useNoteState';
 import { InitialStatePlugin } from './plugins/InitialStatePlugin';
 import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
@@ -31,8 +31,12 @@ const editorConfig = {
   nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, LinkNode],
 };
 
-export function EditorRoot() {
-  const { currentNote, currentNoteId, isLoading, error, saveNote } = useNoteState();
+interface EditorRootProps {
+  noteState: ReturnType<typeof useNoteState>;
+}
+
+export function EditorRoot({ noteState }: EditorRootProps) {
+  const { currentNote, currentNoteId, isLoading, error, saveNote } = noteState;
 
   if (isLoading) {
     return (

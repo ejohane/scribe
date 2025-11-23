@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
+import { GraphEngine } from '@scribe/engine-graph';
 import type { Note, NoteId } from '@scribe/shared';
 
 // __filename and __dirname are provided by the build script banner
@@ -9,6 +10,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow: BrowserWindow | null = null;
 let vault: FileSystemVault | null = null;
+let graphEngine: GraphEngine | null = null;
 
 /**
  * Initialize the vault and load notes
@@ -23,6 +25,19 @@ async function initializeEngine() {
     vault = new FileSystemVault(vaultPath);
     const noteCount = await vault.load();
     console.log(`Loaded ${noteCount} notes from vault`);
+
+    // Initialize graph engine
+    graphEngine = new GraphEngine();
+
+    // Build initial graph from loaded notes
+    const notes = vault.list();
+    for (const note of notes) {
+      graphEngine.addNote(note);
+    }
+    console.log(`Graph initialized with ${notes.length} notes`);
+
+    const stats = graphEngine.getStats();
+    console.log(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
   } catch (error) {
     console.error('Failed to initialize engine:', error);
     throw error;
@@ -72,7 +87,14 @@ function setupIPCHandlers() {
     if (!vault) {
       throw new Error('Vault not initialized');
     }
+    if (!graphEngine) {
+      throw new Error('Graph engine not initialized');
+    }
     await vault.save(note);
+
+    // Update graph with new note data
+    graphEngine.addNote(note);
+
     return { success: true };
   });
 
@@ -81,12 +103,28 @@ function setupIPCHandlers() {
     return [];
   });
 
-  ipcMain.handle('graph:forNote', async (_event, id: string) => {
-    return [];
+  // Graph: Get neighbors for a note
+  ipcMain.handle('graph:forNote', async (_event, id: NoteId) => {
+    if (!graphEngine) {
+      throw new Error('Graph engine not initialized');
+    }
+    return graphEngine.neighbors(id);
   });
 
-  ipcMain.handle('graph:backlinks', async (_event, id: string) => {
-    return [];
+  // Graph: Get backlinks for a note
+  ipcMain.handle('graph:backlinks', async (_event, id: NoteId) => {
+    if (!graphEngine) {
+      throw new Error('Graph engine not initialized');
+    }
+    return graphEngine.backlinks(id);
+  });
+
+  // Graph: Get notes with tag
+  ipcMain.handle('graph:notesWithTag', async (_event, tag: string) => {
+    if (!graphEngine) {
+      throw new Error('Graph engine not initialized');
+    }
+    return graphEngine.notesWithTag(tag);
   });
 
   // Open devtools

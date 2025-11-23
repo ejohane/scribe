@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { Note, NoteId, SearchResult } from '@scribe/shared';
+import type { Note, NoteId, SearchResult, GraphNode } from '@scribe/shared';
 
 /**
  * Scribe API exposed to the renderer process
@@ -43,17 +43,23 @@ const scribeAPI = {
     query: (text: string): Promise<SearchResult[]> => ipcRenderer.invoke('search:query', text),
   },
 
-  // Graph API (placeholder for future implementation)
+  // Graph API
   graph: {
     /**
-     * Get graph neighbors for a note
+     * Get graph neighbors for a note (both incoming and outgoing connections)
      */
-    forNote: (id: NoteId): Promise<NoteId[]> => ipcRenderer.invoke('graph:forNote', id),
+    forNote: (id: NoteId): Promise<GraphNode[]> => ipcRenderer.invoke('graph:forNote', id),
 
     /**
-     * Get backlinks for a note
+     * Get backlinks for a note (notes that link to this note)
      */
-    backlinks: (id: NoteId): Promise<NoteId[]> => ipcRenderer.invoke('graph:backlinks', id),
+    backlinks: (id: NoteId): Promise<GraphNode[]> => ipcRenderer.invoke('graph:backlinks', id),
+
+    /**
+     * Get all notes with a specific tag
+     */
+    notesWithTag: (tag: string): Promise<GraphNode[]> =>
+      ipcRenderer.invoke('graph:notesWithTag', tag),
   },
 
   // App API

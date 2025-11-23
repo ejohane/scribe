@@ -14,7 +14,7 @@
   "dependencies": {
     "@scribe/shared": "workspace:*",
     "@scribe/storage-fs": "workspace:*",
-    "electron": "^33.2.0"
+    "@scribe/engine-graph": "workspace:*"
   },
   "devDependencies": {
     "@scribe/tsconfig": "workspace:*",
