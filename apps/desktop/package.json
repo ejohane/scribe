@@ -1,0 +1,27 @@
+{
+  "name": "@scribe/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scribe desktop application",
+  "main": "electron/main/dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:renderer": "cd renderer && bun run dev",
+    "dev:main": "cd electron/main && bun run dev",
+    "dev:preload": "cd electron/preload && bun run dev",
+    "build": "turbo run build",
+    "build:renderer": "cd renderer && bun run build",
+    "build:main": "cd electron/main && bun run build",
+    "build:preload": "cd electron/preload && bun run build",
+    "start": "../../node_modules/.bin/electron .",
+    "clean": "rm -rf renderer/dist electron/main/dist electron/preload/dist",
+    "lint": "turbo run lint",
+    "test": "echo 'No tests yet'"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "turbo": "^2.3.3"
+  },
+  "packageManager": "bun@1.1.38"
+}

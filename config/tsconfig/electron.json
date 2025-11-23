@@ -3,8 +3,8 @@
   "display": "Electron",
   "extends": "./base.json",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "lib": ["ES2022"],
     "types": ["node", "electron"]
   }

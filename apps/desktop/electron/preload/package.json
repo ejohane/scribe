@@ -1,0 +1,22 @@
+{
+  "name": "@scribe/electron-preload",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/preload.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "electron": "^33.2.0"
+  },
+  "devDependencies": {
+    "@scribe/tsconfig": "workspace:*",
+    "@types/node": "^22.10.1",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}

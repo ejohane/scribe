@@ -5,7 +5,8 @@
   "description": "Personal note-taking system with markdown parsing, graph visualization, and intelligent search",
   "workspaces": [
     "packages/*",
-    "config/*"
+    "config/*",
+    "apps/desktop/*"
   ],
   "scripts": {
     "build": "turbo run build",
