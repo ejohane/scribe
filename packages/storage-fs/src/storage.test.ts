@@ -109,6 +109,7 @@ describe('FileSystemVault', () => {
 
     await vault.delete(note.id);
 
-    expect(vault.read(note.id)).toBeUndefined();
+    // After deletion, reading should throw an error
+    expect(() => vault.read(note.id)).toThrow('Note not found');
   });
 });

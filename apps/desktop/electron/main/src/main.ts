@@ -6,6 +6,7 @@ import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import type { Note, NoteId } from '@scribe/shared';
+import { ScribeError } from '@scribe/shared';
 
 // __filename and __dirname are provided by the build script banner
 
@@ -105,14 +106,21 @@ function setupIPCHandlers() {
 
   // Read a single note by ID
   ipcMain.handle('notes:read', async (_event, id: NoteId) => {
-    if (!vault) {
-      throw new Error('Vault not initialized');
+    try {
+      if (!vault) {
+        throw new Error('Vault not initialized');
+      }
+      const note = vault.read(id);
+      return note;
+    } catch (error) {
+      // Send user-friendly error message if it's a ScribeError
+      if (error instanceof ScribeError) {
+        const userError = new Error(error.getUserMessage());
+        userError.name = error.code;
+        throw userError;
+      }
+      throw error;
     }
-    const note = vault.read(id);
-    if (!note) {
-      throw new Error(`Note not found: ${id}`);
-    }
-    return note;
   });
 
   // Create a new note
@@ -126,24 +134,34 @@ function setupIPCHandlers() {
 
   // Save a note (update)
   ipcMain.handle('notes:save', async (_event, note: Note) => {
-    if (!vault) {
-      throw new Error('Vault not initialized');
-    }
-    if (!graphEngine) {
-      throw new Error('Graph engine not initialized');
-    }
-    if (!searchEngine) {
-      throw new Error('Search engine not initialized');
-    }
-    await vault.save(note);
+    try {
+      if (!vault) {
+        throw new Error('Vault not initialized');
+      }
+      if (!graphEngine) {
+        throw new Error('Graph engine not initialized');
+      }
+      if (!searchEngine) {
+        throw new Error('Search engine not initialized');
+      }
+      await vault.save(note);
 
-    // Update graph with new note data
-    graphEngine.addNote(note);
+      // Update graph with new note data
+      graphEngine.addNote(note);
 
-    // Update search index with new note data
-    searchEngine.indexNote(note);
+      // Update search index with new note data
+      searchEngine.indexNote(note);
 
-    return { success: true };
+      return { success: true };
+    } catch (error) {
+      // Send user-friendly error message if it's a ScribeError
+      if (error instanceof ScribeError) {
+        const userError = new Error(error.getUserMessage());
+        userError.name = error.code;
+        throw userError;
+      }
+      throw error;
+    }
   });
 
   // Search: Query notes

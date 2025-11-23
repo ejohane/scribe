@@ -16,3 +16,5 @@ export type {
   SearchResult,
   VaultConfig,
 } from './types.js';
+
+export { ErrorCode, ScribeError } from './errors.js';

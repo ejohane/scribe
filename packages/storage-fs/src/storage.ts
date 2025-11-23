@@ -8,6 +8,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Note, NoteId, VaultPath, LexicalState } from '@scribe/shared';
+import { ErrorCode, ScribeError } from '@scribe/shared';
 import { extractMetadata } from '@scribe/engine-core';
 import { getNotesDir, getNoteFilePath } from './vault.js';
 
@@ -26,6 +27,7 @@ export class FileSystemVault {
    * and builds the in-memory notes map.
    *
    * @returns Number of notes loaded
+   * @throws ScribeError if notes directory cannot be read
    */
   async load(): Promise<number> {
     const notesDir = getNotesDir(this.vaultPath);
@@ -46,17 +48,20 @@ export class FileSystemVault {
             note.metadata = extractMetadata(note.content);
             this.notes.set(note.id, note);
           } else {
+            // Log warning but continue loading other notes
             console.warn(`Invalid note structure in ${file}, skipping`);
           }
         } catch (error) {
+          // Log individual file errors but continue loading
           console.warn(`Failed to load note ${file}:`, error);
         }
       }
 
       return this.notes.size;
     } catch (error) {
-      console.warn('Failed to read notes directory:', error);
-      return 0;
+      const err = error as Error & { code?: string };
+      const code = ScribeError.fromSystemError(err, ErrorCode.FILE_READ_ERROR);
+      throw new ScribeError(code, `Failed to read notes directory: ${err.message}`, err);
     }
   }
 
@@ -73,10 +78,15 @@ export class FileSystemVault {
    * Get a single note by ID
    *
    * @param id - Note ID
-   * @returns Note or undefined if not found
+   * @returns Note
+   * @throws ScribeError if note not found
    */
-  read(id: NoteId): Note | undefined {
-    return this.notes.get(id);
+  read(id: NoteId): Note {
+    const note = this.notes.get(id);
+    if (!note) {
+      throw new ScribeError(ErrorCode.NOTE_NOT_FOUND, `Note not found: ${id}`);
+    }
+    return note;
   }
 
   /**
@@ -111,30 +121,41 @@ export class FileSystemVault {
    * Metadata is automatically extracted from content before saving
    *
    * @param note - Note to save
+   * @throws ScribeError if save fails
    */
   async save(note: Note): Promise<void> {
-    // Extract metadata from content
-    const metadata = extractMetadata(note.content);
+    try {
+      // Extract metadata from content
+      const metadata = extractMetadata(note.content);
 
-    // Update timestamp and metadata
-    const updatedNote: Note = {
-      ...note,
-      updatedAt: Date.now(),
-      metadata,
-    };
+      // Update timestamp and metadata
+      const updatedNote: Note = {
+        ...note,
+        updatedAt: Date.now(),
+        metadata,
+      };
 
-    // Perform atomic write
-    const notePath = getNoteFilePath(this.vaultPath, updatedNote.id);
-    await this.atomicWrite(notePath, JSON.stringify(updatedNote, null, 2));
+      // Perform atomic write
+      const notePath = getNoteFilePath(this.vaultPath, updatedNote.id);
+      await this.atomicWrite(notePath, JSON.stringify(updatedNote, null, 2));
 
-    // Update in-memory map
-    this.notes.set(updatedNote.id, updatedNote);
+      // Update in-memory map
+      this.notes.set(updatedNote.id, updatedNote);
+    } catch (error) {
+      if (error instanceof ScribeError) {
+        throw error;
+      }
+      const err = error as Error & { code?: string };
+      const code = ScribeError.fromSystemError(err, ErrorCode.FILE_WRITE_ERROR);
+      throw new ScribeError(code, `Failed to save note ${note.id}: ${err.message}`, err);
+    }
   }
 
   /**
    * Delete a note
    *
    * @param id - Note ID to delete
+   * @throws ScribeError if deletion fails
    */
   async delete(id: NoteId): Promise<void> {
     const notePath = getNoteFilePath(this.vaultPath, id);
@@ -143,8 +164,9 @@ export class FileSystemVault {
       await fs.unlink(notePath);
       this.notes.delete(id);
     } catch (error) {
-      console.warn(`Failed to delete note ${id}:`, error);
-      throw error;
+      const err = error as Error & { code?: string };
+      const code = ScribeError.fromSystemError(err, ErrorCode.FILE_DELETE_ERROR);
+      throw new ScribeError(code, `Failed to delete note ${id}: ${err.message}`, err);
     }
   }
 
@@ -156,6 +178,7 @@ export class FileSystemVault {
    *
    * @param filePath - Final file path
    * @param content - Content to write
+   * @throws ScribeError if write fails
    */
   private async atomicWrite(filePath: string, content: string): Promise<void> {
     const dir = path.dirname(filePath);
@@ -182,7 +205,9 @@ export class FileSystemVault {
       } catch {
         // Ignore cleanup errors
       }
-      throw error;
+      const err = error as Error & { code?: string };
+      const code = ScribeError.fromSystemError(err, ErrorCode.FILE_WRITE_ERROR);
+      throw new ScribeError(code, `Failed to write file ${filePath}: ${err.message}`, err);
     }
   }
 

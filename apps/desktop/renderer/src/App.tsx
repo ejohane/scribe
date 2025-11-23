@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
+import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import type { Command } from './commands/types';
@@ -12,9 +13,15 @@ function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
   const [showBacklinks, setShowBacklinks] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
 
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
+
+  // Expose error handler for child components
+  const showError = useCallback((error: string) => {
+    setGlobalError(error);
+  }, []);
 
   // Register commands on mount
   useEffect(() => {
@@ -137,6 +144,13 @@ function App() {
     handleCloseBacklinks();
   };
 
+  // Display errors from noteState
+  useEffect(() => {
+    if (noteState.error) {
+      showError(noteState.error);
+    }
+  }, [noteState.error, showError]);
+
   return (
     <div className="app">
       <EditorRoot noteState={noteState} />
@@ -151,6 +165,7 @@ function App() {
         }}
         filterCommands={fuzzySearchCommands}
       />
+      <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
       {showBacklinks && (
         <div className="backlinks-overlay" onClick={handleCloseBacklinks}>
           <div className="backlinks-panel" onClick={(e) => e.stopPropagation()}>
