@@ -2,7 +2,8 @@
   "name": "@scribe/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "Scribe desktop application",
+  "description": "Scribe - A note-taking application",
+  "author": "Scribe Team",
   "main": "electron/main/dist/main.js",
   "type": "module",
   "scripts": {
@@ -14,10 +15,87 @@
     "build:renderer": "cd renderer && bun run build",
     "build:main": "cd electron/main && bun run build",
     "build:preload": "cd electron/preload && bun run build",
+    "dist": "bun run build:renderer && bun run build:main && bun run build:preload && electron-builder",
+    "dist:mac": "bun run build:renderer && bun run build:main && bun run build:preload && electron-builder --mac",
+    "dist:win": "bun run build:renderer && bun run build:main && bun run build:preload && electron-builder --win",
     "start": "../../node_modules/.bin/electron .",
     "clean": "rm -rf renderer/dist electron/main/dist electron/preload/dist",
     "lint": "turbo run lint",
     "test": "echo 'No tests yet'"
+  },
+  "build": {
+    "appId": "com.scribe.app",
+    "productName": "Scribe",
+    "copyright": "Copyright © 2025 Scribe Team",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/main/dist/**/*",
+      "electron/preload/dist/**/*",
+      "renderer/dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png"
+    }
   },
   "devDependencies": {
     "electron": "^33.2.0",
