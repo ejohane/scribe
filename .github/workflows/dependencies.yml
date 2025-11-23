@@ -1,0 +1,33 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9 AM UTC
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Update dependencies
+        run: bun update
+
+      - name: Run tests
+        run: turbo run lint test build
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: 'chore(deps): update dependencies'
+          title: 'chore(deps): weekly dependency updates'
+          body: |
+            Automated dependency updates.
+
+            Please review and merge if all checks pass.
+          branch: chore/dependency-updates
+          delete-branch: true
