@@ -82,10 +82,10 @@ export function useNoteState(): UseNoteStateReturn {
         const result = await window.scribe.notes.save(updatedNote);
 
         if (result.success) {
-          // Reload the note to get the latest engine-generated metadata
-          if (currentNoteId) {
-            await loadNote(currentNoteId);
-          }
+          // Update local state without reloading to avoid focus loss
+          // The engine has the latest metadata, but we don't need to reload
+          // the entire note just to update metadata during autosave
+          setCurrentNote(updatedNote);
         } else {
           setError('Failed to save note');
         }
@@ -95,7 +95,7 @@ export function useNoteState(): UseNoteStateReturn {
         console.error('Failed to save note:', err);
       }
     },
-    [currentNote, currentNoteId, loadNote]
+    [currentNote]
   );
 
   /**
