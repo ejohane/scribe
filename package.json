@@ -16,6 +16,7 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
+    "@types/flexsearch": "^0.7.42",
     "electron": "^33.2.0",
     "eslint": "^9.16.0",
     "prettier": "^3.4.2",

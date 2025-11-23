@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
+import { SearchEngine } from '@scribe/engine-search';
 import type { Note, NoteId } from '@scribe/shared';
 
 // __filename and __dirname are provided by the build script banner
@@ -11,6 +12,7 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow: BrowserWindow | null = null;
 let vault: FileSystemVault | null = null;
 let graphEngine: GraphEngine | null = null;
+let searchEngine: SearchEngine | null = null;
 
 /**
  * Initialize the vault and load notes
@@ -29,12 +31,17 @@ async function initializeEngine() {
     // Initialize graph engine
     graphEngine = new GraphEngine();
 
-    // Build initial graph from loaded notes
+    // Initialize search engine
+    searchEngine = new SearchEngine();
+
+    // Build initial graph and search index from loaded notes
     const notes = vault.list();
     for (const note of notes) {
       graphEngine.addNote(note);
+      searchEngine.indexNote(note);
     }
     console.log(`Graph initialized with ${notes.length} notes`);
+    console.log(`Search index initialized with ${searchEngine.size()} notes`);
 
     const stats = graphEngine.getStats();
     console.log(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
@@ -90,17 +97,26 @@ function setupIPCHandlers() {
     if (!graphEngine) {
       throw new Error('Graph engine not initialized');
     }
+    if (!searchEngine) {
+      throw new Error('Search engine not initialized');
+    }
     await vault.save(note);
 
     // Update graph with new note data
     graphEngine.addNote(note);
 
+    // Update search index with new note data
+    searchEngine.indexNote(note);
+
     return { success: true };
   });
 
-  // Placeholder handlers for future implementation
-  ipcMain.handle('search:query', async (_event, text: string) => {
-    return [];
+  // Search: Query notes
+  ipcMain.handle('search:query', async (_event, query: string) => {
+    if (!searchEngine) {
+      throw new Error('Search engine not initialized');
+    }
+    return searchEngine.search(query);
   });
 
   // Graph: Get neighbors for a note

@@ -77,10 +77,21 @@
 }
 
 .command-palette-no-results {
-  padding: 32px 16px;
+  padding: 1rem;
   text-align: center;
-  color: #9ca3af;
-  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.command-palette-separator {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .command-palette-item {

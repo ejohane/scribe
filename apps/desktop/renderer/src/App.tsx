@@ -87,7 +87,7 @@ function App() {
 
         try {
           const backlinks = await window.scribe.graph.backlinks(currentNoteId);
-          setBacklinkResults(backlinks);
+          setBacklinkResults(Array.isArray(backlinks) ? backlinks : []);
           setShowBacklinks(true);
           console.log('Backlinks for current note:', backlinks);
         } catch (error) {
@@ -145,6 +145,10 @@ function App() {
         onClose={() => setIsPaletteOpen(false)}
         commands={commandRegistry.getAll()}
         onCommandSelect={handleCommandSelect}
+        onSearchResultSelect={(result) => {
+          noteState.loadNote(result.id);
+          setIsPaletteOpen(false);
+        }}
         filterCommands={fuzzySearchCommands}
       />
       {showBacklinks && (

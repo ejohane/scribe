@@ -12,9 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@scribe/engine-core": "workspace:*",
+    "@scribe/engine-graph": "workspace:*",
+    "@scribe/engine-search": "workspace:*",
     "@scribe/shared": "workspace:*",
     "@scribe/storage-fs": "workspace:*",
-    "@scribe/engine-graph": "workspace:*"
+    "electron": "^33.2.0"
   },
   "devDependencies": {
     "@scribe/tsconfig": "workspace:*",
