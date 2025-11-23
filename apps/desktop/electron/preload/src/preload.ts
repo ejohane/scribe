@@ -68,6 +68,17 @@ const scribeAPI = {
      * Open developer tools
      */
     openDevTools: (): Promise<{ success: boolean }> => ipcRenderer.invoke('app:openDevTools'),
+
+    /**
+     * Get the last opened note ID
+     */
+    getLastOpenedNote: (): Promise<NoteId | null> => ipcRenderer.invoke('app:getLastOpenedNote'),
+
+    /**
+     * Set the last opened note ID
+     */
+    setLastOpenedNote: (noteId: NoteId | null): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('app:setLastOpenedNote', noteId),
   },
 };
 

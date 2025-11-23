@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
+import * as fs from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
@@ -13,6 +15,39 @@ let mainWindow: BrowserWindow | null = null;
 let vault: FileSystemVault | null = null;
 let graphEngine: GraphEngine | null = null;
 let searchEngine: SearchEngine | null = null;
+
+// App config
+interface AppConfig {
+  lastOpenedNoteId?: NoteId;
+}
+
+const CONFIG_DIR = path.join(homedir(), 'Scribe');
+const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
+
+/**
+ * Load app configuration
+ */
+async function loadConfig(): Promise<AppConfig> {
+  try {
+    const data = await fs.readFile(CONFIG_PATH, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    // Config doesn't exist or is invalid, return empty config
+    return {};
+  }
+}
+
+/**
+ * Save app configuration
+ */
+async function saveConfig(config: AppConfig): Promise<void> {
+  try {
+    await fs.mkdir(CONFIG_DIR, { recursive: true });
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Failed to save config:', error);
+  }
+}
 
 /**
  * Initialize the vault and load notes
@@ -148,6 +183,20 @@ function setupIPCHandlers() {
     if (mainWindow) {
       mainWindow.webContents.openDevTools();
     }
+    return { success: true };
+  });
+
+  // Get last opened note ID
+  ipcMain.handle('app:getLastOpenedNote', async () => {
+    const config = await loadConfig();
+    return config.lastOpenedNoteId || null;
+  });
+
+  // Set last opened note ID
+  ipcMain.handle('app:setLastOpenedNote', async (_event, noteId: NoteId | null) => {
+    const config = await loadConfig();
+    config.lastOpenedNoteId = noteId || undefined;
+    await saveConfig(config);
     return { success: true };
   });
 }

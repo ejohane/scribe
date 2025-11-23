@@ -51,6 +51,9 @@ export function useNoteState(): UseNoteStateReturn {
       const note = await window.scribe.notes.read(id);
       setCurrentNote(note);
       setCurrentNoteId(id);
+
+      // Remember this as the last opened note
+      await window.scribe.app.setLastOpenedNote(id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load note';
       setError(errorMessage);
@@ -109,6 +112,9 @@ export function useNoteState(): UseNoteStateReturn {
       const newNote = await window.scribe.notes.create();
       setCurrentNote(newNote);
       setCurrentNoteId(newNote.id);
+
+      // Remember this as the last opened note
+      await window.scribe.app.setLastOpenedNote(newNote.id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create note';
       setError(errorMessage);
@@ -118,12 +124,28 @@ export function useNoteState(): UseNoteStateReturn {
     }
   }, []);
 
-  // Auto-create a note on mount if none exists
+  // On mount, try to load the last opened note, or create a new one
   useEffect(() => {
-    if (!currentNoteId && !isLoading) {
-      createNote();
-    }
-  }, [currentNoteId, isLoading, createNote]);
+    const initializeNote = async () => {
+      if (currentNoteId || isLoading) return;
+
+      try {
+        // Try to get the last opened note
+        const lastNoteId = await window.scribe.app.getLastOpenedNote();
+        if (lastNoteId) {
+          await loadNote(lastNoteId);
+        } else {
+          await createNote();
+        }
+      } catch (err) {
+        console.error('Failed to initialize note:', err);
+        // If loading last note fails, create a new one
+        await createNote();
+      }
+    };
+
+    initializeNote();
+  }, [currentNoteId, isLoading, loadNote, createNote]);
 
   return {
     currentNote,
