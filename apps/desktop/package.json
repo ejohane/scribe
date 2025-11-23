@@ -21,7 +21,7 @@
     "start": "../../node_modules/.bin/electron .",
     "clean": "rm -rf renderer/dist electron/main/dist electron/preload/dist",
     "lint": "turbo run lint",
-    "test": "echo 'No tests yet'"
+    "test": "bun test *.integration.test.ts && cd renderer && bun run test"
   },
   "build": {
     "appId": "com.scribe.app",
