@@ -65,7 +65,8 @@ export class FileSystemVault {
       const files = await fs.readdir(notesDir);
       const jsonFiles = files.filter((f) => f.endsWith('.json'));
 
-      for (const file of jsonFiles) {
+      // Batch file reads for better performance
+      const loadPromises = jsonFiles.map(async (file) => {
         try {
           const filePath = path.join(notesDir, file);
           const content = await fs.readFile(filePath, 'utf-8');
@@ -73,8 +74,11 @@ export class FileSystemVault {
 
           // Validate note structure
           if (this.isValidNote(note)) {
-            // Re-extract metadata to ensure consistency
-            note.metadata = extractMetadata(note.content);
+            // Use stored metadata (already extracted during save)
+            // Only re-extract if metadata is missing (legacy notes)
+            if (!note.metadata || Object.keys(note.metadata).length === 0) {
+              note.metadata = extractMetadata(note.content);
+            }
             this.notes.set(note.id, note);
           } else {
             // Quarantine invalid notes
@@ -86,7 +90,10 @@ export class FileSystemVault {
           console.warn(`Failed to load note ${file}, quarantining:`, error);
           await this.quarantineFile(file);
         }
-      }
+      });
+
+      // Load all files in parallel
+      await Promise.all(loadPromises);
 
       return this.notes.size;
     } catch (error) {

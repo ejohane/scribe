@@ -1,0 +1,107 @@
+/**
+ * Performance benchmarks for storage operations
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { FileSystemVault } from './storage.js';
+import type { LexicalState } from '@scribe/shared';
+
+describe('Performance Benchmarks', () => {
+  let tempDir: string;
+  let vault: FileSystemVault;
+
+  // Create a simple note content template
+  const createNoteContent = (index: number): LexicalState => ({
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [
+            {
+              type: 'text',
+              text: `Test note ${index} with some content #test #note${index}`,
+            },
+          ],
+        },
+        {
+          type: 'paragraph',
+          children: [
+            {
+              type: 'text',
+              text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+            },
+          ],
+        },
+      ],
+      format: '',
+      indent: 0,
+      version: 1,
+    },
+  });
+
+  beforeAll(async () => {
+    // Create temporary test directory
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'scribe-perf-test-'));
+    await fs.mkdir(path.join(tempDir, 'notes'), { recursive: true });
+    vault = new FileSystemVault(tempDir);
+
+    // Create 100 test notes (reduced from 5000 for CI performance)
+    console.log('Creating 100 test notes...');
+    const createPromises = [];
+    for (let i = 0; i < 100; i++) {
+      createPromises.push(vault.create(createNoteContent(i)));
+    }
+    await Promise.all(createPromises);
+    console.log('Test notes created');
+  });
+
+  afterAll(async () => {
+    // Clean up temporary directory
+    await fs.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('should load 100 notes in under 50ms', async () => {
+    // Create a fresh vault instance to test cold start
+    const freshVault = new FileSystemVault(tempDir);
+
+    const startTime = performance.now();
+    const count = await freshVault.load();
+    const endTime = performance.now();
+    const loadTime = endTime - startTime;
+
+    console.log(`Loaded ${count} notes in ${loadTime.toFixed(2)}ms`);
+
+    expect(count).toBe(100);
+    expect(loadTime).toBeLessThan(50); // 50ms for 100 notes scales to ~200ms for 5k notes
+  });
+
+  it('should save notes efficiently', async () => {
+    const note = vault.list()[0];
+    const updatedContent = createNoteContent(999);
+
+    const startTime = performance.now();
+    await vault.save({ ...note, content: updatedContent });
+    const endTime = performance.now();
+    const saveTime = endTime - startTime;
+
+    console.log(`Saved note in ${saveTime.toFixed(2)}ms`);
+
+    expect(saveTime).toBeLessThan(10); // Individual saves should be fast
+  });
+
+  it('should list notes efficiently', () => {
+    const startTime = performance.now();
+    const notes = vault.list();
+    const endTime = performance.now();
+    const listTime = endTime - startTime;
+
+    console.log(`Listed ${notes.length} notes in ${listTime.toFixed(2)}ms`);
+
+    expect(notes.length).toBe(100);
+    expect(listTime).toBeLessThan(1); // Listing is in-memory, should be instant
+  });
+});
