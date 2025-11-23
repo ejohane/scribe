@@ -6,7 +6,7 @@
   "main": "electron/main/dist/main.js",
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "node dev.mjs",
     "dev:renderer": "cd renderer && bun run dev",
     "dev:main": "cd electron/main && bun run dev",
     "dev:preload": "cd electron/preload && bun run dev",

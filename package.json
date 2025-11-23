@@ -9,6 +9,7 @@
     "apps/desktop/*"
   ],
   "scripts": {
+    "dev": "cd apps/desktop && bun run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
