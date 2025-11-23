@@ -1,19 +1,21 @@
 // Type definitions for the Scribe API exposed via contextBridge
 
+import type { Note, NoteId, SearchResult } from '@scribe/shared';
+
 export interface ScribeAPI {
   ping: () => Promise<{ message: string; timestamp: number }>;
   notes: {
-    list: () => Promise<unknown[]>;
-    read: (id: string) => Promise<unknown>;
-    save: (note: unknown) => Promise<{ success: boolean }>;
-    create: () => Promise<unknown>;
+    list: () => Promise<Note[]>;
+    read: (id: NoteId) => Promise<Note>;
+    save: (note: Note) => Promise<{ success: boolean }>;
+    create: () => Promise<Note>;
   };
   search: {
-    query: (text: string) => Promise<unknown[]>;
+    query: (text: string) => Promise<SearchResult[]>;
   };
   graph: {
-    forNote: (id: string) => Promise<unknown[]>;
-    backlinks: (id: string) => Promise<unknown[]>;
+    forNote: (id: NoteId) => Promise<NoteId[]>;
+    backlinks: (id: NoteId) => Promise<NoteId[]>;
   };
 }
 

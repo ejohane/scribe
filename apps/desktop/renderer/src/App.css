@@ -1,87 +1,9 @@
 .app {
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-}
-
-.app-header {
-  padding: 2rem;
-  text-align: center;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.app-header h1 {
-  font-size: 2.5rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #1a1a1a;
-}
-
-.app-header p {
-  font-size: 1rem;
-  color: #666;
-}
-
-.app-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.app-main .content {
-  text-align: center;
-  max-width: 600px;
-}
-
-.app-main p {
-  font-size: 1.2rem;
-  color: #666;
-}
-
-.ipc-test {
-  margin-top: 2rem;
-  padding: 2rem;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-}
-
-.ipc-test h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: #1a1a1a;
-}
-
-.ipc-test button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-top: 1rem;
-}
-
-.ipc-test button:hover {
-  background-color: #0056b3;
-}
-
-.ping-result {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: white;
-  border-radius: 4px;
-  text-align: left;
-}
-
-.ping-result p {
-  font-size: 0.9rem;
-  margin: 0.5rem 0;
-}
-
-.ping-result .error {
-  color: #dc3545;
+  background-color: #ffffff;
+  color: #333333;
+  overflow: hidden;
 }

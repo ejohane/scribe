@@ -11,6 +11,7 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@scribe/shared": "workspace:*",
     "electron": "^33.2.0"
   },
   "devDependencies": {

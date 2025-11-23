@@ -1,7 +1,21 @@
 import * as esbuild from 'esbuild';
 import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const isWatch = process.argv.includes('--watch');
+
+// Find electron binary in workspace root
+const electronPath = join(__dirname, '../../../../node_modules/.bin/electron');
+
+if (!existsSync(electronPath) && isWatch) {
+  console.error('❌ Electron binary not found. Please run: bun install');
+  process.exit(1);
+}
 
 const config = {
   entryPoints: ['src/main.ts'],
@@ -42,9 +56,13 @@ if (isWatch) {
     if (electronProcess) {
       electronProcess.kill();
     }
-    electronProcess = spawn('electron', ['.'], {
+    electronProcess = spawn(electronPath, ['.'], {
       stdio: 'inherit',
       cwd: process.cwd(),
+    });
+
+    electronProcess.on('error', (err) => {
+      console.error('❌ Failed to start Electron:', err);
     });
   };
 

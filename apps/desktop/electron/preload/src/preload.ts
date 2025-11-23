@@ -1,27 +1,59 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { Note, NoteId, SearchResult } from '@scribe/shared';
 
-// Define the API surface exposed to the renderer
+/**
+ * Scribe API exposed to the renderer process
+ *
+ * This is the complete API surface that the renderer can use to interact
+ * with the engine via IPC. All privileged operations are routed through
+ * this secure boundary.
+ */
 const scribeAPI = {
   // Ping test API
-  ping: () => ipcRenderer.invoke('ping'),
+  ping: (): Promise<{ message: string; timestamp: number }> => ipcRenderer.invoke('ping'),
 
-  // Notes API (to be implemented)
+  // Notes API
   notes: {
-    list: () => ipcRenderer.invoke('notes:list'),
-    read: (id: string) => ipcRenderer.invoke('notes:read', id),
-    save: (note: unknown) => ipcRenderer.invoke('notes:save', note),
-    create: () => ipcRenderer.invoke('notes:create'),
+    /**
+     * List all notes
+     */
+    list: (): Promise<Note[]> => ipcRenderer.invoke('notes:list'),
+
+    /**
+     * Read a single note by ID
+     */
+    read: (id: NoteId): Promise<Note> => ipcRenderer.invoke('notes:read', id),
+
+    /**
+     * Create a new note
+     */
+    create: (): Promise<Note> => ipcRenderer.invoke('notes:create'),
+
+    /**
+     * Save a note (create or update)
+     */
+    save: (note: Note): Promise<{ success: boolean }> => ipcRenderer.invoke('notes:save', note),
   },
 
-  // Search API (to be implemented)
+  // Search API (placeholder for future implementation)
   search: {
-    query: (text: string) => ipcRenderer.invoke('search:query', text),
+    /**
+     * Search notes by text query
+     */
+    query: (text: string): Promise<SearchResult[]> => ipcRenderer.invoke('search:query', text),
   },
 
-  // Graph API (to be implemented)
+  // Graph API (placeholder for future implementation)
   graph: {
-    forNote: (id: string) => ipcRenderer.invoke('graph:forNote', id),
-    backlinks: (id: string) => ipcRenderer.invoke('graph:backlinks', id),
+    /**
+     * Get graph neighbors for a note
+     */
+    forNote: (id: NoteId): Promise<NoteId[]> => ipcRenderer.invoke('graph:forNote', id),
+
+    /**
+     * Get backlinks for a note
+     */
+    backlinks: (id: NoteId): Promise<NoteId[]> => ipcRenderer.invoke('graph:backlinks', id),
   },
 };
 

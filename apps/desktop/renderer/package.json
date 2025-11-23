@@ -12,6 +12,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@lexical/utils": "^0.38.2",
+    "@scribe/shared": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

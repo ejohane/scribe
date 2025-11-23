@@ -16,6 +16,7 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
+    "electron": "^33.2.0",
     "eslint": "^9.16.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",

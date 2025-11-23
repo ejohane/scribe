@@ -1,20 +1,62 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import App from './App';
+import type { Note } from '@scribe/shared';
+
+// Mock the window.scribe API
+const mockNote: Note = {
+  id: 'test-note-id',
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  content: {
+    root: {
+      type: 'root',
+      children: [],
+    },
+  },
+  metadata: {
+    title: null,
+    tags: [],
+    links: [],
+  },
+};
+
+beforeEach(() => {
+  // Mock window.scribe API
+  (window as any).scribe = {
+    ping: vi.fn().mockResolvedValue({ message: 'pong', timestamp: Date.now() }),
+    notes: {
+      list: vi.fn().mockResolvedValue([mockNote]),
+      read: vi.fn().mockResolvedValue(mockNote),
+      save: vi.fn().mockResolvedValue({ success: true }),
+      create: vi.fn().mockResolvedValue(mockNote),
+    },
+    search: {
+      query: vi.fn().mockResolvedValue([]),
+    },
+    graph: {
+      forNote: vi.fn().mockResolvedValue([]),
+      backlinks: vi.fn().mockResolvedValue([]),
+    },
+  };
+});
 
 describe('App', () => {
-  it('renders the app title', () => {
+  it('renders editor root', async () => {
     render(<App />);
-    expect(screen.getByText('Scribe')).toBeTruthy();
+    // Wait for the editor to render
+    await waitFor(() => {
+      const editorRoot = document.querySelector('.editor-root');
+      expect(editorRoot).toBeTruthy();
+    });
   });
 
-  it('renders the tagline', () => {
+  it('renders editor input', async () => {
     render(<App />);
-    expect(screen.getByText('Local-first knowledge management system')).toBeTruthy();
-  });
-
-  it('shows IPC test section', () => {
-    render(<App />);
-    expect(screen.getByText('IPC Test')).toBeTruthy();
+    // Wait for the editor to render
+    await waitFor(() => {
+      const editorInput = document.querySelector('.editor-input');
+      expect(editorInput).toBeTruthy();
+    });
   });
 });
