@@ -5,10 +5,11 @@
   "type": "module",
   "main": "dist/preload.js",
   "scripts": {
-    "build": "node build.mjs",
+    "build": "node build-simple.mjs",
+    "build:watch": "node build.mjs --watch",
     "dev": "node build.mjs --watch",
-    "clean": "rm -rf dist",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@scribe/shared": "workspace:*",
