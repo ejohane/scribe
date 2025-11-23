@@ -88,6 +88,14 @@ function setupIPCHandlers() {
   ipcMain.handle('graph:backlinks', async (_event, id: string) => {
     return [];
   });
+
+  // Open devtools
+  ipcMain.handle('app:openDevTools', async () => {
+    if (mainWindow) {
+      mainWindow.webContents.openDevTools();
+    }
+    return { success: true };
+  });
 }
 
 function createWindow() {

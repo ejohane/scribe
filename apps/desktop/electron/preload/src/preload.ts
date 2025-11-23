@@ -55,6 +55,14 @@ const scribeAPI = {
      */
     backlinks: (id: NoteId): Promise<NoteId[]> => ipcRenderer.invoke('graph:backlinks', id),
   },
+
+  // App API
+  app: {
+    /**
+     * Open developer tools
+     */
+    openDevTools: (): Promise<{ success: boolean }> => ipcRenderer.invoke('app:openDevTools'),
+  },
 };
 
 // Expose the API to the renderer via contextBridge

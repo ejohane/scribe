@@ -17,6 +17,9 @@ export interface ScribeAPI {
     forNote: (id: NoteId) => Promise<NoteId[]>;
     backlinks: (id: NoteId) => Promise<NoteId[]>;
   };
+  app: {
+    openDevTools: () => Promise<{ success: boolean }>;
+  };
 }
 
 declare global {

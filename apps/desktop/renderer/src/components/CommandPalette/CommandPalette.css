@@ -1,0 +1,146 @@
+/**
+ * Command Palette Styles
+ *
+ * Minimal, clean styling for the command palette overlay.
+ */
+
+.command-palette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.command-palette {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 640px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.command-palette-input-container {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+.command-palette-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-family: inherit;
+  color: #111827;
+  background: transparent;
+}
+
+.command-palette-input::placeholder {
+  color: #9ca3af;
+}
+
+.command-palette-results {
+  overflow-y: auto;
+  max-height: calc(70vh - 60px);
+  padding: 8px 0;
+}
+
+.command-palette-no-results {
+  padding: 32px 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.command-palette-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  border-left: 3px solid transparent;
+}
+
+.command-palette-item:hover,
+.command-palette-item.selected {
+  background-color: #f3f4f6;
+  border-left-color: #3b82f6;
+}
+
+.command-palette-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.command-palette-item-description {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Dark mode support (optional, can be expanded later) */
+@media (prefers-color-scheme: dark) {
+  .command-palette {
+    background-color: #1f2937;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .command-palette-input-container {
+    border-bottom-color: #374151;
+  }
+
+  .command-palette-input {
+    color: #f9fafb;
+  }
+
+  .command-palette-input::placeholder {
+    color: #6b7280;
+  }
+
+  .command-palette-no-results {
+    color: #6b7280;
+  }
+
+  .command-palette-item:hover,
+  .command-palette-item.selected {
+    background-color: #374151;
+  }
+
+  .command-palette-item-title {
+    color: #f9fafb;
+  }
+
+  .command-palette-item-description {
+    color: #9ca3af;
+  }
+}
