@@ -1,0 +1,27 @@
+{
+  "name": "@scribe/engine-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@scribe/shared": "workspace:*",
+    "flexsearch": "^0.7.43"
+  },
+  "devDependencies": {
+    "@scribe/tsconfig": "workspace:*",
+    "@types/flexsearch": "^0.7.6",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

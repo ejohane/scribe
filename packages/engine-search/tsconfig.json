@@ -1,0 +1,14 @@
+{
+  "extends": "@scribe/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
+}

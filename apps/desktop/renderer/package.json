@@ -1,33 +1,39 @@
 {
-  "name": "@scribe/desktop-renderer",
+  "name": "@scribe/renderer",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "test": "bun test",
+    "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src",
-    "clean": "rm -rf dist"
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@scribe/core-client": "workspace:*",
-    "@scribe/domain-model": "workspace:*",
+    "@lexical/code": "^0.38.2",
+    "@lexical/link": "^0.38.2",
+    "@lexical/list": "^0.38.2",
+    "@lexical/react": "^0.38.2",
+    "@lexical/rich-text": "^0.38.2",
+    "@lexical/utils": "^0.38.2",
+    "@scribe/shared": "workspace:*",
+    "fuse.js": "^7.1.0",
+    "lexical": "^0.38.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@types/bun": "^1.3.2",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "happy-dom": "^20.0.10",
+    "@vitest/coverage-v8": "^2.1.5",
+    "happy-dom": "^15.11.7",
     "typescript": "^5.7.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.1",
+    "vitest": "^2.1.5"
   }
 }
