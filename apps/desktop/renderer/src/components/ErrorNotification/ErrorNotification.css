@@ -11,8 +11,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px 20px;
-  background-color: #fee;
-  border: 1px solid #fcc;
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-width: 400px;
@@ -25,7 +25,7 @@
 
 .error-notification-message {
   flex: 1;
-  color: #c00;
+  color: var(--color-error);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -33,7 +33,7 @@
 .error-notification-close {
   background: none;
   border: none;
-  color: #c00;
+  color: var(--color-error);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
@@ -48,7 +48,7 @@
 }
 
 .error-notification-close:hover {
-  background-color: rgba(204, 0, 0, 0.1);
+  background-color: var(--color-bg-tertiary);
 }
 
 @keyframes slideIn {

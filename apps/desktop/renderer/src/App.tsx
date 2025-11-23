@@ -8,6 +8,7 @@ import { fuzzySearchCommands } from './commands/fuzzySearch';
 import type { Command } from './commands/types';
 import type { GraphNode } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
+import { useTheme } from './hooks/useTheme';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -17,6 +18,9 @@ function App() {
 
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
+
+  // Manage theme
+  const { theme, resolvedTheme, setTheme } = useTheme();
 
   // Expose error handler for child components
   const showError = useCallback((error: string) => {
@@ -102,7 +106,20 @@ function App() {
         }
       },
     });
-  }, []);
+
+    // Command: Toggle Theme
+    commandRegistry.register({
+      id: 'toggle-theme',
+      title: 'Toggle Theme',
+      description: `Current theme: ${resolvedTheme}`,
+      keywords: ['theme', 'dark', 'light', 'appearance'],
+      group: 'settings',
+      run: async () => {
+        const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+      },
+    });
+  }, [resolvedTheme, setTheme]);
 
   // Handle cmd+k to open palette
   useEffect(() => {

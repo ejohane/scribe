@@ -20,6 +20,7 @@ let searchEngine: SearchEngine | null = null;
 // App config
 interface AppConfig {
   lastOpenedNoteId?: NoteId;
+  theme?: 'light' | 'dark' | 'system';
 }
 
 const CONFIG_DIR = path.join(homedir(), 'Scribe');
@@ -215,6 +216,19 @@ function setupIPCHandlers() {
     const config = await loadConfig();
     config.lastOpenedNoteId = noteId || undefined;
     await saveConfig(config);
+    return { success: true };
+  });
+
+  // Get app config
+  ipcMain.handle('app:getConfig', async () => {
+    return await loadConfig();
+  });
+
+  // Set app config (merge with existing)
+  ipcMain.handle('app:setConfig', async (_event, partialConfig: Partial<AppConfig>) => {
+    const config = await loadConfig();
+    const updatedConfig = { ...config, ...partialConfig };
+    await saveConfig(updatedConfig);
     return { success: true };
   });
 }

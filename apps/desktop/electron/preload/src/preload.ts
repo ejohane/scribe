@@ -79,6 +79,17 @@ const scribeAPI = {
      */
     setLastOpenedNote: (noteId: NoteId | null): Promise<{ success: boolean }> =>
       ipcRenderer.invoke('app:setLastOpenedNote', noteId),
+
+    /**
+     * Get app configuration
+     */
+    getConfig: (): Promise<Record<string, unknown>> => ipcRenderer.invoke('app:getConfig'),
+
+    /**
+     * Set app configuration (merges with existing)
+     */
+    setConfig: (config: Record<string, unknown>): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('app:setConfig', config),
   },
 };
 
