@@ -17,7 +17,7 @@ const DEFAULT_VAULT_PATH = path.join(homedir(), 'Scribe', 'vault');
 /**
  * Vault subdirectories
  */
-const VAULT_SUBDIRS = ['notes'] as const;
+const VAULT_SUBDIRS = ['notes', 'quarantine'] as const;
 
 /**
  * Initialize vault directory structure
@@ -91,4 +91,14 @@ export function getNotesDir(vaultPath: VaultPath): string {
  */
 export function getNoteFilePath(vaultPath: VaultPath, noteId: string): string {
   return path.join(getNotesDir(vaultPath), `${noteId}.json`);
+}
+
+/**
+ * Get the quarantine directory path
+ *
+ * @param vaultPath - Path to vault
+ * @returns Path to quarantine directory
+ */
+export function getQuarantineDir(vaultPath: VaultPath): string {
+  return path.join(vaultPath, 'quarantine');
 }

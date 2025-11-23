@@ -5,20 +5,49 @@
  */
 
 import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
+import * as path from 'path';
 import { randomUUID } from 'node:crypto';
 import type { Note, NoteId, VaultPath, LexicalState } from '@scribe/shared';
 import { ErrorCode, ScribeError } from '@scribe/shared';
 import { extractMetadata } from '@scribe/engine-core';
-import { getNotesDir, getNoteFilePath } from './vault.js';
+import { getNotesDir, getNoteFilePath, getQuarantineDir } from './vault.js';
 
 /**
  * In-memory note storage
  */
 export class FileSystemVault {
   private notes: Map<NoteId, Note> = new Map();
+  private quarantinedFiles: string[] = [];
 
   constructor(private vaultPath: VaultPath) {}
+
+  /**
+   * Get list of quarantined file names
+   */
+  getQuarantinedFiles(): string[] {
+    return [...this.quarantinedFiles];
+  }
+
+  /**
+   * Quarantine a corrupt note file
+   */
+  private async quarantineFile(fileName: string): Promise<void> {
+    const sourcePath = path.join(getNotesDir(this.vaultPath), fileName);
+    const quarantineDir = getQuarantineDir(this.vaultPath);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const quarantinePath = path.join(quarantineDir, `${timestamp}_${fileName}`);
+
+    try {
+      // Ensure quarantine directory exists
+      await fs.mkdir(quarantineDir, { recursive: true });
+
+      await fs.rename(sourcePath, quarantinePath);
+      this.quarantinedFiles.push(fileName);
+      console.warn(`Quarantined corrupt file: ${fileName} -> ${path.basename(quarantinePath)}`);
+    } catch (error) {
+      console.error(`Failed to quarantine file ${fileName}:`, error);
+    }
+  }
 
   /**
    * Load all notes from disk into memory
@@ -48,12 +77,14 @@ export class FileSystemVault {
             note.metadata = extractMetadata(note.content);
             this.notes.set(note.id, note);
           } else {
-            // Log warning but continue loading other notes
-            console.warn(`Invalid note structure in ${file}, skipping`);
+            // Quarantine invalid notes
+            console.warn(`Invalid note structure in ${file}, quarantining`);
+            await this.quarantineFile(file);
           }
         } catch (error) {
-          // Log individual file errors but continue loading
-          console.warn(`Failed to load note ${file}:`, error);
+          // Quarantine corrupt files (e.g., invalid JSON)
+          console.warn(`Failed to load note ${file}, quarantining:`, error);
+          await this.quarantineFile(file);
         }
       }
 

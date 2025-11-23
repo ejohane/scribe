@@ -65,6 +65,14 @@ async function initializeEngine() {
     const noteCount = await vault.load();
     console.log(`Loaded ${noteCount} notes from vault`);
 
+    // Check for quarantined files and log warning
+    const quarantinedFiles = vault.getQuarantinedFiles();
+    if (quarantinedFiles.length > 0) {
+      console.warn(
+        `⚠️  ${quarantinedFiles.length} corrupt note(s) were quarantined: ${quarantinedFiles.join(', ')}`
+      );
+    }
+
     // Initialize graph engine
     graphEngine = new GraphEngine();
 

@@ -35,7 +35,7 @@ describe('Error Handling', () => {
       await expect(badVault.load()).rejects.toThrow(/Failed to read notes directory/);
     });
 
-    it('should skip corrupted notes and continue loading valid notes', async () => {
+    it('should quarantine corrupted notes and continue loading valid notes', async () => {
       // Create a valid note
       await vault.create();
 
@@ -43,12 +43,23 @@ describe('Error Handling', () => {
       const corruptedPath = path.join(tempDir, 'notes', 'corrupted.json');
       await fs.writeFile(corruptedPath, '{ invalid json }', 'utf-8');
 
-      // Should load 1 note and skip the corrupted one
+      // Should load 1 note and quarantine the corrupted one
       const count = await vault.load();
       expect(count).toBe(1);
+
+      // Verify the corrupt file was quarantined
+      const quarantined = vault.getQuarantinedFiles();
+      expect(quarantined).toHaveLength(1);
+      expect(quarantined[0]).toBe('corrupted.json');
+
+      // Verify quarantine directory has the file
+      const quarantineDir = path.join(tempDir, 'quarantine');
+      const quarantineFiles = await fs.readdir(quarantineDir);
+      expect(quarantineFiles.length).toBeGreaterThan(0);
+      expect(quarantineFiles.some((f) => f.includes('corrupted.json'))).toBe(true);
     });
 
-    it('should handle notes with missing required fields', async () => {
+    it('should quarantine notes with missing required fields', async () => {
       // Create a note with missing metadata field
       const invalidNote = {
         id: 'test-id',
@@ -61,9 +72,14 @@ describe('Error Handling', () => {
       const invalidPath = path.join(tempDir, 'notes', 'invalid.json');
       await fs.writeFile(invalidPath, JSON.stringify(invalidNote), 'utf-8');
 
-      // Should skip invalid note
+      // Should quarantine invalid note
       const count = await vault.load();
       expect(count).toBe(0);
+
+      // Verify quarantine
+      const quarantined = vault.getQuarantinedFiles();
+      expect(quarantined).toHaveLength(1);
+      expect(quarantined[0]).toBe('invalid.json');
     });
   });
 
