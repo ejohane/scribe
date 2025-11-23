@@ -85,6 +85,11 @@ fi
 if [ "$WORKTREE_EXISTS" = true ]; then
     echo "Removing worktree at ${WORKTREE_DIR}..."
     git worktree remove "${WORKTREE_PATH}"
+    # Also remove the worktree directory if it still exists
+    if [ -d "$WORKTREE_PATH" ]; then
+        echo "Removing worktree directory..."
+        rm -rf "${WORKTREE_PATH}"
+    fi
     echo "✓ Worktree removed"
 fi
 
