@@ -1,6 +1,6 @@
 // Type definitions for the Scribe API exposed via contextBridge
 
-import type { Note, NoteId, SearchResult } from '@scribe/shared';
+import type { Note, NoteId, SearchResult, GraphNode } from '@scribe/shared';
 
 export interface ScribeAPI {
   ping: () => Promise<{ message: string; timestamp: number }>;
@@ -14,11 +14,16 @@ export interface ScribeAPI {
     query: (text: string) => Promise<SearchResult[]>;
   };
   graph: {
-    forNote: (id: NoteId) => Promise<NoteId[]>;
-    backlinks: (id: NoteId) => Promise<NoteId[]>;
+    forNote: (id: NoteId) => Promise<GraphNode[]>;
+    backlinks: (id: NoteId) => Promise<GraphNode[]>;
+    notesWithTag: (tag: string) => Promise<GraphNode[]>;
   };
   app: {
     openDevTools: () => Promise<{ success: boolean }>;
+    getLastOpenedNote: () => Promise<NoteId | null>;
+    setLastOpenedNote: (noteId: NoteId | null) => Promise<{ success: boolean }>;
+    getConfig: () => Promise<Record<string, unknown>>;
+    setConfig: (config: Record<string, unknown>) => Promise<{ success: boolean }>;
   };
 }
 
