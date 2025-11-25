@@ -43,13 +43,6 @@ beforeEach(() => {
       openDevTools: vi.fn().mockResolvedValue({ success: true }),
       getLastOpenedNote: vi.fn().mockResolvedValue(null),
       setLastOpenedNote: vi.fn().mockResolvedValue({ success: true }),
-      getConfig: vi.fn().mockResolvedValue({}),
-      setConfig: vi.fn().mockResolvedValue({ success: true }),
-    },
-    app: {
-      openDevTools: vi.fn().mockResolvedValue({ success: true }),
-      getLastOpenedNote: vi.fn().mockResolvedValue(null),
-      setLastOpenedNote: vi.fn().mockResolvedValue({ success: true }),
       getConfig: vi.fn().mockResolvedValue({ theme: 'light' }),
       setConfig: vi.fn().mockResolvedValue({ success: true }),
     },
