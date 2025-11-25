@@ -3,6 +3,7 @@
  *
  * Rules:
  * - null/undefined → empty string
+ * - future timestamps (clock skew or future date) → absolute date format
  * - < 60 seconds ago → 'Just now'
  * - < 60 minutes ago → 'X minutes ago' (singular: '1 minute ago')
  * - < 24 hours ago → 'X hours ago' (singular: '1 hour ago')
@@ -16,6 +17,18 @@ export function formatRelativeDate(timestamp: number | null | undefined): string
 
   const now = Date.now();
   const diffMs = now - timestamp;
+
+  // Handle future timestamps (clock skew or intentional future dates)
+  // Show absolute date format instead of misleading "Just now"
+  if (diffMs < 0) {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
   const diffSeconds = Math.floor(diffMs / 1000);
   const diffMinutes = Math.floor(diffSeconds / 60);
   const diffHours = Math.floor(diffMinutes / 60);

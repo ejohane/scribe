@@ -117,6 +117,46 @@ describe('formatRelativeDate', () => {
     });
   });
 
+  describe('future timestamps', () => {
+    it('returns absolute date for timestamps in the future (clock skew)', () => {
+      vi.useFakeTimers();
+      const now = new Date('2025-11-24T12:00:00.000Z').getTime();
+      vi.setSystemTime(now);
+
+      // 1 second in the future
+      const oneSecondFuture = now + 1000;
+      expect(formatRelativeDate(oneSecondFuture)).toBe('Nov 24, 2025');
+
+      // 1 minute in the future
+      const oneMinuteFuture = now + 60 * 1000;
+      expect(formatRelativeDate(oneMinuteFuture)).toBe('Nov 24, 2025');
+    });
+
+    it('returns absolute date for timestamps days in the future', () => {
+      vi.useFakeTimers();
+      const now = new Date('2025-11-24T12:00:00.000Z').getTime();
+      vi.setSystemTime(now);
+
+      // 1 day in the future = Nov 25, 2025
+      const oneDayFuture = now + 24 * 60 * 60 * 1000;
+      expect(formatRelativeDate(oneDayFuture)).toBe('Nov 25, 2025');
+
+      // 7 days in the future = Dec 1, 2025
+      const sevenDaysFuture = now + 7 * 24 * 60 * 60 * 1000;
+      expect(formatRelativeDate(sevenDaysFuture)).toBe('Dec 1, 2025');
+    });
+
+    it('handles future dates across month and year boundaries', () => {
+      vi.useFakeTimers();
+      const now = new Date('2025-12-30T12:00:00.000Z').getTime();
+      vi.setSystemTime(now);
+
+      // 5 days in the future = Jan 4, 2026
+      const fiveDaysFuture = now + 5 * 24 * 60 * 60 * 1000;
+      expect(formatRelativeDate(fiveDaysFuture)).toBe('Jan 4, 2026');
+    });
+  });
+
   describe('boundary conditions', () => {
     it('boundary: 59 seconds ago returns "Just now"', () => {
       vi.useFakeTimers();

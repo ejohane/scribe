@@ -16,6 +16,9 @@ import './CommandPalette.css';
 /** Max fuzzy search results in file-browse mode */
 const MAX_SEARCH_RESULTS = 25;
 
+/** Max recent notes to display in file-browse mode */
+const MAX_RECENT_NOTES = 10;
+
 /** Debounce delay for search input in milliseconds */
 const SEARCH_DEBOUNCE_MS = 150;
 
@@ -141,15 +144,24 @@ export function CommandPalette({
   // Combine commands and search results for navigation
   const allItems = [...filteredCommands, ...searchResults];
 
-  // Reset state when palette opens/closes
+  // Reset state when palette opens/closes and sync mode from initialMode prop
+  // This effect handles:
+  // 1. Resetting all state when palette opens (query, indices, mode)
+  // 2. Syncing mode when initialMode prop changes while palette is open
+  // 3. Cleaning up state when palette closes
+  //
+  // Note: We don't call onModeChange here because initialMode changes come FROM the parent,
+  // so the parent already knows about the mode change. onModeChange is only for notifying
+  // the parent about user-initiated mode changes (Escape key, back button).
   useEffect(() => {
     if (isOpen) {
       setQuery('');
       setSelectedIndex(0);
       setSelectedNoteIndex(0);
       setMode(initialMode);
-      // Focus input when palette opens
-      setTimeout(() => inputRef.current?.focus(), 10);
+      // Focus input when palette opens using requestAnimationFrame
+      // for more reliable timing than setTimeout
+      requestAnimationFrame(() => inputRef.current?.focus());
     } else {
       // Reset mode to 'command' when palette closes
       setMode('command');
@@ -158,44 +170,49 @@ export function CommandPalette({
       setIsLoadingNotes(false);
       setSelectedNoteIndex(0);
     }
-  }, [isOpen]);
-
-  // Sync mode when initialMode prop changes while palette is open
-  // This allows commands like 'open-note' to switch modes
-  useEffect(() => {
-    if (isOpen) {
-      setMode(initialMode);
-    }
-  }, [initialMode, isOpen]);
+  }, [isOpen, initialMode]);
 
   // Fetch all notes when entering file-browse mode
+  // Uses cancellation flag to prevent race conditions when user rapidly switches modes
   useEffect(() => {
     if (mode !== 'file-browse') {
       return;
     }
 
+    let cancelled = false;
+
     const fetchNotes = async () => {
       setIsLoadingNotes(true);
       try {
         const notes = await window.scribe.notes.list();
-        setAllNotes(notes);
+        if (!cancelled) {
+          setAllNotes(notes);
+        }
       } catch (error) {
-        console.error('Failed to fetch notes:', error);
-        setAllNotes([]);
+        if (!cancelled) {
+          console.error('Failed to fetch notes:', error);
+          setAllNotes([]);
+        }
       } finally {
-        setIsLoadingNotes(false);
+        if (!cancelled) {
+          setIsLoadingNotes(false);
+        }
       }
     };
 
     fetchNotes();
+
+    return () => {
+      cancelled = true;
+    };
   }, [mode]);
 
   // Compute recent notes for file-browse mode (initial state with no query)
-  // Excludes current note, sorted by updatedAt descending, limited to 10
+  // Excludes current note, sorted by updatedAt descending
   const recentNotes = allNotes
     .filter((note) => note.id !== currentNoteId)
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 10);
+    .slice(0, MAX_RECENT_NOTES);
 
   // Build Fuse.js index for fuzzy search in file-browse mode
   // Only indexes notes with titles (excludes untitled notes from search)

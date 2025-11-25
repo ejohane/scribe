@@ -37,9 +37,9 @@ function App() {
       description: 'Create a new note',
       keywords: ['create', 'add'],
       group: 'notes',
+      closeOnSelect: true, // Close palette immediately, then create note
       run: async (context) => {
         await context.createNote();
-        context.closePalette();
       },
     });
 
@@ -50,9 +50,9 @@ function App() {
       description: 'Open an existing note',
       keywords: ['find', 'search', 'switch'],
       group: 'notes',
+      closeOnSelect: false, // Keep palette open to show file browser
       run: async () => {
         // Switch palette to file-browse mode to show note list
-        // Don't close palette - we want to show the file browser
         setPaletteMode('file-browse');
       },
     });
@@ -64,10 +64,10 @@ function App() {
       description: 'Save the current note',
       keywords: ['save', 'write'],
       group: 'notes',
-      run: async (context) => {
+      closeOnSelect: true,
+      run: async () => {
         // Manual save is handled by ManualSavePlugin
         // This command is more for visibility
-        context.closePalette();
       },
     });
 
@@ -78,9 +78,9 @@ function App() {
       description: 'Open Electron DevTools for debugging',
       keywords: ['devtools', 'debug', 'inspect'],
       group: 'developer',
-      run: async (context) => {
+      closeOnSelect: true,
+      run: async () => {
         await window.scribe.app.openDevTools();
-        context.closePalette();
       },
     });
 
@@ -91,6 +91,7 @@ function App() {
       description: 'Show notes that link to the current note',
       keywords: ['backlinks', 'references', 'links', 'graph'],
       group: 'navigation',
+      closeOnSelect: true,
       run: async (context) => {
         const currentNoteId = context.getCurrentNoteId();
         if (!currentNoteId) {
@@ -106,7 +107,6 @@ function App() {
         } catch (error) {
           console.error('Failed to fetch backlinks:', error);
         }
-        context.closePalette();
       },
     });
 
@@ -117,10 +117,10 @@ function App() {
       description: `Current theme: ${resolvedTheme}`,
       keywords: ['theme', 'dark', 'light', 'appearance'],
       group: 'settings',
-      run: async (context) => {
+      closeOnSelect: true,
+      run: async () => {
         const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
-        context.closePalette();
       },
     });
   }, [resolvedTheme, setTheme]);
@@ -166,6 +166,11 @@ function App() {
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
+    // If closeOnSelect is explicitly true, close the palette before running the command
+    if (command.closeOnSelect === true) {
+      setIsPaletteOpen(false);
+    }
+
     await command.run({
       closePalette: () => setIsPaletteOpen(false),
       setCurrentNoteId: (noteId: string) => noteState.loadNote(noteId),
@@ -177,8 +182,9 @@ function App() {
       },
       createNote: () => noteState.createNote(),
     });
-    // Note: Commands are responsible for calling context.closePalette() if they want to close
-    // Some commands like 'open-note' need to keep the palette open to show file browser
+    // Note: Commands can use closeOnSelect: true for automatic closing,
+    // closeOnSelect: false to explicitly keep the palette open (e.g., 'open-note'),
+    // or omit it to handle closing via context.closePalette() themselves.
   };
 
   // Close backlinks view

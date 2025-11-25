@@ -71,6 +71,18 @@ export interface Command {
   group?: string;
 
   /**
+   * Whether to automatically close the palette after selecting this command.
+   * - true: Close the palette immediately after selection (before run() executes)
+   * - false: Keep the palette open (command can close via context.closePalette() if needed)
+   * - undefined: Default behavior - palette stays open, command is responsible for closing
+   *
+   * Use `closeOnSelect: false` for commands that need to interact with the palette
+   * (e.g., switching to file-browse mode). Use `closeOnSelect: true` for commands
+   * that perform an action and should close immediately.
+   */
+  closeOnSelect?: boolean;
+
+  /**
    * Execute the command
    */
   run: (context: CommandContext) => Promise<void>;
