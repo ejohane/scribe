@@ -14,8 +14,8 @@
 # no-db: false
 
 # Disable daemon for RPC communication (forces direct database access)
-# no-daemon: false
-
+# Required for git worktree workflows to avoid conflicts
+no-daemon: true
 # Disable auto-flush of database to JSONL after mutations
 # no-auto-flush: false
 
