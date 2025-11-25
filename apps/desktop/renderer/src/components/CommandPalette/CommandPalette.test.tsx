@@ -354,6 +354,7 @@ describe('CommandPalette', () => {
             setCurrentNoteId: vi.fn(),
             getCurrentNoteId: () => null,
             saveCurrentNote: vi.fn(),
+            createNote: vi.fn(),
           });
         });
 
@@ -559,6 +560,51 @@ describe('CommandPalette', () => {
           const commandInput = screen.getByPlaceholderText('Search or run a command...');
           expect(commandInput).toHaveValue('');
         });
+      });
+
+      it('clicking back button calls onModeChange callback', async () => {
+        const onModeChange = vi.fn();
+
+        render(
+          <CommandPalette
+            isOpen={true}
+            onClose={vi.fn()}
+            commands={mockCommands}
+            onCommandSelect={vi.fn()}
+            initialMode="file-browse"
+            onModeChange={onModeChange}
+          />
+        );
+
+        // Click back button
+        const backButton = screen.getByLabelText('Back to commands');
+        fireEvent.click(backButton);
+
+        // onModeChange should be called with 'command'
+        expect(onModeChange).toHaveBeenCalledWith('command');
+      });
+    });
+
+    describe('onModeChange callback', () => {
+      it('Escape in file-browse mode calls onModeChange with command', async () => {
+        const onModeChange = vi.fn();
+
+        render(
+          <CommandPalette
+            isOpen={true}
+            onClose={vi.fn()}
+            commands={mockCommands}
+            onCommandSelect={vi.fn()}
+            initialMode="file-browse"
+            onModeChange={onModeChange}
+          />
+        );
+
+        // Press Escape
+        fireEvent.keyDown(window, { key: 'Escape' });
+
+        // onModeChange should be called with 'command'
+        expect(onModeChange).toHaveBeenCalledWith('command');
       });
     });
 

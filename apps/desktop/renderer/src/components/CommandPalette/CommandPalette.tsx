@@ -74,6 +74,12 @@ export interface CommandPaletteProps {
    * Callback when a note is selected in file-browse mode
    */
   onNoteSelect?: (noteId: NoteId) => void;
+
+  /**
+   * Callback when the palette mode changes internally
+   * Used to sync parent state when user navigates back via Escape
+   */
+  onModeChange?: (mode: PaletteMode) => void;
 }
 
 export function CommandPalette({
@@ -86,6 +92,7 @@ export function CommandPalette({
   initialMode = 'command',
   currentNoteId,
   onNoteSelect,
+  onModeChange,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -151,7 +158,15 @@ export function CommandPalette({
       setIsLoadingNotes(false);
       setSelectedNoteIndex(0);
     }
-  }, [isOpen, initialMode]);
+  }, [isOpen]);
+
+  // Sync mode when initialMode prop changes while palette is open
+  // This allows commands like 'open-note' to switch modes
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [initialMode, isOpen]);
 
   // Fetch all notes when entering file-browse mode
   useEffect(() => {
@@ -277,6 +292,7 @@ export function CommandPalette({
             setMode('command');
             setQuery('');
             setSelectedNoteIndex(0);
+            onModeChange?.('command');
             break;
         }
         return;
@@ -295,11 +311,10 @@ export function CommandPalette({
         case 'Enter':
           e.preventDefault();
           if (selectedIndex < filteredCommands.length) {
-            // It's a command
+            // It's a command - let the command decide whether to close
             onCommandSelect(filteredCommands[selectedIndex]);
-            onClose();
           } else if (onSearchResultSelect) {
-            // It's a search result
+            // It's a search result - always close after selection
             const searchIndex = selectedIndex - filteredCommands.length;
             if (searchResults[searchIndex]) {
               onSearchResultSelect(searchResults[searchIndex]);
@@ -391,7 +406,8 @@ export function CommandPalette({
             className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
             onClick={() => {
               onCommandSelect(command);
-              onClose();
+              // Note: Commands are responsible for calling context.closePalette()
+              // Some commands like 'open-note' need to keep the palette open
             }}
             onMouseEnter={() => setSelectedIndex(index)}
           >
@@ -444,6 +460,7 @@ export function CommandPalette({
                 setMode('command');
                 setQuery('');
                 setSelectedNoteIndex(0);
+                onModeChange?.('command');
               }}
               aria-label="Back to commands"
             >

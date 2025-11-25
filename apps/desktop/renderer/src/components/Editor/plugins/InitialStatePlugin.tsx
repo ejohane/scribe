@@ -29,6 +29,8 @@ export function InitialStatePlugin({ initialState, noteId }: InitialStatePluginP
     // Skip if no content or empty content
     if (!initialState || !initialState.root || initialState.root.children.length === 0) {
       loadedNoteIdRef.current = noteId;
+      // Focus editor for new/empty notes
+      editor.focus();
       return;
     }
 
@@ -37,6 +39,8 @@ export function InitialStatePlugin({ initialState, noteId }: InitialStatePluginP
       const editorState = editor.parseEditorState(initialState as SerializedEditorState);
       editor.setEditorState(editorState);
       loadedNoteIdRef.current = noteId;
+      // Focus editor after loading content
+      editor.focus();
     } catch (error) {
       console.error('Failed to load editor state:', error);
     }

@@ -34,6 +34,11 @@ export interface CommandContext {
    * Trigger a save of the current note
    */
   saveCurrentNote: () => Promise<void>;
+
+  /**
+   * Create a new note and switch to it
+   */
+  createNote: () => Promise<void>;
 }
 
 /**

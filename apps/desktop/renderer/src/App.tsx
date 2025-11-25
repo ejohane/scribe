@@ -37,11 +37,9 @@ function App() {
       description: 'Create a new note',
       keywords: ['create', 'add'],
       group: 'notes',
-      run: async () => {
-        // Create note via window API
-        await window.scribe.notes.create();
-        // Force refresh by reloading the page (temporary solution)
-        window.location.reload();
+      run: async (context) => {
+        await context.createNote();
+        context.closePalette();
       },
     });
 
@@ -54,6 +52,7 @@ function App() {
       group: 'notes',
       run: async () => {
         // Switch palette to file-browse mode to show note list
+        // Don't close palette - we want to show the file browser
         setPaletteMode('file-browse');
       },
     });
@@ -65,9 +64,10 @@ function App() {
       description: 'Save the current note',
       keywords: ['save', 'write'],
       group: 'notes',
-      run: async () => {
+      run: async (context) => {
         // Manual save is handled by ManualSavePlugin
         // This command is more for visibility
+        context.closePalette();
       },
     });
 
@@ -78,8 +78,9 @@ function App() {
       description: 'Open Electron DevTools for debugging',
       keywords: ['devtools', 'debug', 'inspect'],
       group: 'developer',
-      run: async () => {
+      run: async (context) => {
         await window.scribe.app.openDevTools();
+        context.closePalette();
       },
     });
 
@@ -105,6 +106,7 @@ function App() {
         } catch (error) {
           console.error('Failed to fetch backlinks:', error);
         }
+        context.closePalette();
       },
     });
 
@@ -115,14 +117,15 @@ function App() {
       description: `Current theme: ${resolvedTheme}`,
       keywords: ['theme', 'dark', 'light', 'appearance'],
       group: 'settings',
-      run: async () => {
+      run: async (context) => {
         const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
+        context.closePalette();
       },
     });
   }, [resolvedTheme, setTheme]);
 
-  // Handle cmd+k to open palette in command mode, cmd+o for file-browse mode
+  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // ⌘K: toggle palette in command mode
@@ -149,11 +152,17 @@ function App() {
           setIsPaletteOpen(true);
         }
       }
+      // ⌘N: create new note
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        setIsPaletteOpen(false);
+        noteState.createNote();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaletteOpen]);
+  }, [isPaletteOpen, noteState]);
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
@@ -166,8 +175,10 @@ function App() {
           await noteState.saveNote(noteState.currentNote.content);
         }
       },
+      createNote: () => noteState.createNote(),
     });
-    setIsPaletteOpen(false);
+    // Note: Commands are responsible for calling context.closePalette() if they want to close
+    // Some commands like 'open-note' need to keep the palette open to show file browser
   };
 
   // Close backlinks view
@@ -207,6 +218,7 @@ function App() {
         onNoteSelect={(noteId) => {
           noteState.loadNote(noteId);
         }}
+        onModeChange={(mode) => setPaletteMode(mode)}
       />
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
       {showBacklinks && (
