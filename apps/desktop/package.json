@@ -98,7 +98,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^33.2.0",
+    "electron": "^39.2.3",
     "turbo": "^2.3.3"
   },
   "packageManager": "bun@1.1.38"
