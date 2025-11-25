@@ -3,6 +3,7 @@
 This document defines the **testing strategy**, **levels of testing**, and **tools and patterns** to validate the Scribe architecture and ensure long-term reliability. It is aligned with the architecture decisions and epic breakdown for the MVP.
 
 The goals of this strategy are to:
+
 - Catch defects as early and as cheaply as possible.
 - Validate critical paths end-to-end.
 - Keep tests fast, focused, and easy to maintain.
@@ -53,6 +54,7 @@ Unit tests focus on **pure logic** and **small surface areas**, particularly:
 - Utility functions and type guards
 
 ### Characteristics:
+
 - No filesystem access
 - No Electron APIs
 - Run in a Node/JS DOM environment
@@ -67,6 +69,7 @@ These tests provide the first line of defense for correctness.
 Engine integration tests validate that **storage + metadata + graph + search** behave correctly when composed.
 
 ### Scope:
+
 - Use a throwaway temporary directory as a vault
 - Write and read note files via `storage-fs`
 - Run metadata extraction as part of the save/load cycle
@@ -74,6 +77,7 @@ Engine integration tests validate that **storage + metadata + graph + search** b
 - Build and query the search index
 
 ### Example Scenarios:
+
 - Creating a note writes a valid JSON file and updates in-memory indexes.
 - Linking Note A → Note B produces correct backlinks.
 - Tagging notes results in consistent tag-to-note mapping.
@@ -88,11 +92,13 @@ These tests ensure the **main process engine behavior** is correct independently
 The preload layer is a critical boundary. We treat it like a **public API** and test its contract.
 
 ### Goals:
+
 - Ensure the correct IPC channels are invoked.
 - Validate argument shapes and responses.
 - Confirm that the renderer-visible `window.scribe` API remains stable.
 
 ### Approach:
+
 - Mock `ipcRenderer` in preload tests.
 - Verify that calls like `window.scribe.notes.save()` produce the right `ipcRenderer.invoke("notes:save", ...)` calls.
 
@@ -105,10 +111,12 @@ Contract tests catch accidental changes to IPC semantics before they break the r
 Renderer tests cover the **minimal UI** Scribe relies on:
 
 ### Components to Test:
+
 - **EditorRoot** — initialization, load, and basic rendering
 - **CommandPalette** — opening, filtering commands, navigating results
 
 ### Focused Scenarios:
+
 - Editor renders content from a provided note.
 - Command palette opens on `cmd+k` and closes on escape.
 - Selecting "New Note" triggers a call to the preload API.
@@ -123,6 +131,7 @@ Renderer tests do not attempt pixel-perfect verification; they focus on behavior
 E2E tests validate **full user flows** inside a real Electron app.
 
 ### Goals:
+
 - Verify that the app boots correctly with an empty vault.
 - Validate that a user can:
   - Launch the app
@@ -132,6 +141,7 @@ E2E tests validate **full user flows** inside a real Electron app.
   - Use the command palette to navigate
 
 ### Example E2E Flows:
+
 1. **Create and Persist Note**
    - Start app
    - Create new note
@@ -159,11 +169,13 @@ E2E tests provide maximum confidence in the most important flows, at the cost of
 To keep tests readable and robust, we rely on fixtures:
 
 ### Fixture Strategy:
+
 - Use small, named fixtures for notes and vaults.
 - Avoid giant test datasets.
 - Represent Lexical JSON with helper builders where possible.
 
 ### Example:
+
 - `fixtures/notes/simpleNote.json`
 - `fixtures/notes/linkedNote.json`
 - Helper factories: `createNoteWithTags([...])`, `createLinkedNotes()`
@@ -175,12 +187,14 @@ To keep tests readable and robust, we rely on fixtures:
 Tests are grouped into separate stages for speed and clarity.
 
 ### Stages:
+
 1. **Lint & Typecheck**
 2. **Unit & Engine Integration Tests**
 3. **Renderer Tests**
 4. **E2E Tests**
 
 ### Execution Policy:
+
 - Run stages 1–3 on every push/PR.
 - Run E2E tests on main branch and before releases.
 
@@ -239,6 +253,7 @@ These can be added in later phases if needed.
 # 12. Rationale
 
 This testing strategy balances:
+
 - **Confidence** in core logic (engine, storage, index)
 - **Speed** of execution for tight feedback loops
 - **Realism** through targeted E2E flows
@@ -251,4 +266,3 @@ It aligns directly with the architecture: engine-centric, UI-minimal, and vault-
 # 13. Final Definition
 
 **The Scribe testing strategy** centers on engine-first verification, clear layering of test types, and minimal, meaningful E2E coverage for the most important user journeys. It is designed to support iterative development of the MVP and future expansion of Scribe’s capabilities with high confidence and low friction.
-

@@ -1,0 +1,29 @@
+name: 'Setup Bun'
+description: 'Setup Bun with caching'
+
+inputs:
+  bun-version:
+    description: 'Bun version to install'
+    required: false
+    default: '1.1.38'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Get bun cache directory
+      id: bun-cache-dir
+      shell: bash
+      run: echo "dir=$(bun pm cache)" >> $GITHUB_OUTPUT
+
+    - name: Cache Bun dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.bun-cache-dir.outputs.dir }}
+        key: bun-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
+        restore-keys: |
+          bun-${{ runner.os }}-

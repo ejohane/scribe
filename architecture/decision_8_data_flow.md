@@ -53,6 +53,7 @@ User selects note → Renderer → preload.notes.read(id)
 ```
 
 ### Guarantees:
+
 - Renderer never sees partial or unvalidated JSON.
 - Metadata is always fresh because engine re-extracts it when loading.
 - Graph and search state remain in main and never leak to renderer except through explicit queries.
@@ -64,6 +65,7 @@ User selects note → Renderer → preload.notes.read(id)
 As the user types, Lexical updates local editor state. Renderer keeps this transient; no persistence happens until explicitly triggered.
 
 ### Update flow:
+
 ```
 Lexical state update → AutosavePlugin (debounced)
     → serialize Lexical JSON
@@ -80,21 +82,26 @@ Renderer does not manipulate metadata or timestamps at any point.
 Save pipeline details were formalized in Decision 5. Here we describe the **data movement** specifically:
 
 ### 1. Renderer serializes Lexical JSON
+
 - Produces stable document structure
 
 ### 2. Preload invokes IPC handler
+
 - Marshals the serialized note JSON and metadata fields
 
 ### 3. Main process reconstructs a full `Note` object
+
 - Adds timestamps
 - Ensures `id` is stable
 
 ### 4. Engine performs durable save
+
 ```
 write temp → fsync → rename
 ```
 
 ### 5. Engine updates in-memory structures
+
 - Replace note in `AllNotes`
 - Extract metadata
 - Update metadata index
@@ -102,6 +109,7 @@ write temp → fsync → rename
 - Update search tokens
 
 ### 6. Save pipeline completes
+
 - Renderer may optionally refresh UI state—but this is not required
 
 ---
@@ -131,6 +139,7 @@ Renderer → preload.graph.forNote(id)
 ```
 
 Backlink resolution:
+
 ```
 renderer → preload.graph.backlinks(id)
     → IPC → main.graphEngine.backlinks(id)
@@ -145,12 +154,14 @@ All graph edges are derived from metadata during save or load.
 Metadata is **always engine-derived** and flows only **engine → renderer**, never the other direction.
 
 ### Metadata extraction triggers:
+
 - On note load
 - On note save
 
 The renderer receives metadata when reading a note but does not modify it.
 
 ### Metadata is used for:
+
 - Graph construction
 - Search indexing
 - Displaying note title in command palette results
@@ -160,11 +171,13 @@ The renderer receives metadata when reading a note but does not modify it.
 # 9. Renderer State Synchronization
 
 The renderer holds **only ephemeral UI state**:
+
 - Current note ID
 - Lexical editor state
 - Command palette state
 
 It does not:
+
 - Cache notes
 - Store metadata
 - Persist anything to disk
@@ -191,18 +204,22 @@ Autosave ensures the current note is already persisted before switching.
 # 11. Failure & Recovery Behavior
 
 ### If save fails:
+
 - Preload returns an error to renderer
 - Renderer may display a non-blocking notification
 - Editor does not advance to another note until resolved
 
 ### If note load fails:
+
 - Main returns error
 - Renderer shows placeholder or error page
 
 ### If a file becomes corrupt:
+
 - Engine attempts recovery; if impossible, the file is skipped and flagged
 
 ### If metadata extraction fails:
+
 - Note still loads, but metadata regeneration attempted on next save
 
 ---
@@ -210,6 +227,7 @@ Autosave ensures the current note is already persisted before switching.
 # 12. Rationale
 
 This data flow model ensures:
+
 - High performance
 - Deterministic state transitions
 - Full isolation of domains
@@ -224,4 +242,3 @@ The unidirectional model is simple, robust, and scalable.
 # 13. Final Definition
 
 **Decision 8 establishes Scribe’s complete data flow model:** a unidirectional, preload‑mediated system in which the main process owns all domain data; the renderer requests data and sends edits; and the engine maintains metadata, graph, and search indexes in memory. This model ensures correctness, performance, and long-term maintainability across all layers of the application.
-
