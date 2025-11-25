@@ -9,6 +9,7 @@ This document defines the **runtime behavior** of Scribe’s engine and its orch
 The **main process** is the execution host for Scribe’s engine. It performs all privileged operations and maintains Scribe’s core datasets in memory. The renderer runs only UI logic, and the preload layer serves as the communication boundary.
 
 This decision establishes:
+
 - How the engine initializes
 - How the vault is loaded
 - How notes, metadata, graph, and search indexes are constructed
@@ -46,9 +47,11 @@ When Scribe launches, the main process executes the following steps:
 ### 1. Initialize the Electron application
 
 ### 2. Locate or create the vault directory
+
 - Default location: `~/Scribe/vault` (or a configured path in future)
 
 ### 3. Instantiate engine modules
+
 ```ts
 const store = new FileSystemVault(vaultPath);
 const metadataIndex = new MetadataIndex();
@@ -57,6 +60,7 @@ const searchEngine = new SearchEngine();
 ```
 
 ### 4. Load all notes from `/vault/notes`
+
 - Scan directory
 - Read each file
 - Parse JSON
@@ -64,11 +68,13 @@ const searchEngine = new SearchEngine();
 - Hydrate into memory
 
 ### 5. Build derived in-memory data
+
 - Extract metadata for each note
 - Build outgoing & incoming graph edges
 - Add tokens to search index
 
 ### 6. Bind IPC routes
+
 - `notes:list`
 - `notes:read`
 - `notes:create`
@@ -88,12 +94,15 @@ After this, the application is fully operational.
 The engine keeps critical state in memory to ensure low-latency operations.
 
 ### **4.1 AllNotes**
+
 Holds hydrated note objects.
+
 ```ts
-Map<NoteId, Note>
+Map<NoteId, Note>;
 ```
 
 ### **4.2 MetadataIndex**
+
 ```ts
 {
   byNote: Map<NoteId, NoteMetadata>,
@@ -103,7 +112,9 @@ Map<NoteId, Note>
 ```
 
 ### **4.3 GraphEngine**
+
 Directed adjacency representation:
+
 ```ts
 {
   outgoing: Map<NoteId, NoteId[]>,
@@ -113,6 +124,7 @@ Directed adjacency representation:
 ```
 
 ### **4.4 SearchEngine**
+
 In-memory full-text search index, updated incrementally.
 
 ---
@@ -120,6 +132,7 @@ In-memory full-text search index, updated incrementally.
 # 5. Save Cycle (Hot Update Flow)
 
 When the renderer saves a note via:
+
 ```
 window.scribe.notes.save(note)
 ```
@@ -127,28 +140,35 @@ window.scribe.notes.save(note)
 The main process performs a full update cycle:
 
 ### 1. Persist note to disk
+
 - Write → fsync → atomic rename
 
 ### 2. Update AllNotes
+
 ```ts
-AllNotes.set(note.id, note)
+AllNotes.set(note.id, note);
 ```
 
 ### 3. Re-extract metadata
+
 - Derive title, tags, links
 
 ### 4. Update metadata index
+
 - Remove old metadata
 - Insert new metadata
 
 ### 5. Update graph engine
+
 - Rebuild outgoing/incoming edges for the note
 
 ### 6. Update search index
+
 - Re-tokenize note content
 - Replace index entry
 
 ### 7. Emit engine-level events (future extension)
+
 - `noteUpdated(id)`
 - `graphUpdated(id)`
 
@@ -161,25 +181,29 @@ All updates are incremental—only the affected note is reprocessed.
 IPC routes allow the renderer to invoke engine operations through preload.
 
 ### Notes
+
 ```ts
-ipcMain.handle("notes:list", () => Array.from(AllNotes.values()));
-ipcMain.handle("notes:read", (_, id) => AllNotes.get(id));
-ipcMain.handle("notes:create", createNoteHandler);
-ipcMain.handle("notes:save", saveNoteHandler);
+ipcMain.handle('notes:list', () => Array.from(AllNotes.values()));
+ipcMain.handle('notes:read', (_, id) => AllNotes.get(id));
+ipcMain.handle('notes:create', createNoteHandler);
+ipcMain.handle('notes:save', saveNoteHandler);
 ```
 
 ### Search
+
 ```ts
-ipcMain.handle("search:query", (_, query) => searchEngine.search(query));
+ipcMain.handle('search:query', (_, query) => searchEngine.search(query));
 ```
 
 ### Graph
+
 ```ts
-ipcMain.handle("graph:forNote", (_, id) => graphEngine.neighbors(id));
-ipcMain.handle("graph:backlinks", (_, id) => graphEngine.backlinks(id));
+ipcMain.handle('graph:forNote', (_, id) => graphEngine.neighbors(id));
+ipcMain.handle('graph:backlinks', (_, id) => graphEngine.backlinks(id));
 ```
 
 ### Properties:
+
 - Renderer cannot bypass preload
 - All domain logic stays in main process
 - IPC routes remain stable API boundaries
@@ -191,9 +215,11 @@ ipcMain.handle("graph:backlinks", (_, id) => graphEngine.backlinks(id));
 The engine updates instantly on every save. The renderer may optionally receive update notifications.
 
 Potential future mechanism:
+
 ```
 ipcMain.emit("note-updated", noteId);
 ```
+
 Preload could expose an event subscription API.
 
 For MVP, polling is unnecessary—renderer reloads note state only on explicit user actions.
@@ -203,6 +229,7 @@ For MVP, polling is unnecessary—renderer reloads note state only on explicit u
 # 8. Performance Considerations
 
 The architecture ensures:
+
 - Fast cold starts (thousands of notes load instantly)
 - Millisecond-level save operations
 - Efficient incremental indexing
@@ -216,6 +243,7 @@ This supports Scribe’s goal of being fast, predictable, and durable.
 # 9. Rationale
 
 This lifecycle design was chosen to:
+
 - Guarantee reliability despite crashes or power loss
 - Ensure extremely fast operations with large vaults
 - Preserve strict process isolation and security boundaries
@@ -228,4 +256,3 @@ This lifecycle design was chosen to:
 **Decision 5 defines how Scribe's engine initializes, loads the vault, indexes notes, updates its in-memory structures, and exposes its capabilities via IPC.** The main process is the authoritative host for domain logic, while the renderer remains a pure UI layer.
 
 This lifecycle ensures that Scribe is fast, robust, and scalable for future enhancements.
-

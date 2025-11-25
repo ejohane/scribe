@@ -56,7 +56,11 @@ Each note is stored as a single JSON file:
   "id": "uuid",
   "createdAt": 1732310400000,
   "updatedAt": 1732310425000,
-  "content": { "root": { /* Lexical serialized AST */ } },
+  "content": {
+    "root": {
+      /* Lexical serialized AST */
+    }
+  },
   "metadata": {
     "title": "My Note Title",
     "tags": ["design", "scribe"],
@@ -217,4 +221,3 @@ No part of the MVP architecture blocks future progression.
 - A simple, portable vault folder structure.
 
 This storage strategy forms the backbone of Scribe’s performance, reliability, and extensibility.
-

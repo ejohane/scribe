@@ -1,0 +1,8 @@
+# Bun test configuration for desktop app
+
+[test]
+# Preload test setup
+preload = ["../../test/setup.ts"]
+
+# Exclude renderer tests (they run with vitest separately)
+exclude = ["renderer/**/*"]

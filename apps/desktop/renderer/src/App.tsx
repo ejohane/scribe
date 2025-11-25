@@ -98,7 +98,7 @@ function App() {
 
         try {
           const backlinks = await window.scribe.graph.backlinks(currentNoteId);
-          setBacklinkResults(Array.isArray(backlinks) ? backlinks : []);
+          setBacklinkResults(backlinks);
           setShowBacklinks(true);
           console.log('Backlinks for current note:', backlinks);
         } catch (error) {

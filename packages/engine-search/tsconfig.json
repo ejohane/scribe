@@ -5,10 +5,5 @@
     "rootDir": "src",
     "types": ["vitest/globals"]
   },
-  "include": ["src/**/*"],
-  "references": [
-    {
-      "path": "../shared"
-    }
-  ]
+  "include": ["src/**/*"]
 }

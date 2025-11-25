@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "tsc",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit"
   },

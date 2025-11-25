@@ -2,6 +2,7 @@
   "name": "@scribe/eslint-config",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "index.js",
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.17.0",
