@@ -12,13 +12,13 @@ if [ -z "$1" ]; then
 fi
 
 BRANCH_NAME="$1"
-WORKTREE_DIR=".branches/${BRANCH_NAME}"
 
 # Get the root of the git repository
 GIT_ROOT=$(git rev-parse --show-toplevel)
 
-# Full path to worktree
-WORKTREE_PATH="${GIT_ROOT}/${WORKTREE_DIR}"
+# Worktree location is a sibling directory to avoid interfering with git/beads
+WORKTREE_BASE="$(dirname "$GIT_ROOT")/scribe-wt"
+WORKTREE_PATH="${WORKTREE_BASE}/${BRANCH_NAME}"
 
 # Check if we're currently in the worktree we're trying to delete
 CURRENT_DIR=$(pwd)
@@ -63,7 +63,7 @@ fi
 
 # Show what will be deleted
 echo "The following will be deleted:"
-[ "$WORKTREE_EXISTS" = true ] && echo "  ✓ Worktree: ${WORKTREE_DIR}"
+[ "$WORKTREE_EXISTS" = true ] && echo "  ✓ Worktree: ${WORKTREE_PATH}"
 [ "$TMUX_EXISTS" = true ] && echo "  ✓ Tmux session: ${BRANCH_NAME}"
 [ "$BRANCH_EXISTS" = true ] && echo "  ✓ Git branch: ${BRANCH_NAME}"
 echo ""
@@ -83,7 +83,7 @@ fi
 
 # Remove worktree if it exists
 if [ "$WORKTREE_EXISTS" = true ]; then
-    echo "Removing worktree at ${WORKTREE_DIR}..."
+    echo "Removing worktree at ${WORKTREE_PATH}..."
     git worktree remove "${WORKTREE_PATH}"
     # Also remove the worktree directory if it still exists
     if [ -d "$WORKTREE_PATH" ]; then

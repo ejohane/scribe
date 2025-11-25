@@ -14,13 +14,13 @@ fi
 
 BRANCH_NAME="$1"
 BASE_BRANCH="${2:-HEAD}"
-WORKTREE_DIR=".branches/${BRANCH_NAME}"
 
 # Get the root of the git repository
 GIT_ROOT=$(git rev-parse --show-toplevel)
 
-# Full path to worktree
-WORKTREE_PATH="${GIT_ROOT}/${WORKTREE_DIR}"
+# Worktree location is a sibling directory to avoid interfering with git/beads
+WORKTREE_BASE="$(dirname "$GIT_ROOT")/scribe-wt"
+WORKTREE_PATH="${WORKTREE_BASE}/${BRANCH_NAME}"
 
 # Check if worktree already exists
 if [ -d "$WORKTREE_PATH" ]; then
@@ -34,8 +34,11 @@ if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
     exit 1
 fi
 
+# Ensure the worktree base directory exists
+mkdir -p "$WORKTREE_BASE"
+
 # Create the worktree
-echo "Creating worktree for branch '${BRANCH_NAME}' at ${WORKTREE_DIR}..."
+echo "Creating worktree for branch '${BRANCH_NAME}' at ${WORKTREE_PATH}..."
 git worktree add -b "${BRANCH_NAME}" "${WORKTREE_PATH}" "${BASE_BRANCH}"
 
 # Install dependencies
