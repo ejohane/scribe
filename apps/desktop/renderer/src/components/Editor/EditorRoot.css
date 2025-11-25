@@ -101,14 +101,44 @@
 }
 
 /* Lists */
-.editor-input ul,
-.editor-input ol {
+.editor-list-ol {
   margin: 0 0 1.2rem 0;
-  padding-left: 1.5rem;
+  padding-left: 0;
+  list-style-position: inside;
 }
 
-.editor-input li {
+.editor-list-ul {
+  margin: 0 0 1.2rem 0;
+  padding-left: 0;
+  list-style-position: inside;
+}
+
+.editor-listitem {
   margin: 0.5rem 0;
+  padding-left: 0;
+}
+
+.editor-nested-listitem {
+  list-style-type: none;
+}
+
+/* Nested list indentation */
+.editor-nested-listitem:before {
+  display: none;
+}
+
+.editor-nested-listitem > .editor-list-ol,
+.editor-nested-listitem > .editor-list-ul {
+  padding-left: 20px;
+}
+
+/* Proper bullet styles for nested unordered lists */
+.editor-list-ul .editor-list-ul {
+  list-style-type: circle;
+}
+
+.editor-list-ul .editor-list-ul .editor-list-ul {
+  list-style-type: square;
 }
 
 /* Code blocks */
