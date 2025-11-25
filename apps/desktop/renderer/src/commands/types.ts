@@ -5,6 +5,13 @@
  */
 
 /**
+ * Palette mode determines what the command palette displays
+ * - 'command': Default mode showing available commands
+ * - 'file-browse': File browser mode for opening notes
+ */
+export type PaletteMode = 'command' | 'file-browse';
+
+/**
  * Context provided to commands when they execute
  */
 export interface CommandContext {

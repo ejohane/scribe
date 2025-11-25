@@ -52,8 +52,40 @@
 }
 
 .command-palette-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border-bottom: 1px solid #e5e7eb;
   padding: 16px;
+}
+
+.command-palette-back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.command-palette-back-button:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.command-palette-back-button:focus {
+  outline: none;
+  background-color: #e5e7eb;
 }
 
 .command-palette-input {
@@ -112,9 +144,18 @@
   font-weight: 500;
   color: #111827;
   margin-bottom: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .command-palette-item-description {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.command-palette-note-subtext {
   font-size: 12px;
   color: #6b7280;
 }
@@ -128,6 +169,19 @@
 
   .command-palette-input-container {
     border-bottom-color: #374151;
+  }
+
+  .command-palette-back-button {
+    color: #9ca3af;
+  }
+
+  .command-palette-back-button:hover {
+    background-color: #374151;
+    color: #f9fafb;
+  }
+
+  .command-palette-back-button:focus {
+    background-color: #4b5563;
   }
 
   .command-palette-input {
@@ -152,6 +206,10 @@
   }
 
   .command-palette-item-description {
+    color: #9ca3af;
+  }
+
+  .command-palette-note-subtext {
     color: #9ca3af;
   }
 }

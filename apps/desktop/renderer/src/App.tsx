@@ -5,13 +5,14 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
-import type { Command } from './commands/types';
+import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>('command');
   const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
   const [showBacklinks, setShowBacklinks] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -52,8 +53,8 @@ function App() {
       keywords: ['find', 'search', 'switch'],
       group: 'notes',
       run: async () => {
-        // This will be enhanced later to show a list of notes
-        // For now, we just close the palette
+        // Switch palette to file-browse mode to show note list
+        setPaletteMode('file-browse');
       },
     });
 
@@ -121,18 +122,38 @@ function App() {
     });
   }, [resolvedTheme, setTheme]);
 
-  // Handle cmd+k to open palette
+  // Handle cmd+k to open palette in command mode, cmd+o for file-browse mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ⌘K: toggle palette in command mode
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsPaletteOpen((prev) => !prev);
+        if (isPaletteOpen) {
+          // If already open, switch to command mode
+          setPaletteMode('command');
+        } else {
+          // Open in command mode
+          setPaletteMode('command');
+          setIsPaletteOpen(true);
+        }
+      }
+      // ⌘O: open palette in file-browse mode
+      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+        e.preventDefault();
+        if (isPaletteOpen) {
+          // If already open, switch to file-browse mode
+          setPaletteMode('file-browse');
+        } else {
+          // Open in file-browse mode
+          setPaletteMode('file-browse');
+          setIsPaletteOpen(true);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isPaletteOpen]);
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
@@ -181,6 +202,11 @@ function App() {
           setIsPaletteOpen(false);
         }}
         filterCommands={fuzzySearchCommands}
+        initialMode={paletteMode}
+        currentNoteId={noteState.currentNoteId}
+        onNoteSelect={(noteId) => {
+          noteState.loadNote(noteId);
+        }}
       />
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
       {showBacklinks && (
