@@ -38,6 +38,13 @@ beforeEach(() => {
       forNote: vi.fn().mockResolvedValue([]),
       backlinks: vi.fn().mockResolvedValue([]),
     },
+    app: {
+      openDevTools: vi.fn().mockResolvedValue({ success: true }),
+      getLastOpenedNote: vi.fn().mockResolvedValue(null),
+      setLastOpenedNote: vi.fn().mockResolvedValue({ success: true }),
+      getConfig: vi.fn().mockResolvedValue({ theme: 'light' }),
+      setConfig: vi.fn().mockResolvedValue({ success: true }),
+    },
   };
 });
 
