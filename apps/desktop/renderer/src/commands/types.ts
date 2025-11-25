@@ -5,6 +5,13 @@
  */
 
 /**
+ * Palette mode determines what the command palette displays
+ * - 'command': Default mode showing available commands
+ * - 'file-browse': File browser mode for opening notes
+ */
+export type PaletteMode = 'command' | 'file-browse';
+
+/**
  * Context provided to commands when they execute
  */
 export interface CommandContext {
@@ -27,6 +34,11 @@ export interface CommandContext {
    * Trigger a save of the current note
    */
   saveCurrentNote: () => Promise<void>;
+
+  /**
+   * Create a new note and switch to it
+   */
+  createNote: () => Promise<void>;
 }
 
 /**
@@ -57,6 +69,18 @@ export interface Command {
    * Optional group for organizing commands
    */
   group?: string;
+
+  /**
+   * Whether to automatically close the palette after selecting this command.
+   * - true: Close the palette immediately after selection (before run() executes)
+   * - false: Keep the palette open (command can close via context.closePalette() if needed)
+   * - undefined: Default behavior - palette stays open, command is responsible for closing
+   *
+   * Use `closeOnSelect: false` for commands that need to interact with the palette
+   * (e.g., switching to file-browse mode). Use `closeOnSelect: true` for commands
+   * that perform an action and should close immediately.
+   */
+  closeOnSelect?: boolean;
 
   /**
    * Execute the command

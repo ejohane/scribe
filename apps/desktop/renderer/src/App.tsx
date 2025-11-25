@@ -5,13 +5,14 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
-import type { Command } from './commands/types';
+import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>('command');
   const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
   const [showBacklinks, setShowBacklinks] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -36,11 +37,9 @@ function App() {
       description: 'Create a new note',
       keywords: ['create', 'add'],
       group: 'notes',
-      run: async () => {
-        // Create note via window API
-        await window.scribe.notes.create();
-        // Force refresh by reloading the page (temporary solution)
-        window.location.reload();
+      closeOnSelect: true, // Close palette immediately, then create note
+      run: async (context) => {
+        await context.createNote();
       },
     });
 
@@ -51,9 +50,10 @@ function App() {
       description: 'Open an existing note',
       keywords: ['find', 'search', 'switch'],
       group: 'notes',
+      closeOnSelect: false, // Keep palette open to show file browser
       run: async () => {
-        // This will be enhanced later to show a list of notes
-        // For now, we just close the palette
+        // Switch palette to file-browse mode to show note list
+        setPaletteMode('file-browse');
       },
     });
 
@@ -64,6 +64,7 @@ function App() {
       description: 'Save the current note',
       keywords: ['save', 'write'],
       group: 'notes',
+      closeOnSelect: true,
       run: async () => {
         // Manual save is handled by ManualSavePlugin
         // This command is more for visibility
@@ -77,6 +78,7 @@ function App() {
       description: 'Open Electron DevTools for debugging',
       keywords: ['devtools', 'debug', 'inspect'],
       group: 'developer',
+      closeOnSelect: true,
       run: async () => {
         await window.scribe.app.openDevTools();
       },
@@ -89,6 +91,7 @@ function App() {
       description: 'Show notes that link to the current note',
       keywords: ['backlinks', 'references', 'links', 'graph'],
       group: 'navigation',
+      closeOnSelect: true,
       run: async (context) => {
         const currentNoteId = context.getCurrentNoteId();
         if (!currentNoteId) {
@@ -114,6 +117,7 @@ function App() {
       description: `Current theme: ${resolvedTheme}`,
       keywords: ['theme', 'dark', 'light', 'appearance'],
       group: 'settings',
+      closeOnSelect: true,
       run: async () => {
         const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
@@ -121,21 +125,52 @@ function App() {
     });
   }, [resolvedTheme, setTheme]);
 
-  // Handle cmd+k to open palette
+  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ⌘K: toggle palette in command mode
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsPaletteOpen((prev) => !prev);
+        if (isPaletteOpen) {
+          // If already open, switch to command mode
+          setPaletteMode('command');
+        } else {
+          // Open in command mode
+          setPaletteMode('command');
+          setIsPaletteOpen(true);
+        }
+      }
+      // ⌘O: open palette in file-browse mode
+      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+        e.preventDefault();
+        if (isPaletteOpen) {
+          // If already open, switch to file-browse mode
+          setPaletteMode('file-browse');
+        } else {
+          // Open in file-browse mode
+          setPaletteMode('file-browse');
+          setIsPaletteOpen(true);
+        }
+      }
+      // ⌘N: create new note
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        setIsPaletteOpen(false);
+        noteState.createNote();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isPaletteOpen, noteState]);
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
+    // If closeOnSelect is explicitly true, close the palette before running the command
+    if (command.closeOnSelect === true) {
+      setIsPaletteOpen(false);
+    }
+
     await command.run({
       closePalette: () => setIsPaletteOpen(false),
       setCurrentNoteId: (noteId: string) => noteState.loadNote(noteId),
@@ -145,8 +180,11 @@ function App() {
           await noteState.saveNote(noteState.currentNote.content);
         }
       },
+      createNote: () => noteState.createNote(),
     });
-    setIsPaletteOpen(false);
+    // Note: Commands can use closeOnSelect: true for automatic closing,
+    // closeOnSelect: false to explicitly keep the palette open (e.g., 'open-note'),
+    // or omit it to handle closing via context.closePalette() themselves.
   };
 
   // Close backlinks view
@@ -181,6 +219,12 @@ function App() {
           setIsPaletteOpen(false);
         }}
         filterCommands={fuzzySearchCommands}
+        initialMode={paletteMode}
+        currentNoteId={noteState.currentNoteId}
+        onNoteSelect={(noteId) => {
+          noteState.loadNote(noteId);
+        }}
+        onModeChange={(mode) => setPaletteMode(mode)}
       />
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
       {showBacklinks && (

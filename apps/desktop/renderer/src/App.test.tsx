@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import App from './App';
 import type { Note } from '@scribe/shared';
@@ -65,6 +65,85 @@ describe('App', () => {
     await waitFor(() => {
       const editorInput = document.querySelector('.editor-input');
       expect(editorInput).toBeTruthy();
+    });
+  });
+
+  describe('keyboard shortcuts', () => {
+    it('cmd+n creates a new note', async () => {
+      const newNote: Note = {
+        id: 'new-note-id',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        content: { root: { type: 'root', children: [] } },
+        metadata: { title: null, tags: [], links: [] },
+      };
+      (window as any).scribe.notes.create.mockResolvedValue(newNote);
+
+      render(<App />);
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(document.querySelector('.editor-root')).toBeTruthy();
+      });
+
+      // Press cmd+n
+      fireEvent.keyDown(window, { key: 'n', metaKey: true });
+
+      // Should call create note API
+      await waitFor(() => {
+        expect((window as any).scribe.notes.create).toHaveBeenCalled();
+      });
+    });
+
+    it('ctrl+n creates a new note (Windows/Linux)', async () => {
+      const newNote: Note = {
+        id: 'new-note-id',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        content: { root: { type: 'root', children: [] } },
+        metadata: { title: null, tags: [], links: [] },
+      };
+      (window as any).scribe.notes.create.mockResolvedValue(newNote);
+
+      render(<App />);
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(document.querySelector('.editor-root')).toBeTruthy();
+      });
+
+      // Press ctrl+n
+      fireEvent.keyDown(window, { key: 'n', ctrlKey: true });
+
+      // Should call create note API
+      await waitFor(() => {
+        expect((window as any).scribe.notes.create).toHaveBeenCalled();
+      });
+    });
+
+    it('cmd+n closes the command palette if open', async () => {
+      render(<App />);
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(document.querySelector('.editor-root')).toBeTruthy();
+      });
+
+      // Open command palette with cmd+k
+      fireEvent.keyDown(window, { key: 'k', metaKey: true });
+
+      // Verify palette is open
+      await waitFor(() => {
+        expect(document.querySelector('.command-palette')).toBeTruthy();
+      });
+
+      // Press cmd+n to create note
+      fireEvent.keyDown(window, { key: 'n', metaKey: true });
+
+      // Palette should be closed
+      await waitFor(() => {
+        expect(document.querySelector('.command-palette')).toBeFalsy();
+      });
     });
   });
 });

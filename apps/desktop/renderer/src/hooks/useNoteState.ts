@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Note, NoteId, LexicalState } from '@scribe/shared';
 
 interface UseNoteStateReturn {
@@ -39,6 +39,10 @@ export function useNoteState(): UseNoteStateReturn {
   const [currentNoteId, setCurrentNoteId] = useState<NoteId | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Track whether initialization has been attempted to prevent infinite loop
+  // if both loadNote and createNote fail
+  const hasInitialized = useRef(false);
 
   /**
    * Load a note by ID from the engine
@@ -127,7 +131,13 @@ export function useNoteState(): UseNoteStateReturn {
   // On mount, try to load the last opened note, or create a new one
   useEffect(() => {
     const initializeNote = async () => {
+      // Prevent infinite loop if both loadNote and createNote fail:
+      // Without this guard, when both fail, currentNoteId stays null and
+      // isLoading becomes false, causing the effect to re-run endlessly
+      if (hasInitialized.current) return;
       if (currentNoteId || isLoading) return;
+
+      hasInitialized.current = true;
 
       try {
         // Try to get the last opened note
@@ -147,13 +157,18 @@ export function useNoteState(): UseNoteStateReturn {
     initializeNote();
   }, [currentNoteId, isLoading, loadNote, createNote]);
 
-  return {
-    currentNote,
-    currentNoteId,
-    isLoading,
-    error,
-    loadNote,
-    saveNote,
-    createNote,
-  };
+  // Return a memoized object to ensure stable reference for consumers
+  // This prevents unnecessary effect re-runs in components that depend on noteState
+  return useMemo(
+    () => ({
+      currentNote,
+      currentNoteId,
+      isLoading,
+      error,
+      loadNote,
+      saveNote,
+      createNote,
+    }),
+    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, createNote]
+  );
 }
