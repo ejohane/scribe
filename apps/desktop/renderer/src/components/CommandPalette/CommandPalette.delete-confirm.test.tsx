@@ -97,9 +97,11 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       const noteItem = document.querySelector('.command-palette-item');
       fireEvent.click(noteItem!);
 
-      // Title should be truncated at ~30 chars total (27 content + 3 for ellipsis)
-      // Expected: 'This is a very long note ti...'
-      expect(screen.getByText(/Delete "This is a very long note ti\.\.\."\?/)).toBeInTheDocument();
+      // Title should be truncated: 30 chars of content + "..." (33 chars total)
+      // Expected: 'This is a very long note title...'
+      expect(
+        screen.getByText(/Delete "This is a very long note title\.\.\."\?/)
+      ).toBeInTheDocument();
     });
 
     it('displays "Untitled" for notes without a title', async () => {

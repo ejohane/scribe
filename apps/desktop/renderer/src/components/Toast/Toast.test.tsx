@@ -97,8 +97,18 @@ describe('Toast', () => {
   });
 
   describe('accessibility', () => {
-    it('has role="alert" for screen reader announcements', () => {
+    it('has role="status" for success toasts (polite announcements)', () => {
       const toasts = [createToast()];
+      render(<Toast toasts={toasts} onDismiss={vi.fn()} />);
+
+      // Both container and toast have role="status", find the toast by its content
+      const statusElements = screen.getAllByRole('status');
+      const toast = statusElements.find((el) => el.textContent === 'Test message');
+      expect(toast).toBeInTheDocument();
+    });
+
+    it('has role="alert" for error toasts (assertive announcements)', () => {
+      const toasts = [createToast({ type: 'error' })];
       render(<Toast toasts={toasts} onDismiss={vi.fn()} />);
 
       const toast = screen.getByRole('alert');
@@ -106,15 +116,20 @@ describe('Toast', () => {
       expect(toast).toHaveTextContent('Test message');
     });
 
-    it('each toast has role="alert" when multiple toasts exist', () => {
+    it('each toast has appropriate role based on type', () => {
       const toasts = [
-        createToast({ id: 'toast-1', message: 'First' }),
-        createToast({ id: 'toast-2', message: 'Second' }),
+        createToast({ id: 'toast-1', message: 'Success', type: 'success' }),
+        createToast({ id: 'toast-2', message: 'Error', type: 'error' }),
       ];
       render(<Toast toasts={toasts} onDismiss={vi.fn()} />);
 
-      const alerts = screen.getAllByRole('alert');
-      expect(alerts).toHaveLength(2);
+      // Container and success toast have role="status"
+      const statusElements = screen.getAllByRole('status');
+      expect(statusElements.length).toBeGreaterThanOrEqual(1);
+
+      // Error toast has role="alert"
+      const alertElement = screen.getByRole('alert');
+      expect(alertElement).toHaveTextContent('Error');
     });
   });
 });
