@@ -1,16 +1,86 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # Nightly release - runs at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Manual trigger from GitHub UI or CLI
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.2.3). Defaults to latest tag.'
+        required: false
+        type: string
 
 jobs:
+  resolve-tag:
+    name: Resolve Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: resolve
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "No tags found"
+            echo "tag=" >> $GITHUB_OUTPUT
+          else
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "Resolved tag: $TAG"
+          fi
+
+      - name: Check if release exists and needs artifacts
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.resolve.outputs.tag }}"
+
+          if [ -z "$TAG" ]; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "No tag to release"
+            exit 0
+          fi
+
+          # Check if release exists
+          if ! gh release view "$TAG" &>/dev/null; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Release $TAG does not exist (semantic-release may not have run yet)"
+            exit 0
+          fi
+
+          # Check if release already has DMG artifacts
+          ASSETS=$(gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null || echo "")
+          if echo "$ASSETS" | grep -q '\.dmg$'; then
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "Release $TAG already has DMG artifacts"
+          else
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "Release $TAG needs artifacts"
+          fi
+
   build-macos:
     name: Build macOS
     runs-on: macos-latest
+    needs: [resolve-tag]
+    if: needs.resolve-tag.outputs.should_release == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-tag.outputs.tag }}
 
       - uses: ./.github/actions/setup-bun
 
@@ -40,7 +110,7 @@ jobs:
   publish-release:
     name: Publish Release
     runs-on: ubuntu-latest
-    needs: [build-macos]
+    needs: [resolve-tag, build-macos]
     permissions:
       contents: write
     steps:
@@ -54,8 +124,9 @@ jobs:
       - name: Publish to GitHub Releases
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-tag.outputs.tag }}
         run: |
-          gh release upload ${{ github.ref_name }} \
+          gh release upload "$RELEASE_TAG" \
             artifacts/macos-dmg/*.dmg
 
-          gh release edit ${{ github.ref_name }} --draft=false
+          gh release edit "$RELEASE_TAG" --draft=false
