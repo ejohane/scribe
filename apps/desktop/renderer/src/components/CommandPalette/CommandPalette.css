@@ -186,8 +186,8 @@
   opacity: 1;
 }
 
-/* Hide delete icon when item is keyboard-selected */
-.command-palette-item.selected .note-item-delete-icon {
+/* Hide delete icon when item is keyboard-selected but NOT hovered */
+.command-palette-item.selected:not(:hover) .note-item-delete-icon {
   opacity: 0;
 }
 

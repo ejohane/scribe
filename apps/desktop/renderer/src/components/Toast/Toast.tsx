@@ -19,13 +19,14 @@ export function Toast({ toasts, onDismiss }: ToastProps) {
   }
 
   return (
-    <div className="toast-container">
+    <div className="toast-container" role="status" aria-live="polite">
       {toasts.map((toast) => (
         <div
           key={toast.id}
           className={`toast${toast.type === 'error' ? ' toast--error' : ''}`}
           onClick={() => onDismiss(toast.id)}
-          role="alert"
+          role={toast.type === 'error' ? 'alert' : 'status'}
+          aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
         >
           {toast.message}
         </div>

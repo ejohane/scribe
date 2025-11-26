@@ -11,130 +11,44 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { tmpdir } from 'node:os';
-import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
+import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
-import Fuse from 'fuse.js';
-
-/**
- * Helper to create Lexical content with a title and optional body text
- */
-function createNoteContent(title: string, bodyText?: string): LexicalState {
-  const children: Array<{ type: string; children: Array<{ type: string; text: string }> }> = [
-    {
-      type: 'paragraph',
-      children: [{ type: 'text', text: title }],
-    },
-  ];
-
-  if (bodyText) {
-    children.push({
-      type: 'paragraph',
-      children: [{ type: 'text', text: bodyText }],
-    });
-  }
-
-  return {
-    root: {
-      type: 'root',
-      children,
-    },
-  };
-}
-
-/**
- * Simulates the fuzzy search behavior used in delete-browse mode
- * This mirrors the Fuse.js configuration in CommandPalette.tsx
- */
-function createFuseIndex(notes: Note[]) {
-  const searchableNotes = notes.filter((note) => note.metadata.title !== null);
-  return new Fuse(searchableNotes, {
-    keys: ['metadata.title'],
-    threshold: 0.4,
-    ignoreLocation: true,
-    isCaseSensitive: false,
-  });
-}
-
-/**
- * Helper to get recent notes sorted by updatedAt descending (most recent first)
- * Excludes current note as specified in the delete-browse mode behavior
- */
-function getRecentNotes(notes: Note[], currentNoteId?: NoteId, limit = 10): Note[] {
-  return [...notes]
-    .filter((note) => note.id !== currentNoteId)
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, limit);
-}
+import type { Note, LexicalState } from '@scribe/shared';
+import {
+  type TestContext,
+  setupTestContext,
+  cleanupTestContext,
+  createNoteContent,
+  createNoteWithTitle,
+  createAndIndexNote,
+  indexNoteInEngines,
+  removeNoteFromEngines,
+  createFuseIndex,
+  getRecentNotes,
+  simulateAppRestart,
+} from './test-helpers';
 
 describe('Delete Note E2E Integration Tests', () => {
+  let ctx: TestContext;
+
+  // Convenience aliases for cleaner test code
   let tempDir: string;
   let vault: FileSystemVault;
   let graphEngine: GraphEngine;
   let searchEngine: SearchEngine;
 
   beforeEach(async () => {
-    // Create a temporary directory for testing
-    tempDir = path.join(tmpdir(), `scribe-delete-note-test-${Date.now()}`);
-    await initializeVault(tempDir);
-    vault = new FileSystemVault(tempDir);
-    await vault.load();
-
-    // Initialize engines
-    graphEngine = new GraphEngine();
-    searchEngine = new SearchEngine();
+    ctx = await setupTestContext('scribe-delete-note-test');
+    tempDir = ctx.tempDir;
+    vault = ctx.vault;
+    graphEngine = ctx.graphEngine;
+    searchEngine = ctx.searchEngine;
   });
 
   afterEach(async () => {
-    // Clean up temporary directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      console.warn('Failed to clean up temp directory:', error);
-    }
+    await cleanupTestContext(ctx);
   });
-
-  /**
-   * Helper to create a note with specific title and add a delay
-   * to ensure different updatedAt timestamps
-   */
-  async function createNoteWithTitle(title: string, delayMs = 10): Promise<Note> {
-    const note = await vault.create(createNoteContent(title));
-    // Small delay to ensure different timestamps
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-    return note;
-  }
-
-  /**
-   * Helper to index a note in both graph and search engines
-   */
-  function indexNoteInEngines(note: Note): void {
-    graphEngine.addNote(note);
-    searchEngine.indexNote(note);
-  }
-
-  /**
-   * Helper to remove a note from both graph and search engines
-   */
-  function removeNoteFromEngines(noteId: string): void {
-    graphEngine.removeNote(noteId);
-    searchEngine.removeNote(noteId);
-  }
-
-  /**
-   * Helper to create a note and index it in engines
-   */
-  async function createAndIndexNote(title: string, bodyText?: string): Promise<Note> {
-    const note = await vault.create(createNoteContent(title, bodyText));
-    const savedNote = vault.read(note.id);
-    indexNoteInEngines(savedNote);
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    return savedNote;
-  }
 
   /**
    * E2E Flow 1: Delete note via command palette
@@ -154,9 +68,9 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Flow 1: Delete note via command palette', () => {
     it('should complete full delete flow: Cmd+K -> Delete Note -> select note -> confirm -> delete', async () => {
       // Step 1: Launch app with 3+ existing notes
-      const note1 = await createAndIndexNote('Meeting Notes', 'Discuss project timeline');
-      const note2 = await createAndIndexNote('Project Ideas', 'Brainstorm new features');
-      const note3 = await createAndIndexNote('Daily Journal', 'Reflections on today');
+      const note1 = await createAndIndexNote(ctx, 'Meeting Notes', 'Discuss project timeline');
+      const note2 = await createAndIndexNote(ctx, 'Project Ideas', 'Brainstorm new features');
+      const note3 = await createAndIndexNote(ctx, 'Daily Journal', 'Reflections on today');
 
       // Verify initial state
       expect(vault.list()).toHaveLength(3);
@@ -190,7 +104,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Step 7: Confirm deletion (Click "Delete" button)
       await vault.delete(pendingDeleteNote.id);
-      removeNoteFromEngines(pendingDeleteNote.id);
+      removeNoteFromEngines(ctx, pendingDeleteNote.id);
 
       // Step 8: Verify success toast message format
       const successMessage = `"${pendingDeleteNote.metadata.title}" deleted`;
@@ -214,9 +128,9 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should display recent notes sorted by updatedAt in delete-browse mode', async () => {
       // Create 3 notes with distinct timestamps
-      await createAndIndexNote('First Note');
-      await createAndIndexNote('Second Note');
-      await createAndIndexNote('Third Note');
+      await createAndIndexNote(ctx, 'First Note');
+      await createAndIndexNote(ctx, 'Second Note');
+      await createAndIndexNote(ctx, 'Third Note');
 
       // Verify notes in delete-browse mode are sorted by updatedAt descending
       const recentNotes = getRecentNotes(vault.list());
@@ -233,9 +147,9 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should exclude current note from delete-browse list', async () => {
       // Create 3 notes
-      const note1 = await createAndIndexNote('First Note');
-      const note2 = await createAndIndexNote('Second Note');
-      const note3 = await createAndIndexNote('Third Note');
+      const note1 = await createAndIndexNote(ctx, 'First Note');
+      const note2 = await createAndIndexNote(ctx, 'Second Note');
+      const note3 = await createAndIndexNote(ctx, 'Third Note');
 
       // Simulate note3 is the current note
       const currentNoteId = note3.id;
@@ -251,10 +165,10 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should support fuzzy search in delete-browse mode', async () => {
       // Create notes
-      await createAndIndexNote('Meeting Notes', 'Discussed project timeline');
-      await createAndIndexNote('Project Ideas', 'Brainstorming new features');
-      await createAndIndexNote('Daily Journal', 'Reflections');
-      await createAndIndexNote('Team Meeting Summary', 'Notes from standup');
+      await createAndIndexNote(ctx, 'Meeting Notes', 'Discussed project timeline');
+      await createAndIndexNote(ctx, 'Project Ideas', 'Brainstorming new features');
+      await createAndIndexNote(ctx, 'Daily Journal', 'Reflections');
+      await createAndIndexNote(ctx, 'Team Meeting Summary', 'Notes from standup');
 
       const allNotes = vault.list();
       const fuseIndex = createFuseIndex(allNotes);
@@ -292,9 +206,9 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Flow 2: Cancel deletion', () => {
     it('should not delete note when Escape is pressed in confirmation screen', async () => {
       // Create notes
-      await createAndIndexNote('First Note');
-      const note2 = await createAndIndexNote('Second Note');
-      await createAndIndexNote('Third Note');
+      await createAndIndexNote(ctx, 'First Note');
+      const note2 = await createAndIndexNote(ctx, 'Second Note');
+      await createAndIndexNote(ctx, 'Third Note');
 
       const initialCount = vault.list().length;
       expect(initialCount).toBe(3);
@@ -323,7 +237,7 @@ describe('Delete Note E2E Integration Tests', () => {
    */
   describe('Toast notifications', () => {
     it('should generate correct success message with note title', async () => {
-      const note = await createAndIndexNote('Meeting Notes');
+      const note = await createAndIndexNote(ctx, 'Meeting Notes');
 
       // Simulate deletion
       const deletedTitle = note.metadata.title;
@@ -337,7 +251,7 @@ describe('Delete Note E2E Integration Tests', () => {
     it('should truncate long note titles in toast message (~30 chars)', async () => {
       const longTitle =
         'This is a very long note title that should be truncated at around 30 chars';
-      const note = await createAndIndexNote(longTitle);
+      const note = await createAndIndexNote(ctx, longTitle);
 
       // Simulate deletion and message truncation (per spec: ~30 chars)
       const fullTitle = note.metadata.title!;
@@ -365,14 +279,14 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Delete via icon in file-browse mode (Flow 5)', () => {
     it('should delete note when initiated from file-browse mode', async () => {
       // Step 1: Launch app with 3+ existing notes
-      const note1 = await createNoteWithTitle('Meeting Notes');
-      const note2 = await createNoteWithTitle('Project Ideas');
-      const note3 = await createNoteWithTitle('Daily Journal');
+      const note1 = await createNoteWithTitle(vault, 'Meeting Notes');
+      const note2 = await createNoteWithTitle(vault, 'Project Ideas');
+      const note3 = await createNoteWithTitle(vault, 'Daily Journal');
 
       // Index notes in engines
-      indexNoteInEngines(note1);
-      indexNoteInEngines(note2);
-      indexNoteInEngines(note3);
+      indexNoteInEngines(ctx, note1);
+      indexNoteInEngines(ctx, note2);
+      indexNoteInEngines(ctx, note3);
 
       // Verify initial state
       expect(vault.list()).toHaveLength(3);
@@ -384,7 +298,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Step 5: Delete note2 (simulating: delete icon click -> confirm Delete)
       await vault.delete(note2.id);
-      removeNoteFromEngines(note2.id);
+      removeNoteFromEngines(ctx, note2.id);
 
       // Verify deletion
       expect(vault.list()).toHaveLength(2);
@@ -401,14 +315,14 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should keep note when cancel is clicked in confirmation', async () => {
       // Create 3 notes
-      const note1 = await createNoteWithTitle('Note A');
-      const note2 = await createNoteWithTitle('Note B');
-      const note3 = await createNoteWithTitle('Note C');
+      const note1 = await createNoteWithTitle(vault, 'Note A');
+      const note2 = await createNoteWithTitle(vault, 'Note B');
+      const note3 = await createNoteWithTitle(vault, 'Note C');
 
       // Index notes in engines
-      indexNoteInEngines(note1);
-      indexNoteInEngines(note2);
-      indexNoteInEngines(note3);
+      indexNoteInEngines(ctx, note1);
+      indexNoteInEngines(ctx, note2);
+      indexNoteInEngines(ctx, note3);
 
       // Verify initial state
       expect(vault.list()).toHaveLength(3);
@@ -435,9 +349,9 @@ describe('Delete Note E2E Integration Tests', () => {
       const note3 = await vault.create(createNoteContent('Note 3', 'Content with #tag1'));
 
       // Index all notes
-      indexNoteInEngines(note1);
-      indexNoteInEngines(note2);
-      indexNoteInEngines(note3);
+      indexNoteInEngines(ctx, note1);
+      indexNoteInEngines(ctx, note2);
+      indexNoteInEngines(ctx, note3);
 
       // Verify search works before deletion
       const searchBeforeDelete = searchEngine.search('Note 2');
@@ -445,7 +359,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Delete note2
       await vault.delete(note2.id);
-      removeNoteFromEngines(note2.id);
+      removeNoteFromEngines(ctx, note2.id);
 
       // Verify note is removed from vault
       expect(vault.list()).toHaveLength(2);
@@ -465,14 +379,14 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Core deletion operations', () => {
     it('should delete a single note from empty vault with one note', async () => {
       // Create a single note
-      const note = await createNoteWithTitle('Only Note');
-      indexNoteInEngines(note);
+      const note = await createNoteWithTitle(vault, 'Only Note');
+      indexNoteInEngines(ctx, note);
 
       expect(vault.list()).toHaveLength(1);
 
       // Delete the only note
       await vault.delete(note.id);
-      removeNoteFromEngines(note.id);
+      removeNoteFromEngines(ctx, note.id);
 
       // Vault should be empty
       expect(vault.list()).toHaveLength(0);
@@ -520,7 +434,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Delete note A (the linked-to note)
       await vault.delete(noteA.id);
-      removeNoteFromEngines(noteA.id);
+      removeNoteFromEngines(ctx, noteA.id);
 
       // Note A should be gone
       expect(vault.list()).toHaveLength(1);
@@ -571,7 +485,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Delete source note (the one with the link)
       await vault.delete(sourceNote.id);
-      removeNoteFromEngines(sourceNote.id);
+      removeNoteFromEngines(ctx, sourceNote.id);
 
       // Source note should be gone
       expect(vault.list()).toHaveLength(1);
@@ -584,16 +498,15 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should persist deletion across vault reload', async () => {
       // Create notes
-      const note1 = await createNoteWithTitle('Persistent Note 1');
-      const note2 = await createNoteWithTitle('Note to Delete');
-      const note3 = await createNoteWithTitle('Persistent Note 3');
+      const note1 = await createNoteWithTitle(vault, 'Persistent Note 1');
+      const note2 = await createNoteWithTitle(vault, 'Note to Delete');
+      const note3 = await createNoteWithTitle(vault, 'Persistent Note 3');
 
       // Delete note2
       await vault.delete(note2.id);
 
       // Reload vault (simulates app restart)
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
 
       // Verify note2 is still gone after reload
       expect(newVault.list()).toHaveLength(2);
@@ -608,13 +521,13 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Post-deletion state', () => {
     it('should allow creating new notes after deletion leaves vault empty', async () => {
       // Create and delete a note
-      const note = await createNoteWithTitle('Temporary Note');
+      const note = await createNoteWithTitle(vault, 'Temporary Note');
       await vault.delete(note.id);
 
       expect(vault.list()).toHaveLength(0);
 
       // Create a new note
-      const newNote = await createNoteWithTitle('New Note After Delete');
+      const newNote = await createNoteWithTitle(vault, 'New Note After Delete');
 
       expect(vault.list()).toHaveLength(1);
       expect(vault.list()[0].metadata.title).toBe('New Note After Delete');
@@ -622,10 +535,10 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should maintain correct ordering after deletion', async () => {
       // Create 4 notes with different timestamps
-      const note1 = await createNoteWithTitle('Oldest');
-      const note2 = await createNoteWithTitle('Second');
-      const note3 = await createNoteWithTitle('Third');
-      const note4 = await createNoteWithTitle('Newest');
+      const note1 = await createNoteWithTitle(vault, 'Oldest');
+      const note2 = await createNoteWithTitle(vault, 'Second');
+      const note3 = await createNoteWithTitle(vault, 'Third');
+      const note4 = await createNoteWithTitle(vault, 'Newest');
 
       // Delete the middle note
       await vault.delete(note2.id);
@@ -641,9 +554,9 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should find most recent note after deleting current note', async () => {
       // Create 3 notes
-      const note1 = await createNoteWithTitle('Note 1');
-      const note2 = await createNoteWithTitle('Note 2');
-      const note3 = await createNoteWithTitle('Note 3'); // Most recent
+      const note1 = await createNoteWithTitle(vault, 'Note 1');
+      const note2 = await createNoteWithTitle(vault, 'Note 2');
+      const note3 = await createNoteWithTitle(vault, 'Note 3'); // Most recent
 
       // Simulate: note3 is the "current" note, and we delete it
       const currentNoteId = note3.id;
@@ -664,7 +577,7 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Error handling', () => {
     it('should throw error when deleting non-existent note', async () => {
       // Create a note so vault isn't empty
-      await createNoteWithTitle('Some Note');
+      await createNoteWithTitle(vault, 'Some Note');
 
       // Try to delete a note that doesn't exist
       const fakeId = 'non-existent-note-id';
@@ -674,11 +587,11 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should not affect other notes when deletion fails', async () => {
       // Create notes
-      const note1 = await createNoteWithTitle('Note 1');
-      const note2 = await createNoteWithTitle('Note 2');
+      const note1 = await createNoteWithTitle(vault, 'Note 1');
+      const note2 = await createNoteWithTitle(vault, 'Note 2');
 
-      indexNoteInEngines(note1);
-      indexNoteInEngines(note2);
+      indexNoteInEngines(ctx, note1);
+      indexNoteInEngines(ctx, note2);
 
       // Try to delete a non-existent note
       const fakeId = 'non-existent-note-id';
@@ -707,9 +620,9 @@ describe('Delete Note E2E Integration Tests', () => {
       const note3 = await vault.create(createNoteContent('Weekly Meeting', 'Team standup notes'));
 
       // Index all notes
-      indexNoteInEngines(note1);
-      indexNoteInEngines(note2);
-      indexNoteInEngines(note3);
+      indexNoteInEngines(ctx, note1);
+      indexNoteInEngines(ctx, note2);
+      indexNoteInEngines(ctx, note3);
 
       // Verify "meeting" search returns 2 notes before deletion
       const searchBefore = searchEngine.search('meeting');
@@ -720,7 +633,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Delete "Meeting Notes"
       await vault.delete(note1.id);
-      removeNoteFromEngines(note1.id);
+      removeNoteFromEngines(ctx, note1.id);
 
       // Verify search only returns "Weekly Meeting" now
       const searchAfter = searchEngine.search('meeting');
@@ -738,8 +651,7 @@ describe('Delete Note E2E Integration Tests', () => {
       await vault.delete(note2.id);
 
       // Simulate app restart: create new vault and search engine
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
       const newSearchEngine = new SearchEngine();
 
       // Rebuild index from loaded notes

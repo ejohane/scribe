@@ -22,6 +22,9 @@ const MAX_RECENT_NOTES = 10;
 /** Debounce delay for search input in milliseconds */
 const SEARCH_DEBOUNCE_MS = 150;
 
+/** Max characters for note titles in delete confirmation dialog and toast notifications */
+const DELETE_TITLE_TRUNCATION_LENGTH = 30;
+
 /**
  * Truncates a title to approximately the specified length with ellipsis.
  * The resulting string will be maxLength + 3 characters if truncated.
@@ -152,10 +155,13 @@ export function CommandPalette({
     try {
       await noteState.deleteNote(noteId);
 
-      // Refresh notes list to get remaining notes
-      const remainingNotes = allNotes.filter((n) => n.id !== noteId);
-
       if (wasCurrentNote) {
+        // Fetch fresh notes list to avoid stale closure issue.
+        // The allNotes state captured in this callback may be stale by the time
+        // the async deleteNote operation completes, so we fetch fresh data.
+        const freshNotes = await window.scribe.notes.list();
+        const remainingNotes = freshNotes.filter((n) => n.id !== noteId);
+
         if (remainingNotes.length > 0) {
           // Load most recent remaining note
           const mostRecent = remainingNotes.sort((a, b) => b.updatedAt - a.updatedAt)[0];
@@ -167,13 +173,16 @@ export function CommandPalette({
       }
 
       // Show success toast
-      const truncatedTitle = truncateTitle(noteTitle, 30);
+      const truncatedTitle = truncateTitle(noteTitle, DELETE_TITLE_TRUNCATION_LENGTH);
       showToast?.(`"${truncatedTitle}" deleted`);
 
       // Close palette
       setPendingDeleteNote(null);
       onClose();
-    } catch {
+    } catch (error) {
+      // Log error for debugging
+      console.error('Failed to delete note:', error);
+
       // Show error toast
       showToast?.('Failed to delete note', 'error');
 
@@ -182,7 +191,7 @@ export function CommandPalette({
       setMode('delete-browse');
       onModeChange?.('delete-browse');
     }
-  }, [pendingDeleteNote, noteState, allNotes, showToast, onClose, onModeChange]);
+  }, [pendingDeleteNote, noteState, showToast, onClose, onModeChange]);
 
   // Filter commands based on query
   const filteredCommands = filterCommands
@@ -284,10 +293,15 @@ export function CommandPalette({
 
   // Compute recent notes for file-browse mode (initial state with no query)
   // Excludes current note, sorted by updatedAt descending
-  const recentNotes = allNotes
-    .filter((note) => note.id !== currentNoteId)
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, MAX_RECENT_NOTES);
+  // Memoized to prevent unnecessary recalculations on every render
+  const recentNotes = useMemo(
+    () =>
+      allNotes
+        .filter((note) => note.id !== currentNoteId)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, MAX_RECENT_NOTES),
+    [allNotes, currentNoteId]
+  );
 
   // Build Fuse.js index for fuzzy search in file-browse mode
   // Only indexes notes with titles (excludes untitled notes from search)
@@ -597,8 +611,10 @@ export function CommandPalette({
   const renderDeleteConfirm = () => {
     if (!pendingDeleteNote) return null;
 
-    // Truncate to ~30 chars total (27 content + 3 for ellipsis)
-    const truncatedTitle = truncateTitle(pendingDeleteNote.metadata?.title || 'Untitled', 27);
+    const truncatedTitle = truncateTitle(
+      pendingDeleteNote.metadata?.title || 'Untitled',
+      DELETE_TITLE_TRUNCATION_LENGTH
+    );
 
     return (
       <div
