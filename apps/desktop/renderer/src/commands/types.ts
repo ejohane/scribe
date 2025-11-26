@@ -8,8 +8,10 @@
  * Palette mode determines what the command palette displays
  * - 'command': Default mode showing available commands
  * - 'file-browse': File browser mode for opening notes
+ * - 'delete-browse': File browser mode for selecting a note to delete
+ * - 'delete-confirm': Confirmation screen before deleting a note
  */
-export type PaletteMode = 'command' | 'file-browse';
+export type PaletteMode = 'command' | 'file-browse' | 'delete-browse' | 'delete-confirm';
 
 /**
  * Context provided to commands when they execute

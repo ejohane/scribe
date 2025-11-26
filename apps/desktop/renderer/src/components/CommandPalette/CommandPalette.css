@@ -127,6 +127,7 @@
 }
 
 .command-palette-item {
+  position: relative;
   padding: 12px 16px;
   cursor: pointer;
   transition: background-color 0.1s ease;
@@ -158,6 +159,52 @@
 .command-palette-note-subtext {
   font-size: 12px;
   color: #6b7280;
+}
+
+/* Delete Icon on Note Items */
+.note-item-delete-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  color: var(--text-tertiary, #999999);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.command-palette-item:hover .note-item-delete-icon {
+  opacity: 1;
+}
+
+/* Hide delete icon when item is keyboard-selected but NOT hovered */
+.command-palette-item.selected:not(:hover) .note-item-delete-icon {
+  opacity: 0;
+}
+
+.note-item-delete-icon:hover {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.note-item-delete-icon:focus {
+  outline: 2px solid #dc3545;
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+.note-item-delete-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Dark mode support (optional, can be expanded later) */
@@ -212,4 +259,68 @@
   .command-palette-note-subtext {
     color: #9ca3af;
   }
+}
+
+/* Delete Confirmation Screen */
+.delete-confirmation {
+  padding: 24px;
+  text-align: center;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.delete-confirmation-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.delete-confirmation-message {
+  font-size: 14px;
+  color: var(--text-secondary, #666666);
+  margin-bottom: 20px;
+}
+
+.delete-confirmation-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.delete-confirmation-cancel {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1a1a1a);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-confirmation-cancel:hover {
+  background: var(--bg-hover, #f5f5f5);
+}
+
+.delete-confirmation-cancel:focus {
+  outline: 2px solid var(--focus-ring, #0066cc);
+  outline-offset: 2px;
+}
+
+.delete-confirmation-confirm {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #dc3545;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-confirmation-confirm:hover {
+  background: #c82333;
+}
+
+.delete-confirmation-confirm:focus {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
 }

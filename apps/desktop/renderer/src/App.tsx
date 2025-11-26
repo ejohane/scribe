@@ -3,12 +3,14 @@ import './App.css';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
+import { Toast } from './components/Toast/Toast';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useTheme } from './hooks/useTheme';
+import { useToast } from './hooks/useToast';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -22,6 +24,9 @@ function App() {
 
   // Manage theme
   const { theme, resolvedTheme, setTheme } = useTheme();
+
+  // Manage toast notifications
+  const { toasts, showToast, dismissToast } = useToast();
 
   // Expose error handler for child components
   const showError = useCallback((error: string) => {
@@ -107,6 +112,19 @@ function App() {
         } catch (error) {
           console.error('Failed to fetch backlinks:', error);
         }
+      },
+    });
+
+    // Command: Delete Note
+    commandRegistry.register({
+      id: 'delete-note',
+      title: 'Delete Note',
+      description: 'Permanently delete a note',
+      keywords: ['remove', 'trash', 'destroy'],
+      group: 'notes',
+      closeOnSelect: false, // Keep palette open for file selection + confirmation
+      run: async () => {
+        setPaletteMode('delete-browse');
       },
     });
 
@@ -225,8 +243,16 @@ function App() {
           noteState.loadNote(noteId);
         }}
         onModeChange={(mode) => setPaletteMode(mode)}
+        showToast={showToast}
+        noteState={{
+          currentNoteId: noteState.currentNoteId,
+          deleteNote: noteState.deleteNote,
+          loadNote: noteState.loadNote,
+          createNote: noteState.createNote,
+        }}
       />
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
+      <Toast toasts={toasts} onDismiss={dismissToast} />
       {showBacklinks && (
         <div className="backlinks-overlay" onClick={handleCloseBacklinks}>
           <div className="backlinks-panel" onClick={(e) => e.stopPropagation()}>

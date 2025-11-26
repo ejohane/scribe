@@ -8,93 +8,34 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { tmpdir } from 'node:os';
-import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
+import { FileSystemVault } from '@scribe/storage-fs';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, LexicalState } from '@scribe/shared';
+import type { Note } from '@scribe/shared';
 import Fuse from 'fuse.js';
-
-/**
- * Helper to create Lexical content with a title and optional body text
- */
-function createNoteContent(title: string, bodyText?: string): LexicalState {
-  const children: Array<{ type: string; children: Array<{ type: string; text: string }> }> = [
-    {
-      type: 'paragraph',
-      children: [{ type: 'text', text: title }],
-    },
-  ];
-
-  if (bodyText) {
-    children.push({
-      type: 'paragraph',
-      children: [{ type: 'text', text: bodyText }],
-    });
-  }
-
-  return {
-    root: {
-      type: 'root',
-      children,
-    },
-  };
-}
-
-/**
- * Simulates the fuzzy search behavior used in file-browse mode
- * This mirrors the Fuse.js configuration in CommandPalette.tsx
- */
-function createFuseIndex(notes: Note[]) {
-  const searchableNotes = notes.filter((note) => note.metadata.title !== null);
-  return new Fuse(searchableNotes, {
-    keys: ['metadata.title'],
-    threshold: 0.4,
-    ignoreLocation: true,
-    isCaseSensitive: false,
-  });
-}
+import {
+  setupVaultOnly,
+  cleanupTestContext,
+  createNoteContent,
+  createNoteWithTitle,
+  createFuseIndex,
+  getRecentNotes,
+  simulateAppRestart,
+  delay,
+} from './test-helpers';
 
 describe('Open File Command E2E Tests', () => {
   let tempDir: string;
   let vault: FileSystemVault;
 
   beforeEach(async () => {
-    // Create a temporary directory for testing
-    tempDir = path.join(tmpdir(), `scribe-open-file-test-${Date.now()}`);
-    await initializeVault(tempDir);
-    vault = new FileSystemVault(tempDir);
-    await vault.load();
+    const ctx = await setupVaultOnly('scribe-open-file-test');
+    tempDir = ctx.tempDir;
+    vault = ctx.vault;
   });
 
   afterEach(async () => {
-    // Clean up temporary directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      console.warn('Failed to clean up temp directory:', error);
-    }
+    await cleanupTestContext({ tempDir });
   });
-
-  /**
-   * Helper to create a note with specific title and add a delay
-   * to ensure different updatedAt timestamps
-   */
-  async function createNoteWithTitle(title: string, delayMs = 10): Promise<Note> {
-    const note = await vault.create(createNoteContent(title));
-    // Small delay to ensure different timestamps
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-    return note;
-  }
-
-  /**
-   * Helper to get recent notes sorted by updatedAt descending (most recent first)
-   * This simulates what the file-browse mode displays
-   */
-  function getRecentNotes(notes: Note[], limit = 10): Note[] {
-    return [...notes].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, limit);
-  }
 
   describe('Empty Vault State', () => {
     it('should show empty vault message when no notes exist', async () => {
@@ -179,9 +120,9 @@ describe('Open File Command E2E Tests', () => {
   describe('Open Recent Note Flow', () => {
     it('should display recent notes sorted by updatedAt descending', async () => {
       // Step 1: Launch app with 3+ existing notes with different updatedAt timestamps
-      const note1 = await createNoteWithTitle('First Note');
-      const note2 = await createNoteWithTitle('Second Note');
-      const note3 = await createNoteWithTitle('Third Note');
+      const note1 = await createNoteWithTitle(vault, 'First Note');
+      const note2 = await createNoteWithTitle(vault, 'Second Note');
+      const note3 = await createNoteWithTitle(vault, 'Third Note');
 
       // Step 2: Press ⌘O to open palette in file-browse mode (simulated by getting notes)
       const allNotes = vault.list();
@@ -206,9 +147,9 @@ describe('Open File Command E2E Tests', () => {
 
     it('should select second note with arrow down and load on Enter', async () => {
       // Step 1: Launch app with 3+ existing notes
-      await createNoteWithTitle('Meeting Notes');
-      const note2 = await createNoteWithTitle('Project Ideas');
-      await createNoteWithTitle('Daily Journal');
+      await createNoteWithTitle(vault, 'Meeting Notes');
+      const note2 = await createNoteWithTitle(vault, 'Project Ideas');
+      await createNoteWithTitle(vault, 'Daily Journal');
 
       // Step 2: Press ⌘O to open palette in file-browse mode
       const recentNotes = getRecentNotes(vault.list());
@@ -250,9 +191,9 @@ describe('Open File Command E2E Tests', () => {
       // 7. Verify command palette closes
 
       // Step 1: Launch app with 3+ existing notes with different updatedAt timestamps
-      const note1 = await createNoteWithTitle('Oldest Note');
-      const note2 = await createNoteWithTitle('Middle Note');
-      const note3 = await createNoteWithTitle('Newest Note');
+      const note1 = await createNoteWithTitle(vault, 'Oldest Note');
+      const note2 = await createNoteWithTitle(vault, 'Middle Note');
+      const note3 = await createNoteWithTitle(vault, 'Newest Note');
 
       // Step 2: Press ⌘O to open palette in file-browse mode
       const recentNotes = getRecentNotes(vault.list());
@@ -311,9 +252,9 @@ describe('Open File Command E2E Tests', () => {
 
     it('should update order when a note is modified', async () => {
       // Create 3 notes
-      const note1 = await createNoteWithTitle('First Note');
-      await createNoteWithTitle('Second Note');
-      await createNoteWithTitle('Third Note');
+      const note1 = await createNoteWithTitle(vault, 'First Note');
+      await createNoteWithTitle(vault, 'Second Note');
+      await createNoteWithTitle(vault, 'Third Note');
 
       // Verify initial order (Third is most recent)
       let recentNotes = getRecentNotes(vault.list());
@@ -332,9 +273,9 @@ describe('Open File Command E2E Tests', () => {
 
     it('should exclude current note from recent notes list', async () => {
       // Create 3 notes
-      const note1 = await createNoteWithTitle('First Note');
-      const note2 = await createNoteWithTitle('Second Note');
-      const note3 = await createNoteWithTitle('Third Note');
+      const note1 = await createNoteWithTitle(vault, 'First Note');
+      const note2 = await createNoteWithTitle(vault, 'Second Note');
+      const note3 = await createNoteWithTitle(vault, 'Third Note');
 
       // Simulate current note (Third Note is the most recent, assume it's "open")
       const currentNoteId = note3.id;
@@ -356,11 +297,11 @@ describe('Open File Command E2E Tests', () => {
     it('should limit recent notes to 10 entries', async () => {
       // Create 12 notes
       for (let i = 1; i <= 12; i++) {
-        await createNoteWithTitle(`Note ${i}`);
+        await createNoteWithTitle(vault, `Note ${i}`);
       }
 
       // Get recent notes (limited to 10 as per feature spec)
-      const recentNotes = getRecentNotes(vault.list(), 10);
+      const recentNotes = getRecentNotes(vault.list(), undefined, 10);
       expect(recentNotes.length).toBe(10);
 
       // Verify they are the 10 most recent (Notes 12, 11, 10, ..., 3)
@@ -376,10 +317,10 @@ describe('Open File Command E2E Tests', () => {
           children: [],
         },
       });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await delay(10);
 
       // Create a titled note
-      await createNoteWithTitle('Titled Note');
+      await createNoteWithTitle(vault, 'Titled Note');
 
       // Both should appear in recents (untitled included per feature spec)
       const recentNotes = getRecentNotes(vault.list());
@@ -395,13 +336,12 @@ describe('Open File Command E2E Tests', () => {
 
     it('should persist order across vault reload', async () => {
       // Create notes
-      await createNoteWithTitle('First Note');
-      await createNoteWithTitle('Second Note');
-      await createNoteWithTitle('Third Note');
+      await createNoteWithTitle(vault, 'First Note');
+      await createNoteWithTitle(vault, 'Second Note');
+      await createNoteWithTitle(vault, 'Third Note');
 
       // Reload vault (simulates app restart)
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
 
       // Verify order is preserved after reload
       const recentNotes = getRecentNotes(newVault.list());
@@ -433,11 +373,9 @@ describe('Open File Command - Search and Open Flow', () => {
   let testNotes: Note[];
 
   beforeEach(async () => {
-    // Create a temporary directory for testing
-    tempDir = path.join(tmpdir(), `scribe-search-open-test-${Date.now()}`);
-    await initializeVault(tempDir);
-    vault = new FileSystemVault(tempDir);
-    await vault.load();
+    const ctx = await setupVaultOnly('scribe-search-open-test');
+    tempDir = ctx.tempDir;
+    vault = ctx.vault;
 
     // Initialize search engine
     searchEngine = new SearchEngine();
@@ -461,17 +399,12 @@ describe('Open File Command - Search and Open Flow', () => {
         searchEngine.indexNote(savedNote);
       }
       // Small delay to ensure distinct updatedAt timestamps
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await delay(10);
     }
   });
 
   afterEach(async () => {
-    // Clean up temporary directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      console.warn('Failed to clean up temp directory:', error);
-    }
+    await cleanupTestContext({ tempDir });
   });
 
   describe('E2E Flow: Search and Open', () => {
@@ -734,8 +667,7 @@ describe('Open File Command - Search and Open Flow', () => {
       expect(meetingNote).toBeDefined();
 
       // Simulate app restart: create new vault instance
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
 
       // Note should still be loadable
       const loadedNote = newVault.read(meetingNote!.id);
@@ -746,8 +678,7 @@ describe('Open File Command - Search and Open Flow', () => {
 
     it('should rebuild search index correctly after restart', async () => {
       // Simulate app restart
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
       const newSearchEngine = new SearchEngine();
 
       // Rebuild index

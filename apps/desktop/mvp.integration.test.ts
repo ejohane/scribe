@@ -11,40 +11,36 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { tmpdir } from 'node:os';
 import { FileSystemVault } from '@scribe/storage-fs';
-import { initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import type { Note } from '@scribe/shared';
+import {
+  type TestContext,
+  setupTestContext,
+  cleanupTestContext,
+  simulateAppRestart,
+} from './test-helpers';
 
 describe('MVP E2E Integration Tests', () => {
+  let ctx: TestContext;
+
+  // Convenience aliases for cleaner test code
   let tempDir: string;
   let vault: FileSystemVault;
   let graphEngine: GraphEngine;
   let searchEngine: SearchEngine;
 
   beforeEach(async () => {
-    // Create a temporary directory for testing
-    tempDir = path.join(tmpdir(), `scribe-e2e-test-${Date.now()}`);
-    await initializeVault(tempDir);
-    vault = new FileSystemVault(tempDir);
-    await vault.load();
-
-    // Initialize engines
-    graphEngine = new GraphEngine();
-    searchEngine = new SearchEngine();
+    ctx = await setupTestContext('scribe-e2e-test');
+    tempDir = ctx.tempDir;
+    vault = ctx.vault;
+    graphEngine = ctx.graphEngine;
+    searchEngine = ctx.searchEngine;
   });
 
   afterEach(async () => {
-    // Clean up temporary directory
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      console.warn('Failed to clean up temp directory:', error);
-    }
+    await cleanupTestContext(ctx);
   });
 
   describe('Create and Edit Flow', () => {
@@ -554,8 +550,7 @@ describe('MVP E2E Integration Tests', () => {
       const noteId = note.id;
 
       // Simulate restart: create new vault instance
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
 
       // Verify note exists
       const loaded = newVault.read(noteId);
@@ -595,8 +590,7 @@ describe('MVP E2E Integration Tests', () => {
       await vault.save(noteB);
 
       // Simulate restart: new vault and graph engine
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
       const newGraphEngine = new GraphEngine();
 
       // Rebuild graph from loaded notes
@@ -631,8 +625,7 @@ describe('MVP E2E Integration Tests', () => {
       await vault.save(note);
 
       // Simulate restart: new vault and search engine
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
       const newSearchEngine = new SearchEngine();
 
       // Rebuild search index from loaded notes
@@ -691,8 +684,7 @@ describe('MVP E2E Integration Tests', () => {
       }
 
       // Simulate restart
-      const newVault = new FileSystemVault(tempDir);
-      await newVault.load();
+      const newVault = await simulateAppRestart(tempDir);
       const newGraphEngine = new GraphEngine();
       const newSearchEngine = new SearchEngine();
 

@@ -1,1 +1,37 @@
+#!/bin/sh
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Lint staged files (fast, incremental)
+echo "📝 Linting staged files..."
 bunx lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ Lint-staged failed"
+  exit 1
+fi
+
+# 2. TypeScript type checking
+echo "🔷 Running typecheck..."
+bun run typecheck
+if [ $? -ne 0 ]; then
+  echo "❌ Typecheck failed"
+  exit 1
+fi
+
+# 3. Build all packages
+echo "🔨 Running build..."
+bun run build
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed"
+  exit 1
+fi
+
+# 4. Run all tests
+echo "🧪 Running tests..."
+bun run test
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed"
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

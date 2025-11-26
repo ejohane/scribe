@@ -12,6 +12,7 @@ const createMockNoteState = (note: Note | null = null) => ({
   loadNote: vi.fn(),
   saveNote: vi.fn().mockResolvedValue(undefined),
   createNote: vi.fn(),
+  deleteNote: vi.fn().mockResolvedValue(undefined),
 });
 
 const createEmptyNote = (): Note => ({
