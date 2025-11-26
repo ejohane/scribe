@@ -2,10 +2,7 @@ name: Security Scanning
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Daily at midnight
-  pull_request:
-  push:
-    branches: [main]
+    - cron: '0 0 * * *' # Nightly at midnight UTC
 
 jobs:
   audit:
