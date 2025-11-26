@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1](https://github.com/ejohane/scribe/compare/v1.2.0...v1.2.1) (2025-11-26)
+
+### Bug Fixes
+
+- fix PR jobs ([7e0c056](https://github.com/ejohane/scribe/commit/7e0c05619900102b7db07a33258c236ec0e932f2))
+
 ## [1.2.0](https://github.com/ejohane/scribe/compare/v1.1.0...v1.2.0) (2025-11-26)
 
 ### Features
