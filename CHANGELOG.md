@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0](https://github.com/ejohane/scribe/compare/v1.1.0...v1.2.0) (2025-11-26)
+
+### Features
+
+- add comprehensive pre-commit checks for typecheck, build, and tests ([0d6a818](https://github.com/ejohane/scribe/commit/0d6a818fe0864c836e86c2a229a2b53d563f4fef))
+- add Delete Note command with confirmation and toast notifications ([2e1dfeb](https://github.com/ejohane/scribe/commit/2e1dfeb2454e30f9117362558454ad6315c60467))
+- define work ([8c3ae64](https://github.com/ejohane/scribe/commit/8c3ae6472a09738557b6bcb1ea7bd00d5f0f69cb))
+
+### Bug Fixes
+
+- correct test expectations for title truncation and toast accessibility roles ([331a6d6](https://github.com/ejohane/scribe/commit/331a6d65993c60f59c8e12e81f8efdee4cbbd7b7))
+- improve delete note reliability and code quality ([d79f087](https://github.com/ejohane/scribe/commit/d79f087c56fc7765f66d93842e5f96d8d3a9277a))
+
 ## [1.1.0](https://github.com/ejohane/scribe/compare/v1.0.0...v1.1.0) (2025-11-26)
 
 ### Features
