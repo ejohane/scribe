@@ -33,6 +33,11 @@ const scribeAPI = {
      * Save a note (create or update)
      */
     save: (note: Note): Promise<{ success: boolean }> => ipcRenderer.invoke('notes:save', note),
+
+    /**
+     * Delete a note by ID
+     */
+    delete: (id: NoteId): Promise<{ success: boolean }> => ipcRenderer.invoke('notes:delete', id),
   },
 
   // Search API (placeholder for future implementation)

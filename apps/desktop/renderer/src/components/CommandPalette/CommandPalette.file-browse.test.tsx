@@ -1053,4 +1053,252 @@ describe('CommandPalette - File Browse Mode', () => {
       vi.useRealTimers();
     });
   });
+
+  describe('Delete icon in file-browse mode', () => {
+    const createTestNotes = () => [
+      createMockNote({
+        id: 'note-1',
+        updatedAt: BASE_TIME + 3000,
+        metadata: { title: 'Note One', tags: [], links: [] },
+      }),
+      createMockNote({
+        id: 'note-2',
+        updatedAt: BASE_TIME + 2000,
+        metadata: { title: 'Note Two', tags: [], links: [] },
+      }),
+      createMockNote({
+        id: 'note-3',
+        updatedAt: BASE_TIME + 1000,
+        metadata: { title: 'Note Three', tags: [], links: [] },
+      }),
+    ];
+
+    it('delete icon is rendered on each note item', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Each note should have a delete button
+      const deleteButtons = screen.getAllByRole('button', { name: /Delete/ });
+      expect(deleteButtons).toHaveLength(3);
+    });
+
+    it('delete icon has correct aria-label', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Check aria-label for accessibility
+      expect(screen.getByLabelText('Delete Note One')).toBeInTheDocument();
+      expect(screen.getByLabelText('Delete Note Two')).toBeInTheDocument();
+      expect(screen.getByLabelText('Delete Note Three')).toBeInTheDocument();
+    });
+
+    it('clicking delete icon opens confirmation screen', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      const onModeChange = vi.fn();
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+          onModeChange={onModeChange}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Click the delete icon on the first note
+      const deleteButton = screen.getByLabelText('Delete Note One');
+      fireEvent.click(deleteButton);
+
+      // Should show confirmation screen
+      expect(screen.getByText('Delete "Note One"?')).toBeInTheDocument();
+      expect(screen.getByText('This action cannot be undone.')).toBeInTheDocument();
+      expect(onModeChange).toHaveBeenCalledWith('delete-confirm');
+    });
+
+    it('clicking delete icon does NOT open note (stopPropagation works)', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      const onNoteSelect = vi.fn();
+      const onClose = vi.fn();
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={onClose}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+          onNoteSelect={onNoteSelect}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Click the delete icon
+      const deleteButton = screen.getByLabelText('Delete Note One');
+      fireEvent.click(deleteButton);
+
+      // onNoteSelect should NOT be called
+      expect(onNoteSelect).not.toHaveBeenCalled();
+      // onClose should NOT be called
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('cancel from confirmation returns to file-browse mode', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      const onModeChange = vi.fn();
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+          onModeChange={onModeChange}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Click the delete icon to open confirmation
+      const deleteButton = screen.getByLabelText('Delete Note One');
+      fireEvent.click(deleteButton);
+
+      // Verify confirmation screen is shown
+      expect(screen.getByText('Delete "Note One"?')).toBeInTheDocument();
+
+      // Click Cancel
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButton);
+
+      // Should return to file-browse mode (not delete-browse)
+      expect(onModeChange).toHaveBeenLastCalledWith('file-browse');
+
+      // Should show file-browse input placeholder again
+      expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
+    });
+
+    it('Escape from confirmation returns to file-browse mode', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      const onModeChange = vi.fn();
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+          onModeChange={onModeChange}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Click the delete icon to open confirmation
+      const deleteButton = screen.getByLabelText('Delete Note One');
+      fireEvent.click(deleteButton);
+
+      // Verify confirmation screen is shown
+      expect(screen.getByText('Delete "Note One"?')).toBeInTheDocument();
+
+      // Press Escape
+      fireEvent.keyDown(window, { key: 'Escape' });
+
+      // Should return to file-browse mode (not delete-browse)
+      expect(onModeChange).toHaveBeenLastCalledWith('file-browse');
+
+      // Should show file-browse input placeholder again
+      expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
+    });
+
+    it('delete icon has correct CSS class for styling', async () => {
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Check that delete buttons have the correct CSS class
+      const deleteButtons = document.querySelectorAll('.note-item-delete-icon');
+      expect(deleteButtons).toHaveLength(3);
+    });
+
+    it('delete icon for untitled notes uses fallback aria-label', async () => {
+      const notesWithUntitled = [
+        createMockNote({
+          id: 'note-untitled',
+          updatedAt: BASE_TIME + 1000,
+          metadata: { title: null, tags: [], links: [] },
+        }),
+      ];
+
+      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(notesWithUntitled);
+
+      render(
+        <CommandPalette
+          isOpen={true}
+          onClose={vi.fn()}
+          commands={mockCommands}
+          onCommandSelect={vi.fn()}
+          initialMode="file-browse"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+
+      // Should use fallback "note" in aria-label for untitled notes
+      expect(screen.getByLabelText('Delete note')).toBeInTheDocument();
+    });
+  });
 });

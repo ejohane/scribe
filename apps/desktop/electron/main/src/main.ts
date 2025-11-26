@@ -173,6 +173,32 @@ function setupIPCHandlers() {
     }
   });
 
+  // Delete a note
+  ipcMain.handle('notes:delete', async (_event, id: NoteId) => {
+    try {
+      if (!vault) {
+        throw new Error('Vault not initialized');
+      }
+      if (!graphEngine) {
+        throw new Error('Graph engine not initialized');
+      }
+      if (!searchEngine) {
+        throw new Error('Search engine not initialized');
+      }
+      await vault.delete(id);
+      graphEngine.removeNote(id);
+      searchEngine.removeNote(id);
+      return { success: true };
+    } catch (error) {
+      if (error instanceof ScribeError) {
+        const userError = new Error(error.getUserMessage());
+        userError.name = error.code;
+        throw userError;
+      }
+      throw error;
+    }
+  });
+
   // Search: Query notes
   ipcMain.handle('search:query', async (_event, query: string) => {
     if (!searchEngine) {

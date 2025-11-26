@@ -22,6 +22,9 @@ interface UseNoteStateReturn {
 
   /** Create and load a new note */
   createNote: () => Promise<void>;
+
+  /** Delete a note by ID */
+  deleteNote: (id: NoteId) => Promise<void>;
 }
 
 /**
@@ -128,6 +131,29 @@ export function useNoteState(): UseNoteStateReturn {
     }
   }, []);
 
+  /**
+   * Delete a note by ID
+   */
+  const deleteNote = useCallback(
+    async (id: NoteId) => {
+      try {
+        await window.scribe.notes.delete(id);
+
+        // If we deleted the current note, clear it
+        if (id === currentNoteId) {
+          setCurrentNote(null);
+          setCurrentNoteId(null);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to delete note';
+        setError(errorMessage);
+        console.error('Failed to delete note:', err);
+        throw err; // Re-throw so caller can handle (e.g., show error toast)
+      }
+    },
+    [currentNoteId]
+  );
+
   // On mount, try to load the last opened note, or create a new one
   useEffect(() => {
     const initializeNote = async () => {
@@ -168,7 +194,8 @@ export function useNoteState(): UseNoteStateReturn {
       loadNote,
       saveNote,
       createNote,
+      deleteNote,
     }),
-    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, createNote]
+    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, createNote, deleteNote]
   );
 }

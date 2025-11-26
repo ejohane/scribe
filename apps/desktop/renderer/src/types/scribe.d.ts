@@ -9,6 +9,7 @@ export interface ScribeAPI {
     read: (id: NoteId) => Promise<Note>;
     save: (note: Note) => Promise<{ success: boolean }>;
     create: () => Promise<Note>;
+    delete: (id: NoteId) => Promise<{ success: boolean }>;
   };
   search: {
     query: (text: string) => Promise<SearchResult[]>;
