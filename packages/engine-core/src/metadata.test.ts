@@ -362,6 +362,52 @@ describe('extractLinks', () => {
 
     expect(extractLinks(content)).toEqual(['note-123']);
   });
+
+  it('should extract wiki-link nodes with resolved targetId', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'wiki-link',
+                noteTitle: 'Meeting Notes',
+                displayText: 'Meeting Notes',
+                targetId: 'note-123',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual(['note-123']);
+  });
+
+  it('should ignore wiki-link nodes with null targetId', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'wiki-link',
+                noteTitle: 'New Note',
+                displayText: 'New Note',
+                targetId: null,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractLinks(content)).toEqual([]);
+  });
 });
 
 describe('extractMetadata', () => {

@@ -24,6 +24,8 @@ import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
 import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
 import { HR_PATTERN } from './plugins/constants';
+import { WikiLinkNode } from './plugins/WikiLinkNode';
+import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
 import './EditorRoot.css';
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
@@ -81,6 +83,7 @@ const editorConfig = {
     CodeHighlightNode,
     LinkNode,
     HorizontalRuleNode,
+    WikiLinkNode,
   ],
 };
 
@@ -127,6 +130,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <AutosavePlugin onSave={saveNote} debounceMs={1000} />
           {/* Manual save with cmd/ctrl+s */}
           <ManualSavePlugin onSave={saveNote} />
+          {/* Wiki-link autocomplete and creation */}
+          <WikiLinkPlugin currentNoteId={currentNoteId} />
         </div>
       </LexicalComposer>
     </div>

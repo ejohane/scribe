@@ -50,7 +50,7 @@ The alias (display text) is purely visual. The link target is always the text be
 3. **Multiple matches**: Link to the most recently updated note with that title
 4. **No match**: Link remains unresolved until clicked
 
-**On click of unresolved link**: Immediately create a new note with that title and navigate to it.
+**On click of unresolved link**: Immediately create a new note with that title as an H1 heading and navigate to it.
 
 ---
 
@@ -151,7 +151,7 @@ When a user clicks a wiki-link:
 User clicks [[Meeting Notes]]
     → Search for note with title "Meeting Notes"
         → Found: Load that note
-        → Not found: Immediately create new note titled "Meeting Notes", navigate to it
+        → Not found: Immediately create new note with "Meeting Notes" as H1 heading, navigate to it
 ```
 
 ---

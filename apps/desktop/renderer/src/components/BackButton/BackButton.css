@@ -1,0 +1,45 @@
+.back-button {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  line-height: 1;
+}
+
+.back-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.back-button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.back-button:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode */
+[data-theme='dark'] .back-button {
+  color: #999;
+}
+
+[data-theme='dark'] .back-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme='dark'] .back-button:focus {
+  outline-color: #58a6ff;
+}

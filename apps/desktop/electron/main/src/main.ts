@@ -199,6 +199,56 @@ function setupIPCHandlers() {
     }
   });
 
+  // Find a note by title (for wiki-link resolution)
+  ipcMain.handle('notes:findByTitle', async (_event, title: string) => {
+    if (!vault) {
+      throw new Error('Vault not initialized');
+    }
+    const notes = vault.list();
+
+    // Exact match first
+    let match = notes.find((n) => n.metadata.title === title);
+
+    // Case-insensitive fallback
+    if (!match) {
+      const lowerTitle = title.toLowerCase();
+      const matches = notes.filter((n) => n.metadata.title?.toLowerCase() === lowerTitle);
+      // Most recently updated wins
+      match = matches.sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    }
+
+    return match ?? null;
+  });
+
+  // Search note titles (for wiki-link autocomplete)
+  ipcMain.handle('notes:searchTitles', async (_event, query: string, limit = 10) => {
+    if (!vault) {
+      throw new Error('Vault not initialized');
+    }
+
+    // Empty query returns empty results
+    if (!query.trim()) {
+      return [];
+    }
+
+    const notes = vault.list();
+    const lowerQuery = query.toLowerCase();
+
+    const matches = notes
+      .filter((n) => n.metadata.title) // Has title
+      .filter((n) => n.metadata.title!.toLowerCase().includes(lowerQuery))
+      .slice(0, limit)
+      .map((n) => ({
+        id: n.id,
+        title: n.metadata.title!,
+        snippet: '',
+        score: 1,
+        matches: [],
+      }));
+
+    return matches;
+  });
+
   // Search: Query notes
   ipcMain.handle('search:query', async (_event, query: string) => {
     if (!searchEngine) {
