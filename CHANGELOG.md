@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/ejohane/scribe/compare/v1.0.0...v1.1.0) (2025-11-26)
+
+### Features
+
+- **editor:** add horizontal rule support with markdown shortcuts ([7360275](https://github.com/ejohane/scribe/commit/73602756ccfde2c76f9f28ae5671eea3bedc74cc))
+
+### Code Refactoring
+
+- **editor:** extract HR patterns to shared constants and fix cursor placement ([b7eca27](https://github.com/ejohane/scribe/commit/b7eca275d15d9f5d79b33d41e9a0c390d452b9fb))
+
 ## 1.0.0 (2025-11-26)
 
 ### Features
