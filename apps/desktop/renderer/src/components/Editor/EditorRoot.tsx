@@ -23,6 +23,7 @@ import { InitialStatePlugin } from './plugins/InitialStatePlugin';
 import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
 import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
+import { HR_PATTERN } from './plugins/constants';
 import './EditorRoot.css';
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
@@ -31,7 +32,7 @@ const HR_TRANSFORMER: ElementTransformer = {
   export: (node: LexicalNode) => {
     return $isHorizontalRuleNode(node) ? '---' : null;
   },
-  regExp: /^(---|\*\*\*|___)\s?$/,
+  regExp: HR_PATTERN.withTrailingSpace,
   replace: (parentNode, _1, _2, isImport) => {
     const line = $createHorizontalRuleNode();
     if (isImport || parentNode.getNextSibling() != null) {

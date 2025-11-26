@@ -12,9 +12,7 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_ENTER_COMMAND,
 } from 'lexical';
-
-// Pattern to match horizontal rule markdown (---, ***, or ___)
-const HR_PATTERN = /^(---|\*\*\*|___)$/;
+import { HR_PATTERN } from './constants';
 
 /**
  * Plugin to handle horizontal rule creation when pressing Enter after typing ---, ***, or ___
@@ -67,7 +65,7 @@ export function HorizontalRulePlugin(): null {
         const textContent = anchorNode.getTextContent();
 
         // Check if the text matches the HR pattern exactly
-        if (!HR_PATTERN.test(textContent)) {
+        if (!HR_PATTERN.exact.test(textContent)) {
           return false;
         }
 
@@ -79,15 +77,9 @@ export function HorizontalRulePlugin(): null {
         // Create and insert the horizontal rule
         const horizontalRuleNode = $createHorizontalRuleNode();
 
-        // Check if there's a next sibling to determine replacement behavior
-        if (parentNode.getNextSibling() != null) {
-          parentNode.replace(horizontalRuleNode);
-        } else {
-          parentNode.insertBefore(horizontalRuleNode);
-          // Clear the paragraph content so user can continue typing
-          anchorNode.remove();
-        }
-
+        // Replace the paragraph with the horizontal rule
+        // selectNext() will handle cursor placement, creating a new paragraph if needed
+        parentNode.replace(horizontalRuleNode);
         horizontalRuleNode.selectNext();
 
         return true;
