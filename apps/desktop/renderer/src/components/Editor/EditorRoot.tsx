@@ -10,13 +10,43 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
-import { TRANSFORMERS } from '@lexical/markdown';
+import { TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
+import {
+  $createHorizontalRuleNode,
+  $isHorizontalRuleNode,
+  HorizontalRuleNode,
+} from '@lexical/react/LexicalHorizontalRuleNode';
+import type { LexicalNode } from 'lexical';
 
 import type { useNoteState } from '../../hooks/useNoteState';
 import { InitialStatePlugin } from './plugins/InitialStatePlugin';
 import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
+import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
+import { HR_PATTERN } from './plugins/constants';
 import './EditorRoot.css';
+
+// Horizontal rule transformer for markdown shortcut (---, ***, or ___)
+const HR_TRANSFORMER: ElementTransformer = {
+  dependencies: [HorizontalRuleNode],
+  export: (node: LexicalNode) => {
+    return $isHorizontalRuleNode(node) ? '---' : null;
+  },
+  regExp: HR_PATTERN.withTrailingSpace,
+  replace: (parentNode, _1, _2, isImport) => {
+    const line = $createHorizontalRuleNode();
+    if (isImport || parentNode.getNextSibling() != null) {
+      parentNode.replace(line);
+    } else {
+      parentNode.insertBefore(line);
+    }
+    line.selectNext();
+  },
+  type: 'element',
+};
+
+// Combine default transformers with our HR transformer
+const EDITOR_TRANSFORMERS = [HR_TRANSFORMER, ...TRANSFORMERS];
 
 const editorConfig = {
   namespace: 'ScribeEditor',
@@ -36,11 +66,22 @@ const editorConfig = {
       ul: 'editor-list-ul',
       listitem: 'editor-listitem',
     },
+    hr: 'editor-hr',
+    hrSelected: 'editor-hr-selected',
   },
   onError(error: Error) {
     console.error('Lexical error:', error);
   },
-  nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, CodeHighlightNode, LinkNode],
+  nodes: [
+    HeadingNode,
+    QuoteNode,
+    ListNode,
+    ListItemNode,
+    CodeNode,
+    CodeHighlightNode,
+    LinkNode,
+    HorizontalRuleNode,
+  ],
 };
 
 interface EditorRootProps {
@@ -78,7 +119,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <HistoryPlugin />
           <ListPlugin />
           <TabIndentationPlugin />
-          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
+          <HorizontalRulePlugin />
           {/* Load the initial note content */}
           <InitialStatePlugin initialState={currentNote?.content ?? null} noteId={currentNoteId} />
           {/* Auto-save editor changes */}

@@ -471,6 +471,87 @@ describe('EditorRoot', () => {
     });
   });
 
+  describe('HorizontalRuleNode Support', () => {
+    it('renders horizontal rule from saved content', async () => {
+      const note: Note = {
+        ...createEmptyNote(),
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Before',
+                    version: 1,
+                  },
+                ],
+                version: 1,
+              },
+              {
+                type: 'horizontalrule',
+                version: 1,
+              },
+              {
+                type: 'paragraph',
+                children: [
+                  {
+                    type: 'text',
+                    text: 'After',
+                    version: 1,
+                  },
+                ],
+                version: 1,
+              },
+            ],
+            version: 1,
+          },
+        },
+      };
+
+      const noteState = createMockNoteState(note);
+      render(<EditorRoot noteState={noteState} />);
+
+      await waitFor(() => {
+        const hrElement = document.querySelector('hr');
+        expect(hrElement).toBeTruthy();
+      });
+
+      // Verify content before and after HR
+      const editorInput = document.querySelector('.editor-input');
+      expect(editorInput?.textContent).toContain('Before');
+      expect(editorInput?.textContent).toContain('After');
+    });
+
+    it('applies editor-hr class to horizontal rule', async () => {
+      const note: Note = {
+        ...createEmptyNote(),
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'horizontalrule',
+                version: 1,
+              },
+            ],
+            version: 1,
+          },
+        },
+      };
+
+      const noteState = createMockNoteState(note);
+      render(<EditorRoot noteState={noteState} />);
+
+      await waitFor(() => {
+        const hrElement = document.querySelector('hr.editor-hr');
+        expect(hrElement).toBeTruthy();
+      });
+    });
+  });
+
   describe('CSS Classes', () => {
     it('applies custom theme classes to paragraphs', async () => {
       const note: Note = {
