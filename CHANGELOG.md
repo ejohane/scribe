@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.3](https://github.com/ejohane/scribe/compare/v1.6.2...v1.6.3) (2025-11-27)
+
+### Bug Fixes
+
+* **ci:** skip code signing when secrets not configured ([76c1139](https://github.com/ejohane/scribe/commit/76c1139dd4ece0d941211f643c521ca5e1858751))
+
 ## [1.6.2](https://github.com/ejohane/scribe/compare/v1.6.1...v1.6.2) (2025-11-27)
 
 ### Bug Fixes
