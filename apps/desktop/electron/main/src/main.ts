@@ -321,6 +321,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

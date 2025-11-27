@@ -290,6 +290,7 @@ function App() {
 
   return (
     <div className={styles.app}>
+      <div className={styles.titlebarDragRegion} />
       <BackButton visible={canGoBack} onClick={navigateBack} />
       <WikiLinkProvider
         currentNoteId={noteState.currentNoteId}

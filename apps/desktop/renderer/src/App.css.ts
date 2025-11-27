@@ -8,6 +8,19 @@ import { vars } from '@scribe/design-system';
  * @see features/design-system/spec.md
  */
 
+// Titlebar drag region for macOS frameless window
+export const titlebarDragRegion = style({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  height: 40,
+  // @ts-expect-error - WebKit-specific property for Electron window dragging
+  WebkitAppRegion: 'drag',
+  zIndex: 1,
+  pointerEvents: 'none',
+});
+
 // Main app container
 export const app = style({
   position: 'relative',
