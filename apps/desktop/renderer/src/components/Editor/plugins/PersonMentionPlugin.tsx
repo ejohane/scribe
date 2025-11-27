@@ -76,8 +76,11 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
   const resultsRef = useRef<PersonResult[]>([]);
   const hasExactMatchRef = useRef(false);
 
-  // Use ref to track whether we just inserted a mention to prevent re-triggering
-  const justInsertedRef = useRef(false);
+  // Use ref to track insertion state via counter to prevent re-triggering
+  // Using a counter instead of boolean to handle rapid insertions safely
+  // The counter is incremented on insertion and checked in the update listener
+  const insertionCounterRef = useRef(0);
+  const lastProcessedCounterRef = useRef(0);
 
   // Handle closing autocomplete
   const handleClose = useCallback(() => {
@@ -95,11 +98,10 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
       (payload: InsertPersonMentionPayload) => {
         const { personName, personId, startOffset, anchorKey } = payload;
 
-        // Set flag to prevent re-triggering detection
-        justInsertedRef.current = true;
+        // Increment counter to prevent re-triggering detection
+        insertionCounterRef.current += 1;
 
         if (!personName) {
-          justInsertedRef.current = false;
           return true;
         }
 
@@ -136,10 +138,12 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
         setTriggerState(null);
         handleClose();
 
-        // Reset flag after a short delay
-        setTimeout(() => {
-          justInsertedRef.current = false;
-        }, 100);
+        // Update the last processed counter on the next animation frame
+        // This ensures the update listener skips the immediate re-trigger
+        // while avoiding race conditions from arbitrary timeouts
+        requestAnimationFrame(() => {
+          lastProcessedCounterRef.current = insertionCounterRef.current;
+        });
 
         return true;
       },
@@ -212,8 +216,8 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
   // Key detection logic - monitor text changes
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
-      // Skip if we just inserted a mention
-      if (justInsertedRef.current) return;
+      // Skip if we just inserted a mention (counter hasn't been processed yet)
+      if (insertionCounterRef.current !== lastProcessedCounterRef.current) return;
 
       editorState.read(() => {
         const selection = $getSelection();
@@ -237,16 +241,36 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
             // Start tracking
             const domNode = editor.getElementByKey(anchorNode.getKey());
             if (domNode) {
-              const rect = domNode.getBoundingClientRect();
-              // Calculate approximate cursor position
-              const computedStyle = window.getComputedStyle(domNode);
-              const fontSize = parseFloat(computedStyle.fontSize) || 16;
-              const charWidth = fontSize * 0.6; // Approximate character width ratio
+              // Use browser selection API for accurate cursor position
+              const domSelection = window.getSelection();
+              let newPosition = { top: 0, left: 0 };
 
-              const newPosition = {
-                top: rect.bottom + 4, // Small gap below the line
-                left: rect.left + offset * charWidth,
-              };
+              if (domSelection && domSelection.rangeCount > 0) {
+                const range = domSelection.getRangeAt(0);
+                const rangeRect = range.getBoundingClientRect();
+
+                // Use range bounding rect for accurate position
+                if (rangeRect.width > 0 || rangeRect.height > 0) {
+                  newPosition = {
+                    top: rangeRect.bottom + 4, // Small gap below cursor
+                    left: rangeRect.left,
+                  };
+                } else {
+                  // Fallback: use domNode rect if range rect is empty (e.g., empty line)
+                  const rect = domNode.getBoundingClientRect();
+                  newPosition = {
+                    top: rect.bottom + 4,
+                    left: rect.left,
+                  };
+                }
+              } else {
+                // Fallback if no selection available
+                const rect = domNode.getBoundingClientRect();
+                newPosition = {
+                  top: rect.bottom + 4,
+                  left: rect.left,
+                };
+              }
 
               setPosition(newPosition);
               setIsOpen(true);
@@ -440,8 +464,13 @@ function PersonMentionAutocompleteInternal({
     }
   }, [query, currentNoteId]);
 
+  // Debounce search to reduce IPC calls during rapid typing
   useEffect(() => {
-    searchPeople();
+    const timeoutId = setTimeout(() => {
+      searchPeople();
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
   }, [searchPeople]);
 
   // Notify parent when results change

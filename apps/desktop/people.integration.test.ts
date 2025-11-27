@@ -17,136 +17,18 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { NoteId, LexicalState } from '@scribe/shared';
+import type { LexicalState } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
   cleanupTestContext,
   simulateAppRestart,
   createNoteContent,
+  createPersonContent,
+  createPersonMentionNode,
+  createNoteWithMention,
+  createNoteWithMultipleMentions,
 } from './test-helpers';
-
-// =============================================================================
-// Helper Functions for People Feature Tests
-// =============================================================================
-
-/**
- * Type definition for a person-mention node in Lexical content.
- * Used for creating type-safe person-mention nodes in tests.
- */
-interface PersonMentionNodeData {
-  type: 'person-mention';
-  personId: NoteId;
-  personName: string;
-  version: number;
-}
-
-/**
- * Creates a typed person-mention node for use in test content structures.
- *
- * @param personId - The ID of the person being mentioned
- * @param personName - The display name of the person
- * @returns A typed PersonMentionNodeData object
- */
-function createPersonMentionNode(personId: NoteId, personName: string): PersonMentionNodeData {
-  return {
-    type: 'person-mention',
-    personId,
-    personName,
-    version: 1,
-  };
-}
-
-/**
- * Creates Lexical content for a person note with H1 heading.
- *
- * @param name - The person's name (used as H1 heading)
- * @returns LexicalState with type='person'
- */
-function createPersonContent(name: string): LexicalState & { type: 'person' } {
-  return {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'heading',
-          tag: 'h1',
-          children: [{ type: 'text', text: name }],
-        },
-        {
-          type: 'paragraph',
-          children: [],
-        },
-      ],
-    },
-    type: 'person',
-  };
-}
-
-/**
- * Creates Lexical content for a note that mentions a person.
- *
- * @param title - The note's title
- * @param personId - The ID of the person being mentioned
- * @param personName - The display name of the person
- * @returns LexicalState with person-mention node
- */
-function createNoteWithMention(title: string, personId: NoteId, personName: string): LexicalState {
-  return {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', text: title }],
-        },
-        {
-          type: 'paragraph',
-          children: [
-            { type: 'text', text: 'Meeting with ' },
-            createPersonMentionNode(personId, personName),
-          ],
-        },
-      ],
-    },
-  };
-}
-
-/**
- * Creates Lexical content for a note with multiple person mentions.
- *
- * @param title - The note's title
- * @param mentions - Array of person mentions with id and name
- * @returns LexicalState with multiple person-mention nodes
- */
-function createNoteWithMultipleMentions(
-  title: string,
-  mentions: Array<{ personId: NoteId; personName: string }>
-): LexicalState {
-  const mentionNodes = mentions.flatMap((m, i) => {
-    const nodes: any[] = [createPersonMentionNode(m.personId, m.personName)];
-    if (i < mentions.length - 1) {
-      nodes.push({ type: 'text', text: ' and ' });
-    }
-    return nodes;
-  });
-
-  return {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', text: title }],
-        },
-        {
-          type: 'paragraph',
-          children: [{ type: 'text', text: 'Meeting with ' }, ...mentionNodes],
-        },
-      ],
-    },
-  };
-}
 
 // =============================================================================
 // Integration Tests

@@ -20,6 +20,13 @@ export enum ErrorCode {
   VAULT_NOT_INITIALIZED = 'VAULT_NOT_INITIALIZED',
   VAULT_CORRUPTED = 'VAULT_CORRUPTED',
 
+  // Engine errors
+  GRAPH_NOT_INITIALIZED = 'GRAPH_NOT_INITIALIZED',
+  SEARCH_NOT_INITIALIZED = 'SEARCH_NOT_INITIALIZED',
+
+  // Validation errors
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+
   // Generic errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
@@ -64,6 +71,12 @@ export class ScribeError extends Error {
         return 'The vault has not been initialized. Please restart the application.';
       case ErrorCode.VAULT_CORRUPTED:
         return 'The vault is corrupted. Please contact support.';
+      case ErrorCode.GRAPH_NOT_INITIALIZED:
+        return 'The graph engine has not been initialized. Please restart the application.';
+      case ErrorCode.SEARCH_NOT_INITIALIZED:
+        return 'The search engine has not been initialized. Please restart the application.';
+      case ErrorCode.VALIDATION_ERROR:
+        return this.message || 'Invalid input provided.';
       default:
         return 'An unexpected error occurred. Please try again.';
     }

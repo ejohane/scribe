@@ -18,10 +18,24 @@ export type VaultPath = string;
 /**
  * Note type discriminator
  * Used to distinguish special note types from regular notes.
+ *
+ * Current types:
  * - 'person': A person entity that can be mentioned with @name syntax
  * - undefined: A regular note (default)
+ *
+ * Future types to consider:
+ * - 'project': A project note for organizing related work
+ * - 'meeting': A meeting note with date/attendees
+ * - 'daily': A daily journal note
+ * - 'template': A template for creating new notes
+ *
+ * To add a new type:
+ * 1. Add the string literal to this union type
+ * 2. Update metadata extraction in packages/engine-core/src/metadata.ts
+ * 3. Update the graph engine if the type has special relationships
+ * 4. Add any UI components for the new type
  */
-export type NoteType = 'person';
+export type NoteType = 'person' | 'project' | 'meeting' | 'daily' | 'template';
 
 /**
  * Lexical editor state serialized as JSON

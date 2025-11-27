@@ -21,8 +21,15 @@ export const peopleCommands: Command[] = [
       const name = await context.promptInput('Person name');
       if (!name) return;
 
-      const person = await window.scribe.people.create(name);
-      context.navigateToNote(person.id);
+      try {
+        const person = await window.scribe.people.create(name);
+        context.navigateToNote(person.id);
+      } catch (error) {
+        // Log error for debugging
+        console.error('Failed to create person:', error);
+        // Re-throw so the command palette can handle it if needed
+        throw error;
+      }
     },
   },
   {

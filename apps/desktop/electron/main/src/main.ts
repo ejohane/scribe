@@ -6,7 +6,7 @@ import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import type { Note, NoteId, LexicalState } from '@scribe/shared';
-import { ScribeError } from '@scribe/shared';
+import { ScribeError, ErrorCode } from '@scribe/shared';
 
 // __filename and __dirname are provided by the build script banner
 
@@ -319,7 +319,7 @@ function setupIPCHandlers() {
   // People: List all people
   ipcMain.handle('people:list', async () => {
     if (!vault) {
-      throw new Error('Vault not initialized');
+      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
     }
     const notes = vault.list();
     return notes.filter((n) => n.metadata.type === 'person');
@@ -328,16 +328,16 @@ function setupIPCHandlers() {
   // People: Create a new person
   ipcMain.handle('people:create', async (_event, name: string) => {
     if (!vault) {
-      throw new Error('Vault not initialized');
+      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
     }
     if (!graphEngine) {
-      throw new Error('Graph engine not initialized');
+      throw new ScribeError(ErrorCode.GRAPH_NOT_INITIALIZED, 'Graph engine not initialized');
     }
     if (!searchEngine) {
-      throw new Error('Search engine not initialized');
+      throw new ScribeError(ErrorCode.SEARCH_NOT_INITIALIZED, 'Search engine not initialized');
     }
     if (!name || name.trim().length === 0) {
-      throw new Error('Person name is required');
+      throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Person name is required');
     }
     const content = createPersonContent(name.trim());
     // Note: vault.create() now accepts options object
@@ -353,7 +353,7 @@ function setupIPCHandlers() {
   // People: Search people by name
   ipcMain.handle('people:search', async (_event, query: string, limit = 10) => {
     if (!vault) {
-      throw new Error('Vault not initialized');
+      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
     }
     const notes = vault.list();
     const people = notes.filter((n) => n.metadata.type === 'person');
