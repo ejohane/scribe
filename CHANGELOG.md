@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1](https://github.com/ejohane/scribe/compare/v1.6.0...v1.6.1) (2025-11-27)
+
+### Bug Fixes
+
+* **build:** add missing entitlements and remove missing icon refs ([623d18f](https://github.com/ejohane/scribe/commit/623d18f7b31ccd7746e47b74e4691d925de41ab7))
+
 ## [1.6.0](https://github.com/ejohane/scribe/compare/v1.5.2...v1.6.0) (2025-11-27)
 
 ### Features
