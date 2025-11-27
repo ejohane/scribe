@@ -775,6 +775,7 @@ export function CommandPalette({
       backdrop="transparent"
       open={isOpen}
       onClose={onClose}
+      closeOnEscape={false}
       className={styles.overlayPositioning}
     >
       <Surface

@@ -1,4 +1,4 @@
-import { forwardRef, ElementType, ComponentPropsWithRef } from 'react';
+import { ElementType, ComponentPropsWithoutRef, Ref, ReactElement } from 'react';
 import * as styles from './Surface.css';
 import { vars } from '../../tokens/contract.css';
 import clsx from 'clsx';
@@ -11,30 +11,45 @@ interface SurfaceOwnProps {
   padding?: SpacingKey;
   radius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
   bordered?: boolean;
-  as?: ElementType;
 }
 
-type SurfaceProps<E extends ElementType = 'div'> = SurfaceOwnProps &
-  Omit<ComponentPropsWithRef<E>, keyof SurfaceOwnProps>;
+// Type helper to extract the element type for a given tag
+type ElementRef<E extends ElementType> = E extends keyof HTMLElementTagNameMap
+  ? HTMLElementTagNameMap[E]
+  : E extends keyof SVGElementTagNameMap
+    ? SVGElementTagNameMap[E]
+    : Element;
 
-export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface(
-  {
-    variant = 'surface',
-    elevation = 'none',
-    padding,
-    radius,
-    bordered = false,
-    as: Component = 'div',
-    className,
-    style,
-    children,
-    ...props
-  },
-  ref
-) {
+// Props type that includes the polymorphic 'as' prop and proper ref typing
+export type SurfaceProps<E extends ElementType = 'div'> = SurfaceOwnProps & {
+  as?: E;
+  ref?: Ref<ElementRef<E>>;
+} & Omit<ComponentPropsWithoutRef<E>, keyof SurfaceOwnProps | 'as'>;
+
+// Polymorphic component type
+type SurfaceComponent = <E extends ElementType = 'div'>(props: SurfaceProps<E>) => ReactElement;
+
+// Internal implementation
+const SurfaceImpl = <E extends ElementType = 'div'>({
+  variant = 'surface',
+  elevation = 'none',
+  padding,
+  radius,
+  bordered = false,
+  as,
+  className,
+  style,
+  children,
+  ref,
+  ...props
+}: SurfaceProps<E>): ReactElement => {
+  const Component: ElementType = as || 'div';
+
   return (
     <Component
-      ref={ref}
+      // Type assertion needed for polymorphic ref forwarding
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ref={ref as any}
       className={clsx(
         styles.base,
         styles.variants[variant],
@@ -52,4 +67,6 @@ export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface
       {children}
     </Component>
   );
-});
+};
+
+export const Surface: SurfaceComponent = SurfaceImpl;

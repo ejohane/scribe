@@ -3,20 +3,35 @@ import * as styles from './Overlay.css';
 import { Portal } from './Portal';
 import clsx from 'clsx';
 
-interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
+export interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
   backdrop?: 'none' | 'transparent' | 'blur';
   open?: boolean;
   onClose?: () => void;
+  /**
+   * Whether pressing Escape should trigger onClose.
+   * Set to false when the consumer handles Escape key behavior itself.
+   * @default true
+   */
+  closeOnEscape?: boolean;
   children: ReactNode;
 }
 
 export const Overlay = forwardRef<HTMLDivElement, OverlayProps>(function Overlay(
-  { backdrop = 'none', open = true, onClose, className, children, onClick, ...props },
+  {
+    backdrop = 'none',
+    open = true,
+    onClose,
+    closeOnEscape = true,
+    className,
+    children,
+    onClick,
+    ...props
+  },
   ref
 ) {
   // Handle Escape key
   useEffect(() => {
-    if (!open || !onClose) return;
+    if (!open || !onClose || !closeOnEscape) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -27,7 +42,7 @@ export const Overlay = forwardRef<HTMLDivElement, OverlayProps>(function Overlay
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose, closeOnEscape]);
 
   // Lock body scroll when open
   useEffect(() => {

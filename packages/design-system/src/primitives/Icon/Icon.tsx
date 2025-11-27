@@ -4,7 +4,7 @@ import clsx from 'clsx';
 
 type IconColor = 'foreground' | 'foregroundMuted' | 'accent' | 'danger' | 'warning' | 'info';
 
-interface IconProps extends HTMLAttributes<HTMLSpanElement> {
+export interface IconProps extends HTMLAttributes<HTMLSpanElement> {
   size?: 'xs' | 'sm' | 'md' | 'lg';
   color?: IconColor;
   children: React.ReactNode;

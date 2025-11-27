@@ -2,7 +2,7 @@ import { forwardRef, ButtonHTMLAttributes, ReactNode } from 'react';
 import * as styles from './Button.css';
 import clsx from 'clsx';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'solid' | 'ghost' | 'subtle';
   tone?: 'accent' | 'neutral' | 'danger';
   size?: 'sm' | 'md';

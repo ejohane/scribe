@@ -58,7 +58,7 @@ export const solidNeutral = style({
 
 export const solidDanger = style({
   backgroundColor: vars.color.danger,
-  color: '#ffffff',
+  color: vars.color.dangerForeground,
   selectors: {
     '&:hover:not(:disabled)': {
       filter: 'brightness(0.95)',

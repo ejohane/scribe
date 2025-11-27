@@ -12,6 +12,7 @@ export const darkTheme = createTheme(vars, {
     accent: '#C2933A', // Slightly muted amber for dark
     accentForeground: '#1A1A18', // Dark text on accent
     danger: '#D06968', // Softer red for dark
+    dangerForeground: '#FFFFFF', // White text on danger
     warning: '#D19C5F', // Muted warning
     info: '#6C85A8', // Softer blue
   },

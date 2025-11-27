@@ -2,7 +2,7 @@ import { forwardRef, HTMLAttributes, ReactNode } from 'react';
 import * as styles from './List.css';
 import clsx from 'clsx';
 
-interface ListProps extends HTMLAttributes<HTMLUListElement> {
+export interface ListProps extends HTMLAttributes<HTMLUListElement> {
   children: ReactNode;
 }
 

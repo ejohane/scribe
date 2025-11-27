@@ -2,7 +2,7 @@ import { forwardRef, LiHTMLAttributes, ReactNode } from 'react';
 import * as styles from './List.css';
 import clsx from 'clsx';
 
-interface ListItemProps extends LiHTMLAttributes<HTMLLIElement> {
+export interface ListItemProps extends LiHTMLAttributes<HTMLLIElement> {
   selected?: boolean;
   active?: boolean;
   iconLeft?: ReactNode;

@@ -12,6 +12,7 @@ export const lightTheme = createTheme(vars, {
     accent: '#D9A441', // Warm amber/gold
     accentForeground: '#1E1C19', // Dark text on accent
     danger: '#B94A48', // Warm red
+    dangerForeground: '#FFFFFF', // White text on danger
     warning: '#E2A65C', // Warm orange
     info: '#50698C', // Muted blue
   },

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as styles from './App.css';
+import { useTheme } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
@@ -11,7 +12,6 @@ import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
-import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 

@@ -12,25 +12,51 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+export interface ThemeStorage {
+  getTheme: () => Promise<Theme | null> | Theme | null;
+  setTheme: (theme: Theme) => Promise<void> | void;
+}
+
 interface ThemeProviderProps {
   children: ReactNode;
   defaultTheme?: Theme;
   storageKey?: string;
+  storage?: ThemeStorage;
 }
 
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
   storageKey = 'scribe-theme',
+  storage,
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
-    }
-    return defaultTheme;
-  });
-
+  const [theme, setThemeState] = useState<Theme>(defaultTheme);
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+
+  // Load theme from storage on mount
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        let savedTheme: Theme | null = null;
+
+        if (storage) {
+          // Use custom storage adapter
+          savedTheme = await storage.getTheme();
+        } else if (typeof window !== 'undefined') {
+          // Use localStorage by default
+          savedTheme = localStorage.getItem(storageKey) as Theme;
+        }
+
+        if (savedTheme) {
+          setThemeState(savedTheme);
+        }
+      } catch (error) {
+        console.error('Failed to load theme preference:', error);
+      }
+    };
+
+    loadTheme();
+  }, [storageKey, storage]);
 
   useEffect(() => {
     const resolve = () => {
@@ -58,9 +84,20 @@ export function ThemeProvider({
     document.documentElement.classList.add(resolvedTheme === 'dark' ? darkTheme : lightTheme);
   }, [resolvedTheme]);
 
-  const setTheme = (newTheme: Theme) => {
-    localStorage.setItem(storageKey, newTheme);
+  const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
+
+    try {
+      if (storage) {
+        // Use custom storage adapter
+        await storage.setTheme(newTheme);
+      } else if (typeof window !== 'undefined') {
+        // Use localStorage by default
+        localStorage.setItem(storageKey, newTheme);
+      }
+    } catch (error) {
+      console.error('Failed to save theme preference:', error);
+    }
   };
 
   return (
