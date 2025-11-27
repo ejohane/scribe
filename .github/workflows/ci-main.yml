@@ -151,4 +151,5 @@ jobs:
           GIT_AUTHOR_EMAIL: bot@scribe.dev
           GIT_COMMITTER_NAME: scribe-bot
           GIT_COMMITTER_EMAIL: bot@scribe.dev
+          HUSKY: 0
         run: bunx semantic-release
