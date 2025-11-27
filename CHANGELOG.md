@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.4](https://github.com/ejohane/scribe/compare/v1.6.3...v1.6.4) (2025-11-27)
+
+### Code Refactoring
+
+* **build:** convert release script from bash to typescript ([bfaebbf](https://github.com/ejohane/scribe/commit/bfaebbfd3c119960f2ddb85ad08dcf72a95ec463))
+
 ## [1.6.3](https://github.com/ejohane/scribe/compare/v1.6.2...v1.6.3) (2025-11-27)
 
 ### Bug Fixes
