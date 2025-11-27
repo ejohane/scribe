@@ -1,1 +1,10 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.turbo/
+
+# Beads issue tracker
 .beads/

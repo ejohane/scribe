@@ -1,36 +1,5 @@
 # Agent Instructions
 
-## PR Checklist
-
-**IMPORTANT**: Before creating a PR, always verify these CI checks pass locally:
-
-```bash
-# 1. Lint - Check for code style issues
-bun run lint
-
-# 2. Prettier - Check formatting
-bunx prettier --check .
-
-# 3. Build - Ensure all packages build successfully
-bun run build
-
-# 4. TypeScript - Check for type errors
-bun run typecheck
-
-# 5. Unit Tests - Run package tests
-bunx turbo run test --filter='./packages/*' --concurrency=4
-
-# 6. Integration Tests - Run desktop integration tests
-cd apps/desktop && bun test *.integration.test.ts
-
-# 7. Renderer Tests - Run renderer tests
-cd apps/desktop/renderer && bun run test
-```
-
-All of these must pass before creating a PR. The CI workflow (`ci-pr.yml`) runs these same checks.
-
----
-
 ## Issue Tracking with bd (beads)
 
 **IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
