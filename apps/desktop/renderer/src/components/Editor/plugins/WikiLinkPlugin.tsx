@@ -22,10 +22,32 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_ESCAPE_COMMAND,
   $createTextNode,
+  createCommand,
+  type LexicalCommand,
 } from 'lexical';
 import { $createWikiLinkNode } from './WikiLinkNode';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import type { SearchResult } from '@scribe/shared';
+
+/**
+ * Command payload for inserting a wiki link.
+ * Contains all necessary data captured at the moment of detection,
+ * avoiding closure issues with stale state.
+ */
+export interface InsertWikiLinkPayload {
+  linkText: string;
+  targetId: string | null;
+  startOffset: number;
+  anchorKey: string;
+}
+
+/**
+ * Custom command for inserting wiki links.
+ * Using Lexical's command system ensures the operation executes safely
+ * without race conditions from setTimeout.
+ */
+export const INSERT_WIKILINK_COMMAND: LexicalCommand<InsertWikiLinkPayload> =
+  createCommand('INSERT_WIKILINK_COMMAND');
 
 export interface WikiLinkPluginProps {
   currentNoteId: string | null;
@@ -113,15 +135,18 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
     }));
   }, []);
 
-  // Insert wiki-link when called (by autocomplete selection or ]] closure)
-  const insertWikiLink = useCallback(
-    (linkText: string, targetId: string | null = null) => {
-      if (!triggerState) return;
+  // Register command handler for inserting wiki links
+  // This handles the actual insertion logic with all data passed via payload,
+  // avoiding race conditions from stale closure state
+  useEffect(() => {
+    return editor.registerCommand(
+      INSERT_WIKILINK_COMMAND,
+      (payload: InsertWikiLinkPayload) => {
+        const { linkText, targetId, startOffset, anchorKey } = payload;
 
-      // Set flag to prevent re-triggering detection
-      justInsertedRef.current = true;
+        // Set flag to prevent re-triggering detection
+        justInsertedRef.current = true;
 
-      editor.update(() => {
         // Parse alias syntax: "note title|display text" (last pipe wins)
         const pipeIndex = linkText.lastIndexOf('|');
         let noteTitle: string;
@@ -137,10 +162,10 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
 
         if (!noteTitle) {
           justInsertedRef.current = false;
-          return;
+          return true;
         }
 
-        const anchorNode = $getNodeByKey(triggerState.anchorKey);
+        const anchorNode = $getNodeByKey(anchorKey);
         if (anchorNode instanceof TextNode) {
           const text = anchorNode.getTextContent();
           const selection = $getSelection();
@@ -148,7 +173,7 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
             ? selection.anchor.offset
             : text.length;
 
-          const before = text.slice(0, triggerState.startOffset);
+          const before = text.slice(0, startOffset);
           const after = text.slice(currentOffset);
 
           // Create wiki-link node
@@ -169,17 +194,35 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
             spaceNode.select(1, 1);
           }
         }
+
+        setTriggerState(null);
+        handleCancel();
+
+        // Reset flag after a short delay
+        setTimeout(() => {
+          justInsertedRef.current = false;
+        }, 100);
+
+        return true;
+      },
+      COMMAND_PRIORITY_LOW
+    );
+  }, [editor, handleCancel]);
+
+  // Insert wiki-link when called (by autocomplete selection or ]] closure)
+  // This is a convenience wrapper that dispatches the command with the current trigger state
+  const insertWikiLink = useCallback(
+    (linkText: string, targetId: string | null = null) => {
+      if (!triggerState) return;
+
+      editor.dispatchCommand(INSERT_WIKILINK_COMMAND, {
+        linkText,
+        targetId,
+        startOffset: triggerState.startOffset,
+        anchorKey: triggerState.anchorKey,
       });
-
-      setTriggerState(null);
-      handleCancel();
-
-      // Reset flag after a short delay
-      setTimeout(() => {
-        justInsertedRef.current = false;
-      }, 100);
     },
-    [editor, triggerState, handleCancel]
+    [editor, triggerState]
   );
 
   // Handle selection from autocomplete
@@ -253,10 +296,15 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
           if (query.endsWith(']]')) {
             const linkText = query.slice(0, -2);
             if (linkText) {
-              // Schedule insertion after this read completes
-              setTimeout(() => {
-                insertWikiLink(linkText);
-              }, 0);
+              // Dispatch command with all necessary data captured now.
+              // Using the command system ensures the update executes safely
+              // after the read completes, without race conditions from setTimeout.
+              editor.dispatchCommand(INSERT_WIKILINK_COMMAND, {
+                linkText,
+                targetId: null,
+                startOffset: triggerState.startOffset,
+                anchorKey: triggerState.anchorKey,
+              });
             }
             return;
           }
@@ -283,7 +331,7 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
         }
       });
     });
-  }, [editor, triggerState, insertWikiLink, performSearch, handleCancel]);
+  }, [editor, triggerState, performSearch, handleCancel]);
 
   // Escape key handling
   useEffect(() => {

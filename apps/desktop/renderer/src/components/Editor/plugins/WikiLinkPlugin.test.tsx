@@ -377,4 +377,224 @@ describe('WikiLinkPlugin integration', () => {
     // Autocomplete should not be visible
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
+
+  it('handles rapid typing without race conditions', async () => {
+    // This test verifies that the fix for linked-20 works correctly.
+    // The bug was that using setTimeout(..., 0) to defer insertion after
+    // a read operation could cause stale state issues if the user typed quickly.
+    // The fix uses Lexical's command system which captures all necessary data
+    // at the moment of detection.
+    render(
+      <TestEditor editorRef={editorRef}>
+        <WikiLinkPlugin currentNoteId="note-1" />
+      </TestEditor>
+    );
+
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+    const editor = editorRef.current!;
+
+    // Simulate rapid typing: [[First]] followed immediately by more text
+    // This pattern would have caused issues with the old setTimeout approach
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        const textNode = $createTextNode('[[');
+        paragraph.append(textNode);
+        root.append(paragraph);
+        textNode.select(2, 2);
+      });
+    });
+
+    // Wait for autocomplete to open
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    // Now rapidly complete the link - this simulates fast typing
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild() as ParagraphNode | null;
+        if ($isParagraphNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode | null;
+          if (textNode && textNode.getType() === 'text') {
+            // Complete the link immediately
+            textNode.setTextContent('[[Rapid Test]]');
+            textNode.select(14, 14);
+          }
+        }
+      });
+    });
+
+    // Verify the WikiLinkNode was created with the correct values
+    await waitFor(
+      () => {
+        let found = false;
+        editor.getEditorState().read(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild() as ParagraphNode | null;
+          if ($isParagraphNode(paragraph)) {
+            const children: LexicalNode[] = paragraph.getChildren();
+            const wikiLinkNode = children.find((child: LexicalNode) => $isWikiLinkNode(child));
+            if ($isWikiLinkNode(wikiLinkNode)) {
+              found = true;
+              // The critical assertion: ensure the correct text was captured
+              // despite rapid state changes
+              expect(wikiLinkNode.__noteTitle).toBe('Rapid Test');
+              expect(wikiLinkNode.__displayText).toBe('Rapid Test');
+            }
+          }
+        });
+        expect(found).toBe(true);
+      },
+      { timeout: 1000 }
+    );
+
+    // Autocomplete should be closed
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('handles consecutive wiki links without interference', async () => {
+    // Test that creating multiple wiki links in sequence works correctly.
+    // This exercises the command system under conditions that would have
+    // exposed stale state issues with the setTimeout approach.
+    render(
+      <TestEditor editorRef={editorRef}>
+        <WikiLinkPlugin currentNoteId="note-1" />
+      </TestEditor>
+    );
+
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+    const editor = editorRef.current!;
+
+    // First trigger [[ to start tracking
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        const textNode = $createTextNode('[[');
+        paragraph.append(textNode);
+        root.append(paragraph);
+        textNode.select(2, 2);
+      });
+    });
+
+    // Wait for autocomplete to open
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    // Now complete the first link
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild() as ParagraphNode | null;
+        if ($isParagraphNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode | null;
+          if (textNode && textNode.getType() === 'text') {
+            textNode.setTextContent('[[First Link]]');
+            textNode.select(14, 14);
+          }
+        }
+      });
+    });
+
+    // Wait for first link to be created
+    await waitFor(
+      () => {
+        let found = false;
+        editor.getEditorState().read(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild() as ParagraphNode | null;
+          if ($isParagraphNode(paragraph)) {
+            const children: LexicalNode[] = paragraph.getChildren();
+            found = children.some((child: LexicalNode) => $isWikiLinkNode(child));
+          }
+        });
+        expect(found).toBe(true);
+      },
+      { timeout: 1000 }
+    );
+
+    // Autocomplete should be closed after first insertion
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    // Wait a bit for the justInsertedRef flag to reset
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // Now add a second wiki link - need to trigger [[ again
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild() as ParagraphNode | null;
+        if ($isParagraphNode(paragraph)) {
+          // Find the text node that comes after the first wiki link (the space)
+          const children = paragraph.getChildren();
+          const lastChild = children[children.length - 1];
+          if (lastChild && lastChild.getType() === 'text') {
+            const textNode = lastChild as TextNode;
+            // Start the second link trigger
+            textNode.setTextContent(' and [[');
+            textNode.select(7, 7);
+          }
+        }
+      });
+    });
+
+    // Wait for autocomplete to open again
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    });
+
+    // Complete the second link
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild() as ParagraphNode | null;
+        if ($isParagraphNode(paragraph)) {
+          const children = paragraph.getChildren();
+          const lastChild = children[children.length - 1];
+          if (lastChild && lastChild.getType() === 'text') {
+            const textNode = lastChild as TextNode;
+            textNode.setTextContent(' and [[Second Link]]');
+            textNode.select(20, 20);
+          }
+        }
+      });
+    });
+
+    // Verify both wiki links exist with correct values
+    await waitFor(
+      () => {
+        let firstFound = false;
+        let secondFound = false;
+        editor.getEditorState().read(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild() as ParagraphNode | null;
+          if ($isParagraphNode(paragraph)) {
+            const children: LexicalNode[] = paragraph.getChildren();
+            for (const child of children) {
+              if ($isWikiLinkNode(child)) {
+                if (child.__noteTitle === 'First Link') {
+                  firstFound = true;
+                } else if (child.__noteTitle === 'Second Link') {
+                  secondFound = true;
+                }
+              }
+            }
+          }
+        });
+        expect(firstFound).toBe(true);
+        expect(secondFound).toBe(true);
+      },
+      { timeout: 1000 }
+    );
+  });
 });
