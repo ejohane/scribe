@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0](https://github.com/ejohane/scribe/compare/v1.5.2...v1.6.0) (2025-11-27)
+
+### Features
+
+* **ui:** implement macOS frameless titlebar with hidden inset style ([4bd4ac6](https://github.com/ejohane/scribe/commit/4bd4ac61626625b3bfc061328de4475ad0f6ffb9))
+
 ## [1.5.2](https://github.com/ejohane/scribe/compare/v1.5.1...v1.5.2) (2025-11-27)
 
 ### Bug Fixes
