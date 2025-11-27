@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.2](https://github.com/ejohane/scribe/compare/v1.5.1...v1.5.2) (2025-11-27)
+
+### Bug Fixes
+
+* **desktop:** skip node_modules collection in electron-builder ([913814b](https://github.com/ejohane/scribe/commit/913814b082671f1d403b027e3ca0da2d81f3ae7f))
+
 ## [1.5.1](https://github.com/ejohane/scribe/compare/v1.5.0...v1.5.1) (2025-11-27)
 
 ### Bug Fixes
