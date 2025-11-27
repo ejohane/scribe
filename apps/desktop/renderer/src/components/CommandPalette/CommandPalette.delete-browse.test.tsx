@@ -16,6 +16,8 @@ import {
   mockCommands,
   setupScribeMock,
   BASE_TIME,
+  CSS,
+  styles,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - Delete Browse Mode', () => {
@@ -258,18 +260,18 @@ describe('CommandPalette - Delete Browse Mode', () => {
       });
 
       // Initially first item should be selected
-      const items = document.querySelectorAll('.command-palette-item');
-      expect(items[0]).toHaveClass('selected');
-      expect(items[1]).not.toHaveClass('selected');
+      const items = document.querySelectorAll(CSS.paletteItem);
+      expect(items[0]).toHaveClass(styles.paletteItemSelected);
+      expect(items[1]).not.toHaveClass(styles.paletteItemSelected);
 
       // Press Arrow Down
       fireEvent.keyDown(window, { key: 'ArrowDown' });
 
       // Second item should now be selected
       await waitFor(() => {
-        const updatedItems = document.querySelectorAll('.command-palette-item');
-        expect(updatedItems[0]).not.toHaveClass('selected');
-        expect(updatedItems[1]).toHaveClass('selected');
+        const updatedItems = document.querySelectorAll(CSS.paletteItem);
+        expect(updatedItems[0]).not.toHaveClass(styles.paletteItemSelected);
+        expect(updatedItems[1]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Press Arrow Up
@@ -277,9 +279,9 @@ describe('CommandPalette - Delete Browse Mode', () => {
 
       // First item should be selected again
       await waitFor(() => {
-        const updatedItems = document.querySelectorAll('.command-palette-item');
-        expect(updatedItems[0]).toHaveClass('selected');
-        expect(updatedItems[1]).not.toHaveClass('selected');
+        const updatedItems = document.querySelectorAll(CSS.paletteItem);
+        expect(updatedItems[0]).toHaveClass(styles.paletteItemSelected);
+        expect(updatedItems[1]).not.toHaveClass(styles.paletteItemSelected);
       });
     });
   });

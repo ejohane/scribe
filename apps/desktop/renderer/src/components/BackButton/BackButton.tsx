@@ -5,7 +5,8 @@
  * to navigate to previously viewed notes in the navigation history.
  */
 
-import './BackButton.css';
+import { Button, Icon } from '@scribe/design-system';
+import * as styles from './BackButton.css';
 
 interface BackButtonProps {
   visible: boolean;
@@ -16,14 +17,17 @@ export function BackButton({ visible, onClick }: BackButtonProps) {
   if (!visible) return null;
 
   return (
-    <button
-      className="back-button"
+    <Button
+      variant="ghost"
+      tone="neutral"
+      size="sm"
+      className={styles.container}
       onClick={onClick}
       aria-label="Go back to previous note"
       title="Go back (⌘[)"
       type="button"
     >
-      ←
-    </button>
+      <Icon size="sm">←</Icon>
+    </Button>
   );
 }

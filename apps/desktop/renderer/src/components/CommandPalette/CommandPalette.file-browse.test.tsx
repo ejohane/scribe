@@ -18,6 +18,8 @@ import {
   setupScribeMock,
   waitForDebounce,
   BASE_TIME,
+  CSS,
+  styles,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - File Browse Mode', () => {
@@ -391,7 +393,7 @@ describe('CommandPalette - File Browse Mode', () => {
 
       await waitFor(() => {
         // Count the note items displayed
-        const noteItems = document.querySelectorAll('.command-palette-item');
+        const noteItems = document.querySelectorAll(CSS.paletteItem);
         expect(noteItems.length).toBeLessThanOrEqual(25);
       });
     });
@@ -516,7 +518,7 @@ describe('CommandPalette - File Browse Mode', () => {
       });
 
       // Untitled note should not appear in search results
-      const items = document.querySelectorAll('.command-palette-item');
+      const items = document.querySelectorAll(CSS.paletteItem);
       expect(items.length).toBe(2);
     });
 
@@ -683,7 +685,7 @@ describe('CommandPalette - File Browse Mode', () => {
       });
 
       // Click on the second note item (Note Two)
-      const noteItems = document.querySelectorAll('.command-palette-item');
+      const noteItems = document.querySelectorAll(CSS.paletteItem);
       fireEvent.click(noteItems[1]);
 
       // onNoteSelect should be called with the clicked note's ID
@@ -716,7 +718,7 @@ describe('CommandPalette - File Browse Mode', () => {
       });
 
       // Click on the overlay (not the palette itself)
-      const overlay = document.querySelector('.command-palette-overlay');
+      const overlay = document.querySelector(CSS.overlayPositioning);
       expect(overlay).toBeTruthy();
       fireEvent.click(overlay!);
 
@@ -1268,7 +1270,7 @@ describe('CommandPalette - File Browse Mode', () => {
       });
 
       // Check that delete buttons have the correct CSS class
-      const deleteButtons = document.querySelectorAll('.note-item-delete-icon');
+      const deleteButtons = document.querySelectorAll(CSS.deleteIcon);
       expect(deleteButtons).toHaveLength(3);
     });
 

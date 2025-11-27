@@ -99,15 +99,15 @@ describe('WikiLinkAutocomplete', () => {
       render(<WikiLinkAutocomplete {...defaultProps} selectedIndex={1} />);
 
       const items = screen.getAllByRole('option');
-      expect(items[0]).not.toHaveClass('wiki-link-autocomplete-item--selected');
-      expect(items[1]).toHaveClass('wiki-link-autocomplete-item--selected');
+      expect(items[0]).toHaveAttribute('aria-selected', 'false');
+      expect(items[1]).toHaveAttribute('aria-selected', 'true');
     });
 
     it('first item is selected by default (selectedIndex=0)', () => {
       render(<WikiLinkAutocomplete {...defaultProps} selectedIndex={0} />);
 
       const items = screen.getAllByRole('option');
-      expect(items[0]).toHaveClass('wiki-link-autocomplete-item--selected');
+      expect(items[0]).toHaveAttribute('aria-selected', 'true');
     });
 
     it('sets aria-selected correctly on selected item', () => {

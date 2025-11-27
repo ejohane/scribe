@@ -15,6 +15,8 @@ import {
   mockCommands,
   setupScribeMock,
   BASE_TIME,
+  CSS,
+  styles,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - Keyboard Navigation', () => {
@@ -74,18 +76,18 @@ describe('CommandPalette - Keyboard Navigation', () => {
       });
 
       // Initially first item should be selected (Note Five is most recent)
-      const items = document.querySelectorAll('.command-palette-item');
-      expect(items[0]).toHaveClass('selected');
-      expect(items[1]).not.toHaveClass('selected');
+      const items = document.querySelectorAll(CSS.paletteItem);
+      expect(items[0]).toHaveClass(styles.paletteItemSelected);
+      expect(items[1]).not.toHaveClass(styles.paletteItemSelected);
 
       // Press Arrow Down
       fireEvent.keyDown(window, { key: 'ArrowDown' });
 
       // Second item should now be selected
       await waitFor(() => {
-        const updatedItems = document.querySelectorAll('.command-palette-item');
-        expect(updatedItems[0]).not.toHaveClass('selected');
-        expect(updatedItems[1]).toHaveClass('selected');
+        const updatedItems = document.querySelectorAll(CSS.paletteItem);
+        expect(updatedItems[0]).not.toHaveClass(styles.paletteItemSelected);
+        expect(updatedItems[1]).toHaveClass(styles.paletteItemSelected);
       });
     });
 
@@ -115,8 +117,8 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
       // Third item should be selected
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[2]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[2]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Press Arrow Up
@@ -124,9 +126,9 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
       // Second item should now be selected
       await waitFor(() => {
-        const updatedItems = document.querySelectorAll('.command-palette-item');
-        expect(updatedItems[1]).toHaveClass('selected');
-        expect(updatedItems[2]).not.toHaveClass('selected');
+        const updatedItems = document.querySelectorAll(CSS.paletteItem);
+        expect(updatedItems[1]).toHaveClass(styles.paletteItemSelected);
+        expect(updatedItems[2]).not.toHaveClass(styles.paletteItemSelected);
       });
     });
 
@@ -190,8 +192,8 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
       // First item should still be selected
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[0]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
     });
 
@@ -222,8 +224,8 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
       // Last item should be selected
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[4]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[4]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Try to go down from the last item (should stay at last)
@@ -231,8 +233,8 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
       // Last item should still be selected
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[4]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[4]).toHaveClass(styles.paletteItemSelected);
       });
     });
   });

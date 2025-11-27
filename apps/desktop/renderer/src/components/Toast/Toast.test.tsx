@@ -5,6 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Toast } from './Toast';
+import * as styles from './Toast.css';
 import type { Toast as ToastType } from '../../hooks/useToast';
 
 describe('Toast', () => {
@@ -41,9 +42,10 @@ describe('Toast', () => {
       expect(screen.getByText('Second message')).toBeInTheDocument();
       expect(screen.getByText('Third message')).toBeInTheDocument();
 
-      // Verify container has flex-direction: column for vertical stacking
-      const container = screen.getByText('First message').parentElement;
-      expect(container).toHaveClass('toast-container');
+      // Verify container has proper styling class for vertical stacking
+      const toastElement = screen.getByText('First message').closest(`.${styles.toast}`);
+      const container = toastElement?.parentElement;
+      expect(container).toHaveClass(styles.container);
     });
   });
 
@@ -52,18 +54,19 @@ describe('Toast', () => {
       const toasts = [createToast({ type: 'success' })];
       render(<Toast toasts={toasts} onDismiss={vi.fn()} />);
 
-      const toast = screen.getByText('Test message');
-      expect(toast).toHaveClass('toast');
-      expect(toast).not.toHaveClass('toast--error');
+      const toastElement = screen.getByText('Test message').closest(`.${styles.toast}`);
+      expect(toastElement).toHaveClass(styles.toast);
+      expect(toastElement).toHaveClass(styles.toastVariants.success);
+      expect(toastElement).not.toHaveClass(styles.toastVariants.error);
     });
 
-    it('applies .toast--error class for error type', () => {
+    it('applies error variant class for error type', () => {
       const toasts = [createToast({ type: 'error', message: 'Error occurred' })];
       render(<Toast toasts={toasts} onDismiss={vi.fn()} />);
 
-      const toast = screen.getByText('Error occurred');
-      expect(toast).toHaveClass('toast');
-      expect(toast).toHaveClass('toast--error');
+      const toastElement = screen.getByText('Error occurred').closest(`.${styles.toast}`);
+      expect(toastElement).toHaveClass(styles.toast);
+      expect(toastElement).toHaveClass(styles.toastVariants.error);
     });
   });
 

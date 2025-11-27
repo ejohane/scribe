@@ -17,6 +17,8 @@ import {
   mockCommands,
   setupScribeMock,
   BASE_TIME,
+  CSS,
+  styles,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - Mode Switching', () => {
@@ -474,8 +476,8 @@ describe('CommandPalette - Mode Switching', () => {
 
       // First item should be selected by default
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[0]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Navigate down twice
@@ -484,8 +486,8 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Third item should now be selected
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[2]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[2]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Close and reopen
@@ -511,8 +513,8 @@ describe('CommandPalette - Mode Switching', () => {
 
       // First item should be selected again
       await waitFor(() => {
-        const items = document.querySelectorAll('.command-palette-item');
-        expect(items[0]).toHaveClass('selected');
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
     });
 
@@ -552,15 +554,15 @@ describe('CommandPalette - Mode Switching', () => {
       });
 
       // First item should be selected by default
-      let items = document.querySelectorAll('.command-palette-item');
-      expect(items[0]).toHaveClass('selected');
+      let items = document.querySelectorAll(CSS.paletteItem);
+      expect(items[0]).toHaveClass(styles.paletteItemSelected);
 
       // Navigate down
       fireEvent.keyDown(window, { key: 'ArrowDown' });
 
       // Second item should now be selected
-      items = document.querySelectorAll('.command-palette-item');
-      expect(items[1]).toHaveClass('selected');
+      items = document.querySelectorAll(CSS.paletteItem);
+      expect(items[1]).toHaveClass(styles.paletteItemSelected);
 
       // Close and reopen
       rerender(
@@ -589,8 +591,8 @@ describe('CommandPalette - Mode Switching', () => {
       });
 
       // First item should be selected again
-      items = document.querySelectorAll('.command-palette-item');
-      expect(items[0]).toHaveClass('selected');
+      items = document.querySelectorAll(CSS.paletteItem);
+      expect(items[0]).toHaveClass(styles.paletteItemSelected);
     });
   });
 });

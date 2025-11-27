@@ -26,7 +26,7 @@ import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
 import { HR_PATTERN } from './plugins/constants';
 import { WikiLinkNode } from './plugins/WikiLinkNode';
 import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
-import './EditorRoot.css';
+import * as styles from './EditorRoot.css';
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
 const HR_TRANSFORMER: ElementTransformer = {
@@ -53,23 +53,23 @@ const EDITOR_TRANSFORMERS = [HR_TRANSFORMER, ...TRANSFORMERS];
 const editorConfig = {
   namespace: 'ScribeEditor',
   theme: {
-    // We'll add minimal theme classes
-    paragraph: 'editor-paragraph',
+    // Theme classes for Lexical nodes - using vanilla-extract generated class names
+    paragraph: styles.editorParagraph,
     text: {
-      bold: 'editor-text-bold',
-      italic: 'editor-text-italic',
-      underline: 'editor-text-underline',
+      bold: styles.editorTextBold,
+      italic: styles.editorTextItalic,
+      underline: styles.editorTextUnderline,
     },
     list: {
       nested: {
-        listitem: 'editor-nested-listitem',
+        listitem: styles.nestedListItem,
       },
-      ol: 'editor-list-ol',
-      ul: 'editor-list-ul',
-      listitem: 'editor-listitem',
+      ol: styles.listOl,
+      ul: styles.listUl,
+      listitem: styles.listItem,
     },
-    hr: 'editor-hr',
-    hrSelected: 'editor-hr-selected',
+    hr: styles.hr,
+    hrSelected: styles.hrSelected,
   },
   onError(error: Error) {
     console.error('Lexical error:', error);
@@ -96,27 +96,27 @@ export function EditorRoot({ noteState }: EditorRootProps) {
 
   if (isLoading) {
     return (
-      <div className="editor-root">
-        <div className="editor-loading">Loading...</div>
+      <div className={styles.editorRoot}>
+        <div className={styles.editorLoading}>Loading...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="editor-root">
-        <div className="editor-error">Error: {error}</div>
+      <div className={styles.editorRoot}>
+        <div className={styles.editorError}>Error: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className="editor-root">
+    <div className={styles.editorRoot}>
       <LexicalComposer initialConfig={editorConfig}>
-        <div className="editor-container">
+        <div className={styles.editorContainer}>
           <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
-            placeholder={<div className="editor-placeholder">Start writing...</div>}
+            contentEditable={<ContentEditable className={styles.editorInput} />}
+            placeholder={<div className={styles.editorPlaceholder}>Start writing...</div>}
             ErrorBoundary={LexicalErrorBoundary}
           />
           <HistoryPlugin />

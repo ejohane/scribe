@@ -6,11 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-* add script to trigger GitHub release workflow ([ef94ce4](https://github.com/ejohane/scribe/commit/ef94ce40420f7339e5b942b9ed4fc969812c9cd3))
+- add script to trigger GitHub release workflow ([ef94ce4](https://github.com/ejohane/scribe/commit/ef94ce40420f7339e5b942b9ed4fc969812c9cd3))
 
 ### Bug Fixes
 
-* **ci:** use bun run build instead of turbo in release workflow ([0375148](https://github.com/ejohane/scribe/commit/0375148d5a40dd5eb19cc4c34595ba4bf3fd448c))
+- **ci:** use bun run build instead of turbo in release workflow ([0375148](https://github.com/ejohane/scribe/commit/0375148d5a40dd5eb19cc4c34595ba4bf3fd448c))
 
 ## [1.3.0](https://github.com/ejohane/scribe/compare/v1.2.1...v1.3.0) (2025-11-27)
 

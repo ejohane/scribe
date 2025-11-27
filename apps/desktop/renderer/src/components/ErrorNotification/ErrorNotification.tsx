@@ -5,7 +5,8 @@
  */
 
 import { useEffect } from 'react';
-import './ErrorNotification.css';
+import { Surface, Text, Icon, Button } from '@scribe/design-system';
+import * as styles from './ErrorNotification.css';
 
 interface ErrorNotificationProps {
   error: string | null;
@@ -28,14 +29,25 @@ export function ErrorNotification({
   if (!error) return null;
 
   return (
-    <div className="error-notification">
-      <div className="error-notification-content">
-        <span className="error-notification-icon">⚠️</span>
-        <span className="error-notification-message">{error}</span>
-        <button className="error-notification-close" onClick={onDismiss} aria-label="Close">
+    <div className={styles.container}>
+      <Surface elevation="sm" padding="4" radius="md" bordered className={styles.content}>
+        <Icon size="md" color="danger" className={styles.icon}>
+          <span>⚠️</span>
+        </Icon>
+        <Text size="sm" color="danger" className={styles.message}>
+          {error}
+        </Text>
+        <Button
+          variant="ghost"
+          tone="danger"
+          size="sm"
+          onClick={onDismiss}
+          aria-label="Close"
+          className={styles.closeButton}
+        >
           ×
-        </button>
-      </div>
+        </Button>
+      </Surface>
     </div>
   );
 }

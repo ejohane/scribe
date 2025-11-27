@@ -5,8 +5,9 @@
  * Supports success (default) and error styles with slide animations.
  */
 
+import { Text } from '@scribe/design-system';
 import type { Toast as ToastType } from '../../hooks/useToast';
-import './Toast.css';
+import * as styles from './Toast.css';
 
 interface ToastProps {
   toasts: ToastType[];
@@ -19,16 +20,18 @@ export function Toast({ toasts, onDismiss }: ToastProps) {
   }
 
   return (
-    <div className="toast-container" role="status" aria-live="polite">
+    <div className={styles.container} role="status" aria-live="polite">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`toast${toast.type === 'error' ? ' toast--error' : ''}`}
+          className={`${styles.toast} ${styles.toastVariants[toast.type === 'error' ? 'error' : 'success']}`}
           onClick={() => onDismiss(toast.id)}
           role={toast.type === 'error' ? 'alert' : 'status'}
           aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
         >
-          {toast.message}
+          <Text size="sm" as="span">
+            {toast.message}
+          </Text>
         </div>
       ))}
     </div>

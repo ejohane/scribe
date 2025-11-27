@@ -7,7 +7,8 @@
 
 import { useEffect, useRef } from 'react';
 import type { SearchResult } from '@scribe/shared';
-import './WikiLinkAutocomplete.css';
+import { Surface, Text } from '@scribe/design-system';
+import * as styles from './WikiLinkAutocomplete.css';
 
 export interface WikiLinkAutocompleteProps {
   isOpen: boolean;
@@ -43,36 +44,41 @@ export function WikiLinkAutocomplete({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="wiki-link-autocomplete"
+    <Surface
+      elevation="md"
+      radius="md"
+      bordered
+      className={styles.dropdown}
       style={{ top: position.top, left: position.left }}
       role="listbox"
       aria-label="Note suggestions"
     >
-      <div className="wiki-link-autocomplete-list" ref={listRef}>
+      <div className={styles.listContainer} ref={listRef}>
         {isLoading ? (
-          <div className="wiki-link-autocomplete-loading">Searching...</div>
+          <Text size="sm" color="foregroundMuted" className={styles.loading}>
+            Searching...
+          </Text>
         ) : results.length === 0 ? (
-          <div className="wiki-link-autocomplete-empty">
+          <Text size="sm" color="foregroundMuted" className={styles.empty}>
             {query ? 'No matching notes' : 'Type to search notes'}
-          </div>
+          </Text>
         ) : (
           results.map((result, index) => (
             <div
               key={result.id}
               ref={index === selectedIndex ? selectedRef : null}
-              className={`wiki-link-autocomplete-item ${
-                index === selectedIndex ? 'wiki-link-autocomplete-item--selected' : ''
-              }`}
+              className={`${styles.item} ${index === selectedIndex ? styles.itemSelected : ''}`}
               onClick={() => onSelect(result)}
               role="option"
               aria-selected={index === selectedIndex}
             >
-              <span className="wiki-link-autocomplete-title">{result.title || 'Untitled'}</span>
+              <Text size="sm" truncate className={styles.title}>
+                {result.title || 'Untitled'}
+              </Text>
             </div>
           ))
         )}
       </div>
-    </div>
+    </Surface>
   );
 }
