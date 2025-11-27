@@ -291,7 +291,11 @@ function App() {
   return (
     <div className="app">
       <BackButton visible={canGoBack} onClick={navigateBack} />
-      <WikiLinkProvider currentNoteId={noteState.currentNoteId} onLinkClick={handleWikiLinkClick}>
+      <WikiLinkProvider
+        currentNoteId={noteState.currentNoteId}
+        onLinkClick={handleWikiLinkClick}
+        onError={(message) => showToast(message, 'error')}
+      >
         <EditorRoot noteState={noteState} />
       </WikiLinkProvider>
       <CommandPalette

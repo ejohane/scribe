@@ -93,6 +93,56 @@ export async function cleanupTestContext(ctx: { tempDir: string }): Promise<void
 }
 
 // =============================================================================
+// Wiki-Link Node Helpers
+// =============================================================================
+
+/**
+ * Type definition for a wiki-link node in Lexical content.
+ * Used for creating type-safe wiki-link nodes in tests without `as any` assertions.
+ */
+export interface WikiLinkNodeData {
+  type: 'wiki-link';
+  noteTitle: string;
+  displayText: string;
+  targetId: NoteId | null;
+  version: number;
+}
+
+/**
+ * Creates a typed wiki-link node for use in test content structures.
+ *
+ * @param noteTitle - The target note's title (used for resolution)
+ * @param displayText - What to display (alias or title), defaults to noteTitle
+ * @param targetId - Resolved note ID, or null if unresolved
+ * @returns A typed WikiLinkNodeData object
+ *
+ * @example
+ * ```ts
+ * // Unresolved wiki-link
+ * const unresolved = createWikiLinkNode('New Note');
+ *
+ * // Resolved wiki-link
+ * const resolved = createWikiLinkNode('Target Note', 'Target Note', targetNote.id);
+ *
+ * // Wiki-link with alias
+ * const aliased = createWikiLinkNode('Meeting Notes', "yesterday's meeting", noteId);
+ * ```
+ */
+export function createWikiLinkNode(
+  noteTitle: string,
+  displayText: string = noteTitle,
+  targetId: NoteId | null = null
+): WikiLinkNodeData {
+  return {
+    type: 'wiki-link',
+    noteTitle,
+    displayText,
+    targetId,
+    version: 1,
+  };
+}
+
+// =============================================================================
 // Note Content Helpers
 // =============================================================================
 

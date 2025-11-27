@@ -41,7 +41,7 @@ function WikiLinkComponent({
   displayText,
   targetId,
 }: WikiLinkComponentProps): JSX.Element {
-  const { currentNoteId, onLinkClick } = useWikiLinkContext();
+  const { currentNoteId, onLinkClick, onError } = useWikiLinkContext();
 
   const handleClick = async (e: MouseEvent) => {
     e.preventDefault();
@@ -52,7 +52,12 @@ function WikiLinkComponent({
       return;
     }
 
-    await onLinkClick(noteTitle, targetId);
+    try {
+      await onLinkClick(noteTitle, targetId);
+    } catch (error) {
+      console.error('Failed to navigate via wiki-link:', error);
+      onError(`Failed to navigate to "${noteTitle}"`);
+    }
   };
 
   return createElement('span', { onClick: handleClick }, displayText);

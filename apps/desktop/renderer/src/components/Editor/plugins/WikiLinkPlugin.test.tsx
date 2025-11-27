@@ -51,7 +51,7 @@ function TestEditor({
   editorRef: React.MutableRefObject<LexicalEditor | null>;
 }) {
   return (
-    <WikiLinkProvider currentNoteId="test-note" onLinkClick={vi.fn()}>
+    <WikiLinkProvider currentNoteId="test-note" onLinkClick={vi.fn()} onError={vi.fn()}>
       <LexicalComposer
         initialConfig={{
           namespace: 'test',

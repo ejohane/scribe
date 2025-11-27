@@ -28,6 +28,7 @@ import {
   createAndIndexNote,
   indexNoteInEngines,
   simulateAppRestart,
+  createWikiLinkNode,
 } from './test-helpers';
 
 /**
@@ -109,13 +110,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             type: 'paragraph',
             children: [
               { type: 'text', text: 'Content with link to ' },
-              {
-                type: 'wiki-link',
-                noteTitle: linkTitle,
-                displayText: linkTitle,
-                targetId: linkTargetId,
-                version: 1,
-              } as any,
+              createWikiLinkNode(linkTitle, linkTitle, linkTargetId),
             ],
           },
         ],
@@ -323,13 +318,7 @@ describe('Linked Notes E2E Integration Tests', () => {
               type: 'paragraph',
               children: [
                 { type: 'text', text: 'Reference: ' },
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetNote.id, // Resolved ID from autocomplete
-                  version: 1,
-                } as any,
+                createWikiLinkNode('Target Note', 'Target Note', targetNote.id),
               ],
             },
           ],
@@ -475,15 +464,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetNote.id,
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Target Note', 'Target Note', targetNote.id)],
             },
           ],
         },
@@ -508,15 +489,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Non-existent Note',
-                  displayText: 'Non-existent Note',
-                  targetId: null, // Unresolved
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Non-existent Note')],
             },
           ],
         },
@@ -544,21 +517,9 @@ describe('Linked Notes E2E Integration Tests', () => {
             {
               type: 'paragraph',
               children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target One',
-                  displayText: 'Target One',
-                  targetId: target1.id,
-                  version: 1,
-                } as any,
+                createWikiLinkNode('Target One', 'Target One', target1.id),
                 { type: 'text', text: ' and ' },
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Two',
-                  displayText: 'Target Two',
-                  targetId: target2.id,
-                  version: 1,
-                } as any,
+                createWikiLinkNode('Target Two', 'Target Two', target2.id),
               ],
             },
           ],
@@ -593,15 +554,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetNote.id,
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Target Note', 'Target Note', targetNote.id)],
             },
           ],
         },
@@ -631,15 +584,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetNote.id,
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Target Note', 'Target Note', targetNote.id)],
             },
           ],
         },
@@ -689,13 +634,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             {
               type: 'paragraph',
               children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Meeting Notes',
-                  displayText: "yesterday's meeting", // Alias
-                  targetId: 'some-note-id',
-                  version: 1,
-                } as any,
+                createWikiLinkNode('Meeting Notes', "yesterday's meeting", 'some-note-id'),
               ],
             },
           ],
@@ -730,15 +669,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetNote.id,
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Target Note', 'Target Note', targetNote.id)],
             },
           ],
         },
@@ -775,15 +706,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetNote.id,
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Target Note', 'Target Note', targetNote.id)],
             },
           ],
         },
@@ -842,15 +765,7 @@ describe('Linked Notes E2E Integration Tests', () => {
             },
             {
               type: 'paragraph',
-              children: [
-                {
-                  type: 'wiki-link',
-                  noteTitle: 'Target Note',
-                  displayText: 'Target Note',
-                  targetId: targetId,
-                  version: 1,
-                } as any,
-              ],
+              children: [createWikiLinkNode('Target Note', 'Target Note', targetId)],
             },
           ],
         },
