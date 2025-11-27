@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2](https://github.com/ejohane/scribe/compare/v1.6.1...v1.6.2) (2025-11-27)
+
+### Bug Fixes
+
+* **ui:** fix flaky keyboard navigation tests by waiting for selection state ([943e743](https://github.com/ejohane/scribe/commit/943e743af7ff8c6626632c58c47d8a5e5dbce69e))
+
 ## [1.6.1](https://github.com/ejohane/scribe/compare/v1.6.0...v1.6.1) (2025-11-27)
 
 ### Bug Fixes
