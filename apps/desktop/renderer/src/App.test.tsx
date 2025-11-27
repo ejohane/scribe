@@ -1,9 +1,19 @@
 import { render, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import App from './App';
+import { ThemeProvider } from '@scribe/design-system';
 import type { Note } from '@scribe/shared';
 import { styles } from './components/CommandPalette/CommandPalette.test-utils';
 import * as editorStyles from './components/Editor/EditorRoot.css';
+
+// Helper to render App with ThemeProvider
+const renderApp = () => {
+  return render(
+    <ThemeProvider defaultTheme="light">
+      <App />
+    </ThemeProvider>
+  );
+};
 
 // Mock the window.scribe API
 const mockNote: Note = {
@@ -53,7 +63,7 @@ beforeEach(() => {
 
 describe('App', () => {
   it('renders editor root', async () => {
-    render(<App />);
+    renderApp();
     // Wait for the editor to render
     await waitFor(() => {
       const editorRoot = document.querySelector(`.${editorStyles.editorRoot}`);
@@ -62,7 +72,7 @@ describe('App', () => {
   });
 
   it('renders editor input', async () => {
-    render(<App />);
+    renderApp();
     // Wait for the editor to render
     await waitFor(() => {
       const editorInput = document.querySelector(`.${editorStyles.editorInput}`);
@@ -81,7 +91,7 @@ describe('App', () => {
       };
       (window as any).scribe.notes.create.mockResolvedValue(newNote);
 
-      render(<App />);
+      renderApp();
 
       // Wait for initial render
       await waitFor(() => {
@@ -107,7 +117,7 @@ describe('App', () => {
       };
       (window as any).scribe.notes.create.mockResolvedValue(newNote);
 
-      render(<App />);
+      renderApp();
 
       // Wait for initial render
       await waitFor(() => {
@@ -124,7 +134,7 @@ describe('App', () => {
     });
 
     it('cmd+n closes the command palette if open', async () => {
-      render(<App />);
+      renderApp();
 
       // Wait for initial render
       await waitFor(() => {
