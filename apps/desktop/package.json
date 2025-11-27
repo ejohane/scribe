@@ -25,6 +25,7 @@
   },
   "build": {
     "appId": "com.scribe.app",
+    "electronVersion": "33.2.0",
     "productName": "Scribe",
     "copyright": "Copyright © 2025 Scribe Team",
     "directories": {

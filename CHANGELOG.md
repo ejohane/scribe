@@ -6,11 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-* **ui:** implement complete design system with tokens, themes, and primitives ([7b17da9](https://github.com/ejohane/scribe/commit/7b17da9fab0b8f7f8dcaa1ced5422a60238cec8c))
+- **ui:** implement complete design system with tokens, themes, and primitives ([7b17da9](https://github.com/ejohane/scribe/commit/7b17da9fab0b8f7f8dcaa1ced5422a60238cec8c))
 
 ### Bug Fixes
 
-* **ui:** polish primitives and consolidate theme management ([35b8685](https://github.com/ejohane/scribe/commit/35b868567c01094895d3cd71a9dc22e5fbbb0b62))
+- **ui:** polish primitives and consolidate theme management ([35b8685](https://github.com/ejohane/scribe/commit/35b868567c01094895d3cd71a9dc22e5fbbb0b62))
 
 ## [1.4.0](https://github.com/ejohane/scribe/compare/v1.3.0...v1.4.0) (2025-11-27)
 
