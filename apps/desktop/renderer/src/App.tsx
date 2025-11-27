@@ -4,13 +4,16 @@ import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { Toast } from './components/Toast/Toast';
+import { BackButton } from './components/BackButton/BackButton';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import type { Command, PaletteMode } from './commands/types';
-import type { GraphNode } from '@scribe/shared';
+import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
+import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useTheme } from './hooks/useTheme';
 import { useToast } from './hooks/useToast';
+import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -22,8 +25,14 @@ function App() {
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
 
+  // Add navigation history for wiki-link back navigation
+  const { canGoBack, navigateToNote, navigateBack, clearHistory } = useNavigationHistory(
+    noteState.currentNoteId,
+    noteState.loadNote
+  );
+
   // Manage theme
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   // Manage toast notifications
   const { toasts, showToast, dismissToast } = useToast();
@@ -32,6 +41,52 @@ function App() {
   const showError = useCallback((error: string) => {
     setGlobalError(error);
   }, []);
+
+  // Handle wiki-link clicks - resolve and navigate to target note
+  const handleWikiLinkClick = useCallback(
+    async (noteTitle: string, targetId: NoteId | null) => {
+      let resolvedId = targetId;
+
+      // If no targetId, try to find by title
+      if (!resolvedId) {
+        const note = await window.scribe.notes.findByTitle(noteTitle);
+        if (note) {
+          resolvedId = note.id;
+        }
+      }
+
+      if (resolvedId) {
+        // Navigate to existing note (adds current to history)
+        navigateToNote(resolvedId, true);
+      } else {
+        // Create new note with title as H1 heading and navigate to it
+        const newNote = await window.scribe.notes.create();
+
+        // Create content with H1 heading containing the note title
+        const contentWithTitle: LexicalState = {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'heading',
+                tag: 'h1',
+                children: [{ type: 'text', text: noteTitle }],
+              },
+            ],
+          },
+        };
+
+        // Save the note with the title content
+        await window.scribe.notes.save({
+          ...newNote,
+          content: contentWithTitle,
+        });
+
+        navigateToNote(newNote.id, true);
+      }
+    },
+    [navigateToNote]
+  );
 
   // Register commands on mount
   useEffect(() => {
@@ -44,6 +99,7 @@ function App() {
       group: 'notes',
       closeOnSelect: true, // Close palette immediately, then create note
       run: async (context) => {
+        clearHistory(); // Fresh navigation - clear wiki-link history
         await context.createNote();
       },
     });
@@ -141,9 +197,9 @@ function App() {
         setTheme(newTheme);
       },
     });
-  }, [resolvedTheme, setTheme]);
+  }, [resolvedTheme, setTheme, clearHistory]);
 
-  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note)
+  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // ⌘K: toggle palette in command mode
@@ -170,17 +226,25 @@ function App() {
           setIsPaletteOpen(true);
         }
       }
-      // ⌘N: create new note
+      // ⌘N: create new note (clears wiki-link navigation history)
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
         setIsPaletteOpen(false);
+        clearHistory();
         noteState.createNote();
+      }
+      // ⌘[ / Ctrl+[: Navigate back through wiki-link history
+      if ((e.metaKey || e.ctrlKey) && e.key === '[') {
+        e.preventDefault();
+        if (canGoBack) {
+          navigateBack();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaletteOpen, noteState]);
+  }, [isPaletteOpen, noteState, canGoBack, navigateBack, clearHistory]);
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
@@ -226,13 +290,21 @@ function App() {
 
   return (
     <div className="app">
-      <EditorRoot noteState={noteState} />
+      <BackButton visible={canGoBack} onClick={navigateBack} />
+      <WikiLinkProvider
+        currentNoteId={noteState.currentNoteId}
+        onLinkClick={handleWikiLinkClick}
+        onError={(message) => showToast(message, 'error')}
+      >
+        <EditorRoot noteState={noteState} />
+      </WikiLinkProvider>
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
         commands={commandRegistry.getAll()}
         onCommandSelect={handleCommandSelect}
         onSearchResultSelect={(result) => {
+          clearHistory(); // Fresh navigation - clear wiki-link history
           noteState.loadNote(result.id);
           setIsPaletteOpen(false);
         }}
@@ -240,6 +312,7 @@ function App() {
         initialMode={paletteMode}
         currentNoteId={noteState.currentNoteId}
         onNoteSelect={(noteId) => {
+          clearHistory(); // Fresh navigation - clear wiki-link history
           noteState.loadNote(noteId);
         }}
         onModeChange={(mode) => setPaletteMode(mode)}

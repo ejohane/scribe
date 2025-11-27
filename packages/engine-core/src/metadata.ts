@@ -113,6 +113,11 @@ export function extractLinks(content: LexicalState): NoteId[] {
     if (node.type === 'note-reference' && typeof node.noteId === 'string') {
       links.add(node.noteId);
     }
+
+    // Wiki-link nodes
+    if (node.type === 'wiki-link' && typeof node.targetId === 'string') {
+      links.add(node.targetId);
+    }
   });
 
   return Array.from(links);

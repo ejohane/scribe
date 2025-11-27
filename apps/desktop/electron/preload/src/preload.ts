@@ -38,6 +38,21 @@ const scribeAPI = {
      * Delete a note by ID
      */
     delete: (id: NoteId): Promise<{ success: boolean }> => ipcRenderer.invoke('notes:delete', id),
+
+    /**
+     * Find a note by title (for wiki-link resolution)
+     * Returns exact match first, then case-insensitive match.
+     * If multiple matches, returns the most recently updated note.
+     */
+    findByTitle: (title: string): Promise<Note | null> =>
+      ipcRenderer.invoke('notes:findByTitle', title),
+
+    /**
+     * Search note titles (for wiki-link autocomplete)
+     * Returns notes whose titles contain the query string.
+     */
+    searchTitles: (query: string, limit?: number): Promise<SearchResult[]> =>
+      ipcRenderer.invoke('notes:searchTitles', query, limit ?? 10),
   },
 
   // Search API (placeholder for future implementation)

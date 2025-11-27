@@ -202,3 +202,26 @@
 .editor-input ::selection {
   background-color: #b3d7ff;
 }
+
+/* Wiki Links */
+.wiki-link {
+  color: #007bff;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 1px;
+}
+
+.wiki-link:hover {
+  text-decoration: underline;
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Dark mode support */
+[data-theme='dark'] .wiki-link {
+  color: #58a6ff;
+}
+
+[data-theme='dark'] .wiki-link:hover {
+  background-color: rgba(88, 166, 255, 0.15);
+}

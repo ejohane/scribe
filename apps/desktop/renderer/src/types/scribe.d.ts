@@ -10,6 +10,8 @@ export interface ScribeAPI {
     save: (note: Note) => Promise<{ success: boolean }>;
     create: () => Promise<Note>;
     delete: (id: NoteId) => Promise<{ success: boolean }>;
+    findByTitle: (title: string) => Promise<Note | null>;
+    searchTitles: (query: string, limit?: number) => Promise<SearchResult[]>;
   };
   search: {
     query: (text: string) => Promise<SearchResult[]>;
