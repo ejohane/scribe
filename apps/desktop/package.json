@@ -49,7 +49,6 @@
           ]
         }
       ],
-      "icon": "build/icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -81,8 +80,7 @@
             "x64"
           ]
         }
-      ],
-      "icon": "build/icon.ico"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -94,8 +92,7 @@
       "target": [
         "AppImage"
       ],
-      "category": "Utility",
-      "icon": "build/icon.png"
+      "category": "Utility"
     },
     "npmRebuild": false,
     "buildDependenciesFromSource": false,
