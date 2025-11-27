@@ -6,18 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-* implement wiki-links with navigation history ([b97e7c7](https://github.com/ejohane/scribe/commit/b97e7c7c06c8fca8a6ad283e9f4b8a57051d0c45))
-* linked-notes spec and tasks ([26b3ecf](https://github.com/ejohane/scribe/commit/26b3ecfc9f8802cec1e702c93d333b778daf8e93))
+- implement wiki-links with navigation history ([b97e7c7](https://github.com/ejohane/scribe/commit/b97e7c7c06c8fca8a6ad283e9f4b8a57051d0c45))
+- linked-notes spec and tasks ([26b3ecf](https://github.com/ejohane/scribe/commit/26b3ecfc9f8802cec1e702c93d333b778daf8e93))
 
 ### Bug Fixes
 
-* add error handling for wiki-link navigation and typed test helpers ([c344330](https://github.com/ejohane/scribe/commit/c3443300311ceb3ec963eb8f2a2572b188fc1333))
-* **ci:** disable husky during semantic-release to prevent hook failures ([079d433](https://github.com/ejohane/scribe/commit/079d4331771f50aebd419ac0f12a8ae2ed6e5694))
-* code review ([d3b1eb3](https://github.com/ejohane/scribe/commit/d3b1eb3ad5aed0799d553f757b4c26cbcb1e0037))
+- add error handling for wiki-link navigation and typed test helpers ([c344330](https://github.com/ejohane/scribe/commit/c3443300311ceb3ec963eb8f2a2572b188fc1333))
+- **ci:** disable husky during semantic-release to prevent hook failures ([079d433](https://github.com/ejohane/scribe/commit/079d4331771f50aebd419ac0f12a8ae2ed6e5694))
+- code review ([d3b1eb3](https://github.com/ejohane/scribe/commit/d3b1eb3ad5aed0799d553f757b4c26cbcb1e0037))
 
 ### Code Refactoring
 
-* remove unused editor instance mutations in WikiLinkPlugin ([e52f240](https://github.com/ejohane/scribe/commit/e52f2406ac5baf3a11aa81d04b543dd9aae9bbda))
+- remove unused editor instance mutations in WikiLinkPlugin ([e52f240](https://github.com/ejohane/scribe/commit/e52f2406ac5baf3a11aa81d04b543dd9aae9bbda))
 
 ## [1.2.1](https://github.com/ejohane/scribe/compare/v1.2.0...v1.2.1) (2025-11-26)
 
