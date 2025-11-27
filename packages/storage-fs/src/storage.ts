@@ -180,12 +180,22 @@ export class FileSystemVault {
    */
   async save(note: Note): Promise<void> {
     try {
-      // Extract metadata from content
-      const metadata = extractMetadata(note.content);
+      // Preserve the note type from existing metadata if not present in content
+      // This is necessary because the Lexical editor doesn't preserve the type field
+      // when sending content updates back to the main process
+      const existingNote = this.notes.get(note.id);
+      const noteContent = { ...note.content };
+      if (!noteContent.type && existingNote?.metadata.type) {
+        noteContent.type = existingNote.metadata.type;
+      }
+
+      // Extract metadata from content (now with preserved type)
+      const metadata = extractMetadata(noteContent);
 
       // Update timestamp and metadata
       const updatedNote: Note = {
         ...note,
+        content: noteContent,
         updatedAt: Date.now(),
         metadata,
       };

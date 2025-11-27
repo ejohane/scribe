@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as styles from './App.css';
 import { useTheme } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
@@ -17,12 +17,19 @@ import { useToast } from './hooks/useToast';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 
+/** Type for the prompt input resolver function */
+type PromptInputResolver = (value: string | undefined) => void;
+
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [paletteMode, setPaletteMode] = useState<PaletteMode>('command');
   const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
   const [showBacklinks, setShowBacklinks] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+
+  // Prompt input state for text input modal
+  const [promptPlaceholder, setPromptPlaceholder] = useState('');
+  const promptResolverRef = useRef<PromptInputResolver | null>(null);
 
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
@@ -284,9 +291,13 @@ function App() {
         }
       },
       createNote: () => noteState.createNote(),
-      promptInput: async (_placeholder: string) => {
-        // TODO: Implement prompt input modal
-        return undefined;
+      promptInput: async (placeholder: string) => {
+        return new Promise<string | undefined>((resolve) => {
+          setPromptPlaceholder(placeholder);
+          promptResolverRef.current = resolve;
+          setPaletteMode('prompt-input');
+          setIsPaletteOpen(true);
+        });
       },
       navigateToNote: (noteId: string) => noteState.loadNote(noteId),
       setPaletteMode: (mode: PaletteMode) => setPaletteMode(mode),
@@ -334,7 +345,14 @@ function App() {
       </WikiLinkProvider>
       <CommandPalette
         isOpen={isPaletteOpen}
-        onClose={() => setIsPaletteOpen(false)}
+        onClose={() => {
+          // If we're in prompt-input mode, resolve the promise with undefined
+          if (paletteMode === 'prompt-input' && promptResolverRef.current) {
+            promptResolverRef.current(undefined);
+            promptResolverRef.current = null;
+          }
+          setIsPaletteOpen(false);
+        }}
         commands={commandRegistry.getAll()}
         onCommandSelect={handleCommandSelect}
         onSearchResultSelect={(result) => {
@@ -356,6 +374,21 @@ function App() {
           deleteNote: noteState.deleteNote,
           loadNote: noteState.loadNote,
           createNote: noteState.createNote,
+        }}
+        promptPlaceholder={promptPlaceholder}
+        onPromptSubmit={(value) => {
+          if (promptResolverRef.current) {
+            promptResolverRef.current(value);
+            promptResolverRef.current = null;
+          }
+          setIsPaletteOpen(false);
+        }}
+        onPromptCancel={() => {
+          if (promptResolverRef.current) {
+            promptResolverRef.current(undefined);
+            promptResolverRef.current = null;
+          }
+          setIsPaletteOpen(false);
         }}
       />
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />

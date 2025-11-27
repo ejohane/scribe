@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
+import type { LexicalState } from '@scribe/shared';
 import { FileSystemVault } from './storage.js';
 import { initializeVault } from './vault.js';
 
@@ -161,5 +162,39 @@ describe('FileSystemVault', () => {
     const loadedNote = vault2.read(note.id);
     expect(loadedNote.content.type).toBe('person');
     expect(loadedNote.metadata.type).toBe('person');
+  });
+
+  it('should preserve note type when saving content without type field', async () => {
+    // Create a person note
+    const note = await vault.create({ type: 'person' });
+    expect(note.metadata.type).toBe('person');
+
+    // Simulate editor sending content without type field (as happens in real app)
+    const updatedContent: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'heading',
+            tag: 'h1',
+            children: [{ type: 'text', text: 'Updated Name' }],
+          },
+        ],
+      },
+      // Note: no 'type' field - simulating editor behavior
+    };
+
+    const updatedNote = {
+      ...note,
+      content: updatedContent,
+    };
+
+    await vault.save(updatedNote);
+
+    // Verify type is preserved
+    const savedNote = vault.read(note.id);
+    expect(savedNote.metadata.type).toBe('person');
+    expect(savedNote.content.type).toBe('person');
+    expect(savedNote.metadata.title).toBe('Updated Name');
   });
 });

@@ -13,13 +13,15 @@ import type { NoteId } from '@scribe/shared';
  * - 'delete-browse': File browser mode for selecting a note to delete
  * - 'delete-confirm': Confirmation screen before deleting a note
  * - 'person-browse': Browse people mode for viewing and selecting people
+ * - 'prompt-input': Text input prompt mode for collecting user input
  */
 export type PaletteMode =
   | 'command'
   | 'file-browse'
   | 'delete-browse'
   | 'delete-confirm'
-  | 'person-browse';
+  | 'person-browse'
+  | 'prompt-input';
 
 /**
  * Context provided to commands when they execute

@@ -107,6 +107,21 @@ export interface CommandPaletteProps {
     loadNote: (id: NoteId) => Promise<void>;
     createNote: () => Promise<void>;
   };
+
+  /**
+   * Placeholder text for prompt-input mode
+   */
+  promptPlaceholder?: string;
+
+  /**
+   * Callback when user submits input in prompt-input mode
+   */
+  onPromptSubmit?: (value: string) => void;
+
+  /**
+   * Callback when user cancels prompt-input mode
+   */
+  onPromptCancel?: () => void;
 }
 
 export function CommandPalette({
@@ -122,6 +137,9 @@ export function CommandPalette({
   onModeChange,
   showToast,
   noteState,
+  promptPlaceholder,
+  onPromptSubmit,
+  onPromptCancel,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -138,6 +156,8 @@ export function CommandPalette({
   // Track which mode to return to after cancel (delete-browse or file-browse)
   const [returnMode, setReturnMode] = useState<PaletteMode>('delete-browse');
   const inputRef = useRef<HTMLInputElement>(null);
+  // State for prompt-input mode
+  const [promptInputValue, setPromptInputValue] = useState('');
 
   // Handler to cancel delete confirmation and return to previous mode
   const handleDeleteCancel = useCallback(() => {
@@ -145,6 +165,20 @@ export function CommandPalette({
     setMode(returnMode);
     onModeChange?.(returnMode);
   }, [returnMode, onModeChange]);
+
+  // Handler to submit prompt input
+  const handlePromptSubmit = useCallback(() => {
+    if (promptInputValue.trim()) {
+      onPromptSubmit?.(promptInputValue.trim());
+      setPromptInputValue('');
+    }
+  }, [promptInputValue, onPromptSubmit]);
+
+  // Handler to cancel prompt input
+  const handlePromptCancel = useCallback(() => {
+    onPromptCancel?.();
+    setPromptInputValue('');
+  }, [onPromptCancel]);
 
   // Handler to confirm deletion
   const handleDeleteConfirm = useCallback(async () => {
@@ -244,6 +278,7 @@ export function CommandPalette({
       setQuery('');
       setSelectedIndex(0);
       setSelectedNoteIndex(0);
+      setPromptInputValue('');
       setMode(initialMode);
       // Focus input when palette opens using requestAnimationFrame
       // for more reliable timing than setTimeout
@@ -254,6 +289,7 @@ export function CommandPalette({
       // Clear notes cache when palette closes
       setAllNotes([]);
       setIsLoadingNotes(false);
+      setPromptInputValue('');
       setSelectedNoteIndex(0);
     }
   }, [isOpen, initialMode]);
@@ -899,6 +935,58 @@ export function CommandPalette({
     );
   };
 
+  // Render prompt input mode
+  const renderPromptInput = () => {
+    return (
+      <div
+        className={styles.deleteConfirmation}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prompt-input-title"
+      >
+        <Text
+          as="h2"
+          id="prompt-input-title"
+          size="md"
+          weight="bold"
+          className={styles.deleteConfirmationTitle}
+        >
+          {promptPlaceholder || 'Enter value'}
+        </Text>
+        <input
+          ref={inputRef}
+          type="text"
+          className={styles.promptInputField}
+          placeholder="Type here..."
+          value={promptInputValue}
+          onChange={(e) => setPromptInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && promptInputValue.trim()) {
+              e.preventDefault();
+              handlePromptSubmit();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              handlePromptCancel();
+            }
+          }}
+          autoFocus
+        />
+        <div className={styles.deleteConfirmationActions}>
+          <button className={styles.cancelButton} onClick={handlePromptCancel}>
+            Cancel
+          </button>
+          <button
+            className={styles.primaryButton}
+            onClick={handlePromptSubmit}
+            disabled={!promptInputValue.trim()}
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Render command mode results
   const renderCommandResults = () => {
     if (allItems.length === 0) {
@@ -990,6 +1078,8 @@ export function CommandPalette({
       >
         {mode === 'delete-confirm' ? (
           renderDeleteConfirm()
+        ) : mode === 'prompt-input' ? (
+          renderPromptInput()
         ) : (
           <>
             <div className={styles.inputWrapper}>
