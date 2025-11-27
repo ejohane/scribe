@@ -408,22 +408,6 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
     handleSelect,
   ]);
 
-  // Expose insertWikiLink for external use (by autocomplete)
-  // This is done by attaching to the editor instance
-  useEffect(() => {
-    // Store the callback on editor for WikiLinkAutocomplete to access
-    (editor as unknown as { __wikiLinkInsert?: typeof insertWikiLink }).__wikiLinkInsert =
-      insertWikiLink;
-    (editor as unknown as { __wikiLinkTriggerState?: TriggerState | null }).__wikiLinkTriggerState =
-      triggerState;
-
-    return () => {
-      delete (editor as unknown as { __wikiLinkInsert?: typeof insertWikiLink }).__wikiLinkInsert;
-      delete (editor as unknown as { __wikiLinkTriggerState?: TriggerState | null })
-        .__wikiLinkTriggerState;
-    };
-  }, [editor, insertWikiLink, triggerState]);
-
   return (
     <WikiLinkAutocomplete
       isOpen={autocompleteState.isOpen}
