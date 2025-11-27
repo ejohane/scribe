@@ -66,8 +66,14 @@ describe('CommandPalette - Mode Switching', () => {
 
     it('fetches notes when entering file-browse mode', async () => {
       const mockNotes = [
-        createMockNote({ id: 'note-1', metadata: { title: 'First Note', tags: [], links: [] } }),
-        createMockNote({ id: 'note-2', metadata: { title: 'Second Note', tags: [], links: [] } }),
+        createMockNote({
+          id: 'note-1',
+          metadata: { title: 'First Note', tags: [], links: [], mentions: [] },
+        }),
+        createMockNote({
+          id: 'note-2',
+          metadata: { title: 'Second Note', tags: [], links: [], mentions: [] },
+        }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
 
@@ -116,6 +122,9 @@ describe('CommandPalette - Mode Switching', () => {
           getCurrentNoteId: () => null,
           saveCurrentNote: vi.fn(),
           createNote: vi.fn(),
+          promptInput: vi.fn(),
+          navigateToNote: vi.fn(),
+          setPaletteMode: vi.fn(),
         });
       });
 
@@ -523,17 +532,17 @@ describe('CommandPalette - Mode Switching', () => {
         createMockNote({
           id: 'note-1',
           updatedAt: BASE_TIME + 3000,
-          metadata: { title: 'Note One', tags: [], links: [] },
+          metadata: { title: 'Note One', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-2',
           updatedAt: BASE_TIME + 2000,
-          metadata: { title: 'Note Two', tags: [], links: [] },
+          metadata: { title: 'Note Two', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-3',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: 'Note Three', tags: [], links: [] },
+          metadata: { title: 'Note Three', tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);

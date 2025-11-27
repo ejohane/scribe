@@ -33,6 +33,7 @@ const createEmptyNote = (): Note => ({
     title: null,
     tags: [],
     links: [],
+    mentions: [],
   },
 });
 
@@ -340,6 +341,7 @@ describe('EditorRoot', () => {
           title: null,
           tags: [],
           links: [],
+          mentions: [],
         },
       };
 

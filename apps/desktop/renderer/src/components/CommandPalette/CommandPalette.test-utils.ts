@@ -56,6 +56,7 @@ export function createMockNote(overrides: Partial<Note> & { id: string }): Note 
       title: hasExplicitTitle ? overrides.metadata!.title : `Note ${overrides.id}`,
       tags: overrides.metadata?.tags ?? [],
       links: overrides.metadata?.links ?? [],
+      mentions: overrides.metadata?.mentions ?? [],
     },
   };
 }

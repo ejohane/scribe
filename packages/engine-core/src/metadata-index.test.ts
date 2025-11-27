@@ -19,6 +19,7 @@ describe('MetadataIndex', () => {
         title: 'Test Note',
         tags: ['test'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata);
@@ -34,12 +35,14 @@ describe('MetadataIndex', () => {
         title: 'First Title',
         tags: ['tag1'],
         links: [],
+        mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Second Title',
         tags: ['tag2'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata1);
@@ -55,6 +58,7 @@ describe('MetadataIndex', () => {
         title: 'Test Note',
         tags: ['test'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata);
@@ -74,12 +78,14 @@ describe('MetadataIndex', () => {
         title: 'Note 1',
         tags: ['scribe', 'architecture'],
         links: [],
+        mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Note 2',
         tags: ['scribe', 'design'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata1);
@@ -99,6 +105,7 @@ describe('MetadataIndex', () => {
         title: 'Test Note',
         tags: ['test'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata);
@@ -112,12 +119,14 @@ describe('MetadataIndex', () => {
         title: 'Test Note',
         tags: ['old-tag'],
         links: [],
+        mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Test Note',
         tags: ['new-tag'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata1);
@@ -132,12 +141,14 @@ describe('MetadataIndex', () => {
         title: 'Note 1',
         tags: ['alpha', 'beta'],
         links: [],
+        mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Note 2',
         tags: ['gamma', 'alpha'],
         links: [],
+        mentions: [],
       };
 
       index.set('note-1', metadata1);
@@ -153,12 +164,14 @@ describe('MetadataIndex', () => {
         title: 'Note 1',
         tags: [],
         links: ['note-2', 'note-3'],
+        mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Note 2',
         tags: [],
         links: ['note-3'],
+        mentions: [],
       };
 
       index.set('note-1', metadata1);
@@ -180,6 +193,7 @@ describe('MetadataIndex', () => {
         title: 'Note 1',
         tags: [],
         links: ['note-2'],
+        mentions: [],
       };
 
       index.set('note-1', metadata);
@@ -193,12 +207,14 @@ describe('MetadataIndex', () => {
         title: 'Note 1',
         tags: [],
         links: ['note-2'],
+        mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Note 1',
         tags: [],
         links: ['note-3'],
+        mentions: [],
       };
 
       index.set('note-1', metadata1);
@@ -215,6 +231,7 @@ describe('MetadataIndex', () => {
         title: 'Test Note',
         tags: ['test'],
         links: ['note-2'],
+        mentions: [],
       };
 
       index.set('note-1', metadata);
@@ -231,10 +248,10 @@ describe('MetadataIndex', () => {
     it('should return number of indexed notes', () => {
       expect(index.size()).toBe(0);
 
-      index.set('note-1', { title: 'Note 1', tags: [], links: [] });
+      index.set('note-1', { title: 'Note 1', tags: [], links: [], mentions: [] });
       expect(index.size()).toBe(1);
 
-      index.set('note-2', { title: 'Note 2', tags: [], links: [] });
+      index.set('note-2', { title: 'Note 2', tags: [], links: [], mentions: [] });
       expect(index.size()).toBe(2);
 
       index.delete('note-1');

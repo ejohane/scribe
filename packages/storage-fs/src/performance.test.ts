@@ -53,7 +53,7 @@ describe('Performance Benchmarks', () => {
     console.log('Creating 100 test notes...');
     const createPromises = [];
     for (let i = 0; i < 100; i++) {
-      createPromises.push(vault.create(createNoteContent(i)));
+      createPromises.push(vault.create({ content: createNoteContent(i) }));
     }
     await Promise.all(createPromises);
     console.log('Test notes created');

@@ -31,27 +31,27 @@ describe('CommandPalette - Keyboard Navigation', () => {
       createMockNote({
         id: 'note-5',
         updatedAt: BASE_TIME + 5000,
-        metadata: { title: 'Note Five', tags: [], links: [] },
+        metadata: { title: 'Note Five', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-4',
         updatedAt: BASE_TIME + 4000,
-        metadata: { title: 'Note Four', tags: [], links: [] },
+        metadata: { title: 'Note Four', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-3',
         updatedAt: BASE_TIME + 3000,
-        metadata: { title: 'Note Three', tags: [], links: [] },
+        metadata: { title: 'Note Three', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-2',
         updatedAt: BASE_TIME + 2000,
-        metadata: { title: 'Note Two', tags: [], links: [] },
+        metadata: { title: 'Note Two', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-1',
         updatedAt: BASE_TIME + 1000,
-        metadata: { title: 'Note One', tags: [], links: [] },
+        metadata: { title: 'Note One', tags: [], links: [], mentions: [] },
       }),
     ];
 

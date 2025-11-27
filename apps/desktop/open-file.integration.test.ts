@@ -312,9 +312,11 @@ describe('Open File Command E2E Tests', () => {
     it('should handle untitled notes in recent list', async () => {
       // Create a note with empty content (untitled)
       const untitledNote = await vault.create({
-        root: {
-          type: 'root',
-          children: [],
+        content: {
+          root: {
+            type: 'root',
+            children: [],
+          },
         },
       });
       await delay(10);
@@ -391,7 +393,7 @@ describe('Open File Command - Search and Open Flow', () => {
 
     testNotes = [];
     for (const data of noteData) {
-      const note = await vault.create(createNoteContent(data.title, data.body));
+      const note = await vault.create({ content: createNoteContent(data.title, data.body) });
       await vault.save(note);
       const savedNote = vault.read(note.id);
       if (savedNote) {
@@ -604,9 +606,11 @@ describe('Open File Command - Search and Open Flow', () => {
     it('should exclude untitled notes from search results', async () => {
       // Create an untitled note
       const untitledNote = await vault.create({
-        root: {
-          type: 'root',
-          children: [], // Empty content means no title
+        content: {
+          root: {
+            type: 'root',
+            children: [], // Empty content means no title
+          },
         },
       });
       await vault.save(untitledNote);
@@ -637,7 +641,7 @@ describe('Open File Command - Search and Open Flow', () => {
     it('should limit fuzzy search results to 25', async () => {
       // Create many notes
       for (let i = 0; i < 30; i++) {
-        const note = await vault.create(createNoteContent(`Test Note ${i}`));
+        const note = await vault.create({ content: createNoteContent(`Test Note ${i}`) });
         await vault.save(note);
       }
 

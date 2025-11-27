@@ -31,12 +31,12 @@ describe('CommandPalette - Delete Confirm Mode', () => {
     createMockNote({
       id: 'note-1',
       updatedAt: BASE_TIME + 1000,
-      metadata: { title: 'Meeting Notes', tags: [], links: [] },
+      metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: [] },
     }),
     createMockNote({
       id: 'note-2',
       updatedAt: BASE_TIME + 2000,
-      metadata: { title: 'Project Ideas', tags: [], links: [] },
+      metadata: { title: 'Project Ideas', tags: [], links: [], mentions: [] },
     }),
   ];
 
@@ -74,7 +74,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
         createMockNote({
           id: 'long-note',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: longTitle, tags: [], links: [] },
+          metadata: { title: longTitle, tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
@@ -110,7 +110,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
         createMockNote({
           id: 'untitled-note',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: null, tags: [], links: [] },
+          metadata: { title: null, tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
@@ -448,7 +448,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
         createMockNote({
           id: 'only-note',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: 'Only Note', tags: [], links: [] },
+          metadata: { title: 'Only Note', tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(singleNote);
@@ -496,7 +496,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
         createMockNote({
           id: 'long-note',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: longTitle, tags: [], links: [] },
+          metadata: { title: longTitle, tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);

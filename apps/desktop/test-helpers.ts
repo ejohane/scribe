@@ -220,7 +220,7 @@ export async function createNoteWithTitle(
   title: string,
   delayMs = 10
 ): Promise<Note> {
-  const note = await vault.create(createNoteContent(title));
+  const note = await vault.create({ content: createNoteContent(title) });
   // Small delay to ensure different timestamps
   await delay(delayMs);
   return note;
@@ -245,7 +245,7 @@ export async function createAndIndexNote(
   title: string,
   bodyText?: string
 ): Promise<Note> {
-  const note = await ctx.vault.create(createNoteContent(title, bodyText));
+  const note = await ctx.vault.create({ content: createNoteContent(title, bodyText) });
   const savedNote = ctx.vault.read(note.id);
   indexNoteInEngines(ctx, savedNote);
   await delay(10);

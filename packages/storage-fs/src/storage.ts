@@ -7,10 +7,20 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'node:crypto';
-import type { Note, NoteId, VaultPath, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, VaultPath, LexicalState, NoteType } from '@scribe/shared';
 import { ErrorCode, ScribeError } from '@scribe/shared';
 import { extractMetadata } from '@scribe/engine-core';
 import { getNotesDir, getNoteFilePath, getQuarantineDir } from './vault.js';
+
+/**
+ * Options for creating a new note
+ */
+export interface CreateNoteOptions {
+  /** Initial Lexical content (optional) */
+  content?: LexicalState;
+  /** Note type discriminator (optional) */
+  type?: NoteType;
+}
 
 /**
  * In-memory note storage
@@ -130,12 +140,19 @@ export class FileSystemVault {
   /**
    * Create a new note
    *
-   * @param content - Initial Lexical content (optional)
+   * @param options - Options for creating the note (content and type)
    * @returns Newly created note
    */
-  async create(content?: LexicalState): Promise<Note> {
+  async create(options?: CreateNoteOptions): Promise<Note> {
     const now = Date.now();
-    const noteContent = content || this.createEmptyContent();
+
+    // Build content with optional type
+    const noteContent: LexicalState = options?.content ?? this.createEmptyContent();
+
+    // Set type on the content if provided
+    if (options?.type) {
+      (noteContent as LexicalState & { type?: NoteType }).type = options.type;
+    }
 
     const note: Note = {
       id: randomUUID(),

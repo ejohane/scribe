@@ -46,6 +46,8 @@ describe('FileSystemVault', () => {
       title: null,
       tags: [],
       links: [],
+      mentions: [],
+      type: undefined,
     });
   });
 
@@ -111,5 +113,53 @@ describe('FileSystemVault', () => {
 
     // After deletion, reading should throw an error
     expect(() => vault.read(note.id)).toThrow('Note not found');
+  });
+
+  it('should create a note with type option', async () => {
+    const note = await vault.create({ type: 'person' });
+
+    expect(note.id).toBeDefined();
+    expect(note.content.type).toBe('person');
+    expect(note.metadata.type).toBe('person');
+  });
+
+  it('should create a note with content and type options', async () => {
+    const content = {
+      root: {
+        type: 'root' as const,
+        children: [
+          {
+            type: 'heading',
+            tag: 'h1',
+            children: [{ type: 'text', text: 'John Smith' }],
+          },
+        ],
+      },
+    };
+
+    const note = await vault.create({ content, type: 'person' });
+
+    expect(note.metadata.title).toBe('John Smith');
+    expect(note.content.type).toBe('person');
+    expect(note.metadata.type).toBe('person');
+  });
+
+  it('should create a note without type (undefined)', async () => {
+    const note = await vault.create();
+
+    expect(note.content.type).toBeUndefined();
+    expect(note.metadata.type).toBeUndefined();
+  });
+
+  it('should persist note type to disk', async () => {
+    const note = await vault.create({ type: 'person' });
+
+    // Create a new vault instance and load
+    const vault2 = new FileSystemVault(tempDir);
+    await vault2.load();
+
+    const loadedNote = vault2.read(note.id);
+    expect(loadedNote.content.type).toBe('person');
+    expect(loadedNote.metadata.type).toBe('person');
   });
 });

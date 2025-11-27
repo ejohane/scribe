@@ -111,6 +111,25 @@ const scribeAPI = {
     setConfig: (config: Record<string, unknown>): Promise<{ success: boolean }> =>
       ipcRenderer.invoke('app:setConfig', config),
   },
+
+  // People API
+  people: {
+    /**
+     * List all people
+     */
+    list: (): Promise<Note[]> => ipcRenderer.invoke('people:list'),
+
+    /**
+     * Create a new person
+     */
+    create: (name: string): Promise<Note> => ipcRenderer.invoke('people:create', name),
+
+    /**
+     * Search people by name (for autocomplete)
+     */
+    search: (query: string, limit?: number): Promise<SearchResult[]> =>
+      ipcRenderer.invoke('people:search', query, limit ?? 10),
+  },
 };
 
 // Expose the API to the renderer via contextBridge

@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId } from '@scribe/shared';
+import type { Note, NoteId, LexicalState } from '@scribe/shared';
 import { ScribeError } from '@scribe/shared';
 
 // __filename and __dirname are provided by the build script banner
@@ -94,6 +94,41 @@ async function initializeEngine() {
     console.error('Failed to initialize engine:', error);
     throw error;
   }
+}
+
+/**
+ * Create the initial Lexical content for a new person note.
+ * Sets up an H1 heading with the person's name and an empty paragraph.
+ */
+function createPersonContent(name: string): LexicalState {
+  return {
+    root: {
+      children: [
+        {
+          type: 'heading',
+          tag: 'h1',
+          children: [{ type: 'text', text: name }],
+          direction: null,
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+        {
+          type: 'paragraph',
+          children: [],
+          direction: null,
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      ],
+      type: 'root',
+      format: '',
+      indent: 0,
+      version: 1,
+    },
+    type: 'person',
+  };
 }
 
 /**
@@ -279,6 +314,63 @@ function setupIPCHandlers() {
       throw new Error('Graph engine not initialized');
     }
     return graphEngine.notesWithTag(tag);
+  });
+
+  // People: List all people
+  ipcMain.handle('people:list', async () => {
+    if (!vault) {
+      throw new Error('Vault not initialized');
+    }
+    const notes = vault.list();
+    return notes.filter((n) => n.metadata.type === 'person');
+  });
+
+  // People: Create a new person
+  ipcMain.handle('people:create', async (_event, name: string) => {
+    if (!vault) {
+      throw new Error('Vault not initialized');
+    }
+    if (!graphEngine) {
+      throw new Error('Graph engine not initialized');
+    }
+    if (!searchEngine) {
+      throw new Error('Search engine not initialized');
+    }
+    if (!name || name.trim().length === 0) {
+      throw new Error('Person name is required');
+    }
+    const content = createPersonContent(name.trim());
+    // Note: vault.create() now accepts options object
+    const note = await vault.create({ content, type: 'person' });
+
+    // Update graph and search indexes
+    graphEngine.addNote(note);
+    searchEngine.indexNote(note);
+
+    return note;
+  });
+
+  // People: Search people by name
+  ipcMain.handle('people:search', async (_event, query: string, limit = 10) => {
+    if (!vault) {
+      throw new Error('Vault not initialized');
+    }
+    const notes = vault.list();
+    const people = notes.filter((n) => n.metadata.type === 'person');
+
+    const queryLower = query.toLowerCase();
+    const filtered = people.filter((n) => {
+      const title = n.metadata.title?.toLowerCase() ?? '';
+      return title.includes(queryLower);
+    });
+
+    return filtered.slice(0, limit).map((n) => ({
+      id: n.id,
+      title: n.metadata.title,
+      snippet: '',
+      score: 1,
+      matches: [],
+    }));
   });
 
   // Open devtools

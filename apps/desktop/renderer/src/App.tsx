@@ -8,12 +8,14 @@ import { Toast } from './components/Toast/Toast';
 import { BackButton } from './components/BackButton/BackButton';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
+import { peopleCommands } from './commands/people';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
+import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -84,6 +86,15 @@ function App() {
 
         navigateToNote(newNote.id, true);
       }
+    },
+    [navigateToNote]
+  );
+
+  // Handle person mention clicks - navigate to the person's note
+  const handlePersonMentionClick = useCallback(
+    async (personId: NoteId) => {
+      // Person mentions always have a resolved ID, so we can navigate directly
+      navigateToNote(personId, true);
     },
     [navigateToNote]
   );
@@ -197,6 +208,16 @@ function App() {
         setTheme(newTheme);
       },
     });
+
+    // Register People command group
+    commandRegistry.registerGroup({
+      id: 'people',
+      label: 'People',
+      priority: 3, // After 'notes' and 'navigation'
+    });
+
+    // Register People commands
+    commandRegistry.registerMany(peopleCommands);
   }, [resolvedTheme, setTheme, clearHistory]);
 
   // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back)
@@ -263,6 +284,12 @@ function App() {
         }
       },
       createNote: () => noteState.createNote(),
+      promptInput: async (_placeholder: string) => {
+        // TODO: Implement prompt input modal
+        return undefined;
+      },
+      navigateToNote: (noteId: string) => noteState.loadNote(noteId),
+      setPaletteMode: (mode: PaletteMode) => setPaletteMode(mode),
     });
     // Note: Commands can use closeOnSelect: true for automatic closing,
     // closeOnSelect: false to explicitly keep the palette open (e.g., 'open-note'),
@@ -297,7 +324,13 @@ function App() {
         onLinkClick={handleWikiLinkClick}
         onError={(message) => showToast(message, 'error')}
       >
-        <EditorRoot noteState={noteState} />
+        <PersonMentionProvider
+          currentNoteId={noteState.currentNoteId}
+          onMentionClick={handlePersonMentionClick}
+          onError={(message) => showToast(message, 'error')}
+        >
+          <EditorRoot noteState={noteState} />
+        </PersonMentionProvider>
       </WikiLinkProvider>
       <CommandPalette
         isOpen={isPaletteOpen}

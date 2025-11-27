@@ -275,3 +275,14 @@ globalStyle(`${editorInput} .wiki-link-unresolved:hover`, {
   textDecoration: 'underline',
   backgroundColor: `color-mix(in srgb, ${vars.color.foregroundMuted} 10%, transparent)`,
 });
+
+// Person mention styles
+globalStyle('.person-mention', {
+  color: vars.color.accent,
+  cursor: 'pointer',
+  fontStyle: 'normal',
+});
+
+globalStyle('.person-mention:hover', {
+  textDecoration: 'underline',
+});

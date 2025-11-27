@@ -38,7 +38,7 @@ describe('CommandPalette - File Browse Mode', () => {
             id: `note-${i}`,
             // More recent notes have higher timestamps
             updatedAt: BASE_TIME + i * 1000,
-            metadata: { title: `Note ${i}`, tags: [], links: [] },
+            metadata: { title: `Note ${i}`, tags: [], links: [], mentions: [] },
           })
         );
       }
@@ -79,17 +79,17 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: currentNoteId,
           updatedAt: BASE_TIME + 5000, // Most recent
-          metadata: { title: 'Current Note', tags: [], links: [] },
+          metadata: { title: 'Current Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'other-note-1',
           updatedAt: BASE_TIME + 4000,
-          metadata: { title: 'Other Note 1', tags: [], links: [] },
+          metadata: { title: 'Other Note 1', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'other-note-2',
           updatedAt: BASE_TIME + 3000,
-          metadata: { title: 'Other Note 2', tags: [], links: [] },
+          metadata: { title: 'Other Note 2', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -145,7 +145,7 @@ describe('CommandPalette - File Browse Mode', () => {
       resolveNotes!([
         createMockNote({
           id: 'note-1',
-          metadata: { title: 'Test Note', tags: [], links: [] },
+          metadata: { title: 'Test Note', tags: [], links: [], mentions: [] },
         }),
       ]);
 
@@ -187,12 +187,12 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'titled-note',
           updatedAt: BASE_TIME + 2000,
-          metadata: { title: 'Titled Note', tags: [], links: [] },
+          metadata: { title: 'Titled Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'untitled-note',
           updatedAt: BASE_TIME + 3000, // More recent
-          metadata: { title: null, tags: [], links: [] }, // Untitled
+          metadata: { title: null, tags: [], links: [], mentions: [] }, // Untitled
         }),
       ];
 
@@ -228,37 +228,37 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-1',
           updatedAt: now - 1000,
-          metadata: { title: 'Meeting Notes', tags: [], links: [] },
+          metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-2',
           updatedAt: now - 2000,
-          metadata: { title: 'Project Ideas', tags: [], links: [] },
+          metadata: { title: 'Project Ideas', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-3',
           updatedAt: now - 3000,
-          metadata: { title: 'Shopping List', tags: [], links: [] },
+          metadata: { title: 'Shopping List', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-4',
           updatedAt: now - 4000,
-          metadata: { title: 'Travel Plans', tags: [], links: [] },
+          metadata: { title: 'Travel Plans', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-5',
           updatedAt: now - 5000,
-          metadata: { title: 'Recipe Collection', tags: [], links: [] },
+          metadata: { title: 'Recipe Collection', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-6',
           updatedAt: now - 6000,
-          metadata: { title: 'MEETING AGENDA', tags: [], links: [] }, // For case-insensitive test
+          metadata: { title: 'MEETING AGENDA', tags: [], links: [], mentions: [] }, // For case-insensitive test
         }),
         createMockNote({
           id: 'note-7',
           updatedAt: now - 7000,
-          metadata: { title: null, tags: [], links: [] }, // Untitled note
+          metadata: { title: null, tags: [], links: [], mentions: [] }, // Untitled note
         }),
       ];
     };
@@ -366,7 +366,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: `note-${i}`,
           updatedAt: Date.now() - i * 1000,
-          metadata: { title: `Test Note ${i + 1}`, tags: [], links: [] },
+          metadata: { title: `Test Note ${i + 1}`, tags: [], links: [], mentions: [] },
         })
       );
 
@@ -475,17 +475,17 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-1',
           updatedAt: Date.now() - 1000,
-          metadata: { title: 'Test Note One', tags: [], links: [] },
+          metadata: { title: 'Test Note One', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-2',
           updatedAt: Date.now() - 2000,
-          metadata: { title: null, tags: [], links: [] }, // Untitled
+          metadata: { title: null, tags: [], links: [], mentions: [] }, // Untitled
         }),
         createMockNote({
           id: 'note-3',
           updatedAt: Date.now() - 3000,
-          metadata: { title: 'Test Note Three', tags: [], links: [] },
+          metadata: { title: 'Test Note Three', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -527,12 +527,12 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'current-note',
           updatedAt: Date.now(),
-          metadata: { title: 'Current Document', tags: [], links: [] },
+          metadata: { title: 'Current Document', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'other-note',
           updatedAt: Date.now() - 1000,
-          metadata: { title: 'Other Document', tags: [], links: [] },
+          metadata: { title: 'Other Document', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -647,17 +647,17 @@ describe('CommandPalette - File Browse Mode', () => {
       createMockNote({
         id: 'note-3',
         updatedAt: BASE_TIME + 3000,
-        metadata: { title: 'Note Three', tags: [], links: [] },
+        metadata: { title: 'Note Three', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-2',
         updatedAt: BASE_TIME + 2000,
-        metadata: { title: 'Note Two', tags: [], links: [] },
+        metadata: { title: 'Note Two', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-1',
         updatedAt: BASE_TIME + 1000,
-        metadata: { title: 'Note One', tags: [], links: [] },
+        metadata: { title: 'Note One', tags: [], links: [], mentions: [] },
       }),
     ];
 
@@ -737,7 +737,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-long',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: longTitle, tags: [], links: [] },
+          metadata: { title: longTitle, tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -773,7 +773,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-short',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: shortTitle, tags: [], links: [] },
+          metadata: { title: shortTitle, tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -806,22 +806,22 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-just-now',
           updatedAt: now - 30 * 1000, // 30 seconds ago
-          metadata: { title: 'Just Now Note', tags: [], links: [] },
+          metadata: { title: 'Just Now Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-minutes',
           updatedAt: now - 5 * 60 * 1000, // 5 minutes ago
-          metadata: { title: 'Minutes Ago Note', tags: [], links: [] },
+          metadata: { title: 'Minutes Ago Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-hours',
           updatedAt: now - 3 * 60 * 60 * 1000, // 3 hours ago
-          metadata: { title: 'Hours Ago Note', tags: [], links: [] },
+          metadata: { title: 'Hours Ago Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-days',
           updatedAt: now - 2 * 24 * 60 * 60 * 1000, // 2 days ago
-          metadata: { title: 'Days Ago Note', tags: [], links: [] },
+          metadata: { title: 'Days Ago Note', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -861,12 +861,12 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-old',
           updatedAt: now - 10 * 24 * 60 * 60 * 1000, // 10 days ago = Nov 14, 2025
-          metadata: { title: 'Old Note', tags: [], links: [] },
+          metadata: { title: 'Old Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'note-very-old',
           updatedAt: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago = Oct 25, 2025
-          metadata: { title: 'Very Old Note', tags: [], links: [] },
+          metadata: { title: 'Very Old Note', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -899,7 +899,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-untitled',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: null, tags: [], links: [] },
+          metadata: { title: null, tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -992,7 +992,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-7days',
           updatedAt: now - 7 * 24 * 60 * 60 * 1000, // Exactly 7 days ago = Nov 17, 2025
-          metadata: { title: 'Seven Days Ago', tags: [], links: [] },
+          metadata: { title: 'Seven Days Ago', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -1028,7 +1028,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-6days',
           updatedAt: now - 6 * 24 * 60 * 60 * 1000, // 6 days ago
-          metadata: { title: 'Six Days Ago', tags: [], links: [] },
+          metadata: { title: 'Six Days Ago', tags: [], links: [], mentions: [] },
         }),
       ];
 
@@ -1061,17 +1061,17 @@ describe('CommandPalette - File Browse Mode', () => {
       createMockNote({
         id: 'note-1',
         updatedAt: BASE_TIME + 3000,
-        metadata: { title: 'Note One', tags: [], links: [] },
+        metadata: { title: 'Note One', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-2',
         updatedAt: BASE_TIME + 2000,
-        metadata: { title: 'Note Two', tags: [], links: [] },
+        metadata: { title: 'Note Two', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-3',
         updatedAt: BASE_TIME + 1000,
-        metadata: { title: 'Note Three', tags: [], links: [] },
+        metadata: { title: 'Note Three', tags: [], links: [], mentions: [] },
       }),
     ];
 
@@ -1279,7 +1279,7 @@ describe('CommandPalette - File Browse Mode', () => {
         createMockNote({
           id: 'note-untitled',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: null, tags: [], links: [] },
+          metadata: { title: null, tags: [], links: [], mentions: [] },
         }),
       ];
 

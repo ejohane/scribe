@@ -2,6 +2,17 @@
 
 import type { Note, NoteId, SearchResult, GraphNode } from '@scribe/shared';
 
+export interface PeopleAPI {
+  /** List all people */
+  list(): Promise<Note[]>;
+
+  /** Create a new person with the given name */
+  create(name: string): Promise<Note>;
+
+  /** Search people by name (for autocomplete) */
+  search(query: string, limit?: number): Promise<SearchResult[]>;
+}
+
 export interface ScribeAPI {
   ping: () => Promise<{ message: string; timestamp: number }>;
   notes: {
@@ -28,6 +39,7 @@ export interface ScribeAPI {
     getConfig: () => Promise<Record<string, unknown>>;
     setConfig: (config: Record<string, unknown>) => Promise<{ success: boolean }>;
   };
+  people: PeopleAPI;
 }
 
 declare global {
