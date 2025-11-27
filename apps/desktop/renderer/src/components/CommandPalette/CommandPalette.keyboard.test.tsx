@@ -70,14 +70,15 @@ describe('CommandPalette - Keyboard Navigation', () => {
         />
       );
 
-      // Wait for notes to load
+      // Wait for notes to load and first item to be selected
       await waitFor(() => {
         expect(screen.getByText('Note Five')).toBeInTheDocument();
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
 
-      // Initially first item should be selected (Note Five is most recent)
+      // Verify initial state before arrow key press
       const items = document.querySelectorAll(CSS.paletteItem);
-      expect(items[0]).toHaveClass(styles.paletteItemSelected);
       expect(items[1]).not.toHaveClass(styles.paletteItemSelected);
 
       // Press Arrow Down
@@ -106,9 +107,11 @@ describe('CommandPalette - Keyboard Navigation', () => {
         />
       );
 
-      // Wait for notes to load
+      // Wait for notes to load and first item to be selected
       await waitFor(() => {
         expect(screen.getByText('Note Five')).toBeInTheDocument();
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Move down twice first
@@ -150,9 +153,11 @@ describe('CommandPalette - Keyboard Navigation', () => {
         />
       );
 
-      // Wait for notes to load
+      // Wait for notes to load and first item to be selected
       await waitFor(() => {
         expect(screen.getByText('Note Five')).toBeInTheDocument();
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Move to second item (Note Four)
@@ -182,9 +187,11 @@ describe('CommandPalette - Keyboard Navigation', () => {
         />
       );
 
-      // Wait for notes to load
+      // Wait for notes to load and first item to be selected
       await waitFor(() => {
         expect(screen.getByText('Note Five')).toBeInTheDocument();
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Try to go up from the first item (should stay at first)
@@ -212,9 +219,11 @@ describe('CommandPalette - Keyboard Navigation', () => {
         />
       );
 
-      // Wait for notes to load
+      // Wait for notes to load and first item to be selected
       await waitFor(() => {
         expect(screen.getByText('Note Five')).toBeInTheDocument();
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
 
       // Move to last item (5 notes, need 4 down presses)
