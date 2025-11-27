@@ -15,9 +15,9 @@
     "build:renderer": "cd renderer && bun run build",
     "build:main": "cd electron/main && bun run build",
     "build:preload": "cd electron/preload && bun run build",
-    "dist": "bun run build:renderer && bun run build:main && bun run build:preload && electron-builder",
-    "dist:mac": "bun run build:renderer && bun run build:main && bun run build:preload && electron-builder --mac",
-    "dist:win": "bun run build:renderer && bun run build:main && bun run build:preload && electron-builder --win",
+    "dist": "bun run build && electron-builder",
+    "dist:mac": "bun run build && electron-builder --mac",
+    "dist:win": "bun run build && electron-builder --win",
     "start": "../../node_modules/.bin/electron .",
     "clean": "rm -rf renderer/dist electron/main/dist electron/preload/dist",
     "lint": "cd electron/main && eslint src && cd ../preload && eslint src",
@@ -36,7 +36,7 @@
       "electron/main/dist/**/*",
       "electron/preload/dist/**/*",
       "renderer/dist/**/*",
-      "package.json"
+      "!**/node_modules/**/*"
     ],
     "mac": {
       "category": "public.app-category.productivity",
@@ -96,8 +96,14 @@
       ],
       "category": "Utility",
       "icon": "build/icon.png"
-    }
+    },
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "nodeGypRebuild": false,
+    "asar": true,
+    "asarUnpack": []
   },
+  "dependencies": {},
   "devDependencies": {
     "electron": "^33.2.0",
     "turbo": "^2.3.3"

@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-* **desktop:** specify explicit electronVersion for electron-builder ([4005788](https://github.com/ejohane/scribe/commit/400578802f7f46113229223a3ce85d1ea1d5897e))
+- **desktop:** specify explicit electronVersion for electron-builder ([4005788](https://github.com/ejohane/scribe/commit/400578802f7f46113229223a3ce85d1ea1d5897e))
 
 ## [1.5.0](https://github.com/ejohane/scribe/compare/v1.4.0...v1.5.0) (2025-11-27)
 
