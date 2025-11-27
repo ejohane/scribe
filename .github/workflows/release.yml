@@ -95,10 +95,19 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
+          _CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: |
           cd apps/desktop
+          # Only use CSC_LINK if it's set and looks like a valid certificate
+          # (base64 encoded p12 starts with "MI" or is a file:// URL)
+          if [ -n "$_CSC_LINK" ] && [ -n "$CSC_KEY_PASSWORD" ]; then
+            export CSC_LINK="$_CSC_LINK"
+            echo "Code signing enabled"
+          else
+            echo "Code signing disabled (missing CSC_LINK or CSC_KEY_PASSWORD)"
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
           bun run dist:mac
 
       - name: Upload artifacts
