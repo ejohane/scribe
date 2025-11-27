@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import './App.css';
+import * as styles from './App.css';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
@@ -289,7 +289,7 @@ function App() {
   }, [noteState.error, showError]);
 
   return (
-    <div className="app">
+    <div className={styles.app}>
       <BackButton visible={canGoBack} onClick={navigateBack} />
       <WikiLinkProvider
         currentNoteId={noteState.currentNoteId}
@@ -327,27 +327,27 @@ function App() {
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
       <Toast toasts={toasts} onDismiss={dismissToast} />
       {showBacklinks && (
-        <div className="backlinks-overlay" onClick={handleCloseBacklinks}>
-          <div className="backlinks-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="backlinks-header">
+        <div className={styles.backlinksOverlay} onClick={handleCloseBacklinks}>
+          <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.backlinksHeader}>
               <h3>Backlinks</h3>
               <button onClick={handleCloseBacklinks}>Close</button>
             </div>
-            <div className="backlinks-list">
+            <div className={styles.backlinksList}>
               {backlinkResults.length === 0 ? (
-                <div className="backlinks-empty">No backlinks found</div>
+                <div className={styles.backlinksEmpty}>No backlinks found</div>
               ) : (
                 backlinkResults.map((backlink) => (
                   <div
                     key={backlink.id}
-                    className="backlink-item"
+                    className={styles.backlinkItem}
                     onClick={() => handleBacklinkSelect(backlink)}
                   >
-                    <div className="backlink-title">{backlink.title || 'Untitled'}</div>
+                    <div className={styles.backlinkTitle}>{backlink.title || 'Untitled'}</div>
                     {backlink.tags.length > 0 && (
-                      <div className="backlink-tags">
+                      <div className={styles.backlinkTags}>
                         {backlink.tags.map((tag) => (
-                          <span key={tag} className="backlink-tag">
+                          <span key={tag} className={styles.backlinkTag}>
                             #{tag}
                           </span>
                         ))}

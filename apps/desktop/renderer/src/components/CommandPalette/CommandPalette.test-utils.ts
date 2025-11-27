@@ -6,11 +6,31 @@
  * - Default mock commands
  * - Shared constants
  * - Helper functions
+ * - CSS class name exports for testing
  */
 
 import { vi } from 'vitest';
 import type { Note } from '@scribe/shared';
 import type { Command } from '../../commands/types';
+import * as styles from './CommandPalette.css';
+
+// Re-export styles for use in tests
+export { styles };
+
+// CSS class selector helpers for tests
+export const CSS = {
+  paletteItem: `.${styles.paletteItem}`,
+  paletteItemSelected: `.${styles.paletteItemSelected}`,
+  resultsContainer: `.${styles.resultsContainer}`,
+  noResults: `.${styles.noResults}`,
+  deleteIcon: `.${styles.deleteIcon}`,
+  deleteConfirmation: `.${styles.deleteConfirmation}`,
+  cancelButton: `.${styles.cancelButton}`,
+  confirmButton: `.${styles.confirmButton}`,
+  backButton: `.${styles.backButton}`,
+  paletteInput: `.${styles.paletteInput}`,
+  overlayPositioning: `.${styles.overlayPositioning}`,
+};
 
 // Base timestamps for creating ordered notes
 export const BASE_TIME = Date.now();

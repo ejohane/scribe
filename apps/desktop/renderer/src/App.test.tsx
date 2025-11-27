@@ -2,6 +2,8 @@ import { render, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import App from './App';
 import type { Note } from '@scribe/shared';
+import { styles } from './components/CommandPalette/CommandPalette.test-utils';
+import * as editorStyles from './components/Editor/EditorRoot.css';
 
 // Mock the window.scribe API
 const mockNote: Note = {
@@ -54,7 +56,7 @@ describe('App', () => {
     render(<App />);
     // Wait for the editor to render
     await waitFor(() => {
-      const editorRoot = document.querySelector('.editor-root');
+      const editorRoot = document.querySelector(`.${editorStyles.editorRoot}`);
       expect(editorRoot).toBeTruthy();
     });
   });
@@ -63,7 +65,7 @@ describe('App', () => {
     render(<App />);
     // Wait for the editor to render
     await waitFor(() => {
-      const editorInput = document.querySelector('.editor-input');
+      const editorInput = document.querySelector(`.${editorStyles.editorInput}`);
       expect(editorInput).toBeTruthy();
     });
   });
@@ -83,7 +85,7 @@ describe('App', () => {
 
       // Wait for initial render
       await waitFor(() => {
-        expect(document.querySelector('.editor-root')).toBeTruthy();
+        expect(document.querySelector(`.${editorStyles.editorRoot}`)).toBeTruthy();
       });
 
       // Press cmd+n
@@ -109,7 +111,7 @@ describe('App', () => {
 
       // Wait for initial render
       await waitFor(() => {
-        expect(document.querySelector('.editor-root')).toBeTruthy();
+        expect(document.querySelector(`.${editorStyles.editorRoot}`)).toBeTruthy();
       });
 
       // Press ctrl+n
@@ -126,7 +128,7 @@ describe('App', () => {
 
       // Wait for initial render
       await waitFor(() => {
-        expect(document.querySelector('.editor-root')).toBeTruthy();
+        expect(document.querySelector(`.${editorStyles.editorRoot}`)).toBeTruthy();
       });
 
       // Open command palette with cmd+k
@@ -134,7 +136,7 @@ describe('App', () => {
 
       // Verify palette is open
       await waitFor(() => {
-        expect(document.querySelector('.command-palette')).toBeTruthy();
+        expect(document.querySelector(`.${styles.paletteContainer}`)).toBeTruthy();
       });
 
       // Press cmd+n to create note
@@ -142,7 +144,7 @@ describe('App', () => {
 
       // Palette should be closed
       await waitFor(() => {
-        expect(document.querySelector('.command-palette')).toBeFalsy();
+        expect(document.querySelector(`.${styles.paletteContainer}`)).toBeFalsy();
       });
     });
   });

@@ -11,7 +11,9 @@ import Fuse from 'fuse.js';
 import type { Command, PaletteMode } from '../../commands/types';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { formatRelativeDate } from '../../utils/formatRelativeDate';
-import './CommandPalette.css';
+import { Overlay, Surface, Text, Icon } from '@scribe/design-system';
+import * as styles from './CommandPalette.css';
+import clsx from 'clsx';
 
 /** Max fuzzy search results in file-browse mode */
 const MAX_SEARCH_RESULTS = 25;
@@ -509,31 +511,48 @@ export function CommandPalette({
   const renderFileBrowseResults = () => {
     // Loading state
     if (isLoadingNotes) {
-      return <div className="command-palette-no-results">Loading...</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          Loading...
+        </Text>
+      );
     }
 
     // Empty vault state
     if (allNotes.length === 0) {
       return (
-        <div className="command-palette-no-results">No notes yet. Create one with &#8984;N</div>
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No notes yet. Create one with &#8984;N
+        </Text>
       );
     }
 
     // No results from fuzzy search
     if (hasNoFuzzyResults) {
-      return <div className="command-palette-no-results">No results</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results
+        </Text>
+      );
     }
 
     // No notes to display (all filtered out - e.g., only current note exists)
     if (displayedNotes.length === 0) {
-      return <div className="command-palette-no-results">No results</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results
+        </Text>
+      );
     }
 
     // Render notes (either recent or fuzzy search results)
     return displayedNotes.map((note, index) => (
       <div
         key={note.id}
-        className={`command-palette-item ${index === selectedNoteIndex ? 'selected' : ''}`}
+        className={clsx(
+          styles.paletteItem,
+          index === selectedNoteIndex && styles.paletteItemSelected
+        )}
         onClick={() => {
           if (onNoteSelect) {
             onNoteSelect(note.id);
@@ -542,10 +561,14 @@ export function CommandPalette({
         }}
         onMouseEnter={() => setSelectedNoteIndex(index)}
       >
-        <div className="command-palette-item-title">{truncateTitle(note.metadata.title)}</div>
-        <div className="command-palette-note-subtext">{formatRelativeDate(note.updatedAt)}</div>
+        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+          {truncateTitle(note.metadata.title)}
+        </Text>
+        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+          {formatRelativeDate(note.updatedAt)}
+        </Text>
         <button
-          className="note-item-delete-icon"
+          className={styles.deleteIcon}
           onClick={(e) => {
             e.stopPropagation(); // Prevent triggering note open
             setPendingDeleteNote(note);
@@ -556,9 +579,11 @@ export function CommandPalette({
           aria-label={`Delete ${note.metadata?.title || 'note'}`}
           type="button"
         >
-          <svg viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-          </svg>
+          <Icon size="sm" color="foregroundMuted">
+            <svg viewBox="0 0 16 16" fill="currentColor" className={styles.deleteIconSvg}>
+              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+            </svg>
+          </Icon>
         </button>
       </div>
     ));
@@ -568,22 +593,38 @@ export function CommandPalette({
   const renderDeleteBrowseResults = () => {
     // Loading state
     if (isLoadingNotes) {
-      return <div className="command-palette-no-results">Loading...</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          Loading...
+        </Text>
+      );
     }
 
     // Empty vault state - different message for delete mode
     if (allNotes.length === 0) {
-      return <div className="command-palette-no-results">No notes to delete</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No notes to delete
+        </Text>
+      );
     }
 
     // No results from fuzzy search
     if (hasNoFuzzyResults) {
-      return <div className="command-palette-no-results">No results</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results
+        </Text>
+      );
     }
 
     // No notes to display (all filtered out - e.g., only current note exists)
     if (displayedNotes.length === 0) {
-      return <div className="command-palette-no-results">No results</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results
+        </Text>
+      );
     }
 
     // Render notes (either recent or fuzzy search results)
@@ -591,7 +632,10 @@ export function CommandPalette({
     return displayedNotes.map((note, index) => (
       <div
         key={note.id}
-        className={`command-palette-item ${index === selectedNoteIndex ? 'selected' : ''}`}
+        className={clsx(
+          styles.paletteItem,
+          index === selectedNoteIndex && styles.paletteItemSelected
+        )}
         onClick={() => {
           // Transition to delete-confirm mode
           setPendingDeleteNote(note);
@@ -601,8 +645,12 @@ export function CommandPalette({
         }}
         onMouseEnter={() => setSelectedNoteIndex(index)}
       >
-        <div className="command-palette-item-title">{truncateTitle(note.metadata.title)}</div>
-        <div className="command-palette-note-subtext">{formatRelativeDate(note.updatedAt)}</div>
+        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+          {truncateTitle(note.metadata.title)}
+        </Text>
+        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+          {formatRelativeDate(note.updatedAt)}
+        </Text>
       </div>
     ));
   };
@@ -618,20 +666,28 @@ export function CommandPalette({
 
     return (
       <div
-        className="delete-confirmation"
+        className={styles.deleteConfirmation}
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-confirm-title"
       >
-        <h2 id="delete-confirm-title" className="delete-confirmation-title">
+        <Text
+          as="h2"
+          id="delete-confirm-title"
+          size="md"
+          weight="bold"
+          className={styles.deleteConfirmationTitle}
+        >
           Delete "{truncatedTitle}"?
-        </h2>
-        <p className="delete-confirmation-message">This action cannot be undone.</p>
-        <div className="delete-confirmation-actions">
-          <button className="delete-confirmation-cancel" onClick={handleDeleteCancel} autoFocus>
+        </Text>
+        <Text as="p" size="sm" color="foregroundMuted" className={styles.deleteConfirmationMessage}>
+          This action cannot be undone.
+        </Text>
+        <div className={styles.deleteConfirmationActions}>
+          <button className={styles.cancelButton} onClick={handleDeleteCancel} autoFocus>
             Cancel
           </button>
-          <button className="delete-confirmation-confirm" onClick={handleDeleteConfirm}>
+          <button className={styles.confirmButton} onClick={handleDeleteConfirm}>
             Delete
           </button>
         </div>
@@ -642,7 +698,11 @@ export function CommandPalette({
   // Render command mode results
   const renderCommandResults = () => {
     if (allItems.length === 0) {
-      return <div className="command-palette-no-results">No results found</div>;
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results found
+        </Text>
+      );
     }
 
     return (
@@ -650,7 +710,10 @@ export function CommandPalette({
         {filteredCommands.map((command, index) => (
           <div
             key={command.id}
-            className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
+            className={clsx(
+              styles.paletteItem,
+              index === selectedIndex && styles.paletteItemSelected
+            )}
             onClick={() => {
               onCommandSelect(command);
               // Note: Commands are responsible for calling context.closePalette()
@@ -658,23 +721,32 @@ export function CommandPalette({
             }}
             onMouseEnter={() => setSelectedIndex(index)}
           >
-            <div className="command-palette-item-title">{command.title}</div>
+            <Text size="sm" weight="medium" className={styles.itemTitle}>
+              {command.title}
+            </Text>
             {command.description && (
-              <div className="command-palette-item-description">{command.description}</div>
+              <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                {command.description}
+              </Text>
             )}
           </div>
         ))}
         {searchResults.length > 0 && (
           <>
             {filteredCommands.length > 0 && (
-              <div className="command-palette-separator">Search Results</div>
+              <Text size="xs" weight="bold" color="foregroundMuted" className={styles.separator}>
+                Search Results
+              </Text>
             )}
             {searchResults.map((result, searchIndex) => {
               const index = filteredCommands.length + searchIndex;
               return (
                 <div
                   key={result.id}
-                  className={`command-palette-item ${index === selectedIndex ? 'selected' : ''}`}
+                  className={clsx(
+                    styles.paletteItem,
+                    index === selectedIndex && styles.paletteItemSelected
+                  )}
                   onClick={() => {
                     if (onSearchResultSelect) {
                       onSearchResultSelect(result);
@@ -683,10 +755,12 @@ export function CommandPalette({
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
-                  <div className="command-palette-item-title">
+                  <Text size="sm" weight="medium" className={styles.itemTitle}>
                     {result.title || 'Untitled Note'}
-                  </div>
-                  <div className="command-palette-item-description">{result.snippet}</div>
+                  </Text>
+                  <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                    {result.snippet}
+                  </Text>
                 </div>
               );
             })}
@@ -697,16 +771,26 @@ export function CommandPalette({
   };
 
   return (
-    <div className="command-palette-overlay" onClick={onClose}>
-      <div className="command-palette" onClick={(e) => e.stopPropagation()}>
+    <Overlay
+      backdrop="transparent"
+      open={isOpen}
+      onClose={onClose}
+      className={styles.overlayPositioning}
+    >
+      <Surface
+        elevation="lg"
+        radius="lg"
+        className={styles.paletteContainer}
+        onClick={(e) => e.stopPropagation()}
+      >
         {mode === 'delete-confirm' ? (
           renderDeleteConfirm()
         ) : (
           <>
-            <div className="command-palette-input-container">
+            <div className={styles.inputWrapper}>
               {(mode === 'file-browse' || mode === 'delete-browse') && (
                 <button
-                  className="command-palette-back-button"
+                  className={styles.backButton}
                   onClick={() => {
                     setMode('command');
                     setQuery('');
@@ -721,7 +805,7 @@ export function CommandPalette({
               <input
                 ref={inputRef}
                 type="text"
-                className="command-palette-input"
+                className={styles.paletteInput}
                 placeholder={
                   mode === 'file-browse'
                     ? 'Search notes...'
@@ -733,7 +817,7 @@ export function CommandPalette({
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            <div className="command-palette-results">
+            <div className={styles.resultsContainer}>
               {mode === 'file-browse'
                 ? renderFileBrowseResults()
                 : mode === 'delete-browse'
@@ -742,7 +826,7 @@ export function CommandPalette({
             </div>
           </>
         )}
-      </div>
-    </div>
+      </Surface>
+    </Overlay>
   );
 }

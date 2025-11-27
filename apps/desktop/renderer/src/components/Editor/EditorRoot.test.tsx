@@ -2,6 +2,7 @@ import { render, waitFor, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EditorRoot } from './EditorRoot';
 import type { Note } from '@scribe/shared';
+import * as styles from './EditorRoot.css';
 
 // Mock note state hook return value
 const createMockNoteState = (note: Note | null = null) => ({
@@ -69,11 +70,11 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorRoot = document.querySelector('.editor-root');
+        const editorRoot = document.querySelector(`.${styles.editorRoot}`);
         expect(editorRoot).toBeTruthy();
       });
 
-      const editorInput = document.querySelector('.editor-input');
+      const editorInput = document.querySelector(`.${styles.editorInput}`);
       expect(editorInput).toBeTruthy();
     });
 
@@ -101,7 +102,7 @@ describe('EditorRoot', () => {
       });
 
       // Editor should be initialized and have contenteditable
-      const editorInput = document.querySelector('.editor-input');
+      const editorInput = document.querySelector(`.${styles.editorInput}`);
       expect(editorInput?.getAttribute('contenteditable')).toBe('true');
     });
   });
@@ -135,7 +136,7 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput?.textContent).toContain('Hello, World!');
       });
     });
@@ -214,7 +215,7 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput?.textContent).toContain('First paragraph');
         expect(editorInput?.textContent).toContain('Second paragraph');
       });
@@ -229,13 +230,13 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
 
       // History plugin is registered, we can't easily test undo/redo in happy-dom
       // but we can verify the editor renders without errors
-      expect(document.querySelector('.editor-root')).toBeTruthy();
+      expect(document.querySelector(`.${styles.editorRoot}`)).toBeTruthy();
     });
 
     it('initializes with ListPlugin', async () => {
@@ -245,12 +246,12 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
 
       // List plugin is registered, verified by successful render
-      expect(document.querySelector('.editor-root')).toBeTruthy();
+      expect(document.querySelector(`.${styles.editorRoot}`)).toBeTruthy();
     });
 
     it('initializes with MarkdownShortcutPlugin', async () => {
@@ -260,12 +261,12 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
 
       // Markdown plugin is registered, verified by successful render
-      expect(document.querySelector('.editor-root')).toBeTruthy();
+      expect(document.querySelector(`.${styles.editorRoot}`)).toBeTruthy();
     });
 
     it('initializes AutosavePlugin without errors', async () => {
@@ -275,7 +276,7 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
 
@@ -290,12 +291,12 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
 
       // ManualSavePlugin is active
-      expect(document.querySelector('.editor-root')).toBeTruthy();
+      expect(document.querySelector(`.${styles.editorRoot}`)).toBeTruthy();
     });
   });
 
@@ -307,7 +308,7 @@ describe('EditorRoot', () => {
       const { rerender } = render(<EditorRoot noteState={noteState1} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
 
@@ -349,7 +350,7 @@ describe('EditorRoot', () => {
 
       // Should load new content
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput?.textContent).toContain('Different note content');
       });
     });
@@ -382,7 +383,7 @@ describe('EditorRoot', () => {
       const { rerender } = render(<EditorRoot noteState={noteState1} />);
 
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput?.textContent).toContain('Some content');
       });
 
@@ -395,7 +396,7 @@ describe('EditorRoot', () => {
       // Note: InitialStatePlugin won't reload empty content, so editor keeps previous content
       // This is expected behavior - we only load non-empty initial states
       await waitFor(() => {
-        const editorInput = document.querySelector('.editor-input');
+        const editorInput = document.querySelector(`.${styles.editorInput}`);
         expect(editorInput).toBeTruthy();
       });
     });
@@ -521,12 +522,12 @@ describe('EditorRoot', () => {
       });
 
       // Verify content before and after HR
-      const editorInput = document.querySelector('.editor-input');
+      const editorInput = document.querySelector(`.${styles.editorInput}`);
       expect(editorInput?.textContent).toContain('Before');
       expect(editorInput?.textContent).toContain('After');
     });
 
-    it('applies editor-hr class to horizontal rule', async () => {
+    it('applies hr class to horizontal rule', async () => {
       const note: Note = {
         ...createEmptyNote(),
         content: {
@@ -547,7 +548,7 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const hrElement = document.querySelector('hr.editor-hr');
+        const hrElement = document.querySelector(`hr.${styles.hr}`);
         expect(hrElement).toBeTruthy();
       });
     });
@@ -582,7 +583,7 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const paragraph = document.querySelector('.editor-paragraph');
+        const paragraph = document.querySelector(`.${styles.editorParagraph}`);
         expect(paragraph).toBeTruthy();
       });
     });
@@ -616,7 +617,7 @@ describe('EditorRoot', () => {
       render(<EditorRoot noteState={noteState} />);
 
       await waitFor(() => {
-        const boldElement = document.querySelector('.editor-text-bold');
+        const boldElement = document.querySelector(`.${styles.editorTextBold}`);
         expect(boldElement).toBeTruthy();
       });
     });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { lightTheme, darkTheme } from '@scribe/design-system';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -19,7 +20,7 @@ interface UseThemeReturn {
  * Features:
  * - Respects system preference when theme is 'system'
  * - Persists theme preference to config
- * - Applies theme by setting data-theme attribute on document root
+ * - Applies vanilla-extract theme classes to document root
  */
 export function useTheme(): UseThemeReturn {
   const [theme, setThemeState] = useState<Theme>('system');
@@ -60,9 +61,12 @@ export function useTheme(): UseThemeReturn {
   // Calculate resolved theme
   const resolvedTheme = theme === 'system' ? systemTheme : theme;
 
-  // Apply theme to document
+  // Apply vanilla-extract theme class to document
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    // Remove both theme classes first
+    document.documentElement.classList.remove(lightTheme, darkTheme);
+    // Add the correct theme class
+    document.documentElement.classList.add(resolvedTheme === 'dark' ? darkTheme : lightTheme);
   }, [resolvedTheme]);
 
   // Set theme and persist to config

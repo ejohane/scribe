@@ -18,6 +18,7 @@ import {
   mockCommands,
   setupScribeMock,
   BASE_TIME,
+  CSS,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - Delete Confirm Mode', () => {
@@ -94,7 +95,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       });
 
       // Click on the note to enter delete-confirm mode
-      const noteItem = document.querySelector('.command-palette-item');
+      const noteItem = document.querySelector(CSS.paletteItem);
       fireEvent.click(noteItem!);
 
       // Title should be truncated: 30 chars of content + "..." (33 chars total)
@@ -130,7 +131,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       });
 
       // Click on the note to enter delete-confirm mode
-      const noteItem = document.querySelector('.command-palette-item');
+      const noteItem = document.querySelector(CSS.paletteItem);
       fireEvent.click(noteItem!);
 
       // Should show "Untitled" in the confirmation
@@ -521,7 +522,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       });
 
       // Click on the note
-      const noteItem = document.querySelector('.command-palette-item');
+      const noteItem = document.querySelector(CSS.paletteItem);
       fireEvent.click(noteItem!);
 
       // Click Delete
