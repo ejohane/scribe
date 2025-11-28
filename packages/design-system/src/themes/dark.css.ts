@@ -3,23 +3,24 @@ import { vars } from '../tokens/contract.css';
 
 export const darkTheme = createTheme(vars, {
   color: {
-    background: '#1A1A18', // Dark warm gray
-    backgroundAlt: '#23231F', // Slightly lighter
-    surface: '#2C2B27', // Interactive containers
-    border: '#3A3935', // Subtle border
-    foreground: '#F5F3EE', // Warm off-white
-    foregroundMuted: '#A7A398', // Muted warm gray
-    accent: '#C2933A', // Slightly muted amber for dark
-    accentForeground: '#1A1A18', // Dark text on accent
-    danger: '#D06968', // Softer red for dark
-    dangerForeground: '#FFFFFF', // White text on danger
-    warning: '#D19C5F', // Muted warning
-    info: '#6C85A8', // Softer blue
+    background: '#09090B', // zinc-950 - near-black
+    backgroundAlt: '#18181B', // zinc-900 - slightly lighter for sidebars
+    surface: '#27272A', // zinc-800 - interactive containers
+    border: '#3F3F46', // zinc-700 - subtle borders
+    foreground: '#F4F4F5', // zinc-100 - primary text, near-white
+    foregroundMuted: '#A1A1AA', // zinc-400 - secondary text
+    accent: '#FFFFFF', // white - primary actions (inverted)
+    accentForeground: '#09090B', // zinc-950 - text on accent
+    danger: '#EF4444', // red-500 - brighter for dark mode
+    dangerForeground: '#FFFFFF', // white
+    warning: '#F59E0B', // amber-500
+    info: '#3B82F6', // blue-500
   },
   typography: {
     fontFamily: {
       ui: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       mono: '"SF Mono", "Fira Code", "Consolas", monospace',
+      serif: '"Merriweather", Georgia, serif',
     },
     size: {
       xs: '0.75rem',
@@ -56,12 +57,15 @@ export const darkTheme = createTheme(vars, {
     sm: '0.25rem',
     md: '0.5rem',
     lg: '0.75rem',
+    xl: '1rem',
+    '2xl': '1.5rem',
     full: '9999px',
   },
   shadow: {
     sm: '0 1px 2px rgba(0, 0, 0, 0.2)',
     md: '0 4px 12px rgba(0, 0, 0, 0.3)',
     lg: '0 8px 32px rgba(0, 0, 0, 0.4)',
+    xl: '0 20px 40px rgba(0, 0, 0, 0.24)', // Higher opacity for dark mode
   },
   zIndex: {
     base: '0',
@@ -70,5 +74,17 @@ export const darkTheme = createTheme(vars, {
     palette: '200',
     popover: '300',
     tooltip: '400',
+  },
+  animation: {
+    duration: {
+      fast: '150ms',
+      normal: '200ms',
+      slow: '300ms',
+      slower: '500ms',
+    },
+    easing: {
+      default: 'ease-out',
+      smooth: 'cubic-bezier(0.32, 0.72, 0, 1)',
+    },
   },
 });

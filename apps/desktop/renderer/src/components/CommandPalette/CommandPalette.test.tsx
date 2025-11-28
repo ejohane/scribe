@@ -34,7 +34,7 @@ describe('CommandPalette', () => {
       />
     );
 
-    expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
@@ -48,6 +48,6 @@ describe('CommandPalette', () => {
       />
     );
 
-    expect(screen.queryByPlaceholderText('Search or run a command...')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Search notes or create new...')).not.toBeInTheDocument();
   });
 });

@@ -28,6 +28,7 @@ import { WikiLinkNode } from './plugins/WikiLinkNode';
 import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
 import { PersonMentionNode } from './plugins/PersonMentionNode';
 import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
+import { SelectionToolbarPlugin } from './SelectionToolbar';
 import * as styles from './EditorRoot.css';
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
@@ -137,6 +138,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <WikiLinkPlugin currentNoteId={currentNoteId} />
           {/* Person mention autocomplete and creation */}
           <PersonMentionPlugin currentNoteId={currentNoteId} />
+          {/* Floating toolbar for text selection formatting */}
+          <SelectionToolbarPlugin />
         </div>
       </LexicalComposer>
     </div>

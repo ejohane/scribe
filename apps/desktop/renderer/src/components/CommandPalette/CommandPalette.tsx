@@ -15,6 +15,102 @@ import { Overlay, Surface, Text, Icon } from '@scribe/design-system';
 import * as styles from './CommandPalette.css';
 import clsx from 'clsx';
 
+// SVG Icons as inline components for the redesigned palette
+const SearchIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+
+const FileTextIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+    <polyline points="14,2 14,8 20,8" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const CommandIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+  </svg>
+);
+
+const CornerDownLeftIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="9 10 4 15 9 20" />
+    <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
 /** Max fuzzy search results in file-browse mode */
 const MAX_SEARCH_RESULTS = 25;
 
@@ -722,47 +818,55 @@ export function CommandPalette({
     }
 
     // Render notes (either recent or fuzzy search results)
-    return displayedNotes.map((note, index) => (
-      <div
-        key={note.id}
-        className={clsx(
-          styles.paletteItem,
-          index === selectedNoteIndex && styles.paletteItemSelected
-        )}
-        onClick={() => {
-          if (onNoteSelect) {
-            onNoteSelect(note.id);
-            onClose();
-          }
-        }}
-        onMouseEnter={() => setSelectedNoteIndex(index)}
-      >
-        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-          {truncateTitle(note.metadata.title)}
-        </Text>
-        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-          {formatRelativeDate(note.updatedAt)}
-        </Text>
-        <button
-          className={styles.deleteIcon}
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering note open
-            setPendingDeleteNote(note);
-            setReturnMode('file-browse'); // Important: return to file-browse, not delete-browse
-            setMode('delete-confirm');
-            onModeChange?.('delete-confirm');
+    return displayedNotes.map((note, index) => {
+      const isSelected = index === selectedNoteIndex;
+      return (
+        <div
+          key={note.id}
+          className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+          onClick={() => {
+            if (onNoteSelect) {
+              onNoteSelect(note.id);
+              onClose();
+            }
           }}
-          aria-label={`Delete ${note.metadata?.title || 'note'}`}
-          type="button"
+          onMouseEnter={() => setSelectedNoteIndex(index)}
         >
-          <Icon size="sm" color="foregroundMuted">
-            <svg viewBox="0 0 16 16" fill="currentColor" className={styles.deleteIconSvg}>
-              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-            </svg>
-          </Icon>
-        </button>
-      </div>
-    ));
+          <span className={styles.itemIcon}>
+            <FileTextIcon />
+          </span>
+          <div className={styles.itemTextContainer}>
+            <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+              {truncateTitle(note.metadata.title)}
+            </Text>
+            <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+              {formatRelativeDate(note.updatedAt)}
+            </Text>
+          </div>
+          <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+            <CornerDownLeftIcon />
+          </span>
+          <button
+            className={styles.deleteIcon}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering note open
+              setPendingDeleteNote(note);
+              setReturnMode('file-browse'); // Important: return to file-browse, not delete-browse
+              setMode('delete-confirm');
+              onModeChange?.('delete-confirm');
+            }}
+            aria-label={`Delete ${note.metadata?.title || 'note'}`}
+            type="button"
+          >
+            <Icon size="sm" color="foregroundMuted">
+              <svg viewBox="0 0 16 16" fill="currentColor" className={styles.deleteIconSvg}>
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+              </svg>
+            </Icon>
+          </button>
+        </div>
+      );
+    });
   };
 
   // Render delete-browse mode results (same as file-browse but with different click behavior)
@@ -805,30 +909,38 @@ export function CommandPalette({
 
     // Render notes (either recent or fuzzy search results)
     // Click behavior: transition to delete-confirm mode
-    return displayedNotes.map((note, index) => (
-      <div
-        key={note.id}
-        className={clsx(
-          styles.paletteItem,
-          index === selectedNoteIndex && styles.paletteItemSelected
-        )}
-        onClick={() => {
-          // Transition to delete-confirm mode
-          setPendingDeleteNote(note);
-          setReturnMode('delete-browse');
-          setMode('delete-confirm');
-          onModeChange?.('delete-confirm');
-        }}
-        onMouseEnter={() => setSelectedNoteIndex(index)}
-      >
-        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-          {truncateTitle(note.metadata.title)}
-        </Text>
-        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-          {formatRelativeDate(note.updatedAt)}
-        </Text>
-      </div>
-    ));
+    return displayedNotes.map((note, index) => {
+      const isSelected = index === selectedNoteIndex;
+      return (
+        <div
+          key={note.id}
+          className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+          onClick={() => {
+            // Transition to delete-confirm mode
+            setPendingDeleteNote(note);
+            setReturnMode('delete-browse');
+            setMode('delete-confirm');
+            onModeChange?.('delete-confirm');
+          }}
+          onMouseEnter={() => setSelectedNoteIndex(index)}
+        >
+          <span className={styles.itemIcon}>
+            <FileTextIcon />
+          </span>
+          <div className={styles.itemTextContainer}>
+            <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+              {truncateTitle(note.metadata.title)}
+            </Text>
+            <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+              {formatRelativeDate(note.updatedAt)}
+            </Text>
+          </div>
+          <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+            <CornerDownLeftIcon />
+          </span>
+        </div>
+      );
+    });
   };
 
   // Render person-browse mode results
@@ -870,29 +982,37 @@ export function CommandPalette({
     }
 
     // Render people list
-    return displayedPeople.map((person, index) => (
-      <div
-        key={person.id}
-        className={clsx(
-          styles.paletteItem,
-          index === selectedPersonIndex && styles.paletteItemSelected
-        )}
-        onClick={() => {
-          if (onNoteSelect) {
-            onNoteSelect(person.id);
-            onClose();
-          }
-        }}
-        onMouseEnter={() => setSelectedPersonIndex(index)}
-      >
-        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-          {truncateTitle(person.metadata.title)}
-        </Text>
-        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-          {formatRelativeDate(person.updatedAt)}
-        </Text>
-      </div>
-    ));
+    return displayedPeople.map((person, index) => {
+      const isSelected = index === selectedPersonIndex;
+      return (
+        <div
+          key={person.id}
+          className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+          onClick={() => {
+            if (onNoteSelect) {
+              onNoteSelect(person.id);
+              onClose();
+            }
+          }}
+          onMouseEnter={() => setSelectedPersonIndex(index)}
+        >
+          <span className={styles.itemIcon}>
+            <UserIcon />
+          </span>
+          <div className={styles.itemTextContainer}>
+            <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+              {truncateTitle(person.metadata.title)}
+            </Text>
+            <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+              {formatRelativeDate(person.updatedAt)}
+            </Text>
+          </div>
+          <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+            <CornerDownLeftIcon />
+          </span>
+        </div>
+      );
+    });
   };
 
   // Render delete confirmation screen
@@ -999,30 +1119,38 @@ export function CommandPalette({
 
     return (
       <>
-        {filteredCommands.map((command, index) => (
-          <div
-            key={command.id}
-            className={clsx(
-              styles.paletteItem,
-              index === selectedIndex && styles.paletteItemSelected
-            )}
-            onClick={() => {
-              onCommandSelect(command);
-              // Note: Commands are responsible for calling context.closePalette()
-              // Some commands like 'open-note' need to keep the palette open
-            }}
-            onMouseEnter={() => setSelectedIndex(index)}
-          >
-            <Text size="sm" weight="medium" className={styles.itemTitle}>
-              {command.title}
-            </Text>
-            {command.description && (
-              <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-                {command.description}
-              </Text>
-            )}
-          </div>
-        ))}
+        {filteredCommands.map((command, index) => {
+          const isSelected = index === selectedIndex;
+          return (
+            <div
+              key={command.id}
+              className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+              onClick={() => {
+                onCommandSelect(command);
+                // Note: Commands are responsible for calling context.closePalette()
+                // Some commands like 'open-note' need to keep the palette open
+              }}
+              onMouseEnter={() => setSelectedIndex(index)}
+            >
+              <span className={styles.itemIcon}>
+                <CommandIcon />
+              </span>
+              <div className={styles.itemTextContainer}>
+                <Text size="sm" weight="medium" className={styles.itemTitle}>
+                  {command.title}
+                </Text>
+                {command.description && (
+                  <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                    {command.description}
+                  </Text>
+                )}
+              </div>
+              <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+                <CornerDownLeftIcon />
+              </span>
+            </div>
+          );
+        })}
         {searchResults.length > 0 && (
           <>
             {filteredCommands.length > 0 && (
@@ -1032,13 +1160,11 @@ export function CommandPalette({
             )}
             {searchResults.map((result, searchIndex) => {
               const index = filteredCommands.length + searchIndex;
+              const isSelected = index === selectedIndex;
               return (
                 <div
                   key={result.id}
-                  className={clsx(
-                    styles.paletteItem,
-                    index === selectedIndex && styles.paletteItemSelected
-                  )}
+                  className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
                   onClick={() => {
                     if (onSearchResultSelect) {
                       onSearchResultSelect(result);
@@ -1047,12 +1173,20 @@ export function CommandPalette({
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
-                  <Text size="sm" weight="medium" className={styles.itemTitle}>
-                    {result.title || 'Untitled Note'}
-                  </Text>
-                  <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-                    {result.snippet}
-                  </Text>
+                  <span className={styles.itemIcon}>
+                    <FileTextIcon />
+                  </span>
+                  <div className={styles.itemTextContainer}>
+                    <Text size="sm" weight="medium" className={styles.itemTitle}>
+                      {result.title || 'Untitled Note'}
+                    </Text>
+                    <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                      {result.snippet}
+                    </Text>
+                  </div>
+                  <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+                    <CornerDownLeftIcon />
+                  </span>
                 </div>
               );
             })}
@@ -1083,7 +1217,7 @@ export function CommandPalette({
         ) : (
           <>
             <div className={styles.inputWrapper}>
-              {(mode === 'file-browse' || mode === 'delete-browse' || mode === 'person-browse') && (
+              {mode === 'file-browse' || mode === 'delete-browse' || mode === 'person-browse' ? (
                 <button
                   className={styles.backButton}
                   onClick={() => {
@@ -1097,6 +1231,10 @@ export function CommandPalette({
                 >
                   ←
                 </button>
+              ) : (
+                <span className={styles.searchIcon}>
+                  <SearchIcon />
+                </span>
               )}
               <input
                 ref={inputRef}
@@ -1109,11 +1247,12 @@ export function CommandPalette({
                       ? 'Select note to delete...'
                       : mode === 'person-browse'
                         ? 'Search people...'
-                        : 'Search or run a command...'
+                        : 'Search notes or create new...'
                 }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+              <span className={styles.escBadge}>ESC</span>
             </div>
             <div className={styles.resultsContainer}>
               {mode === 'file-browse'

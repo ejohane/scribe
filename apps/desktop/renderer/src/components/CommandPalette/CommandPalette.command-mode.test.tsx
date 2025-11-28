@@ -58,7 +58,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Should show command mode placeholder
-      expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
 
       // Should NOT show back button in command mode
       expect(screen.queryByLabelText('Back to commands')).not.toBeInTheDocument();
@@ -184,7 +184,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Should now show command mode placeholder
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
       });
 
       // Palette should still be open (onClose not called)
@@ -215,7 +215,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Should return to command mode, not close
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
       });
 
       // Palette should NOT be closed
@@ -266,7 +266,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Wait for mode switch and verify query is cleared
       await waitFor(() => {
-        const commandInput = screen.getByPlaceholderText('Search or run a command...');
+        const commandInput = screen.getByPlaceholderText('Search notes or create new...');
         expect(commandInput).toHaveValue('');
       });
     });
@@ -295,7 +295,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Should return to command mode
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
       });
 
       // Palette should NOT be closed
@@ -327,7 +327,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Wait for mode switch and verify query is cleared
       await waitFor(() => {
-        const commandInput = screen.getByPlaceholderText('Search or run a command...');
+        const commandInput = screen.getByPlaceholderText('Search notes or create new...');
         expect(commandInput).toHaveValue('');
       });
     });
@@ -417,7 +417,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Should be in command mode
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
       });
     });
 
@@ -433,7 +433,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Type a query
-      const input = screen.getByPlaceholderText('Search or run a command...');
+      const input = screen.getByPlaceholderText('Search notes or create new...');
       fireEvent.change(input, { target: { value: 'test query' } });
       expect(input).toHaveValue('test query');
 
@@ -461,7 +461,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Query should be cleared
       await waitFor(() => {
-        const newInput = screen.getByPlaceholderText('Search or run a command...');
+        const newInput = screen.getByPlaceholderText('Search notes or create new...');
         expect(newInput).toHaveValue('');
       });
     });

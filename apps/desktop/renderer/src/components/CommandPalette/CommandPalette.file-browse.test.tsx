@@ -967,7 +967,7 @@ describe('CommandPalette - File Browse Mode', () => {
       expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
     });
 
-    it("placeholder text is 'Search or run a command...' in command mode", async () => {
+    it("placeholder text is 'Search notes or create new...' in command mode", async () => {
       render(
         <CommandPalette
           isOpen={true}
@@ -979,7 +979,7 @@ describe('CommandPalette - File Browse Mode', () => {
       );
 
       // Should show command mode placeholder
-      expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
     });
 
     it('displays date subtext for boundary: exactly 7 days ago shows absolute date', async () => {
