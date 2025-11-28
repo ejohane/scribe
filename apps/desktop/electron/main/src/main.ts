@@ -327,27 +327,37 @@ function setupIPCHandlers() {
 
   // People: Create a new person
   ipcMain.handle('people:create', async (_event, name: string) => {
-    if (!vault) {
-      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
-    }
-    if (!graphEngine) {
-      throw new ScribeError(ErrorCode.GRAPH_NOT_INITIALIZED, 'Graph engine not initialized');
-    }
-    if (!searchEngine) {
-      throw new ScribeError(ErrorCode.SEARCH_NOT_INITIALIZED, 'Search engine not initialized');
-    }
-    if (!name || name.trim().length === 0) {
-      throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Person name is required');
-    }
-    const content = createPersonContent(name.trim());
-    // Note: vault.create() now accepts options object
-    const note = await vault.create({ content, type: 'person' });
+    try {
+      if (!vault) {
+        throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
+      }
+      if (!graphEngine) {
+        throw new ScribeError(ErrorCode.GRAPH_NOT_INITIALIZED, 'Graph engine not initialized');
+      }
+      if (!searchEngine) {
+        throw new ScribeError(ErrorCode.SEARCH_NOT_INITIALIZED, 'Search engine not initialized');
+      }
+      if (!name || name.trim().length === 0) {
+        throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Person name is required');
+      }
+      const content = createPersonContent(name.trim());
+      // Note: vault.create() now accepts options object
+      const note = await vault.create({ content, type: 'person' });
 
-    // Update graph and search indexes
-    graphEngine.addNote(note);
-    searchEngine.indexNote(note);
+      // Update graph and search indexes
+      graphEngine.addNote(note);
+      searchEngine.indexNote(note);
 
-    return note;
+      return note;
+    } catch (error) {
+      // Send user-friendly error message if it's a ScribeError
+      if (error instanceof ScribeError) {
+        const userError = new Error(error.getUserMessage());
+        userError.name = error.code;
+        throw userError;
+      }
+      throw error;
+    }
   });
 
   // People: Search people by name

@@ -8,7 +8,7 @@ import {
   LexicalNode,
 } from 'lexical';
 import type { NoteId } from '@scribe/shared';
-import { createElement, MouseEvent } from 'react';
+import { createElement, MouseEvent, KeyboardEvent } from 'react';
 import { usePersonMentionContext } from './PersonMentionContext';
 
 /**
@@ -58,7 +58,24 @@ function PersonMentionComponent({
     }
   };
 
-  return createElement('span', { onClick: handleClick }, `@${personName}`);
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick(e as unknown as MouseEvent);
+    }
+  };
+
+  return createElement(
+    'span',
+    {
+      onClick: handleClick,
+      onKeyDown: handleKeyDown,
+      role: 'link',
+      tabIndex: 0,
+      'aria-label': `Mention of ${personName}`,
+    },
+    `@${personName}`
+  );
 }
 
 /**

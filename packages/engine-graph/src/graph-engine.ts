@@ -79,7 +79,7 @@ export class GraphEngine {
     }
 
     // Build new outgoing edges
-    const newOutgoing = new Set(metadata.links);
+    const newOutgoing = new Set(metadata.links ?? []);
     this.outgoing.set(id, newOutgoing);
 
     // Build incoming edges (backlinks) for linked notes

@@ -27,8 +27,9 @@ import {
   type LexicalCommand,
 } from 'lexical';
 import { $createPersonMentionNode } from './PersonMentionNode';
+import { usePersonMentionContext } from './PersonMentionContext';
+import { PersonMentionAutocomplete } from './PersonMentionAutocomplete';
 import type { PersonResult } from './PersonMentionAutocomplete';
-import * as autocompleteStyles from './PersonMentionAutocomplete.css';
 import type { NoteId } from '@scribe/shared';
 
 /**
@@ -64,6 +65,7 @@ export interface TriggerState {
 
 export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps) {
   const [editor] = useLexicalComposerContext();
+  const { onError } = usePersonMentionContext();
   const [triggerState, setTriggerState] = useState<TriggerState | null>(null);
 
   // Autocomplete state
@@ -81,6 +83,11 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
   // The counter is incremented on insertion and checked in the update listener
   const insertionCounterRef = useRef(0);
   const lastProcessedCounterRef = useRef(0);
+
+  // Use ref for triggerState to avoid re-registering the update listener
+  // on every triggerState change (optimization for linked-94)
+  const triggerStateRef = useRef(triggerState);
+  triggerStateRef.current = triggerState;
 
   // Handle closing autocomplete
   const handleClose = useCallback(() => {
@@ -184,12 +191,14 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
         insertPersonMention(newPerson.metadata.title || name, newPerson.id);
       } catch (error) {
         console.error('Failed to create person:', error);
+        // Show error to user via context
+        onError(`Failed to create "${name}"`);
         // Close autocomplete on error
         handleClose();
         setTriggerState(null);
       }
     },
-    [insertPersonMention, handleClose]
+    [insertPersonMention, handleClose, onError]
   );
 
   // Remove @ and query text when cancelling
@@ -214,6 +223,7 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
   }, [editor, triggerState]);
 
   // Key detection logic - monitor text changes
+  // Uses triggerStateRef to avoid re-registering the listener on every triggerState change
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
       // Skip if we just inserted a mention (counter hasn't been processed yet)
@@ -231,9 +241,12 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
         const text = anchorNode.getTextContent();
         const offset = anchor.offset;
 
+        // Get current triggerState from ref to avoid stale closure
+        const currentTriggerState = triggerStateRef.current;
+
         // Check for @ pattern (only when not already tracking)
         // Make sure @ is at start of text or preceded by whitespace
-        if (!triggerState && offset >= 1 && text[offset - 1] === '@') {
+        if (!currentTriggerState && offset >= 1 && text[offset - 1] === '@') {
           const charBefore = offset > 1 ? text[offset - 2] : null;
           const isValidTrigger = charBefore === null || charBefore === ' ' || charBefore === '\n';
 
@@ -289,11 +302,14 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
         }
 
         // If tracking, update query
-        if (triggerState?.isActive && anchorNode.getKey() === triggerState.anchorKey) {
-          const newQuery = text.slice(triggerState.startOffset + 1, offset);
+        if (
+          currentTriggerState?.isActive &&
+          anchorNode.getKey() === currentTriggerState.anchorKey
+        ) {
+          const newQuery = text.slice(currentTriggerState.startOffset + 1, offset);
 
           // Update query if changed
-          if (newQuery !== triggerState.query) {
+          if (newQuery !== currentTriggerState.query) {
             setTriggerState((prev) => (prev ? { ...prev, query: newQuery } : null));
             setQuery(newQuery);
             setSelectedIndex(0); // Reset selection when query changes
@@ -301,13 +317,16 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
         }
 
         // If we moved to a different node, cancel tracking
-        if (triggerState?.isActive && anchorNode.getKey() !== triggerState.anchorKey) {
+        if (
+          currentTriggerState?.isActive &&
+          anchorNode.getKey() !== currentTriggerState.anchorKey
+        ) {
           setTriggerState(null);
           handleClose();
         }
       });
     });
-  }, [editor, triggerState, handleClose]);
+  }, [editor, handleClose]);
 
   // Escape key handling
   useEffect(() => {
@@ -393,7 +412,7 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
   if (!isOpen) return null;
 
   return createPortal(
-    <PersonMentionAutocompleteInternal
+    <PersonMentionAutocomplete
       query={query}
       position={position}
       selectedIndex={selectedIndex}
@@ -403,131 +422,5 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
       onResultsChange={handleResultsChange}
     />,
     document.body
-  );
-}
-
-/**
- * Internal autocomplete component that manages search and reports results
- * back to the plugin for keyboard navigation support.
- */
-interface PersonMentionAutocompleteInternalProps {
-  query: string;
-  position: { top: number; left: number };
-  selectedIndex: number;
-  onSelect: (person: PersonResult) => void;
-  onCreate: (name: string) => void;
-  currentNoteId: NoteId | null;
-  onResultsChange: (results: PersonResult[], hasExactMatch: boolean) => void;
-}
-
-function PersonMentionAutocompleteInternal({
-  query,
-  position,
-  selectedIndex,
-  onSelect,
-  onCreate,
-  currentNoteId,
-  onResultsChange,
-}: PersonMentionAutocompleteInternalProps) {
-  const [results, setResults] = useState<PersonResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const selectedRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // Check if an exact match exists (case-insensitive)
-  const hasExactMatch = results.some((r) => r.name.toLowerCase() === query.toLowerCase());
-
-  // Should show create option: query exists and no exact match
-  const showCreateOption = query.trim().length > 0 && !hasExactMatch;
-
-  // Check if create option is selected
-  const isCreateSelected = showCreateOption && selectedIndex === results.length;
-
-  // Search for people when query changes
-  const searchPeople = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const searchResults = await window.scribe.people.search(query);
-      // Map SearchResult to PersonResult and exclude currentNoteId
-      const personResults: PersonResult[] = searchResults
-        .filter((r) => r.id !== currentNoteId)
-        .map((r) => ({
-          id: r.id,
-          name: r.title || 'Untitled',
-        }));
-      setResults(personResults);
-    } catch (error) {
-      console.error('Failed to search people:', error);
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [query, currentNoteId]);
-
-  // Debounce search to reduce IPC calls during rapid typing
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      searchPeople();
-    }, 150);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchPeople]);
-
-  // Notify parent when results change
-  useEffect(() => {
-    onResultsChange(results, hasExactMatch);
-  }, [results, hasExactMatch, onResultsChange]);
-
-  // Scroll selected item into view
-  useEffect(() => {
-    if (selectedRef.current) {
-      selectedRef.current.scrollIntoView({ block: 'nearest' });
-    }
-  }, [selectedIndex]);
-
-  return (
-    <div
-      className={autocompleteStyles.autocompleteContainer}
-      style={{ top: position.top, left: position.left }}
-      role="listbox"
-      aria-label="Person suggestions"
-      ref={listRef}
-    >
-      {isLoading ? (
-        <div className={autocompleteStyles.emptyState}>Searching...</div>
-      ) : results.length === 0 && !showCreateOption ? (
-        <div className={autocompleteStyles.emptyState}>No matching people</div>
-      ) : (
-        <>
-          {results.map((person, index) => (
-            <div
-              key={person.id}
-              ref={index === selectedIndex ? selectedRef : null}
-              className={`${autocompleteStyles.autocompleteItem} ${
-                index === selectedIndex ? autocompleteStyles.autocompleteItemSelected : ''
-              }`}
-              onClick={() => onSelect(person)}
-              role="option"
-              aria-selected={index === selectedIndex}
-            >
-              {person.name}
-            </div>
-          ))}
-          {showCreateOption && (
-            <div
-              ref={isCreateSelected ? selectedRef : null}
-              className={`${autocompleteStyles.autocompleteItem} ${autocompleteStyles.createOption} ${
-                isCreateSelected ? autocompleteStyles.autocompleteItemSelected : ''
-              }`}
-              onClick={() => onCreate(query.trim())}
-              role="option"
-              aria-selected={isCreateSelected}
-            >
-              + Create &quot;{query.trim()}&quot;
-            </div>
-          )}
-        </>
-      )}
-    </div>
   );
 }
