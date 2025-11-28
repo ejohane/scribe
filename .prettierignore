@@ -11,3 +11,6 @@ build/
 
 # Markdown files
 *.md
+
+# Redesign POC (untracked)
+redesign-poc/
