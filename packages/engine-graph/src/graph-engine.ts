@@ -30,9 +30,19 @@ export class GraphEngine {
   private tags: Map<string, Set<NoteId>> = new Map();
 
   /**
-   * Node metadata: note -> { title, tags }
+   * Node metadata: note -> { title, tags, type }
    */
   private nodes: Map<NoteId, GraphNode> = new Map();
+
+  /**
+   * Person mention index: note -> [people mentioned in it]
+   */
+  private mentioning: Map<NoteId, Set<NoteId>> = new Map();
+
+  /**
+   * Reverse person mention index: person -> [notes mentioning them]
+   */
+  private mentionedBy: Map<NoteId, Set<NoteId>> = new Map();
 
   constructor() {
     // Initialize empty graph
@@ -50,6 +60,7 @@ export class GraphEngine {
       id,
       title: metadata.title,
       tags: metadata.tags,
+      type: metadata.type,
     });
 
     // Clear existing outgoing edges for this note
@@ -68,7 +79,7 @@ export class GraphEngine {
     }
 
     // Build new outgoing edges
-    const newOutgoing = new Set(metadata.links);
+    const newOutgoing = new Set(metadata.links ?? []);
     this.outgoing.set(id, newOutgoing);
 
     // Build incoming edges (backlinks) for linked notes
@@ -95,6 +106,28 @@ export class GraphEngine {
         this.tags.set(tag, new Set());
       }
       this.tags.get(tag)!.add(id);
+    }
+
+    // Clear existing person mention edges for this note
+    const oldMentions = this.mentioning.get(id);
+    if (oldMentions) {
+      for (const personId of oldMentions) {
+        const personMentionedBy = this.mentionedBy.get(personId);
+        if (personMentionedBy) {
+          personMentionedBy.delete(id);
+          if (personMentionedBy.size === 0) {
+            this.mentionedBy.delete(personId);
+          }
+        }
+      }
+    }
+
+    // Build new person mention edges
+    const newMentions = new Set(metadata.mentions ?? []);
+    this.mentioning.set(id, newMentions);
+
+    for (const personId of newMentions) {
+      this.addPersonMention(id, personId);
     }
   }
 
@@ -140,6 +173,21 @@ export class GraphEngine {
           this.tags.delete(tag);
         }
       }
+    }
+
+    // Clean up person mention indexes
+    const mentionedPeople = this.mentioning.get(noteId);
+    if (mentionedPeople) {
+      for (const personId of mentionedPeople) {
+        this.mentionedBy.get(personId)?.delete(noteId);
+      }
+      this.mentioning.delete(noteId);
+    }
+
+    // If this note IS a person, clean up all mentions of them
+    this.mentionedBy.delete(noteId);
+    for (const [, people] of this.mentioning) {
+      people.delete(noteId);
     }
   }
 
@@ -233,5 +281,48 @@ export class GraphEngine {
     this.incoming.clear();
     this.tags.clear();
     this.nodes.clear();
+    this.mentioning.clear();
+    this.mentionedBy.clear();
+  }
+
+  /**
+   * Add a person mention relationship
+   * @param noteId - The note containing the mention
+   * @param personId - The person being mentioned
+   */
+  private addPersonMention(noteId: NoteId, personId: NoteId): void {
+    if (!this.mentioning.has(noteId)) {
+      this.mentioning.set(noteId, new Set());
+    }
+    this.mentioning.get(noteId)!.add(personId);
+
+    if (!this.mentionedBy.has(personId)) {
+      this.mentionedBy.set(personId, new Set());
+    }
+    this.mentionedBy.get(personId)!.add(noteId);
+  }
+
+  /**
+   * Get all notes that mention a specific person
+   */
+  notesMentioning(personId: NoteId): NoteId[] {
+    return Array.from(this.mentionedBy.get(personId) ?? []);
+  }
+
+  /**
+   * Get all people mentioned in a specific note
+   */
+  peopleMentionedIn(noteId: NoteId): NoteId[] {
+    return Array.from(this.mentioning.get(noteId) ?? []);
+  }
+
+  /**
+   * Get all people (notes with type='person')
+   * Used for autocomplete and Browse People command
+   */
+  getAllPeople(): NoteId[] {
+    return Array.from(this.nodes.values())
+      .filter((node) => node.type === 'person')
+      .map((node) => node.id);
   }
 }

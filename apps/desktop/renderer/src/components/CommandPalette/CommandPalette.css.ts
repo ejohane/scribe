@@ -271,3 +271,52 @@ export const confirmButton = style({
     outlineOffset: '2px',
   },
 });
+
+// Primary action button styling (for non-destructive actions)
+export const primaryButton = style({
+  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+  border: 'none',
+  borderRadius: vars.radius.md,
+  backgroundColor: vars.color.accent,
+  color: '#ffffff',
+  cursor: 'pointer',
+  fontSize: vars.typography.size.sm,
+  fontFamily: vars.typography.fontFamily.ui,
+  ':hover': {
+    filter: 'brightness(0.9)',
+  },
+  ':focus': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '2px',
+  },
+  ':disabled': {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+});
+
+// Prompt input container
+export const promptInputContainer = style({
+  margin: `${vars.spacing['3']} 0`,
+});
+
+// Prompt input field (with border, unlike the command palette search input)
+export const promptInputField = style({
+  width: '100%',
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.md,
+  fontSize: vars.typography.size.md,
+  fontFamily: vars.typography.fontFamily.ui,
+  color: vars.color.foreground,
+  backgroundColor: vars.color.background,
+  marginBottom: vars.spacing['4'],
+  ':focus': {
+    outline: 'none',
+    borderColor: vars.color.accent,
+    boxShadow: `0 0 0 2px ${vars.color.accent}20`,
+  },
+  '::placeholder': {
+    color: vars.color.foregroundMuted,
+  },
+});

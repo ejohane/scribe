@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as styles from './App.css';
 import { useTheme } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
@@ -8,12 +8,17 @@ import { Toast } from './components/Toast/Toast';
 import { BackButton } from './components/BackButton/BackButton';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
+import { peopleCommands } from './commands/people';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
+import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
+
+/** Type for the prompt input resolver function */
+type PromptInputResolver = (value: string | undefined) => void;
 
 function App() {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -21,6 +26,10 @@ function App() {
   const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
   const [showBacklinks, setShowBacklinks] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+
+  // Prompt input state for text input modal
+  const [promptPlaceholder, setPromptPlaceholder] = useState('');
+  const promptResolverRef = useRef<PromptInputResolver | null>(null);
 
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
@@ -84,6 +93,15 @@ function App() {
 
         navigateToNote(newNote.id, true);
       }
+    },
+    [navigateToNote]
+  );
+
+  // Handle person mention clicks - navigate to the person's note
+  const handlePersonMentionClick = useCallback(
+    async (personId: NoteId) => {
+      // Person mentions always have a resolved ID, so we can navigate directly
+      navigateToNote(personId, true);
     },
     [navigateToNote]
   );
@@ -197,6 +215,16 @@ function App() {
         setTheme(newTheme);
       },
     });
+
+    // Register People command group
+    commandRegistry.registerGroup({
+      id: 'people',
+      label: 'People',
+      priority: 3, // After 'notes' and 'navigation'
+    });
+
+    // Register People commands
+    commandRegistry.registerMany(peopleCommands);
   }, [resolvedTheme, setTheme, clearHistory]);
 
   // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back)
@@ -263,6 +291,16 @@ function App() {
         }
       },
       createNote: () => noteState.createNote(),
+      promptInput: async (placeholder: string) => {
+        return new Promise<string | undefined>((resolve) => {
+          setPromptPlaceholder(placeholder);
+          promptResolverRef.current = resolve;
+          setPaletteMode('prompt-input');
+          setIsPaletteOpen(true);
+        });
+      },
+      navigateToNote: (noteId: string) => noteState.loadNote(noteId),
+      setPaletteMode: (mode: PaletteMode) => setPaletteMode(mode),
     });
     // Note: Commands can use closeOnSelect: true for automatic closing,
     // closeOnSelect: false to explicitly keep the palette open (e.g., 'open-note'),
@@ -297,11 +335,24 @@ function App() {
         onLinkClick={handleWikiLinkClick}
         onError={(message) => showToast(message, 'error')}
       >
-        <EditorRoot noteState={noteState} />
+        <PersonMentionProvider
+          currentNoteId={noteState.currentNoteId}
+          onMentionClick={handlePersonMentionClick}
+          onError={(message) => showToast(message, 'error')}
+        >
+          <EditorRoot noteState={noteState} />
+        </PersonMentionProvider>
       </WikiLinkProvider>
       <CommandPalette
         isOpen={isPaletteOpen}
-        onClose={() => setIsPaletteOpen(false)}
+        onClose={() => {
+          // If we're in prompt-input mode, resolve the promise with undefined
+          if (paletteMode === 'prompt-input' && promptResolverRef.current) {
+            promptResolverRef.current(undefined);
+            promptResolverRef.current = null;
+          }
+          setIsPaletteOpen(false);
+        }}
         commands={commandRegistry.getAll()}
         onCommandSelect={handleCommandSelect}
         onSearchResultSelect={(result) => {
@@ -323,6 +374,21 @@ function App() {
           deleteNote: noteState.deleteNote,
           loadNote: noteState.loadNote,
           createNote: noteState.createNote,
+        }}
+        promptPlaceholder={promptPlaceholder}
+        onPromptSubmit={(value) => {
+          if (promptResolverRef.current) {
+            promptResolverRef.current(value);
+            promptResolverRef.current = null;
+          }
+          setIsPaletteOpen(false);
+        }}
+        onPromptCancel={() => {
+          if (promptResolverRef.current) {
+            promptResolverRef.current(undefined);
+            promptResolverRef.current = null;
+          }
+          setIsPaletteOpen(false);
         }}
       />
       <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />

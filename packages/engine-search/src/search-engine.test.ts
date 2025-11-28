@@ -36,6 +36,7 @@ function createTestNote(id: string, title: string, content: string, tags: string
       title,
       tags,
       links: [],
+      mentions: [],
     },
   };
 }

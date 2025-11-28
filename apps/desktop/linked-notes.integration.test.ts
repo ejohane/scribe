@@ -135,7 +135,7 @@ describe('Linked Notes E2E Integration Tests', () => {
     it('should create wiki-link node in content structure', async () => {
       // Step 1: Create initial note "Alpha" with a wiki-link to "Beta"
       const alphaContent = createNoteWithWikiLink('Alpha', 'Beta', null);
-      const alpha = await vault.create(alphaContent);
+      const alpha = await vault.create({ content: alphaContent });
 
       // Step 3: Verify WikiLinkNode is in the content structure
       const loaded = vault.read(alpha.id);
@@ -156,7 +156,7 @@ describe('Linked Notes E2E Integration Tests', () => {
     it('should navigate to new note when clicking unresolved wiki-link', async () => {
       // Create note "Alpha" with link to non-existent "Beta"
       const alphaContent = createNoteWithWikiLink('Alpha', 'Beta', null);
-      const alpha = await vault.create(alphaContent);
+      const alpha = await vault.create({ content: alphaContent });
       indexNoteInEngines(ctx, alpha);
 
       // Simulate what happens when clicking an unresolved link:
@@ -168,7 +168,7 @@ describe('Linked Notes E2E Integration Tests', () => {
 
       // Step 5: Create new note "Beta" (simulating link click behavior)
       const betaContent = createNoteContent('Beta');
-      const beta = await vault.create(betaContent);
+      const beta = await vault.create({ content: betaContent });
       indexNoteInEngines(ctx, beta);
 
       // Verify new note was created
@@ -325,7 +325,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       const savedSource = vault.read(sourceNote.id);
 
       // Verify wiki-link has resolved targetId
@@ -470,7 +470,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       const savedSource = vault.read(sourceNote.id);
 
       // Verify the link is extracted in metadata
@@ -495,7 +495,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
       const saved = vault.read(note.id);
 
       // Links should be empty (null targetId is not extracted)
@@ -526,7 +526,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
       const saved = vault.read(note.id);
 
       expect(saved?.metadata.links).toContain(target1.id);
@@ -560,7 +560,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       const savedSource = vault.read(sourceNote.id);
       indexNoteInEngines(ctx, savedSource!);
 
@@ -590,7 +590,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       let savedSource = vault.read(sourceNote.id);
       indexNoteInEngines(ctx, savedSource!);
 
@@ -641,7 +641,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
       const saved = vault.read(note.id);
 
       const paragraph = saved?.content.root.children[1] as any;
@@ -675,7 +675,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
 
       // Simulate app restart
       const newVault = await simulateAppRestart(tempDir);
@@ -712,7 +712,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       const savedSource = vault.read(sourceNote.id);
       indexNoteInEngines(ctx, savedSource!);
 
@@ -771,7 +771,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       const savedSource = vault.read(sourceNote.id);
       indexNoteInEngines(ctx, savedSource!);
 
@@ -812,7 +812,7 @@ describe('Linked Notes E2E Integration Tests', () => {
 
       // Simulate clicking broken link - creates new note with that title
       const newNoteContent = createNoteContent(brokenLinkTitle);
-      const newNote = await vault.create(newNoteContent);
+      const newNote = await vault.create({ content: newNoteContent });
       indexNoteInEngines(ctx, newNote);
 
       // Verify new note was created
@@ -844,7 +844,7 @@ describe('Linked Notes E2E Integration Tests', () => {
         },
       };
 
-      const newNote = await vault.create(contentWithHeading);
+      const newNote = await vault.create({ content: contentWithHeading });
 
       // Verify the note has the H1 heading structure
       const saved = vault.read(newNote.id);

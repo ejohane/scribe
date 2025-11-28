@@ -197,6 +197,162 @@ export function createEmptyContent(): LexicalState {
 }
 
 // =============================================================================
+// Person Content Helpers
+// =============================================================================
+
+/**
+ * Type definition for a person-mention node in Lexical content.
+ * Used for creating type-safe person-mention nodes in tests.
+ */
+export interface PersonMentionNodeData {
+  type: 'person-mention';
+  personId: NoteId;
+  personName: string;
+  version: number;
+}
+
+/**
+ * Creates a typed person-mention node for use in test content structures.
+ *
+ * @param personId - The ID of the person being mentioned
+ * @param personName - The display name of the person
+ * @returns A typed PersonMentionNodeData object
+ *
+ * @example
+ * ```ts
+ * const mention = createPersonMentionNode(personNote.id, 'John Smith');
+ * ```
+ */
+export function createPersonMentionNode(
+  personId: NoteId,
+  personName: string
+): PersonMentionNodeData {
+  return {
+    type: 'person-mention',
+    personId,
+    personName,
+    version: 1,
+  };
+}
+
+/**
+ * Creates Lexical content for a person note with H1 heading.
+ *
+ * @param name - The person's name (used as H1 heading)
+ * @returns LexicalState with type='person'
+ *
+ * @example
+ * ```ts
+ * const content = createPersonContent('Alice Johnson');
+ * const person = await vault.create({ content, type: 'person' });
+ * ```
+ */
+export function createPersonContent(name: string): LexicalState & { type: 'person' } {
+  return {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'heading',
+          tag: 'h1',
+          children: [{ type: 'text', text: name }],
+        },
+        {
+          type: 'paragraph',
+          children: [],
+        },
+      ],
+    },
+    type: 'person',
+  };
+}
+
+/**
+ * Creates Lexical content for a note that mentions a person.
+ *
+ * @param title - The note's title
+ * @param personId - The ID of the person being mentioned
+ * @param personName - The display name of the person
+ * @returns LexicalState with person-mention node
+ *
+ * @example
+ * ```ts
+ * const content = createNoteWithMention('Meeting Notes', personNote.id, 'Alice');
+ * const note = await vault.create({ content });
+ * ```
+ */
+export function createNoteWithMention(
+  title: string,
+  personId: NoteId,
+  personName: string
+): LexicalState {
+  return {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text: title }],
+        },
+        {
+          type: 'paragraph',
+          children: [
+            { type: 'text', text: 'Meeting with ' },
+            createPersonMentionNode(personId, personName),
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Creates Lexical content for a note with multiple person mentions.
+ *
+ * @param title - The note's title
+ * @param mentions - Array of person mentions with id and name
+ * @returns LexicalState with multiple person-mention nodes
+ *
+ * @example
+ * ```ts
+ * const content = createNoteWithMultipleMentions('Team Meeting', [
+ *   { personId: alice.id, personName: 'Alice' },
+ *   { personId: bob.id, personName: 'Bob' },
+ * ]);
+ * ```
+ */
+export function createNoteWithMultipleMentions(
+  title: string,
+  mentions: Array<{ personId: NoteId; personName: string }>
+): LexicalState {
+  const mentionNodes = mentions.flatMap((m, i) => {
+    const nodes: (PersonMentionNodeData | { type: string; text: string })[] = [
+      createPersonMentionNode(m.personId, m.personName),
+    ];
+    if (i < mentions.length - 1) {
+      nodes.push({ type: 'text', text: ' and ' });
+    }
+    return nodes;
+  });
+
+  return {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text: title }],
+        },
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text: 'Meeting with ' }, ...mentionNodes],
+        },
+      ],
+    },
+  };
+}
+
+// =============================================================================
 // Note Creation Helpers
 // =============================================================================
 
@@ -220,7 +376,7 @@ export async function createNoteWithTitle(
   title: string,
   delayMs = 10
 ): Promise<Note> {
-  const note = await vault.create(createNoteContent(title));
+  const note = await vault.create({ content: createNoteContent(title) });
   // Small delay to ensure different timestamps
   await delay(delayMs);
   return note;
@@ -245,7 +401,7 @@ export async function createAndIndexNote(
   title: string,
   bodyText?: string
 ): Promise<Note> {
-  const note = await ctx.vault.create(createNoteContent(title, bodyText));
+  const note = await ctx.vault.create({ content: createNoteContent(title, bodyText) });
   const savedNote = ctx.vault.read(note.id);
   indexNoteInEngines(ctx, savedNote);
   await delay(10);

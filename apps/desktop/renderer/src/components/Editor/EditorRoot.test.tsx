@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EditorRoot } from './EditorRoot';
 import type { Note } from '@scribe/shared';
 import * as styles from './EditorRoot.css';
+import { WikiLinkProvider } from './plugins/WikiLinkContext';
+import { PersonMentionProvider } from './plugins/PersonMentionContext';
 
 // Mock note state hook return value
 const createMockNoteState = (note: Note | null = null) => ({
@@ -33,8 +35,31 @@ const createEmptyNote = (): Note => ({
     title: null,
     tags: [],
     links: [],
+    mentions: [],
   },
 });
+
+/**
+ * Wrapper component that provides the required contexts for EditorRoot
+ * (WikiLinkProvider and PersonMentionProvider)
+ */
+function TestWrapper({ children, noteId }: { children: React.ReactNode; noteId: string | null }) {
+  return (
+    <WikiLinkProvider currentNoteId={noteId} onLinkClick={vi.fn()} onError={vi.fn()}>
+      <PersonMentionProvider currentNoteId={noteId} onMentionClick={vi.fn()} onError={vi.fn()}>
+        {children}
+      </PersonMentionProvider>
+    </WikiLinkProvider>
+  );
+}
+
+function renderWithProviders(ui: React.ReactElement, noteId: string | null = null) {
+  return render(ui, {
+    wrapper: ({ children }: { children: React.ReactNode }) => (
+      <TestWrapper noteId={noteId}>{children}</TestWrapper>
+    ),
+  });
+}
 
 describe('EditorRoot', () => {
   beforeEach(() => {
@@ -49,7 +74,7 @@ describe('EditorRoot', () => {
         isLoading: true,
       };
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
       expect(screen.getByText('Loading...')).toBeTruthy();
     });
 
@@ -59,7 +84,7 @@ describe('EditorRoot', () => {
         error: 'Failed to load note',
       };
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
       expect(screen.getByText(/Error: Failed to load note/)).toBeTruthy();
     });
 
@@ -67,7 +92,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorRoot = document.querySelector(`.${styles.editorRoot}`);
@@ -82,7 +107,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const placeholder = screen.queryByText('Start writing...');
@@ -94,7 +119,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector('[data-lexical-editor="true"]');
@@ -133,7 +158,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -167,7 +192,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const heading = document.querySelector('h1');
@@ -212,7 +237,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -227,7 +252,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -243,7 +268,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -258,7 +283,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -273,7 +298,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -288,7 +313,7 @@ describe('EditorRoot', () => {
       const note = createEmptyNote();
       const noteState = createMockNoteState(note);
 
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -305,7 +330,10 @@ describe('EditorRoot', () => {
       const note1 = createEmptyNote();
       const noteState1 = createMockNoteState(note1);
 
-      const { rerender } = render(<EditorRoot noteState={noteState1} />);
+      const { rerender } = renderWithProviders(
+        <EditorRoot noteState={noteState1} />,
+        noteState1.currentNoteId
+      );
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -340,6 +368,7 @@ describe('EditorRoot', () => {
           title: null,
           tags: [],
           links: [],
+          mentions: [],
         },
       };
 
@@ -380,7 +409,10 @@ describe('EditorRoot', () => {
       };
 
       const noteState1 = createMockNoteState(note1);
-      const { rerender } = render(<EditorRoot noteState={noteState1} />);
+      const { rerender } = renderWithProviders(
+        <EditorRoot noteState={noteState1} />,
+        noteState1.currentNoteId
+      );
 
       await waitFor(() => {
         const editorInput = document.querySelector(`.${styles.editorInput}`);
@@ -429,7 +461,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const codeElement = document.querySelector('code');
@@ -463,7 +495,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const quoteElement = document.querySelector('blockquote');
@@ -514,7 +546,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const hrElement = document.querySelector('hr');
@@ -545,7 +577,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const hrElement = document.querySelector(`hr.${styles.hr}`);
@@ -580,7 +612,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const paragraph = document.querySelector(`.${styles.editorParagraph}`);
@@ -614,7 +646,7 @@ describe('EditorRoot', () => {
       };
 
       const noteState = createMockNoteState(note);
-      render(<EditorRoot noteState={noteState} />);
+      renderWithProviders(<EditorRoot noteState={noteState} />, noteState.currentNoteId);
 
       await waitFor(() => {
         const boldElement = document.querySelector(`.${styles.editorTextBold}`);

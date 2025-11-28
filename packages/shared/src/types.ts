@@ -16,6 +16,28 @@ export type NoteId = string;
 export type VaultPath = string;
 
 /**
+ * Note type discriminator
+ * Used to distinguish special note types from regular notes.
+ *
+ * Current types:
+ * - 'person': A person entity that can be mentioned with @name syntax
+ * - undefined: A regular note (default)
+ *
+ * Future types to consider:
+ * - 'project': A project note for organizing related work
+ * - 'meeting': A meeting note with date/attendees
+ * - 'daily': A daily journal note
+ * - 'template': A template for creating new notes
+ *
+ * To add a new type:
+ * 1. Add the string literal to this union type
+ * 2. Update metadata extraction in packages/engine-core/src/metadata.ts
+ * 3. Update the graph engine if the type has special relationships
+ * 4. Add any UI components for the new type
+ */
+export type NoteType = 'person' | 'project' | 'meeting' | 'daily' | 'template';
+
+/**
  * Lexical editor state serialized as JSON
  * This is the canonical representation of note content
  */
@@ -27,6 +49,12 @@ export interface LexicalState {
     indent?: number;
     version?: number;
   };
+  /**
+   * Optional note type discriminator stored at the content root level.
+   * Used to distinguish special note types (e.g., 'person') from regular notes.
+   * undefined = regular note
+   */
+  type?: NoteType;
 }
 
 /**
@@ -57,6 +85,19 @@ export interface NoteMetadata {
    * Outbound references to other notes (extracted from link nodes)
    */
   links: NoteId[];
+
+  /**
+   * People mentioned in this note (extracted from person-mention nodes)
+   * Each entry is the NoteId of a person note
+   */
+  mentions: NoteId[];
+
+  /**
+   * Note type discriminator
+   * - 'person': A person entity that can be mentioned with @name syntax
+   * - undefined: A regular note (default)
+   */
+  type?: NoteType;
 }
 
 /**
@@ -99,6 +140,12 @@ export interface GraphNode {
   id: NoteId;
   title: string | null;
   tags: string[];
+  /**
+   * Note type discriminator for filtering in graph views
+   * - 'person': A person entity
+   * - undefined: A regular note
+   */
+  type?: NoteType;
 }
 
 /**

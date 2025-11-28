@@ -44,7 +44,7 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
 
       // Verify metadata was extracted
       expect(note.metadata.title).toBe('My Note Title with #scribe tag');
@@ -75,7 +75,7 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create(initialContent);
+      const note = await vault.create({ content: initialContent });
       expect(note.metadata.tags).toEqual(['initial']);
 
       // Update note with new content
@@ -140,7 +140,7 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
 
       expect(note.metadata.links).toEqual(['linked-note-id']);
     });
@@ -172,7 +172,7 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
 
       expect(note.metadata.tags.sort()).toEqual(['architecture', 'design', 'scribe']);
     });
@@ -198,7 +198,7 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
 
       // Create a new vault instance to test loading
       const vault2 = new FileSystemVault(tempDir);
@@ -218,7 +218,7 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
 
       // Create a new vault instance to test loading
       const vault2 = new FileSystemVault(tempDir);
@@ -275,7 +275,7 @@ describe('Metadata Integration', () => {
       };
 
       // Create note in first vault instance
-      const note = await vault.create(content);
+      const note = await vault.create({ content });
       const originalMetadata = note.metadata;
 
       // Verify initial metadata

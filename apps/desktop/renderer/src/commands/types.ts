@@ -4,14 +4,24 @@
  * These types define the command palette's command structure and execution model.
  */
 
+import type { NoteId } from '@scribe/shared';
+
 /**
  * Palette mode determines what the command palette displays
  * - 'command': Default mode showing available commands
  * - 'file-browse': File browser mode for opening notes
  * - 'delete-browse': File browser mode for selecting a note to delete
  * - 'delete-confirm': Confirmation screen before deleting a note
+ * - 'person-browse': Browse people mode for viewing and selecting people
+ * - 'prompt-input': Text input prompt mode for collecting user input
  */
-export type PaletteMode = 'command' | 'file-browse' | 'delete-browse' | 'delete-confirm';
+export type PaletteMode =
+  | 'command'
+  | 'file-browse'
+  | 'delete-browse'
+  | 'delete-confirm'
+  | 'person-browse'
+  | 'prompt-input';
 
 /**
  * Context provided to commands when they execute
@@ -41,6 +51,24 @@ export interface CommandContext {
    * Create a new note and switch to it
    */
   createNote: () => Promise<void>;
+
+  /**
+   * Prompt user for text input with a modal dialog
+   * Returns the entered text, or undefined if cancelled
+   */
+  promptInput: (placeholder: string) => Promise<string | undefined>;
+
+  /**
+   * Navigate to a note by ID
+   * Handles autosave, history push, and editor focus
+   */
+  navigateToNote: (noteId: NoteId) => void;
+
+  /**
+   * Switch the command palette to a different mode
+   * Used by Browse People to switch to person-browse mode
+   */
+  setPaletteMode: (mode: PaletteMode) => void;
 }
 
 /**

@@ -344,9 +344,15 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should remove note from all engines when deleted', async () => {
       // Create notes with links and tags
-      const note1 = await vault.create(createNoteContent('Note 1', 'Content with #tag1'));
-      const note2 = await vault.create(createNoteContent('Note 2', 'Content with #tag2'));
-      const note3 = await vault.create(createNoteContent('Note 3', 'Content with #tag1'));
+      const note1 = await vault.create({
+        content: createNoteContent('Note 1', 'Content with #tag1'),
+      });
+      const note2 = await vault.create({
+        content: createNoteContent('Note 2', 'Content with #tag2'),
+      });
+      const note3 = await vault.create({
+        content: createNoteContent('Note 3', 'Content with #tag1'),
+      });
 
       // Index all notes
       indexNoteInEngines(ctx, note1);
@@ -396,7 +402,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should handle deleting note that is linked to by other notes', async () => {
       // Create note A
-      const noteA = await vault.create(createNoteContent('Note A'));
+      const noteA = await vault.create({ content: createNoteContent('Note A') });
 
       // Create note B that links to note A
       const noteBContent: LexicalState = {
@@ -417,7 +423,7 @@ describe('Delete Note E2E Integration Tests', () => {
           ],
         },
       };
-      const noteB = await vault.create(noteBContent);
+      const noteB = await vault.create({ content: noteBContent });
       await vault.save(noteB);
       const savedNoteB = vault.read(noteB.id);
 
@@ -447,7 +453,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should handle deleting note that links to other notes', async () => {
       // Create target note
-      const targetNote = await vault.create(createNoteContent('Target Note'));
+      const targetNote = await vault.create({ content: createNoteContent('Target Note') });
 
       // Create source note that links to target
       const sourceContent: LexicalState = {
@@ -468,7 +474,7 @@ describe('Delete Note E2E Integration Tests', () => {
           ],
         },
       };
-      const sourceNote = await vault.create(sourceContent);
+      const sourceNote = await vault.create({ content: sourceContent });
       await vault.save(sourceNote);
       const savedSourceNote = vault.read(sourceNote.id);
 
@@ -611,13 +617,15 @@ describe('Delete Note E2E Integration Tests', () => {
   describe('Search index cleanup after deletion', () => {
     it('should not return deleted note in search results', async () => {
       // Create notes with searchable content
-      const note1 = await vault.create(
-        createNoteContent('Meeting Notes', 'Discussion about the project timeline')
-      );
-      const note2 = await vault.create(
-        createNoteContent('Project Ideas', 'Brainstorming new features')
-      );
-      const note3 = await vault.create(createNoteContent('Weekly Meeting', 'Team standup notes'));
+      const note1 = await vault.create({
+        content: createNoteContent('Meeting Notes', 'Discussion about the project timeline'),
+      });
+      const note2 = await vault.create({
+        content: createNoteContent('Project Ideas', 'Brainstorming new features'),
+      });
+      const note3 = await vault.create({
+        content: createNoteContent('Weekly Meeting', 'Team standup notes'),
+      });
 
       // Index all notes
       indexNoteInEngines(ctx, note1);
@@ -643,9 +651,9 @@ describe('Delete Note E2E Integration Tests', () => {
 
     it('should rebuild search index correctly after restart with deletions', async () => {
       // Create notes
-      const note1 = await vault.create(createNoteContent('Keep This Note'));
-      const note2 = await vault.create(createNoteContent('Delete This Note'));
-      const note3 = await vault.create(createNoteContent('Another Keep Note'));
+      const note1 = await vault.create({ content: createNoteContent('Keep This Note') });
+      const note2 = await vault.create({ content: createNoteContent('Delete This Note') });
+      const note3 = await vault.create({ content: createNoteContent('Another Keep Note') });
 
       // Delete note2
       await vault.delete(note2.id);

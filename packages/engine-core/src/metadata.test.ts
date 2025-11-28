@@ -3,7 +3,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { extractMetadata, extractTitle, extractTags, extractLinks } from './metadata.js';
+import {
+  extractMetadata,
+  extractTitle,
+  extractTags,
+  extractLinks,
+  extractMentions,
+} from './metadata.js';
 import type { LexicalState } from '@scribe/shared';
 
 describe('extractTitle', () => {
@@ -410,6 +416,196 @@ describe('extractLinks', () => {
   });
 });
 
+describe('extractMentions', () => {
+  it('should extract mentions from person-mention nodes', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Meeting with ',
+              },
+              {
+                type: 'person-mention',
+                personId: 'person-123',
+                personName: 'John Smith',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractMentions(content)).toEqual(['person-123']);
+  });
+
+  it('should return empty array for content with no mentions', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'No mentions here',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractMentions(content)).toEqual([]);
+  });
+
+  it('should deduplicate mentions', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'person-mention',
+                personId: 'person-123',
+                personName: 'John Smith',
+              },
+              {
+                type: 'text',
+                text: ' and again ',
+              },
+              {
+                type: 'person-mention',
+                personId: 'person-123',
+                personName: 'John Smith',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractMentions(content)).toEqual(['person-123']);
+  });
+
+  it('should extract mentions from multiple paragraphs', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'person-mention',
+                personId: 'person-1',
+                personName: 'John',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'person-mention',
+                personId: 'person-2',
+                personName: 'Jane',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractMentions(content)).toEqual(['person-1', 'person-2']);
+  });
+
+  it('should extract mentions from nested structures', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'quote',
+            children: [
+              {
+                type: 'paragraph',
+                children: [
+                  {
+                    type: 'person-mention',
+                    personId: 'person-nested',
+                    personName: 'Nested Person',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(extractMentions(content)).toEqual(['person-nested']);
+  });
+
+  it('should handle person-mention nodes with missing personId gracefully', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'person-mention',
+                // Missing personId
+                personName: 'Missing ID',
+              },
+              {
+                type: 'person-mention',
+                personId: 'person-valid',
+                personName: 'Valid Person',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    // Should only include the valid mention
+    expect(extractMentions(content)).toEqual(['person-valid']);
+  });
+
+  it('should return empty array for empty content', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [],
+      },
+    };
+
+    expect(extractMentions(content)).toEqual([]);
+  });
+
+  it('should return empty array for undefined root children', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content: any = {
+      root: {
+        type: 'root',
+        // Missing children property
+      },
+    };
+
+    expect(extractMentions(content)).toEqual([]);
+  });
+});
+
 describe('extractMetadata', () => {
   it('should extract all metadata from content', () => {
     const content: LexicalState = {
@@ -443,5 +639,32 @@ describe('extractMetadata', () => {
     expect(metadata.title).toBe('My Note Title with #scribe tag');
     expect(metadata.tags).toEqual(['scribe']);
     expect(metadata.links).toEqual(['linked-note']);
+  });
+
+  it('should extract mentions in metadata', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Meeting with ',
+              },
+              {
+                type: 'person-mention',
+                personId: 'person-123',
+                personName: 'John Smith',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const metadata = extractMetadata(content);
+    expect(metadata.mentions).toEqual(['person-123']);
   });
 });

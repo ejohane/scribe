@@ -32,7 +32,7 @@ describe('CommandPalette - Delete Browse Mode', () => {
         createMockNote({
           id: 'note-1',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: 'Test Note', tags: [], links: [] },
+          metadata: { title: 'Test Note', tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
@@ -61,7 +61,7 @@ describe('CommandPalette - Delete Browse Mode', () => {
         createMockNote({
           id: 'note-1',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: 'Test Note', tags: [], links: [] },
+          metadata: { title: 'Test Note', tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
@@ -103,7 +103,7 @@ describe('CommandPalette - Delete Browse Mode', () => {
         createMockNote({
           id: 'note-1',
           updatedAt: BASE_TIME + 1000,
-          metadata: { title: 'Test Note', tags: [], links: [] },
+          metadata: { title: 'Test Note', tags: [], links: [], mentions: [] },
         }),
       ];
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
@@ -159,17 +159,17 @@ describe('CommandPalette - Delete Browse Mode', () => {
       createMockNote({
         id: 'note-3',
         updatedAt: BASE_TIME + 3000,
-        metadata: { title: 'Note Three', tags: [], links: [] },
+        metadata: { title: 'Note Three', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-2',
         updatedAt: BASE_TIME + 2000,
-        metadata: { title: 'Note Two', tags: [], links: [] },
+        metadata: { title: 'Note Two', tags: [], links: [], mentions: [] },
       }),
       createMockNote({
         id: 'note-1',
         updatedAt: BASE_TIME + 1000,
-        metadata: { title: 'Note One', tags: [], links: [] },
+        metadata: { title: 'Note One', tags: [], links: [], mentions: [] },
       }),
     ];
 
@@ -318,12 +318,12 @@ describe('CommandPalette - Delete Browse Mode', () => {
         createMockNote({
           id: currentNoteId,
           updatedAt: BASE_TIME + 5000,
-          metadata: { title: 'Current Note', tags: [], links: [] },
+          metadata: { title: 'Current Note', tags: [], links: [], mentions: [] },
         }),
         createMockNote({
           id: 'other-note',
           updatedAt: BASE_TIME + 4000,
-          metadata: { title: 'Other Note', tags: [], links: [] },
+          metadata: { title: 'Other Note', tags: [], links: [], mentions: [] },
         }),
       ];
 

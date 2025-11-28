@@ -55,6 +55,8 @@ describe('MVP E2E Integration Tests', () => {
         title: null,
         tags: [],
         links: [],
+        mentions: [],
+        type: undefined,
       });
     });
 
@@ -167,7 +169,7 @@ describe('MVP E2E Integration Tests', () => {
       ];
 
       for (const content of notes) {
-        const note = await vault.create(content);
+        const note = await vault.create({ content });
         searchEngine.indexNote(note);
       }
     });

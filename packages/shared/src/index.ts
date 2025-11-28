@@ -6,6 +6,7 @@
 
 export type {
   NoteId,
+  NoteType,
   VaultPath,
   LexicalState,
   LexicalNode,

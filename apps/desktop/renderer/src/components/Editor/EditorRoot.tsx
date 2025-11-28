@@ -26,6 +26,8 @@ import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
 import { HR_PATTERN } from './plugins/constants';
 import { WikiLinkNode } from './plugins/WikiLinkNode';
 import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
+import { PersonMentionNode } from './plugins/PersonMentionNode';
+import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
 import * as styles from './EditorRoot.css';
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
@@ -84,6 +86,7 @@ const editorConfig = {
     LinkNode,
     HorizontalRuleNode,
     WikiLinkNode,
+    PersonMentionNode,
   ],
 };
 
@@ -132,6 +135,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <ManualSavePlugin onSave={saveNote} />
           {/* Wiki-link autocomplete and creation */}
           <WikiLinkPlugin currentNoteId={currentNoteId} />
+          {/* Person mention autocomplete and creation */}
+          <PersonMentionPlugin currentNoteId={currentNoteId} />
         </div>
       </LexicalComposer>
     </div>

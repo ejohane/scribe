@@ -30,6 +30,7 @@ const mockNote: Note = {
     title: null,
     tags: [],
     links: [],
+    mentions: [],
   },
 };
 
@@ -87,7 +88,7 @@ describe('App', () => {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         content: { root: { type: 'root', children: [] } },
-        metadata: { title: null, tags: [], links: [] },
+        metadata: { title: null, tags: [], links: [], mentions: [] },
       };
       (window as any).scribe.notes.create.mockResolvedValue(newNote);
 
@@ -113,7 +114,7 @@ describe('App', () => {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         content: { root: { type: 'root', children: [] } },
-        metadata: { title: null, tags: [], links: [] },
+        metadata: { title: null, tags: [], links: [], mentions: [] },
       };
       (window as any).scribe.notes.create.mockResolvedValue(newNote);
 

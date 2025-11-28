@@ -107,6 +107,21 @@ export interface CommandPaletteProps {
     loadNote: (id: NoteId) => Promise<void>;
     createNote: () => Promise<void>;
   };
+
+  /**
+   * Placeholder text for prompt-input mode
+   */
+  promptPlaceholder?: string;
+
+  /**
+   * Callback when user submits input in prompt-input mode
+   */
+  onPromptSubmit?: (value: string) => void;
+
+  /**
+   * Callback when user cancels prompt-input mode
+   */
+  onPromptCancel?: () => void;
 }
 
 export function CommandPalette({
@@ -122,6 +137,9 @@ export function CommandPalette({
   onModeChange,
   showToast,
   noteState,
+  promptPlaceholder,
+  onPromptSubmit,
+  onPromptCancel,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -138,6 +156,8 @@ export function CommandPalette({
   // Track which mode to return to after cancel (delete-browse or file-browse)
   const [returnMode, setReturnMode] = useState<PaletteMode>('delete-browse');
   const inputRef = useRef<HTMLInputElement>(null);
+  // State for prompt-input mode
+  const [promptInputValue, setPromptInputValue] = useState('');
 
   // Handler to cancel delete confirmation and return to previous mode
   const handleDeleteCancel = useCallback(() => {
@@ -145,6 +165,20 @@ export function CommandPalette({
     setMode(returnMode);
     onModeChange?.(returnMode);
   }, [returnMode, onModeChange]);
+
+  // Handler to submit prompt input
+  const handlePromptSubmit = useCallback(() => {
+    if (promptInputValue.trim()) {
+      onPromptSubmit?.(promptInputValue.trim());
+      setPromptInputValue('');
+    }
+  }, [promptInputValue, onPromptSubmit]);
+
+  // Handler to cancel prompt input
+  const handlePromptCancel = useCallback(() => {
+    onPromptCancel?.();
+    setPromptInputValue('');
+  }, [onPromptCancel]);
 
   // Handler to confirm deletion
   const handleDeleteConfirm = useCallback(async () => {
@@ -244,6 +278,7 @@ export function CommandPalette({
       setQuery('');
       setSelectedIndex(0);
       setSelectedNoteIndex(0);
+      setPromptInputValue('');
       setMode(initialMode);
       // Focus input when palette opens using requestAnimationFrame
       // for more reliable timing than setTimeout
@@ -254,9 +289,15 @@ export function CommandPalette({
       // Clear notes cache when palette closes
       setAllNotes([]);
       setIsLoadingNotes(false);
+      setPromptInputValue('');
       setSelectedNoteIndex(0);
     }
   }, [isOpen, initialMode]);
+
+  // State for people in person-browse mode
+  const [allPeople, setAllPeople] = useState<Note[]>([]);
+  const [isLoadingPeople, setIsLoadingPeople] = useState(false);
+  const [selectedPersonIndex, setSelectedPersonIndex] = useState(0);
 
   // Fetch all notes when entering file-browse or delete-browse mode
   // Uses cancellation flag to prevent race conditions when user rapidly switches modes
@@ -293,6 +334,40 @@ export function CommandPalette({
     };
   }, [mode]);
 
+  // Fetch all people when entering person-browse mode
+  useEffect(() => {
+    if (mode !== 'person-browse') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchPeople = async () => {
+      setIsLoadingPeople(true);
+      try {
+        const people = await window.scribe.people.list();
+        if (!cancelled) {
+          setAllPeople(people);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch people:', error);
+          setAllPeople([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPeople(false);
+        }
+      }
+    };
+
+    fetchPeople();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+
   // Compute recent notes for file-browse mode (initial state with no query)
   // Excludes current note, sorted by updatedAt descending
   // Memoized to prevent unnecessary recalculations on every render
@@ -320,9 +395,24 @@ export function CommandPalette({
     });
   }, [allNotes, currentNoteId]);
 
+  // Build Fuse.js index for fuzzy search in person-browse mode
+  const peopleFuseIndex = useMemo(() => {
+    const searchablePeople = allPeople.filter((person) => person.metadata.title !== null);
+    return new Fuse(searchablePeople, {
+      keys: ['metadata.title'],
+      threshold: 0.4,
+      ignoreLocation: true,
+      isCaseSensitive: false,
+    });
+  }, [allPeople]);
+
   // State for fuzzy search results in file-browse mode
   const [fuzzySearchResults, setFuzzySearchResults] = useState<Note[]>([]);
   const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // State for fuzzy search results in person-browse mode
+  const [fuzzyPeopleResults, setFuzzyPeopleResults] = useState<Note[]>([]);
+  const [debouncedPeopleQuery, setDebouncedPeopleQuery] = useState('');
 
   // Debounce search query for file-browse or delete-browse mode
   useEffect(() => {
@@ -332,6 +422,19 @@ export function CommandPalette({
 
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [query, mode]);
+
+  // Debounce search query for person-browse mode
+  useEffect(() => {
+    if (mode !== 'person-browse') {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setDebouncedPeopleQuery(query);
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
@@ -355,8 +458,39 @@ export function CommandPalette({
     setFuzzySearchResults(results.map((result) => result.item));
   }, [debouncedQuery, fuseIndex, mode]);
 
+  // Perform fuzzy search for people when debounced query changes
+  useEffect(() => {
+    if (mode !== 'person-browse') {
+      setFuzzyPeopleResults([]);
+      return;
+    }
+
+    if (debouncedPeopleQuery.trim() === '') {
+      // No query - show all people
+      setFuzzyPeopleResults([]);
+      return;
+    }
+
+    // Perform fuzzy search
+    const results = peopleFuseIndex.search(debouncedPeopleQuery, { limit: MAX_SEARCH_RESULTS });
+    setFuzzyPeopleResults(results.map((result) => result.item));
+  }, [debouncedPeopleQuery, peopleFuseIndex, mode]);
+
   // Determine which notes to display in file-browse mode
   const displayedNotes = debouncedQuery.trim() === '' ? recentNotes : fuzzySearchResults;
+
+  // Determine which people to display in person-browse mode
+  // When no query, show all people sorted by name; when query exists, show fuzzy results
+  const displayedPeople = useMemo(() => {
+    if (debouncedPeopleQuery.trim() === '') {
+      return allPeople.sort((a, b) => {
+        const titleA = a.metadata.title ?? '';
+        const titleB = b.metadata.title ?? '';
+        return titleA.localeCompare(titleB);
+      });
+    }
+    return fuzzyPeopleResults;
+  }, [debouncedPeopleQuery, allPeople, fuzzyPeopleResults]);
 
   // Whether we're in a "no results" state for file-browse or delete-browse mode
   const hasNoFuzzyResults =
@@ -364,12 +498,22 @@ export function CommandPalette({
     debouncedQuery.trim() !== '' &&
     fuzzySearchResults.length === 0;
 
+  // Whether we're in a "no results" state for person-browse mode
+  const hasNoPeopleResults =
+    mode === 'person-browse' &&
+    debouncedPeopleQuery.trim() !== '' &&
+    fuzzyPeopleResults.length === 0;
+
   // Reset selected index when query changes
   useEffect(() => {
     setSelectedIndex(0);
     // Also reset note index in file-browse or delete-browse mode
     if (mode === 'file-browse' || mode === 'delete-browse') {
       setSelectedNoteIndex(0);
+    }
+    // Reset person index in person-browse mode
+    if (mode === 'person-browse') {
+      setSelectedPersonIndex(0);
     }
   }, [query, mode]);
 
@@ -453,6 +597,36 @@ export function CommandPalette({
         return; // Don't process other keyboard events in confirm mode
       }
 
+      // Person-browse mode keyboard handling
+      if (mode === 'person-browse') {
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            setSelectedPersonIndex((prev) => Math.min(prev + 1, displayedPeople.length - 1));
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            setSelectedPersonIndex((prev) => Math.max(prev - 1, 0));
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (onNoteSelect && displayedPeople[selectedPersonIndex]) {
+              onNoteSelect(displayedPeople[selectedPersonIndex].id);
+              onClose();
+            }
+            break;
+          case 'Escape':
+            e.preventDefault();
+            // In person-browse mode, Escape returns to command mode
+            setMode('command');
+            setQuery('');
+            setSelectedPersonIndex(0);
+            onModeChange?.('command');
+            break;
+        }
+        return;
+      }
+
       // Command mode keyboard handling
       switch (e.key) {
         case 'ArrowDown':
@@ -491,9 +665,11 @@ export function CommandPalette({
     mode,
     selectedIndex,
     selectedNoteIndex,
+    selectedPersonIndex,
     filteredCommands,
     searchResults,
     displayedNotes,
+    displayedPeople,
     allItems.length,
     onCommandSelect,
     onSearchResultSelect,
@@ -655,6 +831,70 @@ export function CommandPalette({
     ));
   };
 
+  // Render person-browse mode results
+  const renderPersonBrowseResults = () => {
+    // Loading state
+    if (isLoadingPeople) {
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          Loading...
+        </Text>
+      );
+    }
+
+    // Empty state - no people created yet
+    if (allPeople.length === 0) {
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No people yet. Create one with "New Person" command
+        </Text>
+      );
+    }
+
+    // No results from fuzzy search
+    if (hasNoPeopleResults) {
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results
+        </Text>
+      );
+    }
+
+    // No people to display
+    if (displayedPeople.length === 0) {
+      return (
+        <Text color="foregroundMuted" className={styles.noResults}>
+          No results
+        </Text>
+      );
+    }
+
+    // Render people list
+    return displayedPeople.map((person, index) => (
+      <div
+        key={person.id}
+        className={clsx(
+          styles.paletteItem,
+          index === selectedPersonIndex && styles.paletteItemSelected
+        )}
+        onClick={() => {
+          if (onNoteSelect) {
+            onNoteSelect(person.id);
+            onClose();
+          }
+        }}
+        onMouseEnter={() => setSelectedPersonIndex(index)}
+      >
+        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+          {truncateTitle(person.metadata.title)}
+        </Text>
+        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+          {formatRelativeDate(person.updatedAt)}
+        </Text>
+      </div>
+    ));
+  };
+
   // Render delete confirmation screen
   const renderDeleteConfirm = () => {
     if (!pendingDeleteNote) return null;
@@ -689,6 +929,58 @@ export function CommandPalette({
           </button>
           <button className={styles.confirmButton} onClick={handleDeleteConfirm}>
             Delete
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Render prompt input mode
+  const renderPromptInput = () => {
+    return (
+      <div
+        className={styles.deleteConfirmation}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prompt-input-title"
+      >
+        <Text
+          as="h2"
+          id="prompt-input-title"
+          size="md"
+          weight="bold"
+          className={styles.deleteConfirmationTitle}
+        >
+          {promptPlaceholder || 'Enter value'}
+        </Text>
+        <input
+          ref={inputRef}
+          type="text"
+          className={styles.promptInputField}
+          placeholder="Type here..."
+          value={promptInputValue}
+          onChange={(e) => setPromptInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && promptInputValue.trim()) {
+              e.preventDefault();
+              handlePromptSubmit();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              handlePromptCancel();
+            }
+          }}
+          autoFocus
+        />
+        <div className={styles.deleteConfirmationActions}>
+          <button className={styles.cancelButton} onClick={handlePromptCancel}>
+            Cancel
+          </button>
+          <button
+            className={styles.primaryButton}
+            onClick={handlePromptSubmit}
+            disabled={!promptInputValue.trim()}
+          >
+            Create
           </button>
         </div>
       </div>
@@ -786,16 +1078,19 @@ export function CommandPalette({
       >
         {mode === 'delete-confirm' ? (
           renderDeleteConfirm()
+        ) : mode === 'prompt-input' ? (
+          renderPromptInput()
         ) : (
           <>
             <div className={styles.inputWrapper}>
-              {(mode === 'file-browse' || mode === 'delete-browse') && (
+              {(mode === 'file-browse' || mode === 'delete-browse' || mode === 'person-browse') && (
                 <button
                   className={styles.backButton}
                   onClick={() => {
                     setMode('command');
                     setQuery('');
                     setSelectedNoteIndex(0);
+                    setSelectedPersonIndex(0);
                     onModeChange?.('command');
                   }}
                   aria-label="Back to commands"
@@ -812,7 +1107,9 @@ export function CommandPalette({
                     ? 'Search notes...'
                     : mode === 'delete-browse'
                       ? 'Select note to delete...'
-                      : 'Search or run a command...'
+                      : mode === 'person-browse'
+                        ? 'Search people...'
+                        : 'Search or run a command...'
                 }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -823,7 +1120,9 @@ export function CommandPalette({
                 ? renderFileBrowseResults()
                 : mode === 'delete-browse'
                   ? renderDeleteBrowseResults()
-                  : renderCommandResults()}
+                  : mode === 'person-browse'
+                    ? renderPersonBrowseResults()
+                    : renderCommandResults()}
             </div>
           </>
         )}

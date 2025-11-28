@@ -17,6 +17,8 @@ export function extractMetadata(content: LexicalState): NoteMetadata {
     title: extractTitle(content),
     tags: extractTags(content),
     links: extractLinks(content),
+    mentions: extractMentions(content),
+    type: content.type,
   };
 }
 
@@ -194,4 +196,30 @@ function extractNoteIdFromUrl(url: string): NoteId | null {
   }
 
   return null;
+}
+
+/**
+ * Extract person mentions from Lexical content
+ *
+ * Finds all person-mention nodes in the content tree and extracts
+ * the personId from each. Returns unique person IDs.
+ *
+ * @param content - Lexical editor state
+ * @returns Array of unique person note IDs
+ */
+export function extractMentions(content: LexicalState): NoteId[] {
+  if (!content.root || !content.root.children) {
+    return [];
+  }
+
+  const mentions = new Set<NoteId>();
+
+  traverseNodes(content.root.children, (node) => {
+    // Person mention nodes store the target person's note ID
+    if (node.type === 'person-mention' && typeof node.personId === 'string') {
+      mentions.add(node.personId);
+    }
+  });
+
+  return Array.from(mentions);
 }
