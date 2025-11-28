@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0](https://github.com/ejohane/scribe/compare/v1.6.4...v1.7.0) (2025-11-28)
+
+### Features
+
+* **ui:** add [@mentions](https://github.com/mentions) and Person entities ([9ae103a](https://github.com/ejohane/scribe/commit/9ae103a3128d04dd310ebab924fa16c4c10dc17d)), closes [#17](https://github.com/ejohane/scribe/issues/17)
+
+### Bug Fixes
+
+* **storage:** preserve note type when saving to fix people feature ([fbb4286](https://github.com/ejohane/scribe/commit/fbb42861448ddacb9a8fc7f463ecb8071a8aca8d))
+* **ui:** add tests, improve autocomplete UX and fix graph engine null handling ([eba4352](https://github.com/ejohane/scribe/commit/eba4352dfc7f06ad3fa2b550a7b438bd0803f746))
+* **ui:** resolve people feature issues 79-90 - improve error handling, debounce, and code cleanup ([27ef12d](https://github.com/ejohane/scribe/commit/27ef12d60ad1584e98f6b0cf3b6088962c085833))
+
 ## [1.6.4](https://github.com/ejohane/scribe/compare/v1.6.3...v1.6.4) (2025-11-27)
 
 ### Code Refactoring
