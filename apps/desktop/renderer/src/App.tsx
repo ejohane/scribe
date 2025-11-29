@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast/Toast';
 import { BackButton } from './components/BackButton/BackButton';
 import { FloatingDock } from './components/FloatingDock/FloatingDock';
+import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
 import type { SidebarNote } from './components/Sidebar';
 import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
@@ -15,7 +16,7 @@ import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
 import type { Command, PaletteMode } from './commands/types';
-import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
+import type { GraphNode, NoteId, LexicalState, NoteType } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
@@ -84,27 +85,13 @@ function App() {
         // Navigate to existing note (adds current to history)
         navigateToNote(resolvedId, true);
       } else {
-        // Create new note with title as H1 heading and navigate to it
+        // Create new note with the wiki-link title and navigate to it
         const newNote = await window.scribe.notes.create();
 
-        // Create content with H1 heading containing the note title
-        const contentWithTitle: LexicalState = {
-          root: {
-            type: 'root',
-            children: [
-              {
-                type: 'heading',
-                tag: 'h1',
-                children: [{ type: 'text', text: noteTitle }],
-              },
-            ],
-          },
-        };
-
-        // Save the note with the title content
+        // Save the note with the explicit title from the wiki-link
         await window.scribe.notes.save({
           ...newNote,
-          content: contentWithTitle,
+          title: noteTitle,
         });
 
         navigateToNote(newNote.id, true);
@@ -356,16 +343,14 @@ function App() {
   const fetchSidebarNotes = useCallback(async () => {
     try {
       const notes = await window.scribe.notes.list();
-      // Transform to SidebarNote format (Note has metadata nested)
+      // Transform to SidebarNote format using explicit note fields
       const sidebarNotes: SidebarNote[] = notes.map((note) => ({
         id: note.id,
+        title: note.title,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
-        title: note.metadata.title,
-        tags: note.metadata.tags,
-        links: note.metadata.links,
-        mentions: note.metadata.mentions,
-        type: note.metadata.type,
+        tags: note.tags,
+        type: note.type,
       }));
       setSidebarNotes(sidebarNotes);
     } catch (error) {
@@ -418,6 +403,17 @@ function App() {
       </ErrorBoundary>
       <div className={styles.mainContent}>
         <BackButton visible={canGoBack} onClick={navigateBack} />
+        {/* Note header with editable metadata */}
+        {noteState.currentNote && (
+          <ErrorBoundary name="NoteHeader">
+            <NoteHeader
+              note={noteState.currentNote}
+              onTitleChange={(title: string) => noteState.updateMetadata({ title })}
+              onTypeChange={(type: NoteType | undefined) => noteState.updateMetadata({ type })}
+              onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
+            />
+          </ErrorBoundary>
+        )}
         <ErrorBoundary name="Editor">
           <WikiLinkProvider
             currentNoteId={noteState.currentNoteId}

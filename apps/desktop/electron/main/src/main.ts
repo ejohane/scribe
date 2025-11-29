@@ -241,13 +241,13 @@ function setupIPCHandlers() {
     }
     const notes = vault.list();
 
-    // Exact match first
-    let match = notes.find((n) => n.metadata.title === title);
+    // Exact match first (using explicit title field)
+    let match = notes.find((n) => n.title === title);
 
     // Case-insensitive fallback
     if (!match) {
       const lowerTitle = title.toLowerCase();
-      const matches = notes.filter((n) => n.metadata.title?.toLowerCase() === lowerTitle);
+      const matches = notes.filter((n) => n.title?.toLowerCase() === lowerTitle);
       // Most recently updated wins
       match = matches.sort((a, b) => b.updatedAt - a.updatedAt)[0];
     }
@@ -269,13 +269,14 @@ function setupIPCHandlers() {
     const notes = vault.list();
     const lowerQuery = query.toLowerCase();
 
+    // Use explicit title field for search
     const matches = notes
-      .filter((n) => n.metadata.title) // Has title
-      .filter((n) => n.metadata.title!.toLowerCase().includes(lowerQuery))
+      .filter((n) => n.title) // Has title
+      .filter((n) => n.title.toLowerCase().includes(lowerQuery))
       .slice(0, limit)
       .map((n) => ({
         id: n.id,
-        title: n.metadata.title!,
+        title: n.title,
         snippet: '',
         score: 1,
         matches: [],
@@ -366,17 +367,18 @@ function setupIPCHandlers() {
       throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
     }
     const notes = vault.list();
-    const people = notes.filter((n) => n.metadata.type === 'person');
+    // Use explicit type field for filtering
+    const people = notes.filter((n) => n.type === 'person');
 
     const queryLower = query.toLowerCase();
     const filtered = people.filter((n) => {
-      const title = n.metadata.title?.toLowerCase() ?? '';
+      const title = n.title.toLowerCase();
       return title.includes(queryLower);
     });
 
     return filtered.slice(0, limit).map((n) => ({
       id: n.id,
-      title: n.metadata.title,
+      title: n.title,
       snippet: '',
       score: 1,
       matches: [],

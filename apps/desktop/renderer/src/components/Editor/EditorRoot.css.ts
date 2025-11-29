@@ -23,7 +23,7 @@ export const editorContainer = style({
 export const editorInput = style({
   flex: 1,
   outline: 'none',
-  padding: `${vars.spacing['12']} ${vars.spacing['8']}`,
+  padding: `${vars.spacing['4']} ${vars.spacing['8']} ${vars.spacing['12']}`,
   fontSize: vars.typography.size.lg,
   lineHeight: vars.typography.lineHeight.relaxed,
   fontFamily: vars.typography.fontFamily.ui,
@@ -36,7 +36,7 @@ export const editorInput = style({
 
 export const editorPlaceholder = style({
   position: 'absolute',
-  top: vars.spacing['12'],
+  top: vars.spacing['4'],
   left: vars.spacing['8'],
   color: vars.color.foregroundMuted,
   pointerEvents: 'none',

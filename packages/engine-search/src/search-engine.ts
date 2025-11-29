@@ -68,11 +68,14 @@ export class SearchEngine {
     const fullText = extractTextForSearch(note.content);
     const contextText = extractTextWithContext(note.content);
 
-    // Prepare document for indexing
+    // Combine explicit user tags with inline #tags from content for search
+    const allTags = [...new Set([...note.tags, ...note.metadata.tags])];
+
+    // Prepare document for indexing (using explicit title field)
     const doc: SearchDocument = {
       id: note.id,
-      title: note.metadata.title || '',
-      tags: note.metadata.tags.join(' '),
+      title: note.title || '',
+      tags: allTags.join(' '),
       content: fullText.slice(0, 1000), // Index first 1000 chars for performance
       fullText: contextText, // Store more for snippets
     };

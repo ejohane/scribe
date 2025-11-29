@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, LexicalState, NoteType } from '@scribe/shared';
+
+/**
+ * Partial note metadata that can be updated via the header UI
+ */
+interface NoteMetadataUpdate {
+  title?: string;
+  type?: NoteType | undefined;
+  tags?: string[];
+}
 
 interface UseNoteStateReturn {
   /** Current note being edited (null if none loaded) */
@@ -19,6 +28,9 @@ interface UseNoteStateReturn {
 
   /** Save the current note with updated content */
   saveNote: (content: LexicalState) => Promise<void>;
+
+  /** Update note metadata (title, type, tags) */
+  updateMetadata: (updates: NoteMetadataUpdate) => Promise<void>;
 
   /** Create and load a new note */
   createNote: () => Promise<void>;
@@ -103,6 +115,48 @@ export function useNoteState(): UseNoteStateReturn {
         const errorMessage = err instanceof Error ? err.message : 'Failed to save note';
         setError(errorMessage);
         console.error('Failed to save note:', err);
+      }
+    },
+    [currentNote]
+  );
+
+  /**
+   * Update note metadata (title, type, tags) without changing content
+   */
+  const updateMetadata = useCallback(
+    async (updates: NoteMetadataUpdate) => {
+      if (!currentNote) {
+        setError('No note loaded to update');
+        return;
+      }
+
+      try {
+        // Create updated note with new metadata
+        const updatedNote: Note = {
+          ...currentNote,
+          ...(updates.title !== undefined && { title: updates.title }),
+          ...(updates.type !== undefined && { type: updates.type }),
+          ...(updates.tags !== undefined && { tags: updates.tags }),
+          updatedAt: Date.now(),
+        };
+
+        // Update local state immediately for responsive UI
+        setCurrentNote(updatedNote);
+
+        // Save to backend
+        const result = await window.scribe.notes.save(updatedNote);
+
+        if (!result.success) {
+          // Revert on failure
+          setCurrentNote(currentNote);
+          setError('Failed to update note metadata');
+        }
+      } catch (err) {
+        // Revert on error
+        setCurrentNote(currentNote);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to update note metadata';
+        setError(errorMessage);
+        console.error('Failed to update note metadata:', err);
       }
     },
     [currentNote]
@@ -194,9 +248,10 @@ export function useNoteState(): UseNoteStateReturn {
       error,
       loadNote,
       saveNote,
+      updateMetadata,
       createNote,
       deleteNote,
     }),
-    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, createNote, deleteNote]
+    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, updateMetadata, createNote, deleteNote]
   );
 }

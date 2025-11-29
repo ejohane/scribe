@@ -411,10 +411,10 @@ export function CommandPalette({
   // Also excludes the current note from the index
   const fuseIndex = useMemo(() => {
     const searchableNotes = allNotes.filter(
-      (note) => note.id !== currentNoteId && note.metadata.title !== null
+      (note) => note.id !== currentNoteId && note.title
     );
     return new Fuse(searchableNotes, {
-      keys: ['metadata.title'],
+      keys: ['title'],
       threshold: 0.4, // Reasonable fuzzy matching threshold
       ignoreLocation: true, // Search anywhere in the string
       isCaseSensitive: false, // Case-insensitive search
@@ -423,9 +423,9 @@ export function CommandPalette({
 
   // Build Fuse.js index for fuzzy search in person-browse mode
   const peopleFuseIndex = useMemo(() => {
-    const searchablePeople = allPeople.filter((person) => person.metadata.title !== null);
+    const searchablePeople = allPeople.filter((person) => person.title);
     return new Fuse(searchablePeople, {
-      keys: ['metadata.title'],
+      keys: ['title'],
       threshold: 0.4,
       ignoreLocation: true,
       isCaseSensitive: false,
@@ -510,8 +510,8 @@ export function CommandPalette({
   const displayedPeople = useMemo(() => {
     if (debouncedPeopleQuery.trim() === '') {
       return allPeople.sort((a, b) => {
-        const titleA = a.metadata.title ?? '';
-        const titleB = b.metadata.title ?? '';
+        const titleA = a.title ?? '';
+        const titleB = b.title ?? '';
         return titleA.localeCompare(titleB);
       });
     }
@@ -767,7 +767,7 @@ export function CommandPalette({
           </span>
           <div className={styles.itemTextContainer}>
             <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-              {truncateTitle(note.metadata.title)}
+              {truncateTitle(note.title)}
             </Text>
             <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
               {formatRelativeDate(note.updatedAt)}
@@ -857,7 +857,7 @@ export function CommandPalette({
           </span>
           <div className={styles.itemTextContainer}>
             <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-              {truncateTitle(note.metadata.title)}
+              {truncateTitle(note.title)}
             </Text>
             <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
               {formatRelativeDate(note.updatedAt)}
@@ -929,7 +929,7 @@ export function CommandPalette({
           </span>
           <div className={styles.itemTextContainer}>
             <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-              {truncateTitle(person.metadata.title)}
+              {truncateTitle(person.title)}
             </Text>
             <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
               {formatRelativeDate(person.updatedAt)}

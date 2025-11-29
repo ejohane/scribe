@@ -111,6 +111,13 @@ export interface Note {
   id: NoteId;
 
   /**
+   * User-editable title for the note
+   * This is the canonical title displayed in sidebar, search, etc.
+   * Unlike metadata.title which is derived from content, this is explicitly set by the user.
+   */
+  title: string;
+
+  /**
    * Timestamp when note was created (milliseconds)
    */
   createdAt: number;
@@ -122,6 +129,26 @@ export interface Note {
   updatedAt: number;
 
   /**
+   * Note type discriminator
+   * Lifted to root level for easier access and explicit user control.
+   * - 'person': A person entity that can be mentioned with @name syntax
+   * - 'project': A project note for organizing related work
+   * - 'meeting': A meeting note with date/attendees
+   * - 'daily': A daily journal note
+   * - 'template': A template for creating new notes
+   * - undefined: A regular note (default)
+   */
+  type?: NoteType;
+
+  /**
+   * User-defined tags for the note
+   * These are explicitly set by the user via the header UI.
+   * Separate from metadata.tags which are extracted from inline #tag patterns in content.
+   * Both are merged when displaying "all tags" for a note.
+   */
+  tags: string[];
+
+  /**
    * Lexical editor state serialized as JSON
    */
   content: LexicalState;
@@ -129,6 +156,8 @@ export interface Note {
   /**
    * Derived metadata (title, tags, links)
    * Always re-extracted from content by engine
+   * Note: metadata.title and metadata.tags are derived from content,
+   * while note.title and note.tags are user-editable explicit fields.
    */
   metadata: NoteMetadata;
 }

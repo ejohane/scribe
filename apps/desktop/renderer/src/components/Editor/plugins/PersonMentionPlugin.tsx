@@ -187,8 +187,8 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
       try {
         // Create the person via API
         const newPerson = await window.scribe.people.create(name);
-        // Insert the mention with the new person's ID
-        insertPersonMention(newPerson.metadata.title || name, newPerson.id);
+        // Insert the mention with the new person's ID (using explicit title field)
+        insertPersonMention(newPerson.title || name, newPerson.id);
       } catch (error) {
         console.error('Failed to create person:', error);
         // Show error to user via context

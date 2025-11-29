@@ -16,10 +16,14 @@ import { getNotesDir, getNoteFilePath, getQuarantineDir } from './vault.js';
  * Options for creating a new note
  */
 export interface CreateNoteOptions {
+  /** Initial title (optional, defaults to 'Untitled') */
+  title?: string;
   /** Initial Lexical content (optional) */
   content?: LexicalState;
   /** Note type discriminator (optional) */
   type?: NoteType;
+  /** Initial user-defined tags (optional) */
+  tags?: string[];
 }
 
 /**
@@ -89,7 +93,10 @@ export class FileSystemVault {
             if (!note.metadata || Object.keys(note.metadata).length === 0) {
               note.metadata = extractMetadata(note.content);
             }
-            this.notes.set(note.id, note);
+
+            // Migrate legacy notes: derive explicit fields from metadata if missing
+            const migratedNote = this.migrateNote(note);
+            this.notes.set(migratedNote.id, migratedNote);
           } else {
             // Quarantine invalid notes
             console.warn(`Invalid note structure in ${file}, quarantining`);
@@ -149,15 +156,18 @@ export class FileSystemVault {
     // Build content with optional type
     const noteContent: LexicalState = options?.content ?? this.createEmptyContent();
 
-    // Set type on the content if provided
+    // Set type on the content if provided (for backward compat with metadata extraction)
     if (options?.type) {
       (noteContent as LexicalState & { type?: NoteType }).type = options.type;
     }
 
     const note: Note = {
       id: randomUUID(),
+      title: options?.title ?? 'Untitled',
       createdAt: now,
       updatedAt: now,
+      type: options?.type,
+      tags: options?.tags ?? [],
       content: noteContent,
       metadata: extractMetadata(noteContent),
     };
@@ -180,21 +190,26 @@ export class FileSystemVault {
    */
   async save(note: Note): Promise<void> {
     try {
-      // Preserve the note type from existing metadata if not present in content
-      // This is necessary because the Lexical editor doesn't preserve the type field
-      // when sending content updates back to the main process
+      // Get existing note for preserving fields not sent from renderer
       const existingNote = this.notes.get(note.id);
+
+      // Preserve the note type from existing note if not present in incoming note
+      // This is necessary because the Lexical editor doesn't always send the type field
       const noteContent = { ...note.content };
-      if (!noteContent.type && existingNote?.metadata.type) {
-        noteContent.type = existingNote.metadata.type;
+      if (!noteContent.type && existingNote?.type) {
+        noteContent.type = existingNote.type;
       }
 
       // Extract metadata from content (now with preserved type)
       const metadata = extractMetadata(noteContent);
 
-      // Update timestamp and metadata
+      // Preserve explicit fields from existing note if not provided
+      // This handles partial updates from the editor (content-only saves)
       const updatedNote: Note = {
         ...note,
+        title: note.title ?? existingNote?.title ?? 'Untitled',
+        type: note.type ?? existingNote?.type,
+        tags: note.tags ?? existingNote?.tags ?? [],
         content: noteContent,
         updatedAt: Date.now(),
         metadata,
@@ -314,6 +329,40 @@ export class FileSystemVault {
         indent: 0,
         version: 1,
       },
+    };
+  }
+
+  /**
+   * Migrate a legacy note to include explicit metadata fields
+   *
+   * For notes created before explicit title/type/tags fields were added,
+   * this derives the values from the existing metadata.
+   *
+   * @param note - Note to migrate (may be missing explicit fields)
+   * @returns Note with all explicit fields populated
+   */
+  private migrateNote(note: Note): Note {
+    // Type assertion for legacy notes that may be missing new fields
+    const legacyNote = note as Partial<Note> & {
+      id: string;
+      createdAt: number;
+      updatedAt: number;
+      content: LexicalState;
+      metadata: Note['metadata'];
+    };
+
+    return {
+      id: legacyNote.id,
+      // Derive title from metadata if explicit title is missing
+      title: legacyNote.title ?? legacyNote.metadata?.title ?? 'Untitled',
+      createdAt: legacyNote.createdAt,
+      updatedAt: legacyNote.updatedAt,
+      // Derive type from metadata or content if explicit type is missing
+      type: legacyNote.type ?? legacyNote.metadata?.type ?? legacyNote.content?.type,
+      // Initialize tags as empty if missing (inline #tags stay in metadata.tags)
+      tags: legacyNote.tags ?? [],
+      content: legacyNote.content,
+      metadata: legacyNote.metadata,
     };
   }
 }
