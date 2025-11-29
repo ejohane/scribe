@@ -24,7 +24,7 @@
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
-    "@types/react": "^18.3.0",
+    "@types/react": "^19.2.7",
     "typescript": "^5.6.3"
   }
 }
