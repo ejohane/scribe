@@ -6,17 +6,17 @@
  */
 
 import { style, keyframes, globalStyle } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, darkTheme } from '@scribe/design-system';
 
 // Animation keyframes
-const slideDown = keyframes({
-  from: {
-    transform: 'translateY(-20px)',
+const slideUp = keyframes({
+  '0%': {
     opacity: 0,
+    transform: 'translateY(10px)',
   },
-  to: {
-    transform: 'translateY(0)',
+  '100%': {
     opacity: 1,
+    transform: 'translateY(0)',
   },
 });
 
@@ -28,26 +28,58 @@ const fadeIn = keyframes({
 // Override Overlay default centering for command palette positioning
 export const overlayPositioning = style({
   alignItems: 'flex-start',
-  paddingTop: '15vh',
+  paddingTop: '20vh', // Matches POC pt-[20vh]
+  backgroundColor: 'rgba(255, 255, 255, 0.6)', // Light mode: bg-white/60
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
+});
+
+// Dark mode backdrop - use black/60 instead of white/60
+globalStyle(`.${darkTheme} ${overlayPositioning}`, {
+  backgroundColor: 'rgba(0, 0, 0, 0.6)', // Dark mode: bg-black/60
 });
 
 // Main palette container
 export const paletteContainer = style({
-  width: '40vw',
-  maxWidth: '640px',
-  maxHeight: '70vh',
+  width: '640px', // Fixed width for consistent sizing
+  maxWidth: '90vw', // Responsive cap for smaller screens
+  maxHeight: '60vh',
   display: 'flex',
   flexDirection: 'column',
-  animation: `${slideDown} 200ms ease-out`,
+  backgroundColor: vars.color.background,
+  borderRadius: vars.radius['2xl'],
+  boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px ${vars.color.border}`,
+  border: 'none',
+  animation: `${slideUp} ${vars.animation.duration.slow} ${vars.animation.easing.default}`,
+  margin: `0 ${vars.spacing['4']}`,
+  overflow: 'hidden',
 });
 
 // Input wrapper with bottom border
 export const inputWrapper = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing['2'],
-  padding: vars.spacing['4'],
+  gap: vars.spacing['3'],
+  padding: `${vars.spacing['4']} ${vars.spacing['4']}`,
   borderBottom: `1px solid ${vars.color.border}`,
+});
+
+// Search icon styling
+export const searchIcon = style({
+  color: vars.color.foregroundMuted,
+  flexShrink: 0,
+});
+
+// ESC badge styling
+export const escBadge = style({
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  backgroundColor: vars.color.surface,
+  borderRadius: vars.radius.sm,
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.medium,
+  color: vars.color.foregroundMuted,
+  flexShrink: 0,
+  userSelect: 'none',
 });
 
 // Custom input styling (borderless for palette)
@@ -55,12 +87,19 @@ export const paletteInput = style({
   flex: 1,
   border: 'none',
   outline: 'none',
+  boxShadow: 'none',
   fontSize: vars.typography.size.md,
   fontFamily: vars.typography.fontFamily.ui,
   color: vars.color.foreground,
   background: 'transparent',
+  height: '1.5rem',
   '::placeholder': {
     color: vars.color.foregroundMuted,
+  },
+  ':focus': {
+    outline: 'none',
+    border: 'none',
+    boxShadow: 'none',
   },
 });
 
@@ -93,8 +132,8 @@ export const backButton = style({
 // Results container
 export const resultsContainer = style({
   overflowY: 'auto',
-  maxHeight: 'calc(70vh - 60px)',
-  padding: `${vars.spacing['2']} 0`,
+  maxHeight: 'calc(60vh - 60px)',
+  padding: vars.spacing['2'],
   // Hide scrollbar while maintaining scroll functionality
   scrollbarWidth: 'none', // Firefox
 });
@@ -129,21 +168,58 @@ export const separator = style({
 export const paletteItem = style({
   position: 'relative',
   display: 'flex',
-  flexDirection: 'column',
-  gap: vars.spacing['1'],
-  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+  alignItems: 'center',
+  gap: vars.spacing['3'],
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   cursor: 'pointer',
-  transition: 'background-color 0.1s ease',
-  borderLeft: '3px solid transparent',
+  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+  borderRadius: vars.radius.lg,
   ':hover': {
     backgroundColor: vars.color.surface,
-    borderLeftColor: vars.color.accent,
   },
 });
 
 export const paletteItemSelected = style({
   backgroundColor: vars.color.surface,
-  borderLeftColor: vars.color.accent,
+});
+
+// Item icon container
+export const itemIcon = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '16px',
+  height: '16px',
+  minWidth: '16px',
+  minHeight: '16px',
+  flexShrink: 0,
+  color: vars.color.foregroundMuted,
+});
+
+// Item text container (holds title and description)
+export const itemTextContainer = style({
+  flex: 1,
+  minWidth: 0,
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: vars.spacing['2'],
+});
+
+// Enter key hint for selected items
+export const enterHint = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: vars.color.foregroundMuted,
+  flexShrink: 0,
+  opacity: 0,
+  transition: `opacity ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+});
+
+// Show enter hint on selected/hovered item
+export const enterHintVisible = style({
+  opacity: 1,
 });
 
 // Item title
@@ -157,18 +233,24 @@ export const itemTitle = style({
   whiteSpace: 'nowrap',
 });
 
-// Item description / subtext
+// Item description / subtext (hidden by default for cleaner look)
 export const itemDescription = style({
+  display: 'none',
   fontSize: vars.typography.size.xs,
+  color: vars.color.foregroundMuted,
+});
+
+// Create item icon container (for plus icon)
+export const createIcon = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
   color: vars.color.foregroundMuted,
 });
 
 // Delete icon on note items
 export const deleteIcon = style({
-  position: 'absolute',
-  right: vars.spacing['3'],
-  top: '50%',
-  transform: 'translateY(-50%)',
   width: '24px',
   height: '24px',
   display: 'flex',
@@ -177,11 +259,12 @@ export const deleteIcon = style({
   borderRadius: vars.radius.sm,
   cursor: 'pointer',
   opacity: 0,
-  transition: 'opacity 0.15s ease',
+  transition: `opacity ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
   color: vars.color.foregroundMuted,
   background: 'transparent',
   border: 'none',
   padding: 0,
+  flexShrink: 0,
   ':hover': {
     color: vars.color.danger,
     backgroundColor: 'rgba(185, 74, 72, 0.1)',

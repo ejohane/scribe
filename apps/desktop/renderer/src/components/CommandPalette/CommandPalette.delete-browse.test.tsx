@@ -95,7 +95,7 @@ describe('CommandPalette - Delete Browse Mode', () => {
       expect(onClose).not.toHaveBeenCalled();
 
       // Should now show command mode placeholder
-      expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
     });
 
     it('back button in delete-browse mode returns to command mode', async () => {
@@ -134,7 +134,7 @@ describe('CommandPalette - Delete Browse Mode', () => {
       expect(onModeChange).toHaveBeenCalledWith('command');
 
       // Should show command mode placeholder
-      expect(screen.getByPlaceholderText('Search or run a command...')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
     });
   });
 

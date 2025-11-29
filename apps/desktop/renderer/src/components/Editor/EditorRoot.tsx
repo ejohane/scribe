@@ -5,6 +5,7 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
+import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin';
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode } from '@lexical/list';
@@ -28,6 +29,8 @@ import { WikiLinkNode } from './plugins/WikiLinkNode';
 import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
 import { PersonMentionNode } from './plugins/PersonMentionNode';
 import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
+import { SelectionToolbarPlugin } from './SelectionToolbar';
+import { SlashMenuPlugin } from './SlashMenu';
 import * as styles from './EditorRoot.css';
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
@@ -124,6 +127,7 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           />
           <HistoryPlugin />
           <ListPlugin />
+          <CheckListPlugin />
           <TabIndentationPlugin />
           <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
           <HorizontalRulePlugin />
@@ -137,6 +141,10 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <WikiLinkPlugin currentNoteId={currentNoteId} />
           {/* Person mention autocomplete and creation */}
           <PersonMentionPlugin currentNoteId={currentNoteId} />
+          {/* Floating toolbar for text selection formatting */}
+          <SelectionToolbarPlugin />
+          {/* Slash command menu */}
+          <SlashMenuPlugin />
         </div>
       </LexicalComposer>
     </div>

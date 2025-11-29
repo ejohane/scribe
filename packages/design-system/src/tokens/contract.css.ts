@@ -19,6 +19,7 @@ export const vars = createThemeContract({
     fontFamily: {
       ui: null,
       mono: null,
+      serif: null,
     },
     size: {
       xs: null,
@@ -55,12 +56,15 @@ export const vars = createThemeContract({
     sm: null,
     md: null,
     lg: null,
+    xl: null,
+    '2xl': null,
     full: null,
   },
   shadow: {
     sm: null,
     md: null,
     lg: null,
+    xl: null,
   },
   zIndex: {
     base: null,
@@ -69,6 +73,18 @@ export const vars = createThemeContract({
     palette: null,
     popover: null,
     tooltip: null,
+  },
+  animation: {
+    duration: {
+      fast: null,
+      normal: null,
+      slow: null,
+      slower: null,
+    },
+    easing: {
+      default: null,
+      smooth: null,
+    },
   },
 });
 

@@ -175,7 +175,8 @@ export function useNoteState(): UseNoteStateReturn {
         }
       } catch (err) {
         console.error('Failed to initialize note:', err);
-        // If loading last note fails, create a new one
+        // If loading last note fails, clear error and create a new one
+        setError(null);
         await createNote();
       }
     };

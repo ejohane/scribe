@@ -12,3 +12,4 @@ export * from './themes';
 export { ThemeProvider, useTheme } from './ThemeProvider';
 export type { ThemeStorage } from './ThemeProvider';
 export * from './primitives';
+export * from './icons';

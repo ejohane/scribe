@@ -3,23 +3,24 @@ import { vars } from '../tokens/contract.css';
 
 export const lightTheme = createTheme(vars, {
   color: {
-    background: '#FAF9F7', // Warm cream
-    backgroundAlt: '#F4F1EC', // Subtle warm gray
-    surface: '#EAE6DF', // Interactive containers
-    border: '#D8D3CB', // Warm gray borders
-    foreground: '#1E1C19', // Near-black, warm
-    foregroundMuted: '#7A756B', // Warm gray text
-    accent: '#D9A441', // Warm amber/gold
-    accentForeground: '#1E1C19', // Dark text on accent
-    danger: '#B94A48', // Warm red
-    dangerForeground: '#FFFFFF', // White text on danger
-    warning: '#E2A65C', // Warm orange
-    info: '#50698C', // Muted blue
+    background: '#FFFFFF', // white
+    backgroundAlt: '#F9FAFB', // gray-50
+    surface: '#F3F4F6', // gray-100
+    border: '#E5E7EB', // gray-200
+    foreground: '#111827', // gray-900
+    foregroundMuted: '#6B7280', // gray-500
+    accent: '#111827', // black
+    accentForeground: '#FFFFFF', // white
+    danger: '#DC2626', // red-600
+    dangerForeground: '#FFFFFF', // white
+    warning: '#D97706', // amber-600
+    info: '#2563EB', // blue-600
   },
   typography: {
     fontFamily: {
       ui: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       mono: '"SF Mono", "Fira Code", "Consolas", monospace',
+      serif: '"Merriweather", Georgia, serif',
     },
     size: {
       xs: '0.75rem', // 12px
@@ -56,12 +57,15 @@ export const lightTheme = createTheme(vars, {
     sm: '0.25rem', // 4px
     md: '0.5rem', // 8px
     lg: '0.75rem', // 12px
+    xl: '1rem', // 16px
+    '2xl': '1.5rem', // 24px
     full: '9999px',
   },
   shadow: {
     sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
     md: '0 4px 12px rgba(0, 0, 0, 0.1)',
     lg: '0 8px 32px rgba(0, 0, 0, 0.15)',
+    xl: '0 20px 40px rgba(0, 0, 0, 0.12)',
   },
   zIndex: {
     base: '0',
@@ -70,5 +74,17 @@ export const lightTheme = createTheme(vars, {
     palette: '200',
     popover: '300',
     tooltip: '400',
+  },
+  animation: {
+    duration: {
+      fast: '150ms',
+      normal: '200ms',
+      slow: '300ms',
+      slower: '500ms',
+    },
+    easing: {
+      default: 'ease-out',
+      smooth: 'cubic-bezier(0.32, 0.72, 0, 1)',
+    },
   },
 });

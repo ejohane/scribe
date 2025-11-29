@@ -4,8 +4,13 @@ import { useTheme } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast/Toast';
 import { BackButton } from './components/BackButton/BackButton';
+import { FloatingDock } from './components/FloatingDock/FloatingDock';
+import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
+import type { SidebarNote } from './components/Sidebar';
+import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
@@ -26,6 +31,17 @@ function App() {
   const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
   const [showBacklinks, setShowBacklinks] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+
+  // FloatingDock state - sidebar and context panel visibility
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [contextPanelOpen, setContextPanelOpen] = useState(false);
+
+  // Panel width state for resizable panels
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [contextPanelWidth, setContextPanelWidth] = useState(CONTEXT_PANEL_DEFAULT_WIDTH);
+
+  // Sidebar notes list
+  const [sidebarNotes, setSidebarNotes] = useState<SidebarNote[]>([]);
 
   // Prompt input state for text input modal
   const [promptPlaceholder, setPromptPlaceholder] = useState('');
@@ -268,6 +284,16 @@ function App() {
           navigateBack();
         }
       }
+      // ⌘J / Ctrl+J: Toggle left sidebar
+      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault();
+        setSidebarOpen((prev) => !prev);
+      }
+      // ⌘L / Ctrl+L: Toggle right context panel
+      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+        e.preventDefault();
+        setContextPanelOpen((prev) => !prev);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -326,107 +352,196 @@ function App() {
     }
   }, [noteState.error, showError]);
 
+  // Fetch notes for sidebar when it opens (and refresh when notes change)
+  const fetchSidebarNotes = useCallback(async () => {
+    try {
+      const notes = await window.scribe.notes.list();
+      // Transform to SidebarNote format (Note has metadata nested)
+      const sidebarNotes: SidebarNote[] = notes.map((note) => ({
+        id: note.id,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+        title: note.metadata.title,
+        tags: note.metadata.tags,
+        links: note.metadata.links,
+        mentions: note.metadata.mentions,
+        type: note.metadata.type,
+      }));
+      setSidebarNotes(sidebarNotes);
+    } catch (error) {
+      console.error('Failed to fetch sidebar notes:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sidebarOpen) {
+      fetchSidebarNotes();
+    }
+  }, [sidebarOpen, fetchSidebarNotes]);
+
+  // Refresh sidebar notes when a note is saved/created/deleted
+  useEffect(() => {
+    if (sidebarOpen && noteState.currentNote) {
+      fetchSidebarNotes();
+    }
+  }, [sidebarOpen, noteState.currentNote, fetchSidebarNotes]);
+
   return (
     <div className={styles.app}>
       <div className={styles.titlebarDragRegion} />
-      <BackButton visible={canGoBack} onClick={navigateBack} />
-      <WikiLinkProvider
-        currentNoteId={noteState.currentNoteId}
-        onLinkClick={handleWikiLinkClick}
-        onError={(message) => showToast(message, 'error')}
-      >
-        <PersonMentionProvider
-          currentNoteId={noteState.currentNoteId}
-          onMentionClick={handlePersonMentionClick}
-          onError={(message) => showToast(message, 'error')}
-        >
-          <EditorRoot noteState={noteState} />
-        </PersonMentionProvider>
-      </WikiLinkProvider>
-      <CommandPalette
-        isOpen={isPaletteOpen}
-        onClose={() => {
-          // If we're in prompt-input mode, resolve the promise with undefined
-          if (paletteMode === 'prompt-input' && promptResolverRef.current) {
-            promptResolverRef.current(undefined);
-            promptResolverRef.current = null;
-          }
-          setIsPaletteOpen(false);
-        }}
-        commands={commandRegistry.getAll()}
-        onCommandSelect={handleCommandSelect}
-        onSearchResultSelect={(result) => {
-          clearHistory(); // Fresh navigation - clear wiki-link history
-          noteState.loadNote(result.id);
-          setIsPaletteOpen(false);
-        }}
-        filterCommands={fuzzySearchCommands}
-        initialMode={paletteMode}
-        currentNoteId={noteState.currentNoteId}
-        onNoteSelect={(noteId) => {
-          clearHistory(); // Fresh navigation - clear wiki-link history
-          noteState.loadNote(noteId);
-        }}
-        onModeChange={(mode) => setPaletteMode(mode)}
-        showToast={showToast}
-        noteState={{
-          currentNoteId: noteState.currentNoteId,
-          deleteNote: noteState.deleteNote,
-          loadNote: noteState.loadNote,
-          createNote: noteState.createNote,
-        }}
-        promptPlaceholder={promptPlaceholder}
-        onPromptSubmit={(value) => {
-          if (promptResolverRef.current) {
-            promptResolverRef.current(value);
-            promptResolverRef.current = null;
-          }
-          setIsPaletteOpen(false);
-        }}
-        onPromptCancel={() => {
-          if (promptResolverRef.current) {
-            promptResolverRef.current(undefined);
-            promptResolverRef.current = null;
-          }
-          setIsPaletteOpen(false);
-        }}
-      />
-      <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
-      <Toast toasts={toasts} onDismiss={dismissToast} />
-      {showBacklinks && (
-        <div className={styles.backlinksOverlay} onClick={handleCloseBacklinks}>
-          <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.backlinksHeader}>
-              <h3>Backlinks</h3>
-              <button onClick={handleCloseBacklinks}>Close</button>
-            </div>
-            <div className={styles.backlinksList}>
-              {backlinkResults.length === 0 ? (
-                <div className={styles.backlinksEmpty}>No backlinks found</div>
-              ) : (
-                backlinkResults.map((backlink) => (
-                  <div
-                    key={backlink.id}
-                    className={styles.backlinkItem}
-                    onClick={() => handleBacklinkSelect(backlink)}
-                  >
-                    <div className={styles.backlinkTitle}>{backlink.title || 'Untitled'}</div>
-                    {backlink.tags.length > 0 && (
-                      <div className={styles.backlinkTags}>
-                        {backlink.tags.map((tag) => (
-                          <span key={tag} className={styles.backlinkTag}>
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
+      <ErrorBoundary name="Sidebar">
+        <Sidebar
+          isOpen={sidebarOpen}
+          notes={sidebarNotes}
+          activeNoteId={noteState.currentNoteId}
+          onSelectNote={(noteId) => {
+            clearHistory();
+            noteState.loadNote(noteId);
+          }}
+          onCreateNote={async () => {
+            clearHistory();
+            await noteState.createNote();
+            fetchSidebarNotes(); // Refresh list after creation
+          }}
+          onDeleteNote={async (noteId) => {
+            await noteState.deleteNote(noteId);
+            fetchSidebarNotes(); // Refresh list after deletion
+          }}
+          onThemeToggle={() => {
+            const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+          }}
+          currentTheme={resolvedTheme as 'light' | 'dark'}
+          width={sidebarWidth}
+          onWidthChange={setSidebarWidth}
+        />
+      </ErrorBoundary>
+      <div className={styles.mainContent}>
+        <BackButton visible={canGoBack} onClick={navigateBack} />
+        <ErrorBoundary name="Editor">
+          <WikiLinkProvider
+            currentNoteId={noteState.currentNoteId}
+            onLinkClick={handleWikiLinkClick}
+            onError={(message) => showToast(message, 'error')}
+          >
+            <PersonMentionProvider
+              currentNoteId={noteState.currentNoteId}
+              onMentionClick={handlePersonMentionClick}
+              onError={(message) => showToast(message, 'error')}
+            >
+              <EditorRoot noteState={noteState} />
+            </PersonMentionProvider>
+          </WikiLinkProvider>
+        </ErrorBoundary>
+        <ErrorBoundary name="Command Palette">
+          <CommandPalette
+            isOpen={isPaletteOpen}
+            onClose={() => {
+              // If we're in prompt-input mode, resolve the promise with undefined
+              if (paletteMode === 'prompt-input' && promptResolverRef.current) {
+                promptResolverRef.current(undefined);
+                promptResolverRef.current = null;
+              }
+              setIsPaletteOpen(false);
+            }}
+            commands={commandRegistry.getAll()}
+            onCommandSelect={handleCommandSelect}
+            onSearchResultSelect={(result) => {
+              clearHistory(); // Fresh navigation - clear wiki-link history
+              noteState.loadNote(result.id);
+              setIsPaletteOpen(false);
+            }}
+            filterCommands={fuzzySearchCommands}
+            initialMode={paletteMode}
+            currentNoteId={noteState.currentNoteId}
+            onNoteSelect={(noteId) => {
+              clearHistory(); // Fresh navigation - clear wiki-link history
+              noteState.loadNote(noteId);
+            }}
+            onModeChange={(mode) => setPaletteMode(mode)}
+            showToast={showToast}
+            noteState={{
+              currentNoteId: noteState.currentNoteId,
+              deleteNote: noteState.deleteNote,
+              loadNote: noteState.loadNote,
+              createNote: noteState.createNote,
+            }}
+            promptPlaceholder={promptPlaceholder}
+            onPromptSubmit={(value) => {
+              if (promptResolverRef.current) {
+                promptResolverRef.current(value);
+                promptResolverRef.current = null;
+              }
+              setIsPaletteOpen(false);
+            }}
+            onPromptCancel={() => {
+              if (promptResolverRef.current) {
+                promptResolverRef.current(undefined);
+                promptResolverRef.current = null;
+              }
+              setIsPaletteOpen(false);
+            }}
+          />
+        </ErrorBoundary>
+        <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
+        <Toast toasts={toasts} onDismiss={dismissToast} />
+        <FloatingDock
+          sidebarOpen={sidebarOpen}
+          contextPanelOpen={contextPanelOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onToggleContextPanel={() => setContextPanelOpen(!contextPanelOpen)}
+          onOpenSearch={() => {
+            setPaletteMode('command');
+            setIsPaletteOpen(true);
+          }}
+        />
+        {showBacklinks && (
+          <div className={styles.backlinksOverlay} onClick={handleCloseBacklinks}>
+            <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.backlinksHeader}>
+                <h3>Backlinks</h3>
+                <button onClick={handleCloseBacklinks}>Close</button>
+              </div>
+              <div className={styles.backlinksList}>
+                {backlinkResults.length === 0 ? (
+                  <div className={styles.backlinksEmpty}>No backlinks found</div>
+                ) : (
+                  backlinkResults.map((backlink) => (
+                    <div
+                      key={backlink.id}
+                      className={styles.backlinkItem}
+                      onClick={() => handleBacklinkSelect(backlink)}
+                    >
+                      <div className={styles.backlinkTitle}>{backlink.title || 'Untitled'}</div>
+                      {backlink.tags.length > 0 && (
+                        <div className={styles.backlinkTags}>
+                          {backlink.tags.map((tag) => (
+                            <span key={tag} className={styles.backlinkTag}>
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <ErrorBoundary name="Context Panel">
+        <ContextPanel
+          isOpen={contextPanelOpen}
+          currentNoteId={noteState.currentNoteId}
+          onSelectBacklink={(noteId) => {
+            clearHistory();
+            noteState.loadNote(noteId);
+          }}
+          width={contextPanelWidth}
+          onWidthChange={setContextPanelWidth}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

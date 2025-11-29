@@ -11,29 +11,35 @@ import Fuse from 'fuse.js';
 import type { Command, PaletteMode } from '../../commands/types';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { formatRelativeDate } from '../../utils/formatRelativeDate';
-import { Overlay, Surface, Text, Icon } from '@scribe/design-system';
+import {
+  Overlay,
+  Surface,
+  Text,
+  Icon,
+  SearchIcon,
+  FileTextIcon,
+  CommandIcon,
+  CornerDownLeftIcon,
+  UserIcon,
+  CloseIcon,
+} from '@scribe/design-system';
 import * as styles from './CommandPalette.css';
+import {
+  MAX_SEARCH_RESULTS,
+  MAX_RECENT_NOTES,
+  SEARCH_DEBOUNCE_MS,
+  DELETE_TITLE_TRUNCATION_LENGTH,
+  DEFAULT_TITLE_TRUNCATION_LENGTH,
+} from './config';
 import clsx from 'clsx';
-
-/** Max fuzzy search results in file-browse mode */
-const MAX_SEARCH_RESULTS = 25;
-
-/** Max recent notes to display in file-browse mode */
-const MAX_RECENT_NOTES = 10;
-
-/** Debounce delay for search input in milliseconds */
-const SEARCH_DEBOUNCE_MS = 150;
-
-/** Max characters for note titles in delete confirmation dialog and toast notifications */
-const DELETE_TITLE_TRUNCATION_LENGTH = 30;
 
 /**
  * Truncates a title to approximately the specified length with ellipsis.
  * The resulting string will be maxLength + 3 characters if truncated.
  * @param title - The title to truncate
- * @param maxLength - Maximum length of content before truncation (default: 50)
+ * @param maxLength - Maximum length of content before truncation (default: DEFAULT_TITLE_TRUNCATION_LENGTH)
  */
-function truncateTitle(title: string | null, maxLength = 50): string {
+function truncateTitle(title: string | null, maxLength = DEFAULT_TITLE_TRUNCATION_LENGTH): string {
   if (!title) return 'Untitled';
   if (title.length <= maxLength) return title;
   return title.slice(0, maxLength).trimEnd() + '...';
@@ -155,9 +161,15 @@ export function CommandPalette({
   const [pendingDeleteNote, setPendingDeleteNote] = useState<Note | null>(null);
   // Track which mode to return to after cancel (delete-browse or file-browse)
   const [returnMode, setReturnMode] = useState<PaletteMode>('delete-browse');
+  // Track if a delete operation is in progress to prevent double-clicks
+  const [isDeleting, setIsDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // State for prompt-input mode
   const [promptInputValue, setPromptInputValue] = useState('');
+
+  // Refs to store latest callback values to avoid re-creating keyboard handler
+  const handleDeleteCancelRef = useRef<() => void>(() => {});
+  const handleDeleteConfirmRef = useRef<() => void>(() => {});
 
   // Handler to cancel delete confirmation and return to previous mode
   const handleDeleteCancel = useCallback(() => {
@@ -165,6 +177,9 @@ export function CommandPalette({
     setMode(returnMode);
     onModeChange?.(returnMode);
   }, [returnMode, onModeChange]);
+
+  // Keep ref updated with latest handleDeleteCancel
+  handleDeleteCancelRef.current = handleDeleteCancel;
 
   // Handler to submit prompt input
   const handlePromptSubmit = useCallback(() => {
@@ -182,7 +197,10 @@ export function CommandPalette({
 
   // Handler to confirm deletion
   const handleDeleteConfirm = useCallback(async () => {
-    if (!pendingDeleteNote || !noteState) return;
+    // Prevent double-clicks by checking if already deleting
+    if (!pendingDeleteNote || !noteState || isDeleting) return;
+
+    setIsDeleting(true);
 
     const noteTitle = pendingDeleteNote.metadata?.title || 'Untitled';
     const noteId = pendingDeleteNote.id;
@@ -214,6 +232,7 @@ export function CommandPalette({
 
       // Close palette
       setPendingDeleteNote(null);
+      setIsDeleting(false);
       onClose();
     } catch (error) {
       // Log error for debugging
@@ -224,10 +243,14 @@ export function CommandPalette({
 
       // Return to delete-browse mode
       setPendingDeleteNote(null);
+      setIsDeleting(false);
       setMode('delete-browse');
       onModeChange?.('delete-browse');
     }
-  }, [pendingDeleteNote, noteState, showToast, onClose, onModeChange]);
+  }, [pendingDeleteNote, noteState, isDeleting, showToast, onClose, onModeChange]);
+
+  // Keep ref updated with latest handleDeleteConfirm
+  handleDeleteConfirmRef.current = handleDeleteConfirm;
 
   // Filter commands based on query
   const filteredCommands = filterCommands
@@ -291,6 +314,9 @@ export function CommandPalette({
       setIsLoadingNotes(false);
       setPromptInputValue('');
       setSelectedNoteIndex(0);
+      // Reset delete state
+      setIsDeleting(false);
+      setPendingDeleteNote(null);
     }
   }, [isOpen, initialMode]);
 
@@ -589,10 +615,10 @@ export function CommandPalette({
       if (mode === 'delete-confirm') {
         if (e.key === 'Escape') {
           e.preventDefault();
-          handleDeleteCancel();
+          handleDeleteCancelRef.current();
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          handleDeleteConfirm();
+          handleDeleteConfirmRef.current();
         }
         return; // Don't process other keyboard events in confirm mode
       }
@@ -676,8 +702,8 @@ export function CommandPalette({
     onNoteSelect,
     onModeChange,
     onClose,
-    handleDeleteCancel,
-    handleDeleteConfirm,
+    // handleDeleteCancel and handleDeleteConfirm are accessed via refs
+    // to avoid re-creating this effect when their dependencies change
   ]);
 
   // Don't render if not open
@@ -722,47 +748,53 @@ export function CommandPalette({
     }
 
     // Render notes (either recent or fuzzy search results)
-    return displayedNotes.map((note, index) => (
-      <div
-        key={note.id}
-        className={clsx(
-          styles.paletteItem,
-          index === selectedNoteIndex && styles.paletteItemSelected
-        )}
-        onClick={() => {
-          if (onNoteSelect) {
-            onNoteSelect(note.id);
-            onClose();
-          }
-        }}
-        onMouseEnter={() => setSelectedNoteIndex(index)}
-      >
-        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-          {truncateTitle(note.metadata.title)}
-        </Text>
-        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-          {formatRelativeDate(note.updatedAt)}
-        </Text>
-        <button
-          className={styles.deleteIcon}
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering note open
-            setPendingDeleteNote(note);
-            setReturnMode('file-browse'); // Important: return to file-browse, not delete-browse
-            setMode('delete-confirm');
-            onModeChange?.('delete-confirm');
+    return displayedNotes.map((note, index) => {
+      const isSelected = index === selectedNoteIndex;
+      return (
+        <div
+          key={note.id}
+          className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+          onClick={() => {
+            if (onNoteSelect) {
+              onNoteSelect(note.id);
+              onClose();
+            }
           }}
-          aria-label={`Delete ${note.metadata?.title || 'note'}`}
-          type="button"
+          onMouseEnter={() => setSelectedNoteIndex(index)}
         >
-          <Icon size="sm" color="foregroundMuted">
-            <svg viewBox="0 0 16 16" fill="currentColor" className={styles.deleteIconSvg}>
-              <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-            </svg>
-          </Icon>
-        </button>
-      </div>
-    ));
+          <span className={styles.itemIcon}>
+            <FileTextIcon />
+          </span>
+          <div className={styles.itemTextContainer}>
+            <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+              {truncateTitle(note.metadata.title)}
+            </Text>
+            <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+              {formatRelativeDate(note.updatedAt)}
+            </Text>
+          </div>
+          <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+            <CornerDownLeftIcon />
+          </span>
+          <button
+            className={styles.deleteIcon}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering note open
+              setPendingDeleteNote(note);
+              setReturnMode('file-browse'); // Important: return to file-browse, not delete-browse
+              setMode('delete-confirm');
+              onModeChange?.('delete-confirm');
+            }}
+            aria-label={`Delete ${note.metadata?.title || 'note'}`}
+            type="button"
+          >
+            <Icon size="sm" color="foregroundMuted">
+              <CloseIcon className={styles.deleteIconSvg} />
+            </Icon>
+          </button>
+        </div>
+      );
+    });
   };
 
   // Render delete-browse mode results (same as file-browse but with different click behavior)
@@ -805,30 +837,38 @@ export function CommandPalette({
 
     // Render notes (either recent or fuzzy search results)
     // Click behavior: transition to delete-confirm mode
-    return displayedNotes.map((note, index) => (
-      <div
-        key={note.id}
-        className={clsx(
-          styles.paletteItem,
-          index === selectedNoteIndex && styles.paletteItemSelected
-        )}
-        onClick={() => {
-          // Transition to delete-confirm mode
-          setPendingDeleteNote(note);
-          setReturnMode('delete-browse');
-          setMode('delete-confirm');
-          onModeChange?.('delete-confirm');
-        }}
-        onMouseEnter={() => setSelectedNoteIndex(index)}
-      >
-        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-          {truncateTitle(note.metadata.title)}
-        </Text>
-        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-          {formatRelativeDate(note.updatedAt)}
-        </Text>
-      </div>
-    ));
+    return displayedNotes.map((note, index) => {
+      const isSelected = index === selectedNoteIndex;
+      return (
+        <div
+          key={note.id}
+          className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+          onClick={() => {
+            // Transition to delete-confirm mode
+            setPendingDeleteNote(note);
+            setReturnMode('delete-browse');
+            setMode('delete-confirm');
+            onModeChange?.('delete-confirm');
+          }}
+          onMouseEnter={() => setSelectedNoteIndex(index)}
+        >
+          <span className={styles.itemIcon}>
+            <FileTextIcon />
+          </span>
+          <div className={styles.itemTextContainer}>
+            <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+              {truncateTitle(note.metadata.title)}
+            </Text>
+            <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+              {formatRelativeDate(note.updatedAt)}
+            </Text>
+          </div>
+          <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+            <CornerDownLeftIcon />
+          </span>
+        </div>
+      );
+    });
   };
 
   // Render person-browse mode results
@@ -870,29 +910,37 @@ export function CommandPalette({
     }
 
     // Render people list
-    return displayedPeople.map((person, index) => (
-      <div
-        key={person.id}
-        className={clsx(
-          styles.paletteItem,
-          index === selectedPersonIndex && styles.paletteItemSelected
-        )}
-        onClick={() => {
-          if (onNoteSelect) {
-            onNoteSelect(person.id);
-            onClose();
-          }
-        }}
-        onMouseEnter={() => setSelectedPersonIndex(index)}
-      >
-        <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-          {truncateTitle(person.metadata.title)}
-        </Text>
-        <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-          {formatRelativeDate(person.updatedAt)}
-        </Text>
-      </div>
-    ));
+    return displayedPeople.map((person, index) => {
+      const isSelected = index === selectedPersonIndex;
+      return (
+        <div
+          key={person.id}
+          className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+          onClick={() => {
+            if (onNoteSelect) {
+              onNoteSelect(person.id);
+              onClose();
+            }
+          }}
+          onMouseEnter={() => setSelectedPersonIndex(index)}
+        >
+          <span className={styles.itemIcon}>
+            <UserIcon />
+          </span>
+          <div className={styles.itemTextContainer}>
+            <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
+              {truncateTitle(person.metadata.title)}
+            </Text>
+            <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+              {formatRelativeDate(person.updatedAt)}
+            </Text>
+          </div>
+          <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+            <CornerDownLeftIcon />
+          </span>
+        </div>
+      );
+    });
   };
 
   // Render delete confirmation screen
@@ -924,11 +972,20 @@ export function CommandPalette({
           This action cannot be undone.
         </Text>
         <div className={styles.deleteConfirmationActions}>
-          <button className={styles.cancelButton} onClick={handleDeleteCancel} autoFocus>
+          <button
+            className={styles.cancelButton}
+            onClick={handleDeleteCancel}
+            disabled={isDeleting}
+            autoFocus
+          >
             Cancel
           </button>
-          <button className={styles.confirmButton} onClick={handleDeleteConfirm}>
-            Delete
+          <button
+            className={styles.confirmButton}
+            onClick={handleDeleteConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>
@@ -999,30 +1056,38 @@ export function CommandPalette({
 
     return (
       <>
-        {filteredCommands.map((command, index) => (
-          <div
-            key={command.id}
-            className={clsx(
-              styles.paletteItem,
-              index === selectedIndex && styles.paletteItemSelected
-            )}
-            onClick={() => {
-              onCommandSelect(command);
-              // Note: Commands are responsible for calling context.closePalette()
-              // Some commands like 'open-note' need to keep the palette open
-            }}
-            onMouseEnter={() => setSelectedIndex(index)}
-          >
-            <Text size="sm" weight="medium" className={styles.itemTitle}>
-              {command.title}
-            </Text>
-            {command.description && (
-              <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-                {command.description}
-              </Text>
-            )}
-          </div>
-        ))}
+        {filteredCommands.map((command, index) => {
+          const isSelected = index === selectedIndex;
+          return (
+            <div
+              key={command.id}
+              className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
+              onClick={() => {
+                onCommandSelect(command);
+                // Note: Commands are responsible for calling context.closePalette()
+                // Some commands like 'open-note' need to keep the palette open
+              }}
+              onMouseEnter={() => setSelectedIndex(index)}
+            >
+              <span className={styles.itemIcon}>
+                <CommandIcon />
+              </span>
+              <div className={styles.itemTextContainer}>
+                <Text size="sm" weight="medium" className={styles.itemTitle}>
+                  {command.title}
+                </Text>
+                {command.description && (
+                  <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                    {command.description}
+                  </Text>
+                )}
+              </div>
+              <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+                <CornerDownLeftIcon />
+              </span>
+            </div>
+          );
+        })}
         {searchResults.length > 0 && (
           <>
             {filteredCommands.length > 0 && (
@@ -1032,13 +1097,11 @@ export function CommandPalette({
             )}
             {searchResults.map((result, searchIndex) => {
               const index = filteredCommands.length + searchIndex;
+              const isSelected = index === selectedIndex;
               return (
                 <div
                   key={result.id}
-                  className={clsx(
-                    styles.paletteItem,
-                    index === selectedIndex && styles.paletteItemSelected
-                  )}
+                  className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
                   onClick={() => {
                     if (onSearchResultSelect) {
                       onSearchResultSelect(result);
@@ -1047,12 +1110,20 @@ export function CommandPalette({
                   }}
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
-                  <Text size="sm" weight="medium" className={styles.itemTitle}>
-                    {result.title || 'Untitled Note'}
-                  </Text>
-                  <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-                    {result.snippet}
-                  </Text>
+                  <span className={styles.itemIcon}>
+                    <FileTextIcon />
+                  </span>
+                  <div className={styles.itemTextContainer}>
+                    <Text size="sm" weight="medium" className={styles.itemTitle}>
+                      {result.title || 'Untitled Note'}
+                    </Text>
+                    <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                      {result.snippet}
+                    </Text>
+                  </div>
+                  <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
+                    <CornerDownLeftIcon />
+                  </span>
                 </div>
               );
             })}
@@ -1075,6 +1146,8 @@ export function CommandPalette({
         radius="lg"
         className={styles.paletteContainer}
         onClick={(e) => e.stopPropagation()}
+        data-testid="command-palette"
+        data-mode={mode}
       >
         {mode === 'delete-confirm' ? (
           renderDeleteConfirm()
@@ -1083,7 +1156,7 @@ export function CommandPalette({
         ) : (
           <>
             <div className={styles.inputWrapper}>
-              {(mode === 'file-browse' || mode === 'delete-browse' || mode === 'person-browse') && (
+              {mode === 'file-browse' || mode === 'delete-browse' || mode === 'person-browse' ? (
                 <button
                   className={styles.backButton}
                   onClick={() => {
@@ -1094,14 +1167,20 @@ export function CommandPalette({
                     onModeChange?.('command');
                   }}
                   aria-label="Back to commands"
+                  data-testid="command-palette-back-button"
                 >
                   ←
                 </button>
+              ) : (
+                <span className={styles.searchIcon}>
+                  <SearchIcon />
+                </span>
               )}
               <input
                 ref={inputRef}
                 type="text"
                 className={styles.paletteInput}
+                data-testid="command-palette-input"
                 placeholder={
                   mode === 'file-browse'
                     ? 'Search notes...'
@@ -1109,13 +1188,14 @@ export function CommandPalette({
                       ? 'Select note to delete...'
                       : mode === 'person-browse'
                         ? 'Search people...'
-                        : 'Search or run a command...'
+                        : 'Search notes or create new...'
                 }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+              <span className={styles.escBadge}>ESC</span>
             </div>
-            <div className={styles.resultsContainer}>
+            <div className={styles.resultsContainer} data-testid="command-palette-results">
               {mode === 'file-browse'
                 ? renderFileBrowseResults()
                 : mode === 'delete-browse'

@@ -3,11 +3,11 @@
  *
  * Renders the autocomplete popup for wiki-link suggestions.
  * This is a presentational component - keyboard handling is done by WikiLinkPlugin.
+ * Styled to match the SlashMenu floating menu design.
  */
 
 import { useEffect, useRef } from 'react';
 import type { SearchResult } from '@scribe/shared';
-import { Surface, Text } from '@scribe/design-system';
 import * as styles from './WikiLinkAutocomplete.css';
 
 export interface WikiLinkAutocompleteProps {
@@ -44,10 +44,7 @@ export function WikiLinkAutocomplete({
   if (!isOpen) return null;
 
   return (
-    <Surface
-      elevation="md"
-      radius="md"
-      bordered
+    <div
       className={styles.dropdown}
       style={{ top: position.top, left: position.left }}
       role="listbox"
@@ -55,13 +52,9 @@ export function WikiLinkAutocomplete({
     >
       <div className={styles.listContainer} ref={listRef}>
         {isLoading ? (
-          <Text size="sm" color="foregroundMuted" className={styles.loading}>
-            Searching...
-          </Text>
+          <div className={styles.loading}>Searching...</div>
         ) : results.length === 0 ? (
-          <Text size="sm" color="foregroundMuted" className={styles.empty}>
-            {query ? 'No matching notes' : 'Type to search notes'}
-          </Text>
+          <div className={styles.empty}>{query ? 'No matching notes' : 'Type to search notes'}</div>
         ) : (
           results.map((result, index) => (
             <div
@@ -72,13 +65,12 @@ export function WikiLinkAutocomplete({
               role="option"
               aria-selected={index === selectedIndex}
             >
-              <Text size="sm" truncate className={styles.title}>
-                {result.title || 'Untitled'}
-              </Text>
+              <span className={styles.itemIcon}>📄</span>
+              <span className={styles.itemText}>{result.title || 'Untitled'}</span>
             </div>
           ))
         )}
       </div>
-    </Surface>
+    </div>
   );
 }

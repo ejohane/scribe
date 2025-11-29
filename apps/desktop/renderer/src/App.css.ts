@@ -21,13 +21,22 @@ export const titlebarDragRegion = style({
   pointerEvents: 'none',
 });
 
-// Main app container
+// Main app container - uses row layout for sidebar + content
 export const app = style({
   position: 'relative',
   width: '100%',
   height: '100vh',
   display: 'flex',
+  flexDirection: 'row',
+});
+
+// Main content area that expands to fill space next to sidebar
+export const mainContent = style({
+  flex: 1,
+  display: 'flex',
   flexDirection: 'column',
+  minWidth: 0, // Prevent flex blowout
+  position: 'relative',
 });
 
 // Backlinks overlay styles
