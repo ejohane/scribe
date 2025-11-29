@@ -25,6 +25,7 @@ export const sidebar = style({
   transition: `all ${vars.animation.duration.slower} ${vars.animation.easing.smooth}`,
   overflow: 'visible',
   position: 'relative', // For resize handle positioning
+  zIndex: 1, // Ensure resize handle is above main content
 });
 
 export const sidebarOpen = style({
@@ -37,6 +38,7 @@ export const sidebarClosed = style({
   width: 0,
   opacity: 0,
   transform: 'translateX(-40px)',
+  overflow: 'hidden', // Hide content when closed
 });
 
 /**
