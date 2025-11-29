@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0](https://github.com/ejohane/scribe/compare/v1.7.0...v1.8.0) (2025-11-29)
+
+### Features
+
+* **editor:** add slash command menu for block formatting ([a40c556](https://github.com/ejohane/scribe/commit/a40c556cf0f2807f480ea094db714745a28cb006))
+* **ui:** add context panel, resize handles, and improve autocomplete styling ([6425ea0](https://github.com/ejohane/scribe/commit/6425ea05ad5d86408a94fef42a72eda491997eeb))
+* **ui:** implement Phase 2 UI redesign with new color palette, app shell, sidebar, dock, and selection toolbar ([4a082f1](https://github.com/ejohane/scribe/commit/4a082f1ca4e9acbc281d64937467fa7f4c10912e))
+
+### Code Refactoring
+
+* **ui:** extract icons to design system, add ErrorBoundary, and cleanup constants ([426ae2a](https://github.com/ejohane/scribe/commit/426ae2a89e024de14ead86ef1fc6d9ebbfd1a12f))
+
 ## [1.7.0](https://github.com/ejohane/scribe/compare/v1.6.4...v1.7.0) (2025-11-28)
 
 ### Features
