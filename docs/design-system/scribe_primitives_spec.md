@@ -225,11 +225,31 @@ A simple wrapper to normalize the sizing and alignment of icons across the UI.
 ## Props
 
 - `size`: `"xs" | "sm" | "md" | "lg"`
-- Children: SVG or icon component
+- `color`: `"foreground" | "foregroundMuted" | "accent" | "danger" | "warning" | "info"` (optional)
+- Children: Lucide icon component
+
+## Icon Library
+
+All icons are provided by [Lucide React](https://lucide.dev/guide/packages/lucide-react).
+Icons are re-exported from `@scribe/design-system` with consistent naming:
+
+```tsx
+import { SearchIcon, FileTextIcon, CommandIcon, CloseIcon } from '@scribe/design-system';
+```
+
+Available icons include: `SearchIcon`, `FileTextIcon`, `CommandIcon`, `CornerDownLeftIcon`,
+`UserIcon`, `MenuIcon`, `PanelRightIcon`, `PlusIcon`, `MoonIcon`, `SunIcon`, `TextIcon`,
+`Heading1Icon`, `Heading2Icon`, `Heading3Icon`, `ListIcon`, `CheckboxIcon`, `QuoteIcon`,
+`SparklesIcon`, `CloseIcon`, `BoldIcon`, `ItalicIcon`, `UnderlineIcon`, `StrikethroughIcon`,
+`HighlightIcon`, `LinkIcon`.
 
 ## Example
 
 ```tsx
+// Direct usage with Lucide's size prop
+<SearchIcon size={16} />
+
+// Or wrapped for semantic sizing
 <Icon size="sm">
   <SearchIcon />
 </Icon>

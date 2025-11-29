@@ -184,17 +184,37 @@ Correct:
 
 ## 2.6 Icon
 
-- Wrap all icons in the `Icon` primitive
-- Never hardcode icon sizes
-- Use semantic sizes for consistency
+Icons are provided by [Lucide React](https://lucide.dev/) and re-exported from `@scribe/design-system`.
 
-Correct:
+### Import Icons
+
+```tsx
+import { SearchIcon, FileTextIcon, CloseIcon } from '@scribe/design-system';
+```
+
+### Usage Patterns
+
+**Direct usage with Lucide props:**
+
+```tsx
+<SearchIcon size={16} />
+<CloseIcon size={12} strokeWidth={2.5} />
+```
+
+**Wrapped for semantic sizing:**
 
 ```tsx
 <Icon size="sm">
   <SearchIcon />
 </Icon>
 ```
+
+### Best Practices
+
+- Import icons from `@scribe/design-system`, not directly from `lucide-react`
+- Use Lucide's `size` prop for pixel-precise sizing
+- Use the `Icon` wrapper for semantic sizing (xs, sm, md, lg)
+- Use `strokeWidth` to adjust visual weight (default is 2)
 
 ---
 

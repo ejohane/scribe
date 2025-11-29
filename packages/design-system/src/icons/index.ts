@@ -1,13 +1,14 @@
 /**
  * Icon Components
  *
- * Centralized SVG icons for the Scribe design system.
- * All icons are pure React components with configurable size.
+ * Re-exports from Lucide React icon library for the Scribe design system.
+ * All icons are React components with configurable size via the `size` prop.
  */
 
 export {
   SearchIcon,
   FileTextIcon,
+  FilePlusIcon,
   CommandIcon,
   CornerDownLeftIcon,
   UserIcon,
@@ -25,6 +26,15 @@ export {
   QuoteIcon,
   SparklesIcon,
   CloseIcon,
+  // SelectionToolbar icons
+  BoldIcon,
+  ItalicIcon,
+  UnderlineIcon,
+  StrikethroughIcon,
+  HighlightIcon,
+  LinkIcon,
+  // Navigation icons
+  ArrowLeftIcon,
 } from './icons';
 
 export type { IconComponentProps } from './icons';

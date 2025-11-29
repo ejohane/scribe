@@ -367,19 +367,36 @@ Foundation for command palette results and selection UIs.
 
 ### 5.7 Icon
 
-Wrapper for consistent icon sizing and alignment.
+Wrapper for consistent icon sizing and alignment. Icons are powered by [Lucide React](https://lucide.dev/).
 
 **Props:**
 
-| Prop   | Type                           | Default |
-| ------ | ------------------------------ | ------- |
-| `size` | `"xs" \| "sm" \| "md" \| "lg"` | `"md"`  |
+| Prop    | Type                                                                           | Default |
+| ------- | ------------------------------------------------------------------------------ | ------- |
+| `size`  | `"xs" \| "sm" \| "md" \| "lg"`                                                 | `"md"`  |
+| `color` | `"foreground" \| "foregroundMuted" \| "accent" \| "danger" \| "warning" \| "info"` | —       |
+
+**Available Icons (from `@scribe/design-system`):**
+
+`SearchIcon`, `FileTextIcon`, `CommandIcon`, `CornerDownLeftIcon`, `UserIcon`, `MenuIcon`,
+`PanelRightIcon`, `PlusIcon`, `MoonIcon`, `SunIcon`, `TextIcon`, `Heading1Icon`, `Heading2Icon`,
+`Heading3Icon`, `ListIcon`, `CheckboxIcon`, `QuoteIcon`, `SparklesIcon`, `CloseIcon`, `BoldIcon`,
+`ItalicIcon`, `UnderlineIcon`, `StrikethroughIcon`, `HighlightIcon`, `LinkIcon`
 
 **Usage:**
 
 ```tsx
+// Direct Lucide usage
+<SearchIcon size={16} />
+
+// Wrapped for semantic sizing
 <Icon size="sm">
   <SearchIcon />
+</Icon>
+
+// With color variant
+<Icon size="md" color="foregroundMuted">
+  <CloseIcon />
 </Icon>
 ```
 

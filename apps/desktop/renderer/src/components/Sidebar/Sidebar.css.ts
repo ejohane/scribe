@@ -52,10 +52,11 @@ export const sidebarInner = style({
 
 /**
  * Header section with branding
+ * paddingTop accounts for macOS titlebar drag region (traffic lights are ~28px tall)
  */
 export const header = style({
   padding: vars.spacing['6'],
-  paddingTop: vars.spacing['8'],
+  paddingTop: '40px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',

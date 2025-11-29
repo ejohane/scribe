@@ -17,6 +17,7 @@ export const peopleCommands: Command[] = [
     group: 'people',
     keywords: ['person', 'contact', 'create', '@'],
     closeOnSelect: true,
+    hidden: true,
     run: async (context) => {
       const name = await context.promptInput('Person name');
       if (!name) return;
@@ -39,6 +40,7 @@ export const peopleCommands: Command[] = [
     group: 'people',
     keywords: ['person', 'contact', 'list', '@'],
     closeOnSelect: false, // Keep palette open, switch mode
+    hidden: true,
     run: async (context) => {
       context.setPaletteMode('person-browse');
     },
