@@ -3,11 +3,23 @@
  *
  * Autocomplete popup component for person mentions (@username).
  * Handles search, display, and selection of people in the vault.
+ * Styled to match the SlashMenu floating menu design.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { NoteId } from '@scribe/shared';
 import * as autocompleteStyles from './PersonMentionAutocomplete.css';
+
+/**
+ * Get initials from a person's name (up to 2 characters)
+ */
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 /**
  * Represents a person result in the autocomplete dropdown
@@ -144,7 +156,8 @@ export function PersonMentionAutocomplete({
               role="option"
               aria-selected={index === selectedIndex}
             >
-              {person.name}
+              <span className={autocompleteStyles.itemIcon}>{getInitials(person.name)}</span>
+              <span className={autocompleteStyles.itemText}>{person.name}</span>
             </div>
           ))}
           {showCreateOption && (
@@ -157,7 +170,8 @@ export function PersonMentionAutocomplete({
               role="option"
               aria-selected={isCreateSelected}
             >
-              + Create &quot;{query.trim()}&quot;
+              <span className={autocompleteStyles.createIcon}>+</span>
+              <span className={autocompleteStyles.itemText}>Create &quot;{query.trim()}&quot;</span>
             </div>
           )}
         </>

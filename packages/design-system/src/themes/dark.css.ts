@@ -6,7 +6,7 @@ export const darkTheme = createTheme(vars, {
     background: '#09090B', // zinc-950 - near-black
     backgroundAlt: '#18181B', // zinc-900 - slightly lighter for sidebars
     surface: '#27272A', // zinc-800 - interactive containers
-    border: '#3F3F46', // zinc-700 - subtle borders
+    border: 'rgba(255, 255, 255, 0.06)', // very subtle white overlay for borders
     foreground: '#F4F4F5', // zinc-100 - primary text, near-white
     foregroundMuted: '#A1A1AA', // zinc-400 - secondary text
     accent: '#FFFFFF', // white - primary actions (inverted)

@@ -9,6 +9,7 @@ import { vars } from '@scribe/design-system';
 /**
  * Main sidebar container
  * Handles the collapse/expand animation
+ * Width is controlled via inline style when resizing
  */
 export const sidebar = style({
   height: '100%',
@@ -17,10 +18,11 @@ export const sidebar = style({
   borderRight: `1px solid ${vars.color.border}`,
   transition: `all ${vars.animation.duration.slower} ${vars.animation.easing.smooth}`,
   overflow: 'hidden',
+  position: 'relative', // For resize handle positioning
 });
 
 export const sidebarOpen = style({
-  width: '280px',
+  // Width is set via inline style to support resizing
   opacity: 1,
   transform: 'translateX(0)',
 });
@@ -32,10 +34,10 @@ export const sidebarClosed = style({
 });
 
 /**
- * Inner container maintains fixed width during collapse animation
+ * Inner container maintains width during collapse animation
+ * Width is set via inline style to support resizing
  */
 export const sidebarInner = style({
-  width: '280px',
   height: '100%',
   display: 'flex',
   flexDirection: 'column',

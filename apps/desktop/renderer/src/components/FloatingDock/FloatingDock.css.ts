@@ -6,7 +6,7 @@
  */
 
 import { style, globalStyle } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, darkTheme } from '@scribe/design-system';
 
 /**
  * Main dock container
@@ -40,10 +40,11 @@ export const dock = style({
 
 /**
  * Dark mode glassmorphism background
- * Applied via data-theme attribute on a parent element
+ * Applied via darkTheme class on document element
  */
-globalStyle('[data-theme="dark"] ' + dock, {
+globalStyle(`.${darkTheme} ` + dock, {
   background: 'rgba(24, 24, 27, 0.9)',
+  borderColor: 'rgba(255, 255, 255, 0.1)',
 });
 
 /**

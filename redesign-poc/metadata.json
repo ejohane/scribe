@@ -1,0 +1,5 @@
+{
+  "name": "Scribe",
+  "description": "A minimal, distraction-free rich text editor with note linking, mentions, and AI-powered writing assistance.",
+  "requestFramePermissions": []
+}

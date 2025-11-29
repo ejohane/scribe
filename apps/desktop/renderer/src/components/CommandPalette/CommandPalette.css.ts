@@ -6,7 +6,7 @@
  */
 
 import { style, keyframes, globalStyle } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, darkTheme } from '@scribe/design-system';
 
 // Animation keyframes
 const slideUp = keyframes({
@@ -29,15 +29,20 @@ const fadeIn = keyframes({
 export const overlayPositioning = style({
   alignItems: 'flex-start',
   paddingTop: '20vh', // Matches POC pt-[20vh]
-  backgroundColor: 'rgba(255, 255, 255, 0.6)', // Matches POC bg-white/60
+  backgroundColor: 'rgba(255, 255, 255, 0.6)', // Light mode: bg-white/60
   backdropFilter: 'blur(4px)',
   WebkitBackdropFilter: 'blur(4px)',
 });
 
+// Dark mode backdrop - use black/60 instead of white/60
+globalStyle(`.${darkTheme} ${overlayPositioning}`, {
+  backgroundColor: 'rgba(0, 0, 0, 0.6)', // Dark mode: bg-black/60
+});
+
 // Main palette container
 export const paletteContainer = style({
-  width: '100%',
-  maxWidth: '512px', // Matches Tailwind's max-w-lg
+  width: '640px', // Fixed width for consistent sizing
+  maxWidth: '90vw', // Responsive cap for smaller screens
   maxHeight: '60vh',
   display: 'flex',
   flexDirection: 'column',

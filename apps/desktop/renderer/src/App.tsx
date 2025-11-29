@@ -7,8 +7,9 @@ import { ErrorNotification } from './components/ErrorNotification/ErrorNotificat
 import { Toast } from './components/Toast/Toast';
 import { BackButton } from './components/BackButton/BackButton';
 import { FloatingDock } from './components/FloatingDock/FloatingDock';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
 import type { SidebarNote } from './components/Sidebar';
+import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
@@ -33,6 +34,10 @@ function App() {
   // FloatingDock state - sidebar and context panel visibility
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [contextPanelOpen, setContextPanelOpen] = useState(false);
+
+  // Panel width state for resizable panels
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [contextPanelWidth, setContextPanelWidth] = useState(CONTEXT_PANEL_DEFAULT_WIDTH);
 
   // Sidebar notes list
   const [sidebarNotes, setSidebarNotes] = useState<SidebarNote[]>([]);
@@ -283,6 +288,11 @@ function App() {
         e.preventDefault();
         setSidebarOpen((prev) => !prev);
       }
+      // ⌘L / Ctrl+L: Toggle right context panel
+      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+        e.preventDefault();
+        setContextPanelOpen((prev) => !prev);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -400,6 +410,8 @@ function App() {
           setTheme(newTheme);
         }}
         currentTheme={resolvedTheme as 'light' | 'dark'}
+        width={sidebarWidth}
+        onWidthChange={setSidebarWidth}
       />
       <div className={styles.mainContent}>
         <BackButton visible={canGoBack} onClick={navigateBack} />
@@ -511,6 +523,16 @@ function App() {
           </div>
         )}
       </div>
+      <ContextPanel
+        isOpen={contextPanelOpen}
+        currentNoteId={noteState.currentNoteId}
+        onSelectBacklink={(noteId) => {
+          clearHistory();
+          noteState.loadNote(noteId);
+        }}
+        width={contextPanelWidth}
+        onWidthChange={setContextPanelWidth}
+      />
     </div>
   );
 }
