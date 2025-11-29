@@ -23,7 +23,7 @@ export const sidebar = style({
   flexShrink: 0,
   borderRight: `1px solid ${vars.color.border}`,
   transition: `all ${vars.animation.duration.slower} ${vars.animation.easing.smooth}`,
-  overflow: 'hidden',
+  overflow: 'visible',
   position: 'relative', // For resize handle positioning
 });
 
@@ -48,6 +48,7 @@ export const sidebarInner = style({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
+  overflow: 'hidden', // Hide content during collapse animation
 });
 
 /**
