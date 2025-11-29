@@ -8,6 +8,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import type { NoteMetadata, NoteId } from '@scribe/shared';
+import { CloseIcon } from '@scribe/design-system';
 import * as styles from './NoteListItem.css';
 
 export interface NoteListItemProps {
@@ -55,30 +56,8 @@ export function NoteListItem({ note, isActive, onSelect, onDelete }: NoteListIte
         title="Delete note"
         type="button"
       >
-        <XIcon size={12} />
+        <CloseIcon size={12} />
       </button>
     </div>
-  );
-}
-
-/**
- * Simple X icon component
- * Inline SVG to avoid external dependencies
- */
-function XIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
   );
 }

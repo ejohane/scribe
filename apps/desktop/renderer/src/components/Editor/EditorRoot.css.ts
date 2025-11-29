@@ -23,7 +23,8 @@ export const editorContainer = style({
 export const editorInput = style({
   flex: 1,
   outline: 'none',
-  padding: `${vars.spacing['12']} ${vars.spacing['8']}`,
+  // Note: Top padding reduced since mainContent provides titlebar clearance (40px)
+  padding: `${vars.spacing['4']} ${vars.spacing['8']} ${vars.spacing['12']} ${vars.spacing['8']}`,
   fontSize: vars.typography.size.lg,
   lineHeight: vars.typography.lineHeight.relaxed,
   fontFamily: vars.typography.fontFamily.ui,
@@ -36,7 +37,8 @@ export const editorInput = style({
 
 export const editorPlaceholder = style({
   position: 'absolute',
-  top: vars.spacing['12'],
+  // Match the reduced top padding of editorInput
+  top: vars.spacing['4'],
   left: vars.spacing['8'],
   color: vars.color.foregroundMuted,
   pointerEvents: 'none',
@@ -126,7 +128,7 @@ export const hrSelected = style({
 
 // Wiki link styles
 export const wikiLink = style({
-  color: vars.color.accent,
+  color: vars.color.info,
   cursor: 'pointer',
   borderRadius: vars.radius.sm,
   padding: `0 ${vars.spacing['1']}`,
@@ -134,7 +136,7 @@ export const wikiLink = style({
   textDecoration: 'none',
   ':hover': {
     textDecoration: 'underline',
-    backgroundColor: `color-mix(in srgb, ${vars.color.accent} 10%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
   },
 });
 
@@ -149,7 +151,7 @@ export const wikiLinkUnresolved = style({
   textDecoration: 'none',
   ':hover': {
     textDecoration: 'underline',
-    backgroundColor: `color-mix(in srgb, ${vars.color.foregroundMuted} 10%, transparent)`,
+    backgroundColor: `color-mix(in srgb, ${vars.color.foregroundMuted} 15%, transparent)`,
   },
 });
 
@@ -211,14 +213,17 @@ globalStyle(`${editorInput} blockquote`, {
   color: vars.color.foregroundMuted,
 });
 
-// Standard links
+// Standard links (URLs) - use info color (blue) for clear link affordance
 globalStyle(`${editorInput} a`, {
-  color: vars.color.accent,
-  textDecoration: 'none',
+  color: vars.color.info,
+  textDecoration: 'underline',
+  textUnderlineOffset: '2px',
+  borderRadius: vars.radius.sm,
+  padding: `0 ${vars.spacing['1']}`,
 });
 
 globalStyle(`${editorInput} a:hover`, {
-  textDecoration: 'underline',
+  backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
 });
 
 // Selection styling
@@ -245,9 +250,9 @@ globalStyle(`${listUl} ${listUl} ${listUl}`, {
 });
 
 // Wiki link styles - using globalStyle because WikiLinkNode uses hardcoded class name
-// Resolved wiki-links use accent color
+// Resolved wiki-links use info color (blue) for clear link affordance
 globalStyle(`${editorInput} .wiki-link`, {
-  color: vars.color.accent,
+  color: vars.color.info,
   cursor: 'pointer',
   borderRadius: vars.radius.sm,
   padding: `0 ${vars.spacing['1']}`,
@@ -257,7 +262,7 @@ globalStyle(`${editorInput} .wiki-link`, {
 
 globalStyle(`${editorInput} .wiki-link:hover`, {
   textDecoration: 'underline',
-  backgroundColor: `color-mix(in srgb, ${vars.color.accent} 10%, transparent)`,
+  backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
 });
 
 // Unresolved wiki-links use muted color and italic
@@ -273,16 +278,20 @@ globalStyle(`${editorInput} .wiki-link-unresolved`, {
 
 globalStyle(`${editorInput} .wiki-link-unresolved:hover`, {
   textDecoration: 'underline',
-  backgroundColor: `color-mix(in srgb, ${vars.color.foregroundMuted} 10%, transparent)`,
+  backgroundColor: `color-mix(in srgb, ${vars.color.foregroundMuted} 15%, transparent)`,
 });
 
-// Person mention styles
+// Person mention styles - use info color (blue) for clear link affordance
 globalStyle('.person-mention', {
-  color: vars.color.accent,
+  color: vars.color.info,
   cursor: 'pointer',
   fontStyle: 'normal',
+  textDecoration: 'none',
+  borderRadius: vars.radius.sm,
+  padding: `0 ${vars.spacing['1']}`,
 });
 
 globalStyle('.person-mention:hover', {
   textDecoration: 'underline',
+  backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
 });

@@ -5,6 +5,7 @@
  */
 
 import type { NoteId } from '@scribe/shared';
+import type { ReactNode } from 'react';
 
 /**
  * Palette mode determines what the command palette displays
@@ -111,6 +112,19 @@ export interface Command {
    * that perform an action and should close immediately.
    */
   closeOnSelect?: boolean;
+
+  /**
+   * Whether to hide this command from the command palette UI.
+   * Hidden commands are still registered and can be invoked programmatically,
+   * but won't appear in the command palette list.
+   */
+  hidden?: boolean;
+
+  /**
+   * Optional icon to display next to the command in the palette.
+   * If not provided, a default command icon will be used.
+   */
+  icon?: ReactNode;
 
   /**
    * Execute the command

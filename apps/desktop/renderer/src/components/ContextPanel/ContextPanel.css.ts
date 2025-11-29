@@ -23,8 +23,9 @@ export const contextPanel = style({
   flexShrink: 0,
   borderLeft: `1px solid ${vars.color.border}`,
   transition: `all ${vars.animation.duration.slower} ${vars.animation.easing.smooth}`,
-  overflow: 'hidden',
+  overflow: 'visible',
   position: 'relative', // For resize handle positioning
+  zIndex: 1, // Ensure resize handle is above main content
 });
 
 export const contextPanelOpen = style({
@@ -37,6 +38,7 @@ export const contextPanelClosed = style({
   width: 0,
   opacity: 0,
   transform: 'translateX(40px)',
+  overflow: 'hidden', // Hide content when closed
 });
 
 /**
@@ -50,7 +52,8 @@ export const panelInner = style({
   flexDirection: 'column',
   padding: vars.spacing['4'],
   paddingTop: vars.spacing['8'],
-  overflow: 'auto',
+  overflowX: 'hidden', // Hide horizontal content during collapse animation
+  overflowY: 'auto', // Allow vertical scrolling
 });
 
 /**

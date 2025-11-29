@@ -5,7 +5,7 @@
  * to navigate to previously viewed notes in the navigation history.
  */
 
-import { Button, Icon } from '@scribe/design-system';
+import { Button, ArrowLeftIcon } from '@scribe/design-system';
 import * as styles from './BackButton.css';
 
 interface BackButtonProps {
@@ -27,7 +27,7 @@ export function BackButton({ visible, onClick }: BackButtonProps) {
       title="Go back (⌘[)"
       type="button"
     >
-      <Icon size="sm">←</Icon>
+      <ArrowLeftIcon size={16} />
     </Button>
   );
 }

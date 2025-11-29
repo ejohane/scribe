@@ -136,10 +136,9 @@ export function Sidebar({
             {currentTheme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
           </button>
         </div>
-
-        {/* Resize handle on the right edge */}
-        {isOpen && onWidthChange && <ResizeHandle position="right" onResize={handleResize} />}
       </div>
+      {/* Resize handle on the right edge - outside sidebarInner to avoid overflow clipping */}
+      {isOpen && onWidthChange && <ResizeHandle position="right" onResize={handleResize} />}
     </aside>
   );
 }

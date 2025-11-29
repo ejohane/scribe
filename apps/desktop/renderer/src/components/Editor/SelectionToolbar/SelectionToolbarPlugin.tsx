@@ -58,6 +58,7 @@ export function SelectionToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const [position, setPosition] = useState<Position | null>(null);
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>(DEFAULT_ACTIVE_FORMATS);
+  const [isMouseDown, setIsMouseDown] = useState(false);
 
   // Calculate position based on browser selection with viewport boundary handling
   const updatePosition = useCallback(() => {
@@ -155,7 +156,44 @@ export function SelectionToolbarPlugin() {
     });
   }, [editor]);
 
-  // Listen for selection changes
+  // Track mouse down/up to prevent toolbar from appearing while dragging
+  useEffect(() => {
+    const rootElement = editor.getRootElement();
+    if (!rootElement) return;
+
+    const handleMouseDown = () => {
+      setIsMouseDown(true);
+      // Hide toolbar when starting a new selection
+      setPosition(null);
+    };
+
+    const handleMouseUp = () => {
+      setIsMouseDown(false);
+      // After mouse release, check if there's a valid selection and show toolbar
+      setTimeout(() => {
+        editor.getEditorState().read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection) && !selection.isCollapsed()) {
+            const text = selection.getTextContent();
+            if (text.trim()) {
+              updatePosition();
+              updateActiveFormats();
+            }
+          }
+        });
+      }, 0);
+    };
+
+    rootElement.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      rootElement.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [editor, updatePosition, updateActiveFormats]);
+
+  // Listen for selection changes (only update if mouse is not down)
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
@@ -163,6 +201,11 @@ export function SelectionToolbarPlugin() {
 
         if (!$isRangeSelection(selection) || selection.isCollapsed()) {
           setPosition(null);
+          return;
+        }
+
+        // Don't show toolbar while mouse is down (dragging)
+        if (isMouseDown) {
           return;
         }
 
@@ -181,11 +224,14 @@ export function SelectionToolbarPlugin() {
         }, 0);
       });
     });
-  }, [editor, updatePosition, updateActiveFormats]);
+  }, [editor, updatePosition, updateActiveFormats, isMouseDown]);
 
-  // Also listen for native selection changes (for better position updates)
+  // Also listen for native selection changes (for better position updates, only when mouse is up)
   useEffect(() => {
     const handleSelectionChange = () => {
+      // Don't update position while dragging
+      if (isMouseDown) return;
+
       editor.getEditorState().read(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection) && !selection.isCollapsed()) {
@@ -196,7 +242,7 @@ export function SelectionToolbarPlugin() {
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
-  }, [editor, updatePosition]);
+  }, [editor, updatePosition, isMouseDown]);
 
   // Apply format when button is clicked
   const handleFormat = useCallback(

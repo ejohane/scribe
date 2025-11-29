@@ -23,8 +23,9 @@ export const sidebar = style({
   flexShrink: 0,
   borderRight: `1px solid ${vars.color.border}`,
   transition: `all ${vars.animation.duration.slower} ${vars.animation.easing.smooth}`,
-  overflow: 'hidden',
+  overflow: 'visible',
   position: 'relative', // For resize handle positioning
+  zIndex: 1, // Ensure resize handle is above main content
 });
 
 export const sidebarOpen = style({
@@ -37,6 +38,7 @@ export const sidebarClosed = style({
   width: 0,
   opacity: 0,
   transform: 'translateX(-40px)',
+  overflow: 'hidden', // Hide content when closed
 });
 
 /**
@@ -48,14 +50,16 @@ export const sidebarInner = style({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
+  overflow: 'hidden', // Hide content during collapse animation
 });
 
 /**
  * Header section with branding
+ * paddingTop accounts for macOS titlebar drag region (traffic lights are ~28px tall)
  */
 export const header = style({
   padding: vars.spacing['6'],
-  paddingTop: vars.spacing['8'],
+  paddingTop: '40px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',

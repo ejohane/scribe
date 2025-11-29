@@ -115,9 +115,9 @@ export const backButton = style({
   borderRadius: vars.radius.sm,
   background: 'transparent',
   color: vars.color.foregroundMuted,
-  fontSize: vars.typography.size.md,
   cursor: 'pointer',
   flexShrink: 0,
+  marginTop: '-2px', // Nudge up to visually center with input text
   transition: 'background-color 0.15s ease, color 0.15s ease',
   ':hover': {
     backgroundColor: vars.color.surface,

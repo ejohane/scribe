@@ -43,6 +43,14 @@ export class CommandRegistry {
   }
 
   /**
+   * Get all visible commands (excludes hidden commands)
+   * Use this for displaying commands in the command palette UI
+   */
+  getVisible(): Command[] {
+    return Array.from(this.commands.values()).filter((cmd) => !cmd.hidden);
+  }
+
+  /**
    * Register a command group
    */
   registerGroup(group: CommandGroup): void {

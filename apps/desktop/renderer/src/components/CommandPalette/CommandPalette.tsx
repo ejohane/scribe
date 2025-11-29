@@ -22,6 +22,7 @@ import {
   CornerDownLeftIcon,
   UserIcon,
   CloseIcon,
+  ArrowLeftIcon,
 } from '@scribe/design-system';
 import * as styles from './CommandPalette.css';
 import {
@@ -1069,9 +1070,7 @@ export function CommandPalette({
               }}
               onMouseEnter={() => setSelectedIndex(index)}
             >
-              <span className={styles.itemIcon}>
-                <CommandIcon />
-              </span>
+              <span className={styles.itemIcon}>{command.icon ?? <CommandIcon />}</span>
               <div className={styles.itemTextContainer}>
                 <Text size="sm" weight="medium" className={styles.itemTitle}>
                   {command.title}
@@ -1169,7 +1168,7 @@ export function CommandPalette({
                   aria-label="Back to commands"
                   data-testid="command-palette-back-button"
                 >
-                  ←
+                  <ArrowLeftIcon size={16} />
                 </button>
               ) : (
                 <span className={styles.searchIcon}>
