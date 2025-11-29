@@ -19,6 +19,7 @@ import {
   BASE_TIME,
   CSS,
   styles,
+  TEST_IDS,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - Mode Switching', () => {
@@ -39,11 +40,12 @@ describe('CommandPalette - Mode Switching', () => {
         />
       );
 
-      // Should show "Search notes..." placeholder for file-browse mode
-      expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
+      // Should be in file-browse mode (using data-testid and data-mode)
+      const palette = screen.getByTestId(TEST_IDS.container);
+      expect(palette).toHaveAttribute('data-mode', 'file-browse');
 
       // Should show back button in file-browse mode
-      expect(screen.getByLabelText('Back to commands')).toBeInTheDocument();
+      expect(screen.getByTestId(TEST_IDS.backButton)).toBeInTheDocument();
     });
 
     it('opens palette in command mode when initialMode is command', async () => {
@@ -57,11 +59,12 @@ describe('CommandPalette - Mode Switching', () => {
         />
       );
 
-      // Should show command mode placeholder
-      expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
+      // Should be in command mode
+      const palette = screen.getByTestId(TEST_IDS.container);
+      expect(palette).toHaveAttribute('data-mode', 'command');
 
       // Should NOT show back button in command mode
-      expect(screen.queryByLabelText('Back to commands')).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TEST_IDS.backButton)).not.toBeInTheDocument();
     });
 
     it('fetches notes when entering file-browse mode', async () => {
@@ -168,7 +171,8 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Verify we're in file-browse mode
-      expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
+      const palette = screen.getByTestId(TEST_IDS.container);
+      expect(palette).toHaveAttribute('data-mode', 'file-browse');
 
       // Simulate App.tsx behavior: when ⌘K is pressed while in file-browse mode,
       // App.tsx changes initialMode to 'command' and rerenders
@@ -182,9 +186,9 @@ describe('CommandPalette - Mode Switching', () => {
         />
       );
 
-      // Should now show command mode placeholder
+      // Should now be in command mode
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
+        expect(screen.getByTestId(TEST_IDS.container)).toHaveAttribute('data-mode', 'command');
       });
 
       // Palette should still be open (onClose not called)
@@ -207,22 +211,23 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Verify we're in file-browse mode
-      expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
-      expect(screen.getByLabelText('Back to commands')).toBeInTheDocument();
+      const palette = screen.getByTestId(TEST_IDS.container);
+      expect(palette).toHaveAttribute('data-mode', 'file-browse');
+      expect(screen.getByTestId(TEST_IDS.backButton)).toBeInTheDocument();
 
       // Press Escape
       fireEvent.keyDown(window, { key: 'Escape' });
 
       // Should return to command mode, not close
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
+        expect(screen.getByTestId(TEST_IDS.container)).toHaveAttribute('data-mode', 'command');
       });
 
       // Palette should NOT be closed
       expect(onClose).not.toHaveBeenCalled();
 
       // Back button should no longer be visible
-      expect(screen.queryByLabelText('Back to commands')).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TEST_IDS.backButton)).not.toBeInTheDocument();
     });
 
     it('pressing Escape in command mode closes the palette', async () => {
@@ -257,7 +262,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Type something in the input
-      const input = screen.getByPlaceholderText('Search notes...');
+      const input = screen.getByTestId(TEST_IDS.input);
       fireEvent.change(input, { target: { value: 'search query' } });
       expect(input).toHaveValue('search query');
 
@@ -266,8 +271,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Wait for mode switch and verify query is cleared
       await waitFor(() => {
-        const commandInput = screen.getByPlaceholderText('Search notes or create new...');
-        expect(commandInput).toHaveValue('');
+        expect(screen.getByTestId(TEST_IDS.input)).toHaveValue('');
       });
     });
   });
@@ -287,7 +291,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Verify we're in file-browse mode with back button
-      const backButton = screen.getByLabelText('Back to commands');
+      const backButton = screen.getByTestId(TEST_IDS.backButton);
       expect(backButton).toBeInTheDocument();
 
       // Click the back button
@@ -295,14 +299,14 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Should return to command mode
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
+        expect(screen.getByTestId(TEST_IDS.container)).toHaveAttribute('data-mode', 'command');
       });
 
       // Palette should NOT be closed
       expect(onClose).not.toHaveBeenCalled();
 
       // Back button should no longer be visible
-      expect(screen.queryByLabelText('Back to commands')).not.toBeInTheDocument();
+      expect(screen.queryByTestId(TEST_IDS.backButton)).not.toBeInTheDocument();
     });
 
     it('clicking back button clears the query', async () => {
@@ -317,18 +321,17 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Type something in the input
-      const input = screen.getByPlaceholderText('Search notes...');
+      const input = screen.getByTestId(TEST_IDS.input);
       fireEvent.change(input, { target: { value: 'search query' } });
       expect(input).toHaveValue('search query');
 
       // Click back button
-      const backButton = screen.getByLabelText('Back to commands');
+      const backButton = screen.getByTestId(TEST_IDS.backButton);
       fireEvent.click(backButton);
 
       // Wait for mode switch and verify query is cleared
       await waitFor(() => {
-        const commandInput = screen.getByPlaceholderText('Search notes or create new...');
-        expect(commandInput).toHaveValue('');
+        expect(screen.getByTestId(TEST_IDS.input)).toHaveValue('');
       });
     });
 
@@ -347,7 +350,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Click back button
-      const backButton = screen.getByLabelText('Back to commands');
+      const backButton = screen.getByTestId(TEST_IDS.backButton);
       fireEvent.click(backButton);
 
       // onModeChange should be called with 'command'
@@ -391,7 +394,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Verify we start in file-browse mode
-      expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
+      expect(screen.getByTestId(TEST_IDS.container)).toHaveAttribute('data-mode', 'file-browse');
 
       // Close the palette
       rerender(
@@ -417,7 +420,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Should be in command mode
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
+        expect(screen.getByTestId(TEST_IDS.container)).toHaveAttribute('data-mode', 'command');
       });
     });
 
@@ -433,7 +436,7 @@ describe('CommandPalette - Mode Switching', () => {
       );
 
       // Type a query
-      const input = screen.getByPlaceholderText('Search notes or create new...');
+      const input = screen.getByTestId(TEST_IDS.input);
       fireEvent.change(input, { target: { value: 'test query' } });
       expect(input).toHaveValue('test query');
 
@@ -461,8 +464,7 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Query should be cleared
       await waitFor(() => {
-        const newInput = screen.getByPlaceholderText('Search notes or create new...');
-        expect(newInput).toHaveValue('');
+        expect(screen.getByTestId(TEST_IDS.input)).toHaveValue('');
       });
     });
 

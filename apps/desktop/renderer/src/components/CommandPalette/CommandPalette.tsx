@@ -11,125 +11,35 @@ import Fuse from 'fuse.js';
 import type { Command, PaletteMode } from '../../commands/types';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { formatRelativeDate } from '../../utils/formatRelativeDate';
-import { Overlay, Surface, Text, Icon } from '@scribe/design-system';
+import {
+  Overlay,
+  Surface,
+  Text,
+  Icon,
+  SearchIcon,
+  FileTextIcon,
+  CommandIcon,
+  CornerDownLeftIcon,
+  UserIcon,
+  CloseIcon,
+} from '@scribe/design-system';
 import * as styles from './CommandPalette.css';
+import {
+  MAX_SEARCH_RESULTS,
+  MAX_RECENT_NOTES,
+  SEARCH_DEBOUNCE_MS,
+  DELETE_TITLE_TRUNCATION_LENGTH,
+  DEFAULT_TITLE_TRUNCATION_LENGTH,
+} from './config';
 import clsx from 'clsx';
-
-// SVG Icons as inline components for the redesigned palette
-const SearchIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.3-4.3" />
-  </svg>
-);
-
-const FileTextIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-    <polyline points="14,2 14,8 20,8" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-const CommandIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-  </svg>
-);
-
-const CornerDownLeftIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="9 10 4 15 9 20" />
-    <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-  </svg>
-);
-
-const UserIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-/** Max fuzzy search results in file-browse mode */
-const MAX_SEARCH_RESULTS = 25;
-
-/** Max recent notes to display in file-browse mode */
-const MAX_RECENT_NOTES = 10;
-
-/** Debounce delay for search input in milliseconds */
-const SEARCH_DEBOUNCE_MS = 150;
-
-/** Max characters for note titles in delete confirmation dialog and toast notifications */
-const DELETE_TITLE_TRUNCATION_LENGTH = 30;
 
 /**
  * Truncates a title to approximately the specified length with ellipsis.
  * The resulting string will be maxLength + 3 characters if truncated.
  * @param title - The title to truncate
- * @param maxLength - Maximum length of content before truncation (default: 50)
+ * @param maxLength - Maximum length of content before truncation (default: DEFAULT_TITLE_TRUNCATION_LENGTH)
  */
-function truncateTitle(title: string | null, maxLength = 50): string {
+function truncateTitle(title: string | null, maxLength = DEFAULT_TITLE_TRUNCATION_LENGTH): string {
   if (!title) return 'Untitled';
   if (title.length <= maxLength) return title;
   return title.slice(0, maxLength).trimEnd() + '...';
@@ -251,9 +161,15 @@ export function CommandPalette({
   const [pendingDeleteNote, setPendingDeleteNote] = useState<Note | null>(null);
   // Track which mode to return to after cancel (delete-browse or file-browse)
   const [returnMode, setReturnMode] = useState<PaletteMode>('delete-browse');
+  // Track if a delete operation is in progress to prevent double-clicks
+  const [isDeleting, setIsDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // State for prompt-input mode
   const [promptInputValue, setPromptInputValue] = useState('');
+
+  // Refs to store latest callback values to avoid re-creating keyboard handler
+  const handleDeleteCancelRef = useRef<() => void>(() => {});
+  const handleDeleteConfirmRef = useRef<() => void>(() => {});
 
   // Handler to cancel delete confirmation and return to previous mode
   const handleDeleteCancel = useCallback(() => {
@@ -261,6 +177,9 @@ export function CommandPalette({
     setMode(returnMode);
     onModeChange?.(returnMode);
   }, [returnMode, onModeChange]);
+
+  // Keep ref updated with latest handleDeleteCancel
+  handleDeleteCancelRef.current = handleDeleteCancel;
 
   // Handler to submit prompt input
   const handlePromptSubmit = useCallback(() => {
@@ -278,7 +197,10 @@ export function CommandPalette({
 
   // Handler to confirm deletion
   const handleDeleteConfirm = useCallback(async () => {
-    if (!pendingDeleteNote || !noteState) return;
+    // Prevent double-clicks by checking if already deleting
+    if (!pendingDeleteNote || !noteState || isDeleting) return;
+
+    setIsDeleting(true);
 
     const noteTitle = pendingDeleteNote.metadata?.title || 'Untitled';
     const noteId = pendingDeleteNote.id;
@@ -310,6 +232,7 @@ export function CommandPalette({
 
       // Close palette
       setPendingDeleteNote(null);
+      setIsDeleting(false);
       onClose();
     } catch (error) {
       // Log error for debugging
@@ -320,10 +243,14 @@ export function CommandPalette({
 
       // Return to delete-browse mode
       setPendingDeleteNote(null);
+      setIsDeleting(false);
       setMode('delete-browse');
       onModeChange?.('delete-browse');
     }
-  }, [pendingDeleteNote, noteState, showToast, onClose, onModeChange]);
+  }, [pendingDeleteNote, noteState, isDeleting, showToast, onClose, onModeChange]);
+
+  // Keep ref updated with latest handleDeleteConfirm
+  handleDeleteConfirmRef.current = handleDeleteConfirm;
 
   // Filter commands based on query
   const filteredCommands = filterCommands
@@ -387,6 +314,9 @@ export function CommandPalette({
       setIsLoadingNotes(false);
       setPromptInputValue('');
       setSelectedNoteIndex(0);
+      // Reset delete state
+      setIsDeleting(false);
+      setPendingDeleteNote(null);
     }
   }, [isOpen, initialMode]);
 
@@ -685,10 +615,10 @@ export function CommandPalette({
       if (mode === 'delete-confirm') {
         if (e.key === 'Escape') {
           e.preventDefault();
-          handleDeleteCancel();
+          handleDeleteCancelRef.current();
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          handleDeleteConfirm();
+          handleDeleteConfirmRef.current();
         }
         return; // Don't process other keyboard events in confirm mode
       }
@@ -772,8 +702,8 @@ export function CommandPalette({
     onNoteSelect,
     onModeChange,
     onClose,
-    handleDeleteCancel,
-    handleDeleteConfirm,
+    // handleDeleteCancel and handleDeleteConfirm are accessed via refs
+    // to avoid re-creating this effect when their dependencies change
   ]);
 
   // Don't render if not open
@@ -859,9 +789,7 @@ export function CommandPalette({
             type="button"
           >
             <Icon size="sm" color="foregroundMuted">
-              <svg viewBox="0 0 16 16" fill="currentColor" className={styles.deleteIconSvg}>
-                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
-              </svg>
+              <CloseIcon className={styles.deleteIconSvg} />
             </Icon>
           </button>
         </div>
@@ -1044,11 +972,20 @@ export function CommandPalette({
           This action cannot be undone.
         </Text>
         <div className={styles.deleteConfirmationActions}>
-          <button className={styles.cancelButton} onClick={handleDeleteCancel} autoFocus>
+          <button
+            className={styles.cancelButton}
+            onClick={handleDeleteCancel}
+            disabled={isDeleting}
+            autoFocus
+          >
             Cancel
           </button>
-          <button className={styles.confirmButton} onClick={handleDeleteConfirm}>
-            Delete
+          <button
+            className={styles.confirmButton}
+            onClick={handleDeleteConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>
@@ -1209,6 +1146,8 @@ export function CommandPalette({
         radius="lg"
         className={styles.paletteContainer}
         onClick={(e) => e.stopPropagation()}
+        data-testid="command-palette"
+        data-mode={mode}
       >
         {mode === 'delete-confirm' ? (
           renderDeleteConfirm()
@@ -1228,6 +1167,7 @@ export function CommandPalette({
                     onModeChange?.('command');
                   }}
                   aria-label="Back to commands"
+                  data-testid="command-palette-back-button"
                 >
                   ←
                 </button>
@@ -1240,6 +1180,7 @@ export function CommandPalette({
                 ref={inputRef}
                 type="text"
                 className={styles.paletteInput}
+                data-testid="command-palette-input"
                 placeholder={
                   mode === 'file-browse'
                     ? 'Search notes...'
@@ -1254,7 +1195,7 @@ export function CommandPalette({
               />
               <span className={styles.escBadge}>ESC</span>
             </div>
-            <div className={styles.resultsContainer}>
+            <div className={styles.resultsContainer} data-testid="command-palette-results">
               {mode === 'file-browse'
                 ? renderFileBrowseResults()
                 : mode === 'delete-browse'

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, createVar } from '@vanilla-extract/css';
 import { vars } from '@scribe/design-system';
 
 /**
@@ -6,12 +6,18 @@ import { vars } from '@scribe/design-system';
  * Right sidebar showing contextual information about the current note
  */
 
+/** CSS custom property for dynamic panel width */
+export const panelWidth = createVar();
+
 /**
  * Main panel container
  * Handles the collapse/expand animation
- * Width is controlled via inline style when resizing
+ * Width is controlled via CSS custom property (--panel-width) set at runtime
  */
 export const contextPanel = style({
+  vars: {
+    [panelWidth]: '280px', // Default width
+  },
   height: '100%',
   backgroundColor: vars.color.backgroundAlt,
   flexShrink: 0,
@@ -22,7 +28,7 @@ export const contextPanel = style({
 });
 
 export const contextPanelOpen = style({
-  // Width is set via inline style to support resizing
+  width: panelWidth,
   opacity: 1,
   transform: 'translateX(0)',
 });
@@ -35,9 +41,10 @@ export const contextPanelClosed = style({
 
 /**
  * Inner container maintains width during collapse animation
- * Width is set via inline style to support resizing
+ * Width is set via CSS custom property to support resizing
  */
 export const panelInner = style({
+  width: panelWidth,
   height: '100%',
   display: 'flex',
   flexDirection: 'column',

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, createVar } from '@vanilla-extract/css';
 import { vars } from '@scribe/design-system';
 
 /**
@@ -6,12 +6,18 @@ import { vars } from '@scribe/design-system';
  * Uses design system tokens for consistent theming
  */
 
+/** CSS custom property for dynamic sidebar width */
+export const sidebarWidth = createVar();
+
 /**
  * Main sidebar container
  * Handles the collapse/expand animation
- * Width is controlled via inline style when resizing
+ * Width is controlled via CSS custom property (--sidebar-width) set at runtime
  */
 export const sidebar = style({
+  vars: {
+    [sidebarWidth]: '280px', // Default width
+  },
   height: '100%',
   backgroundColor: vars.color.backgroundAlt,
   flexShrink: 0,
@@ -22,7 +28,7 @@ export const sidebar = style({
 });
 
 export const sidebarOpen = style({
-  // Width is set via inline style to support resizing
+  width: sidebarWidth,
   opacity: 1,
   transform: 'translateX(0)',
 });
@@ -35,9 +41,10 @@ export const sidebarClosed = style({
 
 /**
  * Inner container maintains width during collapse animation
- * Width is set via inline style to support resizing
+ * Width is set via CSS custom property to support resizing
  */
 export const sidebarInner = style({
+  width: sidebarWidth,
   height: '100%',
   display: 'flex',
   flexDirection: 'column',

@@ -9,12 +9,14 @@
  * - Draggable resize handle on the right edge
  */
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { NoteMetadata, NoteId } from '@scribe/shared';
+import { PlusIcon, MoonIcon, SunIcon } from '@scribe/design-system';
 import { NoteListItem } from './NoteListItem';
 import { ResizeHandle } from '../ResizeHandle';
 import * as styles from './Sidebar.css';
+import { sidebarWidth } from './Sidebar.css';
 
 /** Default, minimum, and maximum sidebar widths */
 export const SIDEBAR_DEFAULT_WIDTH = 280;
@@ -77,16 +79,15 @@ export function Sidebar({
     [width, onWidthChange]
   );
 
-  // Compute dynamic styles based on width
-  const sidebarStyle = isOpen ? { width: `${width}px` } : undefined;
-  const innerStyle = { width: `${width}px` };
+  // Set CSS custom property for dynamic width
+  const sidebarStyles = isOpen ? ({ [sidebarWidth]: `${width}px` } as CSSProperties) : undefined;
 
   return (
     <aside
       className={clsx(styles.sidebar, isOpen ? styles.sidebarOpen : styles.sidebarClosed)}
-      style={sidebarStyle}
+      style={sidebarStyles}
     >
-      <div className={styles.sidebarInner} style={innerStyle}>
+      <div className={styles.sidebarInner}>
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.branding}>
@@ -140,75 +141,5 @@ export function Sidebar({
         {isOpen && onWidthChange && <ResizeHandle position="right" onResize={handleResize} />}
       </div>
     </aside>
-  );
-}
-
-/**
- * Simple Plus icon component
- * Inline SVG to avoid external dependencies
- */
-function PlusIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-/**
- * Simple Moon icon component for dark mode toggle
- */
-function MoonIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  );
-}
-
-/**
- * Simple Sun icon component for light mode toggle
- */
-function SunIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" />
-      <line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
   );
 }

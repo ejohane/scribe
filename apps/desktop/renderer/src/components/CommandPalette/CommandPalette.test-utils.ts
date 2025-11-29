@@ -7,6 +7,7 @@
  * - Shared constants
  * - Helper functions
  * - CSS class name exports for testing
+ * - Test IDs for component selection
  */
 
 import { vi } from 'vitest';
@@ -16,6 +17,18 @@ import * as styles from './CommandPalette.css';
 
 // Re-export styles for use in tests
 export { styles };
+
+// Test IDs for data-testid attributes - use these instead of placeholder text
+export const TEST_IDS = {
+  /** Main command palette container - also has data-mode attribute */
+  container: 'command-palette',
+  /** Search/filter input field */
+  input: 'command-palette-input',
+  /** Back button (visible in file-browse, delete-browse, person-browse modes) */
+  backButton: 'command-palette-back-button',
+  /** Results container */
+  results: 'command-palette-results',
+} as const;
 
 // CSS class selector helpers for tests
 export const CSS = {

@@ -54,6 +54,12 @@ export function SlashMenuPlugin() {
   const insertionCounterRef = useRef(0);
   const lastProcessedCounterRef = useRef(0);
 
+  // Refs for keyboard command handlers to avoid re-registering on state changes
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const filteredCommandsRef = useRef(filteredCommands);
+  filteredCommandsRef.current = filteredCommands;
+
   // Update filtered commands when query changes
   useEffect(() => {
     const filtered = filterCommands(query);
@@ -261,43 +267,48 @@ export function SlashMenuPlugin() {
     );
   }, [editor, handleClose, removeSlashAndQuery]);
 
-  // Arrow down handling
+  // Arrow down handling - uses ref to avoid re-registering on filteredCommands changes
   useEffect(() => {
     return editor.registerCommand(
       KEY_ARROW_DOWN_COMMAND,
       () => {
-        if (!isOpen || filteredCommands.length === 0) return false;
+        const commands = filteredCommandsRef.current;
+        if (!isOpen || commands.length === 0) return false;
 
-        setSelectedIndex((prev) => Math.min(prev + 1, filteredCommands.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 1, commands.length - 1));
         return true;
       },
       COMMAND_PRIORITY_LOW
     );
-  }, [editor, isOpen, filteredCommands.length]);
+  }, [editor, isOpen]);
 
-  // Arrow up handling
+  // Arrow up handling - uses ref to avoid re-registering on filteredCommands changes
   useEffect(() => {
     return editor.registerCommand(
       KEY_ARROW_UP_COMMAND,
       () => {
-        if (!isOpen || filteredCommands.length === 0) return false;
+        const commands = filteredCommandsRef.current;
+        if (!isOpen || commands.length === 0) return false;
 
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
         return true;
       },
       COMMAND_PRIORITY_LOW
     );
-  }, [editor, isOpen, filteredCommands.length]);
+  }, [editor, isOpen]);
 
-  // Enter key handling
+  // Enter key handling - uses refs to avoid re-registering on filteredCommands/selectedIndex changes
   useEffect(() => {
     return editor.registerCommand(
       KEY_ENTER_COMMAND,
       (event) => {
-        if (!isOpen || filteredCommands.length === 0) return false;
+        const commands = filteredCommandsRef.current;
+        const index = selectedIndexRef.current;
+
+        if (!isOpen || commands.length === 0) return false;
 
         event?.preventDefault();
-        const selectedCommand = filteredCommands[selectedIndex];
+        const selectedCommand = commands[index];
         if (selectedCommand) {
           executeCommand(selectedCommand);
         }
@@ -305,12 +316,11 @@ export function SlashMenuPlugin() {
       },
       COMMAND_PRIORITY_LOW
     );
-  }, [editor, isOpen, filteredCommands, selectedIndex, executeCommand]);
+  }, [editor, isOpen, executeCommand]);
 
   // Handle click outside to close
   useEffect(() => {
-    if (!isOpen) return;
-
+    // Always define the handler to ensure cleanup is properly registered
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       // Check if click is inside the menu
@@ -319,7 +329,12 @@ export function SlashMenuPlugin() {
       handleClose();
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    // Only add listener when menu is open
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    // Cleanup always runs, removing listener if it was added
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, handleClose]);
 

@@ -8,7 +8,7 @@
  * - Draggable resize handle on the left edge
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { GraphNode, NoteId } from '@scribe/shared';
 import { LinkedMentions } from './LinkedMentions';
@@ -16,6 +16,7 @@ import { TasksWidget } from './TasksWidget';
 import { CalendarWidget } from './CalendarWidget';
 import { ResizeHandle } from '../ResizeHandle';
 import * as styles from './ContextPanel.css';
+import { panelWidth } from './ContextPanel.css';
 
 /** Default, minimum, and maximum context panel widths */
 export const CONTEXT_PANEL_DEFAULT_WIDTH = 280;
@@ -79,9 +80,8 @@ export function ContextPanel({
     [width, onWidthChange]
   );
 
-  // Compute dynamic styles based on width
-  const panelStyle = isOpen ? { width: `${width}px` } : undefined;
-  const innerStyle = { width: `${width}px` };
+  // Set CSS custom property for dynamic width
+  const panelStyles = isOpen ? ({ [panelWidth]: `${width}px` } as CSSProperties) : undefined;
 
   return (
     <aside
@@ -89,12 +89,12 @@ export function ContextPanel({
         styles.contextPanel,
         isOpen ? styles.contextPanelOpen : styles.contextPanelClosed
       )}
-      style={panelStyle}
+      style={panelStyles}
     >
       {/* Resize handle on the left edge */}
       {isOpen && onWidthChange && <ResizeHandle position="left" onResize={handleResize} />}
 
-      <div className={styles.panelInner} style={innerStyle}>
+      <div className={styles.panelInner}>
         {/* Context Section */}
         <h2 className={styles.sectionLabel}>Context</h2>
 

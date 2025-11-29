@@ -27,6 +27,11 @@ interface Position {
   left: number;
 }
 
+/** Toolbar dimensions for positioning calculations */
+const TOOLBAR_HEIGHT = 48; // 32px buttons + 16px padding (top+bottom)
+const TOOLBAR_OFFSET = 8; // Gap between selection and toolbar
+const TOOLBAR_MIN_WIDTH = 320; // Approximate minimum toolbar width for horizontal clamping
+
 interface ActiveFormats {
   bold: boolean;
   italic: boolean;
@@ -54,7 +59,7 @@ export function SelectionToolbarPlugin() {
   const [position, setPosition] = useState<Position | null>(null);
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>(DEFAULT_ACTIVE_FORMATS);
 
-  // Calculate position based on browser selection
+  // Calculate position based on browser selection with viewport boundary handling
   const updatePosition = useCallback(() => {
     const nativeSelection = window.getSelection();
     if (!nativeSelection || nativeSelection.rangeCount === 0) {
@@ -69,11 +74,31 @@ export function SelectionToolbarPlugin() {
     }
 
     const rect = range.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
 
-    // Position toolbar above selection, centered horizontally
+    // Calculate ideal position (above selection, centered)
+    const idealTop = rect.top - TOOLBAR_HEIGHT - TOOLBAR_OFFSET;
+    let centerX = rect.left + rect.width / 2;
+
+    // Determine vertical position: above if there's room, below otherwise
+    let top: number;
+    if (idealTop < 0) {
+      // Not enough room above - position below the selection
+      top = rect.bottom + TOOLBAR_OFFSET;
+    } else {
+      top = idealTop;
+    }
+
+    // Clamp horizontal position to keep toolbar within viewport
+    // The toolbar uses transform: translateX(-50%), so centerX is the center point
+    const halfToolbarWidth = TOOLBAR_MIN_WIDTH / 2;
+    const minCenterX = halfToolbarWidth + 8; // 8px margin from edge
+    const maxCenterX = viewportWidth - halfToolbarWidth - 8;
+    centerX = Math.max(minCenterX, Math.min(maxCenterX, centerX));
+
     setPosition({
-      top: rect.top - 50, // 50px above selection
-      left: rect.left + rect.width / 2, // Centered
+      top,
+      left: centerX,
     });
   }, []);
 

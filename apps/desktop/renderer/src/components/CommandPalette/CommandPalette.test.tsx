@@ -15,7 +15,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
-import { mockCommands, setupScribeMock } from './CommandPalette.test-utils';
+import { mockCommands, setupScribeMock, TEST_IDS } from './CommandPalette.test-utils';
 
 describe('CommandPalette', () => {
   beforeEach(() => {
@@ -34,7 +34,9 @@ describe('CommandPalette', () => {
       />
     );
 
-    expect(screen.getByPlaceholderText('Search notes or create new...')).toBeInTheDocument();
+    // Use test ID instead of placeholder text
+    expect(screen.getByTestId(TEST_IDS.container)).toBeInTheDocument();
+    expect(screen.getByTestId(TEST_IDS.input)).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
@@ -48,6 +50,6 @@ describe('CommandPalette', () => {
       />
     );
 
-    expect(screen.queryByPlaceholderText('Search notes or create new...')).not.toBeInTheDocument();
+    expect(screen.queryByTestId(TEST_IDS.container)).not.toBeInTheDocument();
   });
 });
