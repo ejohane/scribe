@@ -12,7 +12,7 @@ try {
     external: ['electron'],
     minify: false,
     define: {
-      'process.env.NODE_ENV': '"development"',
+      'process.env.NODE_ENV': '"production"',
     },
   });
   console.log('[preload] Build complete');
