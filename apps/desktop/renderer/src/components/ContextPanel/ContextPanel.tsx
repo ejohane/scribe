@@ -18,6 +18,10 @@ import { ResizeHandle } from '../ResizeHandle';
 import * as styles from './ContextPanel.css';
 import { panelWidth } from './ContextPanel.css';
 
+// Extract the CSS custom property name from the var() wrapper
+// panelWidth is "var(--panelWidth__xxx)", we need "--panelWidth__xxx"
+const panelWidthProperty = panelWidth.replace(/^var\((.+)\)$/, '$1');
+
 /** Default, minimum, and maximum context panel widths */
 export const CONTEXT_PANEL_DEFAULT_WIDTH = 280;
 export const CONTEXT_PANEL_MIN_WIDTH = 200;
@@ -81,7 +85,9 @@ export function ContextPanel({
   );
 
   // Set CSS custom property for dynamic width
-  const panelStyles = isOpen ? ({ [panelWidth]: `${width}px` } as CSSProperties) : undefined;
+  const panelStyles = isOpen
+    ? ({ [panelWidthProperty]: `${width}px` } as CSSProperties)
+    : undefined;
 
   return (
     <aside
