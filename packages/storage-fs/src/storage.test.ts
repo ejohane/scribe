@@ -138,9 +138,10 @@ describe('FileSystemVault', () => {
       },
     };
 
-    const note = await vault.create({ content, type: 'person' });
+    const note = await vault.create({ content, type: 'person', title: 'John Smith' });
 
-    expect(note.metadata.title).toBe('John Smith');
+    expect(note.title).toBe('John Smith');
+    expect(note.metadata.title).toBeNull(); // metadata.title is always null (deprecated)
     expect(note.content.type).toBe('person');
     expect(note.metadata.type).toBe('person');
   });
@@ -165,9 +166,10 @@ describe('FileSystemVault', () => {
   });
 
   it('should preserve note type when saving content without type field', async () => {
-    // Create a person note
-    const note = await vault.create({ type: 'person' });
+    // Create a person note with explicit title
+    const note = await vault.create({ type: 'person', title: 'Original Name' });
     expect(note.metadata.type).toBe('person');
+    expect(note.title).toBe('Original Name');
 
     // Simulate editor sending content without type field (as happens in real app)
     const updatedContent: LexicalState = {
@@ -184,17 +186,20 @@ describe('FileSystemVault', () => {
       // Note: no 'type' field - simulating editor behavior
     };
 
+    // Update with new title and content
     const updatedNote = {
       ...note,
+      title: 'Updated Name',
       content: updatedContent,
     };
 
     await vault.save(updatedNote);
 
-    // Verify type is preserved
+    // Verify type is preserved and title is updated
     const savedNote = vault.read(note.id);
     expect(savedNote.metadata.type).toBe('person');
     expect(savedNote.content.type).toBe('person');
-    expect(savedNote.metadata.title).toBe('Updated Name');
+    expect(savedNote.title).toBe('Updated Name');
+    expect(savedNote.metadata.title).toBeNull(); // metadata.title is always null (deprecated)
   });
 });

@@ -2,6 +2,9 @@ import { useState, useCallback, useRef, useEffect, KeyboardEvent, ChangeEvent } 
 import type { Note } from '@scribe/shared';
 import * as styles from './NoteHeader.css';
 
+/** Debounce delay for title changes (ms) */
+const TITLE_DEBOUNCE_MS = 300;
+
 interface NoteHeaderProps {
   note: Note;
   onTitleChange: (title: string) => void;
@@ -33,8 +36,25 @@ function formatDate(timestamp: number): string {
 export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagValue, setNewTagValue] = useState('');
+  // Local title state for immediate UI updates
+  const [localTitle, setLocalTitle] = useState(note.title);
 
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local title when note changes (e.g., switching notes)
+  useEffect(() => {
+    setLocalTitle(note.title);
+  }, [note.id, note.title]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (titleDebounceRef.current) {
+        clearTimeout(titleDebounceRef.current);
+      }
+    };
+  }, []);
 
   // Focus tag input when adding
   useEffect(() => {
@@ -43,10 +63,23 @@ export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProp
     }
   }, [isAddingTag]);
 
-  // Handle title change
+  // Handle title change with debounced persistence
   const handleTitleChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      onTitleChange(e.target.value);
+      const newTitle = e.target.value;
+
+      // Update local state immediately for responsive UI
+      setLocalTitle(newTitle);
+
+      // Clear any pending debounced call
+      if (titleDebounceRef.current) {
+        clearTimeout(titleDebounceRef.current);
+      }
+
+      // Debounce the actual persistence
+      titleDebounceRef.current = setTimeout(() => {
+        onTitleChange(newTitle);
+      }, TITLE_DEBOUNCE_MS);
     },
     [onTitleChange]
   );
@@ -61,8 +94,8 @@ export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProp
 
   // Handle new tag input
   const handleTagInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    // Remove # prefix if user types it, and strip whitespace
-    const value = e.target.value.replace(/^#/, '').trim();
+    // Remove # prefix if user types it (trimming happens on submission)
+    const value = e.target.value.replace(/^#/, '');
     setNewTagValue(value);
   }, []);
 
@@ -101,7 +134,7 @@ export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProp
       <input
         type="text"
         className={styles.titleInput}
-        value={note.title}
+        value={localTitle}
         onChange={handleTitleChange}
         placeholder="Untitled"
         aria-label="Note title"

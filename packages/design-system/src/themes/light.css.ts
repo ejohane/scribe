@@ -28,6 +28,8 @@ export const lightTheme = createTheme(vars, {
       md: '1rem', // 16px
       lg: '1.125rem', // 18px
       xl: '1.25rem', // 20px
+      '2xl': '1.5rem', // 24px
+      '3xl': '2.5rem', // 40px
     },
     weight: {
       regular: '400',

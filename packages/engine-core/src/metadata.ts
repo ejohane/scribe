@@ -14,7 +14,7 @@ import type { LexicalState, LexicalNode, NoteMetadata, NoteId } from '@scribe/sh
  */
 export function extractMetadata(content: LexicalState): NoteMetadata {
   return {
-    title: extractTitle(content),
+    title: null, // Title is now stored explicitly on Note.title
     tags: extractTags(content),
     links: extractLinks(content),
     mentions: extractMentions(content),
@@ -28,6 +28,8 @@ export function extractMetadata(content: LexicalState): NoteMetadata {
  * Finds the first text block in the content tree and uses it as the title.
  * Returns null if no text content is found.
  *
+ * @deprecated Title is now stored explicitly on Note.title. This function is
+ * kept for potential future use (e.g., suggesting titles from content).
  * @param content - Lexical editor state
  * @returns Extracted title or null
  */

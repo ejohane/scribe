@@ -104,7 +104,7 @@ export class GraphEngine {
     }
 
     // Build new tag edges
-    for (const tag of metadata.tags) {
+    for (const tag of allTags) {
       if (!this.tags.has(tag)) {
         this.tags.set(tag, new Set());
       }

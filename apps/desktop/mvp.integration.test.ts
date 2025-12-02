@@ -64,6 +64,7 @@ describe('MVP E2E Integration Tests', () => {
       const note = await vault.create();
 
       // Simulate editing content with title and tag
+      note.title = 'My First Note';
       note.content = {
         root: {
           type: 'root',
@@ -84,7 +85,7 @@ describe('MVP E2E Integration Tests', () => {
 
       // Reload note and verify metadata extraction
       const loaded = vault.read(note.id);
-      expect(loaded?.metadata.title).toBe('My First Note');
+      expect(loaded?.title).toBe('My First Note');
       expect(loaded?.metadata.tags).toContain('important');
     });
 
@@ -94,6 +95,7 @@ describe('MVP E2E Integration Tests', () => {
       const originalCreatedAt = note.createdAt;
 
       // Edit and save
+      note.title = 'Updated content';
       note.content = {
         root: {
           type: 'root',
@@ -113,7 +115,7 @@ describe('MVP E2E Integration Tests', () => {
       expect(loaded?.id).toBe(originalId);
       expect(loaded?.createdAt).toBe(originalCreatedAt);
       expect(loaded?.updatedAt).toBeGreaterThanOrEqual(originalCreatedAt);
-      expect(loaded?.metadata.title).toBe('Updated content');
+      expect(loaded?.title).toBe('Updated content');
     });
   });
 
@@ -542,6 +544,7 @@ describe('MVP E2E Integration Tests', () => {
     it('should persist notes across vault reload', async () => {
       // Create and save a note
       const note = await vault.create();
+      note.title = 'Persistent Note';
       note.content = {
         root: {
           type: 'root',
@@ -566,7 +569,7 @@ describe('MVP E2E Integration Tests', () => {
       // Verify note exists
       const loaded = newVault.read(noteId);
       expect(loaded?.id).toBe(noteId);
-      expect(loaded?.metadata.title).toBe('Persistent Note');
+      expect(loaded?.title).toBe('Persistent Note');
       expect(loaded?.metadata.tags).toContain('tag');
     });
 
@@ -819,7 +822,7 @@ describe('MVP E2E Integration Tests', () => {
 
       // Step 5: Open project note (simulate navigation)
       const openedNote = vault.read(projectNote.id);
-      expect(openedNote?.metadata.title).toBe('Project Alpha');
+      expect(openedNote?.title).toBe('Project Alpha');
 
       // Step 6: Check backlinks for project note
       const backlinks = graphEngine.backlinks(projectNote.id);

@@ -1,4 +1,4 @@
-import { style, globalStyle } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 import { vars } from '@scribe/design-system';
 
 /**
@@ -32,7 +32,7 @@ export const titleInput = style({
   outline: 'none',
   backgroundColor: 'transparent',
   color: vars.color.foreground,
-  fontSize: '2.5rem',
+  fontSize: vars.typography.size['3xl'],
   fontWeight: vars.typography.weight.bold,
   fontFamily: vars.typography.fontFamily.ui,
   lineHeight: vars.typography.lineHeight.tight,
@@ -65,10 +65,6 @@ export const metadataItem = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['1'],
-});
-
-export const metadataLabel = style({
-  color: vars.color.foregroundMuted,
 });
 
 export const metadataValue = style({

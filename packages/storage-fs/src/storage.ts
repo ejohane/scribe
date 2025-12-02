@@ -304,15 +304,36 @@ export class FileSystemVault {
 
     const n = note as Record<string, unknown>;
 
-    return (
-      typeof n.id === 'string' &&
-      typeof n.createdAt === 'number' &&
-      typeof n.updatedAt === 'number' &&
-      typeof n.content === 'object' &&
-      n.content !== null &&
-      typeof n.metadata === 'object' &&
-      n.metadata !== null
-    );
+    // Validate core required fields
+    if (
+      typeof n.id !== 'string' ||
+      typeof n.createdAt !== 'number' ||
+      typeof n.updatedAt !== 'number' ||
+      typeof n.content !== 'object' ||
+      n.content === null ||
+      typeof n.metadata !== 'object' ||
+      n.metadata === null
+    ) {
+      return false;
+    }
+
+    // Validate title: must be string if present (legacy notes may be missing it)
+    if (n.title !== undefined && typeof n.title !== 'string') {
+      return false;
+    }
+
+    // Validate tags: must be array of strings if present (legacy notes may be missing it)
+    if (n.tags !== undefined) {
+      if (!Array.isArray(n.tags)) {
+        return false;
+      }
+      // Verify all items in tags array are strings
+      if (!n.tags.every((tag) => typeof tag === 'string')) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

@@ -343,7 +343,7 @@ function setupIPCHandlers() {
       }
       const content = createPersonContent(name.trim());
       // Note: vault.create() now accepts options object
-      const note = await vault.create({ content, type: 'person' });
+      const note = await vault.create({ content, type: 'person', title: name.trim() });
 
       // Update graph and search indexes
       graphEngine.addNote(note);
@@ -372,7 +372,7 @@ function setupIPCHandlers() {
 
     const queryLower = query.toLowerCase();
     const filtered = people.filter((n) => {
-      const title = n.title.toLowerCase();
+      const title = (n.title ?? '').toLowerCase();
       return title.includes(queryLower);
     });
 

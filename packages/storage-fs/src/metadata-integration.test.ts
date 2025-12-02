@@ -44,10 +44,11 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create({ content });
+      const note = await vault.create({ content, title: 'My Note Title with #scribe tag' });
 
-      // Verify metadata was extracted
-      expect(note.metadata.title).toBe('My Note Title with #scribe tag');
+      // Verify title is set on note.title (metadata.title is always null)
+      expect(note.title).toBe('My Note Title with #scribe tag');
+      expect(note.metadata.title).toBeNull(); // metadata.title is deprecated
       expect(note.metadata.tags).toEqual(['scribe']);
       expect(note.metadata.links).toEqual([]);
 
@@ -57,7 +58,7 @@ describe('Metadata Integration', () => {
     });
 
     it('should update metadata when content changes', async () => {
-      // Create note with initial content
+      // Create note with initial content and title
       const initialContent: LexicalState = {
         root: {
           type: 'root',
@@ -75,10 +76,10 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create({ content: initialContent });
+      const note = await vault.create({ content: initialContent, title: 'Initial title' });
       expect(note.metadata.tags).toEqual(['initial']);
 
-      // Update note with new content
+      // Update note with new content and title
       const updatedContent: LexicalState = {
         root: {
           type: 'root',
@@ -98,12 +99,14 @@ describe('Metadata Integration', () => {
 
       await vault.save({
         ...note,
+        title: 'Updated title with #updated tag',
         content: updatedContent,
       });
 
-      // Verify metadata was updated
+      // Verify metadata was updated (title on note.title, metadata.title always null)
       const updatedNote = vault.read(note.id);
-      expect(updatedNote?.metadata.title).toBe('Updated title with #updated tag');
+      expect(updatedNote?.title).toBe('Updated title with #updated tag');
+      expect(updatedNote?.metadata.title).toBeNull(); // metadata.title is deprecated
       expect(updatedNote?.metadata.tags).toEqual(['updated']);
     });
 
@@ -180,7 +183,7 @@ describe('Metadata Integration', () => {
 
   describe('Load Pipeline', () => {
     it('should re-extract metadata when loading notes', async () => {
-      // Create a note
+      // Create a note with explicit title
       const content: LexicalState = {
         root: {
           type: 'root',
@@ -198,15 +201,16 @@ describe('Metadata Integration', () => {
         },
       };
 
-      const note = await vault.create({ content });
+      const note = await vault.create({ content, title: 'Test note with #test tag' });
 
       // Create a new vault instance to test loading
       const vault2 = new FileSystemVault(tempDir);
       await vault2.load();
 
-      // Verify metadata was re-extracted on load
+      // Verify note.title persists and metadata.title is null
       const loadedNote = vault2.read(note.id);
-      expect(loadedNote?.metadata.title).toBe('Test note with #test tag');
+      expect(loadedNote?.title).toBe('Test note with #test tag');
+      expect(loadedNote?.metadata.title).toBeNull(); // metadata.title is deprecated
       expect(loadedNote?.metadata.tags).toEqual(['test']);
     });
 
@@ -218,15 +222,17 @@ describe('Metadata Integration', () => {
         },
       };
 
+      // Note without explicit title defaults to 'Untitled'
       const note = await vault.create({ content });
 
       // Create a new vault instance to test loading
       const vault2 = new FileSystemVault(tempDir);
       await vault2.load();
 
-      // Verify metadata extraction handled empty content
+      // Verify title defaults to 'Untitled' and metadata.title is null
       const loadedNote = vault2.read(note.id);
-      expect(loadedNote?.metadata.title).toBeNull();
+      expect(loadedNote?.title).toBe('Untitled'); // Default title for empty notes
+      expect(loadedNote?.metadata.title).toBeNull(); // metadata.title is always null
       expect(loadedNote?.metadata.tags).toEqual([]);
       expect(loadedNote?.metadata.links).toEqual([]);
     });
@@ -274,14 +280,16 @@ describe('Metadata Integration', () => {
         },
       };
 
-      // Create note in first vault instance
-      const note = await vault.create({ content });
+      // Create note in first vault instance with explicit title
+      const note = await vault.create({
+        content,
+        title: 'Architecture Decision with #scribe and #architecture tags',
+      });
       const originalMetadata = note.metadata;
 
-      // Verify initial metadata
-      expect(originalMetadata.title).toBe(
-        'Architecture Decision with #scribe and #architecture tags'
-      );
+      // Verify initial metadata (title is on note.title, not metadata.title)
+      expect(note.title).toBe('Architecture Decision with #scribe and #architecture tags');
+      expect(originalMetadata.title).toBeNull(); // metadata.title is deprecated
       expect(originalMetadata.tags.sort()).toEqual(['architecture', 'design', 'scribe']);
       expect(originalMetadata.links).toEqual(['decision-1']);
 
@@ -293,7 +301,8 @@ describe('Metadata Integration', () => {
       // Verify all metadata persisted correctly after restart
       const reloadedNote = vault2.read(note.id);
       expect(reloadedNote).toBeDefined();
-      expect(reloadedNote?.metadata.title).toBe(originalMetadata.title);
+      expect(reloadedNote?.title).toBe(note.title); // title is on note.title
+      expect(reloadedNote?.metadata.title).toBeNull(); // metadata.title is deprecated
       expect(reloadedNote?.metadata.tags).toEqual(originalMetadata.tags);
       expect(reloadedNote?.metadata.links).toEqual(originalMetadata.links);
     });

@@ -167,13 +167,14 @@ describe('Linked Notes E2E Integration Tests', () => {
       expect(searchResults.length).toBe(0); // No existing note
 
       // Step 5: Create new note "Beta" (simulating link click behavior)
+      // Note: title is now set explicitly, not extracted from content
       const betaContent = createNoteContent('Beta');
-      const beta = await vault.create({ content: betaContent });
+      const beta = await vault.create({ content: betaContent, title: 'Beta' });
       indexNoteInEngines(ctx, beta);
 
       // Verify new note was created
       expect(vault.read(beta.id)).toBeDefined();
-      expect(vault.read(beta.id)?.metadata.title).toBe('Beta');
+      expect(vault.read(beta.id)?.title).toBe('Beta');
 
       // Verify it's now searchable
       const newSearchResults = searchEngine.search('Beta');
@@ -811,12 +812,13 @@ describe('Linked Notes E2E Integration Tests', () => {
       expect(initialSearch.length).toBe(0);
 
       // Simulate clicking broken link - creates new note with that title
+      // Note: title is now set explicitly, not extracted from content
       const newNoteContent = createNoteContent(brokenLinkTitle);
-      const newNote = await vault.create({ content: newNoteContent });
+      const newNote = await vault.create({ content: newNoteContent, title: brokenLinkTitle });
       indexNoteInEngines(ctx, newNote);
 
       // Verify new note was created
-      expect(newNote.metadata.title).toBe(brokenLinkTitle);
+      expect(newNote.title).toBe(brokenLinkTitle);
 
       // Verify it's now searchable
       const afterSearch = searchEngine.search(brokenLinkTitle);
@@ -824,39 +826,39 @@ describe('Linked Notes E2E Integration Tests', () => {
       expect(afterSearch[0].id).toBe(newNote.id);
     });
 
-    it('should create new note with H1 heading when clicking unresolved wiki-link', async () => {
-      // This tests the new behavior: clicking an unresolved wiki-link
-      // creates a note with the link title as an H1 heading
+    it('should create new note with explicit title when clicking unresolved wiki-link', async () => {
+      // Wiki-link note creation now sets note.title directly
+      // instead of creating an H1 heading in the content
 
       const linkTitle = 'New Note From Link';
 
-      // Create note with H1 heading (as App.tsx now does for wiki-link creation)
-      const contentWithHeading: LexicalState = {
+      // Create note with explicit title and empty/minimal content
+      // (as App.tsx now does for wiki-link creation)
+      const emptyContent: LexicalState = {
         root: {
           type: 'root',
           children: [
             {
-              type: 'heading',
-              tag: 'h1',
-              children: [{ type: 'text', text: linkTitle }],
+              type: 'paragraph',
+              children: [],
             },
           ],
         },
       };
 
-      const newNote = await vault.create({ content: contentWithHeading });
+      const newNote = await vault.create({
+        content: emptyContent,
+        title: linkTitle,
+      });
 
-      // Verify the note has the H1 heading structure
+      // Verify the note has the title set correctly
       const saved = vault.read(newNote.id);
       expect(saved).toBeDefined();
+      expect(saved?.title).toBe(linkTitle);
 
+      // Verify the content does NOT contain an H1 heading
       const firstChild = saved?.content.root.children[0] as any;
-      expect(firstChild.type).toBe('heading');
-      expect(firstChild.tag).toBe('h1');
-      expect(firstChild.children[0].text).toBe(linkTitle);
-
-      // Verify the title is extracted correctly from the heading
-      expect(saved?.metadata.title).toBe(linkTitle);
+      expect(firstChild.type).not.toBe('heading');
     });
   });
 });

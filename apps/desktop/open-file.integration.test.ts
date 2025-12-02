@@ -65,7 +65,7 @@ describe('Open File Command E2E Tests', () => {
       // Verify no note items would be shown
       const noteItems = notes.map((note) => ({
         id: note.id,
-        title: note.metadata.title,
+        title: note.title,
         updatedAt: note.updatedAt,
       }));
       expect(noteItems).toEqual([]);
@@ -83,25 +83,26 @@ describe('Open File Command E2E Tests', () => {
       let notes = vault.list();
       expect(notes.length).toBe(0);
 
-      // Create a note
-      const note = await vault.create();
-      note.content = {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'First Note' }],
-            },
-          ],
+      // Create a note with explicit title
+      const note = await vault.create({
+        title: 'First Note',
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'First Note' }],
+              },
+            ],
+          },
         },
-      };
-      await vault.save(note);
+      });
 
       // Now vault should have one note
       notes = vault.list();
       expect(notes.length).toBe(1);
-      expect(notes[0].metadata.title).toBe('First Note');
+      expect(notes[0].title).toBe('First Note');
     });
   });
 
@@ -131,9 +132,9 @@ describe('Open File Command E2E Tests', () => {
       const recentNotes = getRecentNotes(allNotes);
 
       expect(recentNotes.length).toBe(3);
-      expect(recentNotes[0].metadata.title).toBe('Third Note');
-      expect(recentNotes[1].metadata.title).toBe('Second Note');
-      expect(recentNotes[2].metadata.title).toBe('First Note');
+      expect(recentNotes[0].title).toBe('Third Note');
+      expect(recentNotes[1].title).toBe('Second Note');
+      expect(recentNotes[2].title).toBe('First Note');
 
       // Verify ordering by timestamp
       expect(recentNotes[0].updatedAt).toBeGreaterThanOrEqual(recentNotes[1].updatedAt);
@@ -156,12 +157,12 @@ describe('Open File Command E2E Tests', () => {
 
       // Initial state: first item selected (index 0)
       let selectedIndex = 0;
-      expect(recentNotes[selectedIndex].metadata.title).toBe('Daily Journal');
+      expect(recentNotes[selectedIndex].title).toBe('Daily Journal');
 
       // Step 4: Press ↓ to select second note
       selectedIndex = Math.min(selectedIndex + 1, recentNotes.length - 1);
       expect(selectedIndex).toBe(1);
-      expect(recentNotes[selectedIndex].metadata.title).toBe('Project Ideas');
+      expect(recentNotes[selectedIndex].title).toBe('Project Ideas');
 
       // Step 5: Press Enter - load the selected note
       const selectedNoteId = recentNotes[selectedIndex].id;
@@ -169,7 +170,7 @@ describe('Open File Command E2E Tests', () => {
       // Step 6: Verify selected note content loads in editor
       const loadedNote = vault.read(selectedNoteId);
       expect(loadedNote.id).toBe(note2.id);
-      expect(loadedNote.metadata.title).toBe('Project Ideas');
+      expect(loadedNote.title).toBe('Project Ideas');
 
       // Verify content is valid Lexical state (ready for editor)
       expect(loadedNote.content).toBeDefined();
@@ -205,9 +206,9 @@ describe('Open File Command E2E Tests', () => {
       expect(recentNotes[2].id).toBe(note1.id); // Oldest
 
       // Verify order by checking titles
-      expect(recentNotes[0].metadata.title).toBe('Newest Note');
-      expect(recentNotes[1].metadata.title).toBe('Middle Note');
-      expect(recentNotes[2].metadata.title).toBe('Oldest Note');
+      expect(recentNotes[0].title).toBe('Newest Note');
+      expect(recentNotes[1].title).toBe('Middle Note');
+      expect(recentNotes[2].title).toBe('Oldest Note');
 
       // Verify timestamps are in descending order
       for (let i = 0; i < recentNotes.length - 1; i++) {
@@ -227,7 +228,7 @@ describe('Open File Command E2E Tests', () => {
 
       // Verify it's the middle note
       expect(loadedNote.id).toBe(note2.id);
-      expect(loadedNote.metadata.title).toBe('Middle Note');
+      expect(loadedNote.title).toBe('Middle Note');
 
       // Verify content is valid and ready for the editor
       expect(loadedNote.content).toBeDefined();
@@ -258,16 +259,17 @@ describe('Open File Command E2E Tests', () => {
 
       // Verify initial order (Third is most recent)
       let recentNotes = getRecentNotes(vault.list());
-      expect(recentNotes[0].metadata.title).toBe('Third Note');
+      expect(recentNotes[0].title).toBe('Third Note');
 
       // Modify the first note (should move it to the top)
       const updatedNote1 = vault.read(note1.id);
+      updatedNote1.title = 'First Note - Updated';
       updatedNote1.content = createNoteContent('First Note - Updated');
       await vault.save(updatedNote1);
 
       // Verify new order (First Note - Updated is now most recent)
       recentNotes = getRecentNotes(vault.list());
-      expect(recentNotes[0].metadata.title).toBe('First Note - Updated');
+      expect(recentNotes[0].title).toBe('First Note - Updated');
       expect(recentNotes[0].id).toBe(note1.id);
     });
 
@@ -305,12 +307,12 @@ describe('Open File Command E2E Tests', () => {
       expect(recentNotes.length).toBe(10);
 
       // Verify they are the 10 most recent (Notes 12, 11, 10, ..., 3)
-      expect(recentNotes[0].metadata.title).toBe('Note 12');
-      expect(recentNotes[9].metadata.title).toBe('Note 3');
+      expect(recentNotes[0].title).toBe('Note 12');
+      expect(recentNotes[9].title).toBe('Note 3');
     });
 
     it('should handle untitled notes in recent list', async () => {
-      // Create a note with empty content (untitled)
+      // Create a note with empty content (untitled - gets default "Untitled" title)
       const untitledNote = await vault.create({
         content: {
           root: {
@@ -329,11 +331,11 @@ describe('Open File Command E2E Tests', () => {
       expect(recentNotes.length).toBe(2);
 
       // Titled note is most recent
-      expect(recentNotes[0].metadata.title).toBe('Titled Note');
+      expect(recentNotes[0].title).toBe('Titled Note');
 
-      // Untitled note has null title but still appears
+      // Untitled note has default "Untitled" title
       expect(recentNotes[1].id).toBe(untitledNote.id);
-      expect(recentNotes[1].metadata.title).toBeNull();
+      expect(recentNotes[1].title).toBe('Untitled');
     });
 
     it('should persist order across vault reload', async () => {
@@ -349,9 +351,9 @@ describe('Open File Command E2E Tests', () => {
       const recentNotes = getRecentNotes(newVault.list());
 
       expect(recentNotes.length).toBe(3);
-      expect(recentNotes[0].metadata.title).toBe('Third Note');
-      expect(recentNotes[1].metadata.title).toBe('Second Note');
-      expect(recentNotes[2].metadata.title).toBe('First Note');
+      expect(recentNotes[0].title).toBe('Third Note');
+      expect(recentNotes[1].title).toBe('Second Note');
+      expect(recentNotes[2].title).toBe('First Note');
     });
   });
 });
@@ -416,7 +418,7 @@ describe('Open File Command - Search and Open Flow', () => {
     it('should filter notes when typing partial title in file-browse mode', () => {
       // Step 1: Verify we have multiple notes including 'Meeting Notes'
       expect(testNotes.length).toBe(5);
-      const meetingNote = testNotes.find((n) => n.metadata.title === 'Meeting Notes');
+      const meetingNote = testNotes.find((n) => n.title === 'Meeting Notes');
       expect(meetingNote).toBeDefined();
 
       // Step 2-3: Simulate ⌘O opening palette in file-browse mode and typing 'meet'
@@ -431,23 +433,21 @@ describe('Open File Command - Search and Open Flow', () => {
       expect(filteredNotes.length).toBeGreaterThan(0);
 
       // 'Meeting Notes' should be in results
-      const meetingInResults = filteredNotes.find((n) => n.metadata.title === 'Meeting Notes');
+      const meetingInResults = filteredNotes.find((n) => n.title === 'Meeting Notes');
       expect(meetingInResults).toBeDefined();
 
       // 'Team Meeting Summary' should also match 'meet'
-      const teamMeetingInResults = filteredNotes.find(
-        (n) => n.metadata.title === 'Team Meeting Summary'
-      );
+      const teamMeetingInResults = filteredNotes.find((n) => n.title === 'Team Meeting Summary');
       expect(teamMeetingInResults).toBeDefined();
 
       // Non-matching notes should NOT be in results
-      const projectInResults = filteredNotes.find((n) => n.metadata.title === 'Project Ideas');
+      const projectInResults = filteredNotes.find((n) => n.title === 'Project Ideas');
       expect(projectInResults).toBeUndefined();
     });
 
     it('should load selected note content when clicked', async () => {
       // Find the Meeting Notes note
-      const meetingNote = testNotes.find((n) => n.metadata.title === 'Meeting Notes');
+      const meetingNote = testNotes.find((n) => n.title === 'Meeting Notes');
       expect(meetingNote).toBeDefined();
 
       if (!meetingNote) {
@@ -462,7 +462,7 @@ describe('Open File Command - Search and Open Flow', () => {
 
       expect(loadedNote).toBeDefined();
       expect(loadedNote?.id).toBe(meetingNote.id);
-      expect(loadedNote?.metadata.title).toBe('Meeting Notes');
+      expect(loadedNote?.title).toBe('Meeting Notes');
 
       // Verify content is intact
       const content = loadedNote?.content;
@@ -480,10 +480,10 @@ describe('Open File Command - Search and Open Flow', () => {
       // 2. Build fuzzy search index (excluding current note - we'll say there's no current note)
       const currentNoteId = null;
       const searchableNotes = allNotes.filter(
-        (note) => note.id !== currentNoteId && note.metadata.title !== null
+        (note) => note.id !== currentNoteId && note.title !== null
       );
       const fuseIndex = new Fuse(searchableNotes, {
-        keys: ['metadata.title'],
+        keys: ['title'],
         threshold: 0.4,
         ignoreLocation: true,
         isCaseSensitive: false,
@@ -495,7 +495,7 @@ describe('Open File Command - Search and Open Flow', () => {
 
       // 4. Verify 'Meeting Notes' appears in filtered results
       expect(results.length).toBeGreaterThan(0);
-      const meetingResult = results.find((r) => r.item.metadata.title === 'Meeting Notes');
+      const meetingResult = results.find((r) => r.item.title === 'Meeting Notes');
       expect(meetingResult).toBeDefined();
 
       // 5. Click on 'Meeting Notes' item (get the note ID)
@@ -504,7 +504,7 @@ describe('Open File Command - Search and Open Flow', () => {
       // 6. Verify note loads in editor
       const loadedNote = vault.read(selectedNoteId);
       expect(loadedNote).toBeDefined();
-      expect(loadedNote?.metadata.title).toBe('Meeting Notes');
+      expect(loadedNote?.title).toBe('Meeting Notes');
 
       // 7. Verify palette closes (state change - this would be tested in component tests)
       // In this integration test, we verify the data flow works correctly
@@ -515,17 +515,17 @@ describe('Open File Command - Search and Open Flow', () => {
   describe('Search behavior', () => {
     it('should exclude current note from search results', () => {
       // If 'Meeting Notes' is the current note, it shouldn't appear in results
-      const meetingNote = testNotes.find((n) => n.metadata.title === 'Meeting Notes');
+      const meetingNote = testNotes.find((n) => n.title === 'Meeting Notes');
       expect(meetingNote).toBeDefined();
 
       const currentNoteId = meetingNote!.id;
 
       // Build index excluding current note
       const searchableNotes = testNotes.filter(
-        (note) => note.id !== currentNoteId && note.metadata.title !== null
+        (note) => note.id !== currentNoteId && note.title !== null
       );
       const fuseIndex = new Fuse(searchableNotes, {
-        keys: ['metadata.title'],
+        keys: ['title'],
         threshold: 0.4,
         ignoreLocation: true,
         isCaseSensitive: false,
@@ -535,13 +535,11 @@ describe('Open File Command - Search and Open Flow', () => {
       const results = fuseIndex.search('meet', { limit: 25 });
 
       // 'Meeting Notes' should NOT be in results (it's the current note)
-      const meetingInResults = results.find((r) => r.item.metadata.title === 'Meeting Notes');
+      const meetingInResults = results.find((r) => r.item.title === 'Meeting Notes');
       expect(meetingInResults).toBeUndefined();
 
       // But 'Team Meeting Summary' should still be there
-      const teamMeetingInResults = results.find(
-        (r) => r.item.metadata.title === 'Team Meeting Summary'
-      );
+      const teamMeetingInResults = results.find((r) => r.item.title === 'Team Meeting Summary');
       expect(teamMeetingInResults).toBeDefined();
     });
 
@@ -554,7 +552,7 @@ describe('Open File Command - Search and Open Flow', () => {
       expect(recentNotes.length).toBe(5); // We only have 5 test notes
 
       // Most recent should be the last one we created (Team Meeting Summary)
-      expect(recentNotes[0].metadata.title).toBe('Team Meeting Summary');
+      expect(recentNotes[0].title).toBe('Team Meeting Summary');
     });
 
     it('should return to showing recent notes when query is cleared', () => {
@@ -607,37 +605,37 @@ describe('Open File Command - Search and Open Flow', () => {
     });
 
     it('should exclude untitled notes from search results', async () => {
-      // Create an untitled note
+      // Create a note without explicit title (gets default "Untitled")
       const untitledNote = await vault.create({
         content: {
           root: {
             type: 'root',
-            children: [], // Empty content means no title
+            children: [], // Empty content
           },
         },
       });
       await vault.save(untitledNote);
       const savedUntitled = vault.read(untitledNote.id);
-      expect(savedUntitled?.metadata.title).toBeNull();
+      expect(savedUntitled?.title).toBe('Untitled');
 
-      // Build index with all notes including untitled
+      // Build index with all notes - now all notes have titles
       const allNotes = vault.list();
-      const searchableNotes = allNotes.filter((note) => note.metadata.title !== null);
+      const searchableNotes = allNotes.filter((note) => note.title !== 'Untitled');
 
       // Untitled notes should be filtered out of searchable notes
       expect(searchableNotes.length).toBe(5); // Original 5 notes
       expect(allNotes.length).toBe(6); // Including untitled
 
       const fuseIndex = new Fuse(searchableNotes, {
-        keys: ['metadata.title'],
+        keys: ['title'],
         threshold: 0.4,
         ignoreLocation: true,
         isCaseSensitive: false,
       });
 
-      // Search shouldn't include untitled in results
+      // Search shouldn't include untitled in results (filtered out above)
       const results = fuseIndex.search('', { limit: 25 });
-      const untitledInResults = results.find((r) => r.item.metadata.title === null);
+      const untitledInResults = results.find((r) => r.item.title === 'Untitled');
       expect(untitledInResults).toBeUndefined();
     });
 
@@ -651,9 +649,9 @@ describe('Open File Command - Search and Open Flow', () => {
       const allNotes = vault.list();
       expect(allNotes.length).toBe(35); // 5 original + 30 new
 
-      const searchableNotes = allNotes.filter((note) => note.metadata.title !== null);
+      const searchableNotes = allNotes.filter((note) => note.title !== null);
       const fuseIndex = new Fuse(searchableNotes, {
-        keys: ['metadata.title'],
+        keys: ['title'],
         threshold: 0.4,
         ignoreLocation: true,
         isCaseSensitive: false,
@@ -670,7 +668,7 @@ describe('Open File Command - Search and Open Flow', () => {
   describe('Data persistence through open flow', () => {
     it('should persist note selection across vault reload', async () => {
       // Find and select Meeting Notes
-      const meetingNote = testNotes.find((n) => n.metadata.title === 'Meeting Notes');
+      const meetingNote = testNotes.find((n) => n.title === 'Meeting Notes');
       expect(meetingNote).toBeDefined();
 
       // Simulate app restart: create new vault instance
@@ -679,7 +677,7 @@ describe('Open File Command - Search and Open Flow', () => {
       // Note should still be loadable
       const loadedNote = newVault.read(meetingNote!.id);
       expect(loadedNote).toBeDefined();
-      expect(loadedNote?.metadata.title).toBe('Meeting Notes');
+      expect(loadedNote?.title).toBe('Meeting Notes');
       expect(loadedNote?.id).toBe(meetingNote!.id);
     });
 

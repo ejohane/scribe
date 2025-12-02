@@ -72,7 +72,9 @@ export interface LexicalNode {
  */
 export interface NoteMetadata {
   /**
-   * Title of the note (extracted from first text block or explicit metadata node)
+   * @deprecated Use Note.title instead. This field is derived from content
+   * for backward compatibility with legacy notes only and will always be null
+   * for new notes.
    */
   title: string | null;
 

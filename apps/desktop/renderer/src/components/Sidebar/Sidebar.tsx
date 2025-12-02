@@ -29,8 +29,8 @@ export const SIDEBAR_MAX_WIDTH = 400;
  */
 export interface SidebarNote {
   id: NoteId;
-  /** Explicit user-editable title */
-  title: string;
+  /** Explicit user-editable title (may be empty for new notes) */
+  title?: string;
   createdAt: number;
   updatedAt: number;
   /** User-defined tags (explicit) */

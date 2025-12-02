@@ -376,7 +376,7 @@ export async function createNoteWithTitle(
   title: string,
   delayMs = 10
 ): Promise<Note> {
-  const note = await vault.create({ content: createNoteContent(title) });
+  const note = await vault.create({ title, content: createNoteContent(title) });
   // Small delay to ensure different timestamps
   await delay(delayMs);
   return note;
@@ -475,9 +475,9 @@ export function rebuildEnginesFromVault(ctx: TestContext): void {
  * ```
  */
 export function createFuseIndex(notes: Note[]): Fuse<Note> {
-  const searchableNotes = notes.filter((note) => note.metadata.title !== null);
+  const searchableNotes = notes.filter((note) => note.title);
   return new Fuse(searchableNotes, {
-    keys: ['metadata.title'],
+    keys: ['title'],
     threshold: 0.4,
     ignoreLocation: true,
     isCaseSensitive: false,
