@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.1](https://github.com/ejohane/scribe/compare/v1.11.0...v1.11.1) (2025-12-02)
+
+### Bug Fixes
+
+* **build:** include arch in DMG artifact name to prevent collision ([bb9a01d](https://github.com/ejohane/scribe/commit/bb9a01df24e807fd38026cf852436352e3eaa3ac))
+
 ## [1.11.0](https://github.com/ejohane/scribe/compare/v1.10.3...v1.11.0) (2025-12-02)
 
 ### Features
