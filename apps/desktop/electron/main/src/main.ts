@@ -441,7 +441,8 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     // In production, load from built files
-    mainWindow.loadFile(path.join(__dirname, '../../renderer/dist/index.html'));
+    // __dirname is electron/main/dist, so we need to go up 3 levels to reach renderer/dist
+    mainWindow.loadFile(path.join(__dirname, '../../../renderer/dist/index.html'));
   }
 
   mainWindow.on('closed', () => {
