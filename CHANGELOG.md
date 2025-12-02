@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.2](https://github.com/ejohane/scribe/compare/v1.10.1...v1.10.2) (2025-12-02)
+
+### Bug Fixes
+
+* **build:** correct renderer path for production builds ([8d252bf](https://github.com/ejohane/scribe/commit/8d252bf26c3936cc300ac4c0347f5fcc2534e3eb))
+
 ## [1.10.1](https://github.com/ejohane/scribe/compare/v1.10.0...v1.10.1) (2025-12-02)
 
 ### Bug Fixes
