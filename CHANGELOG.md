@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0](https://github.com/ejohane/scribe/compare/v1.9.0...v1.10.0) (2025-12-02)
+
+### Features
+
+* make note.title single source of truth and add metadata editing UI ([c7d07cf](https://github.com/ejohane/scribe/commit/c7d07cf5000e81b21e7bf9e2a139a30eb5dc89d4))
+* **ui:** add editable note metadata header with title, type, and tags ([98b059b](https://github.com/ejohane/scribe/commit/98b059baf1a8ac3772600fae23ae54d457910d5b)), closes [#tags](https://github.com/ejohane/scribe/issues/tags)
+
+### Bug Fixes
+
+* **engine:** update test helpers and tests to use correct Note structure ([4435371](https://github.com/ejohane/scribe/commit/4435371d2957bc9a8cd0a4164748e386619794c6))
+* use correct CSS custom property name for ContextPanel inline style ([f6695cf](https://github.com/ejohane/scribe/commit/f6695cf42255598a84a2af4ce3bdd7bc89ca646d))
+
 ## [1.9.0](https://github.com/ejohane/scribe/compare/v1.8.0...v1.9.0) (2025-11-29)
 
 ### Features
