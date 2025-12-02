@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.3](https://github.com/ejohane/scribe/compare/v1.10.2...v1.10.3) (2025-12-02)
+
+### Bug Fixes
+
+* **build:** remove version from release artifact names ([92a8e97](https://github.com/ejohane/scribe/commit/92a8e97be755ccb0bd01ea86d819cd434d187c52))
+
 ## [1.10.2](https://github.com/ejohane/scribe/compare/v1.10.1...v1.10.2) (2025-12-02)
 
 ### Bug Fixes
