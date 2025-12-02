@@ -64,6 +64,7 @@ describe('MVP E2E Integration Tests', () => {
       const note = await vault.create();
 
       // Simulate editing content with title and tag
+      note.title = 'My First Note';
       note.content = {
         root: {
           type: 'root',
@@ -84,7 +85,7 @@ describe('MVP E2E Integration Tests', () => {
 
       // Reload note and verify metadata extraction
       const loaded = vault.read(note.id);
-      expect(loaded?.metadata.title).toBe('My First Note');
+      expect(loaded?.title).toBe('My First Note');
       expect(loaded?.metadata.tags).toContain('important');
     });
 
@@ -94,6 +95,7 @@ describe('MVP E2E Integration Tests', () => {
       const originalCreatedAt = note.createdAt;
 
       // Edit and save
+      note.title = 'Updated content';
       note.content = {
         root: {
           type: 'root',
@@ -113,63 +115,72 @@ describe('MVP E2E Integration Tests', () => {
       expect(loaded?.id).toBe(originalId);
       expect(loaded?.createdAt).toBe(originalCreatedAt);
       expect(loaded?.updatedAt).toBeGreaterThanOrEqual(originalCreatedAt);
-      expect(loaded?.metadata.title).toBe('Updated content');
+      expect(loaded?.title).toBe('Updated content');
     });
   });
 
   describe('Search Flow', () => {
     beforeEach(async () => {
-      // Create multiple notes for searching
-      const notes = [
+      // Create multiple notes for searching with explicit titles
+      const notesData = [
         {
-          root: {
-            type: 'root' as const,
-            children: [
-              {
-                type: 'paragraph',
-                children: [{ type: 'text', text: 'Project Alpha Overview' }],
-              },
-              {
-                type: 'paragraph',
-                children: [{ type: 'text', text: 'Details about project alpha with #work tag' }],
-              },
-            ],
+          title: 'Project Alpha Overview',
+          content: {
+            root: {
+              type: 'root' as const,
+              children: [
+                {
+                  type: 'paragraph',
+                  children: [{ type: 'text', text: 'Project Alpha Overview' }],
+                },
+                {
+                  type: 'paragraph',
+                  children: [{ type: 'text', text: 'Details about project alpha with #work tag' }],
+                },
+              ],
+            },
           },
         },
         {
-          root: {
-            type: 'root' as const,
-            children: [
-              {
-                type: 'paragraph',
-                children: [{ type: 'text', text: 'Meeting Notes' }],
-              },
-              {
-                type: 'paragraph',
-                children: [{ type: 'text', text: 'Discussed alpha version release #work' }],
-              },
-            ],
+          title: 'Meeting Notes',
+          content: {
+            root: {
+              type: 'root' as const,
+              children: [
+                {
+                  type: 'paragraph',
+                  children: [{ type: 'text', text: 'Meeting Notes' }],
+                },
+                {
+                  type: 'paragraph',
+                  children: [{ type: 'text', text: 'Discussed alpha version release #work' }],
+                },
+              ],
+            },
           },
         },
         {
-          root: {
-            type: 'root' as const,
-            children: [
-              {
-                type: 'paragraph',
-                children: [{ type: 'text', text: 'Personal Todo' }],
-              },
-              {
-                type: 'paragraph',
-                children: [{ type: 'text', text: 'Buy groceries #personal' }],
-              },
-            ],
+          title: 'Personal Todo',
+          content: {
+            root: {
+              type: 'root' as const,
+              children: [
+                {
+                  type: 'paragraph',
+                  children: [{ type: 'text', text: 'Personal Todo' }],
+                },
+                {
+                  type: 'paragraph',
+                  children: [{ type: 'text', text: 'Buy groceries #personal' }],
+                },
+              ],
+            },
           },
         },
       ];
 
-      for (const content of notes) {
-        const note = await vault.create({ content });
+      for (const { title, content } of notesData) {
+        const note = await vault.create({ title, content });
         searchEngine.indexNote(note);
       }
     });
@@ -533,6 +544,7 @@ describe('MVP E2E Integration Tests', () => {
     it('should persist notes across vault reload', async () => {
       // Create and save a note
       const note = await vault.create();
+      note.title = 'Persistent Note';
       note.content = {
         root: {
           type: 'root',
@@ -557,7 +569,7 @@ describe('MVP E2E Integration Tests', () => {
       // Verify note exists
       const loaded = newVault.read(noteId);
       expect(loaded?.id).toBe(noteId);
-      expect(loaded?.metadata.title).toBe('Persistent Note');
+      expect(loaded?.title).toBe('Persistent Note');
       expect(loaded?.metadata.tags).toContain('tag');
     });
 
@@ -607,24 +619,25 @@ describe('MVP E2E Integration Tests', () => {
     });
 
     it('should rebuild search index correctly after restart', async () => {
-      // Create searchable notes
-      const note = await vault.create();
-      note.content = {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'Searchable Content' }],
-            },
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'With unique searchterm' }],
-            },
-          ],
+      // Create searchable notes with explicit title
+      const note = await vault.create({
+        title: 'Searchable Content',
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'Searchable Content' }],
+              },
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'With unique searchterm' }],
+              },
+            ],
+          },
         },
-      };
-      await vault.save(note);
+      });
 
       // Simulate restart: new vault and search engine
       const newVault = await simulateAppRestart(tempDir);
@@ -632,8 +645,8 @@ describe('MVP E2E Integration Tests', () => {
 
       // Rebuild search index from loaded notes
       const notes = newVault.list();
-      for (const note of notes) {
-        newSearchEngine.indexNote(note);
+      for (const n of notes) {
+        newSearchEngine.indexNote(n);
       }
 
       // Verify search works
@@ -714,86 +727,89 @@ describe('MVP E2E Integration Tests', () => {
 
   describe('Complete User Journey', () => {
     it('should handle complete workflow: create → edit → search → navigate → backlinks', async () => {
-      // Step 1: Create project note
-      const projectNote = await vault.create();
-      projectNote.content = {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'Project Alpha' }],
-            },
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'Main project documentation #project' }],
-            },
-          ],
+      // Step 1: Create project note with explicit title
+      const projectNote = await vault.create({
+        title: 'Project Alpha',
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'Project Alpha' }],
+              },
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'Main project documentation #project' }],
+              },
+            ],
+          },
         },
-      };
-      await vault.save(projectNote);
+      });
       const savedProject = vault.read(projectNote.id);
       if (savedProject) {
         graphEngine.addNote(savedProject);
         searchEngine.indexNote(savedProject);
       }
 
-      // Step 2: Create meeting note linking to project
-      const meetingNote = await vault.create();
-      meetingNote.content = {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'Team Meeting' }],
-            },
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'Discussed project alpha #meeting' }],
-            },
-            {
-              type: 'paragraph',
-              children: [
-                { type: 'text', text: 'Related to ' },
-                { type: 'note-reference', noteId: projectNote.id, text: 'Project Alpha' },
-              ],
-            },
-          ],
+      // Step 2: Create meeting note linking to project with explicit title
+      const meetingNote = await vault.create({
+        title: 'Team Meeting',
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'Team Meeting' }],
+              },
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'Discussed project alpha #meeting' }],
+              },
+              {
+                type: 'paragraph',
+                children: [
+                  { type: 'text', text: 'Related to ' },
+                  { type: 'note-reference', noteId: projectNote.id, text: 'Project Alpha' },
+                ],
+              },
+            ],
+          },
         },
-      };
-      await vault.save(meetingNote);
+      });
       const savedMeeting = vault.read(meetingNote.id);
       if (savedMeeting) {
         graphEngine.addNote(savedMeeting);
         searchEngine.indexNote(savedMeeting);
       }
 
-      // Step 3: Create task note linking to project
-      const taskNote = await vault.create();
-      taskNote.content = {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'Implementation Tasks' }],
-            },
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: 'TODO for alpha #task' }],
-            },
-            {
-              type: 'paragraph',
-              children: [
-                { type: 'text', text: 'For ' },
-                { type: 'note-reference', noteId: projectNote.id, text: 'Project Alpha' },
-              ],
-            },
-          ],
+      // Step 3: Create task note linking to project with explicit title
+      const taskNote = await vault.create({
+        title: 'Implementation Tasks',
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'Implementation Tasks' }],
+              },
+              {
+                type: 'paragraph',
+                children: [{ type: 'text', text: 'TODO for alpha #task' }],
+              },
+              {
+                type: 'paragraph',
+                children: [
+                  { type: 'text', text: 'For ' },
+                  { type: 'note-reference', noteId: projectNote.id, text: 'Project Alpha' },
+                ],
+              },
+            ],
+          },
         },
-      };
-      await vault.save(taskNote);
+      });
       const savedTask = vault.read(taskNote.id);
       if (savedTask) {
         graphEngine.addNote(savedTask);
@@ -806,7 +822,7 @@ describe('MVP E2E Integration Tests', () => {
 
       // Step 5: Open project note (simulate navigation)
       const openedNote = vault.read(projectNote.id);
-      expect(openedNote?.metadata.title).toBe('Project Alpha');
+      expect(openedNote?.title).toBe('Project Alpha');
 
       // Step 6: Check backlinks for project note
       const backlinks = graphEngine.backlinks(projectNote.id);
@@ -821,9 +837,9 @@ describe('MVP E2E Integration Tests', () => {
       expect(projectNotes[0].id).toBe(projectNote.id);
 
       // Step 8: Edit meeting note to add more content
-      meetingNote.content = {
+      const updatedMeetingContent = {
         root: {
-          type: 'root',
+          type: 'root' as const,
           children: [
             {
               type: 'paragraph',
@@ -840,7 +856,9 @@ describe('MVP E2E Integration Tests', () => {
           ],
         },
       };
-      await vault.save(meetingNote);
+      const meetingToUpdate = vault.read(meetingNote.id);
+      meetingToUpdate.content = updatedMeetingContent;
+      await vault.save(meetingToUpdate);
       const updatedMeeting = vault.read(meetingNote.id);
       if (updatedMeeting) {
         searchEngine.indexNote(updatedMeeting);

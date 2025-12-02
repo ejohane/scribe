@@ -95,19 +95,19 @@ describe('Delete Note E2E Integration Tests', () => {
       let selectedIndex = 0;
       selectedIndex++; // Down key press
       const selectedNote = recentNotes[selectedIndex];
-      expect(selectedNote.metadata.title).toBe('Meeting Notes');
+      expect(selectedNote.title).toBe('Meeting Notes');
 
       // Step 6: Verify confirmation screen would show
       // (In UI this replaces palette content with "Delete 'Meeting Notes'?")
       const pendingDeleteNote = selectedNote;
-      expect(pendingDeleteNote.metadata.title).toBe('Meeting Notes');
+      expect(pendingDeleteNote.title).toBe('Meeting Notes');
 
       // Step 7: Confirm deletion (Click "Delete" button)
       await vault.delete(pendingDeleteNote.id);
       removeNoteFromEngines(ctx, pendingDeleteNote.id);
 
       // Step 8: Verify success toast message format
-      const successMessage = `"${pendingDeleteNote.metadata.title}" deleted`;
+      const successMessage = `"${pendingDeleteNote.title}" deleted`;
       expect(successMessage).toBe('"Meeting Notes" deleted');
 
       // Step 9: Verify note is deleted (not in list)
@@ -136,9 +136,9 @@ describe('Delete Note E2E Integration Tests', () => {
       const recentNotes = getRecentNotes(vault.list());
 
       expect(recentNotes).toHaveLength(3);
-      expect(recentNotes[0].metadata.title).toBe('Third Note');
-      expect(recentNotes[1].metadata.title).toBe('Second Note');
-      expect(recentNotes[2].metadata.title).toBe('First Note');
+      expect(recentNotes[0].title).toBe('Third Note');
+      expect(recentNotes[1].title).toBe('Second Note');
+      expect(recentNotes[2].title).toBe('First Note');
 
       // Verify ordering by timestamp
       expect(recentNotes[0].updatedAt).toBeGreaterThanOrEqual(recentNotes[1].updatedAt);
@@ -179,11 +179,11 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Should find Meeting Notes and Team Meeting Summary
       expect(filteredNotes.length).toBeGreaterThan(0);
-      expect(filteredNotes.find((n) => n.metadata.title === 'Meeting Notes')).toBeDefined();
-      expect(filteredNotes.find((n) => n.metadata.title === 'Team Meeting Summary')).toBeDefined();
+      expect(filteredNotes.find((n) => n.title === 'Meeting Notes')).toBeDefined();
+      expect(filteredNotes.find((n) => n.title === 'Team Meeting Summary')).toBeDefined();
 
       // Should NOT find non-matching notes
-      expect(filteredNotes.find((n) => n.metadata.title === 'Daily Journal')).toBeUndefined();
+      expect(filteredNotes.find((n) => n.title === 'Daily Journal')).toBeUndefined();
     });
 
     it('should show "No notes to delete" for empty vault', async () => {
@@ -215,7 +215,7 @@ describe('Delete Note E2E Integration Tests', () => {
 
       // Simulate selecting note2 for deletion, then pressing Escape
       const pendingDeleteNote = note2;
-      expect(pendingDeleteNote.metadata.title).toBe('Second Note');
+      expect(pendingDeleteNote.title).toBe('Second Note');
 
       // Cancel - no deletion happens
 
@@ -240,7 +240,7 @@ describe('Delete Note E2E Integration Tests', () => {
       const note = await createAndIndexNote(ctx, 'Meeting Notes');
 
       // Simulate deletion
-      const deletedTitle = note.metadata.title;
+      const deletedTitle = note.title;
       await vault.delete(note.id);
 
       // Verify success message format
@@ -254,7 +254,7 @@ describe('Delete Note E2E Integration Tests', () => {
       const note = await createAndIndexNote(ctx, longTitle);
 
       // Simulate deletion and message truncation (per spec: ~30 chars)
-      const fullTitle = note.metadata.title!;
+      const fullTitle = note.title!;
       const truncatedTitle = fullTitle.length > 30 ? fullTitle.substring(0, 30) + '...' : fullTitle;
 
       const successMessage = `"${truncatedTitle}" deleted`;
@@ -339,7 +339,7 @@ describe('Delete Note E2E Integration Tests', () => {
       // Verify note2 specifically is still there
       const note2Still = vault.list().find((n) => n.id === note2.id);
       expect(note2Still).toBeDefined();
-      expect(note2Still?.metadata.title).toBe('Note B');
+      expect(note2Still?.title).toBe('Note B');
     });
 
     it('should remove note from all engines when deleted', async () => {
@@ -536,7 +536,7 @@ describe('Delete Note E2E Integration Tests', () => {
       const newNote = await createNoteWithTitle(vault, 'New Note After Delete');
 
       expect(vault.list()).toHaveLength(1);
-      expect(vault.list()[0].metadata.title).toBe('New Note After Delete');
+      expect(vault.list()[0].title).toBe('New Note After Delete');
     });
 
     it('should maintain correct ordering after deletion', async () => {
@@ -576,7 +576,7 @@ describe('Delete Note E2E Integration Tests', () => {
       // The most recent remaining note should be note2
       const mostRecentRemaining = remainingNotes[0];
       expect(mostRecentRemaining.id).toBe(note2.id);
-      expect(mostRecentRemaining.metadata.title).toBe('Note 2');
+      expect(mostRecentRemaining.title).toBe('Note 2');
     });
   });
 
@@ -616,14 +616,17 @@ describe('Delete Note E2E Integration Tests', () => {
 
   describe('Search index cleanup after deletion', () => {
     it('should not return deleted note in search results', async () => {
-      // Create notes with searchable content
+      // Create notes with searchable content and explicit titles
       const note1 = await vault.create({
+        title: 'Meeting Notes',
         content: createNoteContent('Meeting Notes', 'Discussion about the project timeline'),
       });
       const note2 = await vault.create({
+        title: 'Project Ideas',
         content: createNoteContent('Project Ideas', 'Brainstorming new features'),
       });
       const note3 = await vault.create({
+        title: 'Weekly Meeting',
         content: createNoteContent('Weekly Meeting', 'Team standup notes'),
       });
 

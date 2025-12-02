@@ -27,6 +27,8 @@ export const vars = createThemeContract({
       md: null,
       lg: null,
       xl: null,
+      '2xl': null,
+      '3xl': null,
     },
     weight: {
       regular: null,

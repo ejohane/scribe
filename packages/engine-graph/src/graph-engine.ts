@@ -53,14 +53,17 @@ export class GraphEngine {
    * Rebuilds all edges for this note
    */
   addNote(note: Note): void {
-    const { id, metadata } = note;
+    const { id, title, type, tags, metadata } = note;
 
-    // Store node metadata
+    // Combine explicit user tags with inline #tags from content
+    const allTags = [...new Set([...tags, ...metadata.tags])];
+
+    // Store node metadata using explicit fields
     this.nodes.set(id, {
       id,
-      title: metadata.title,
-      tags: metadata.tags,
-      type: metadata.type,
+      title,
+      tags: allTags,
+      type,
     });
 
     // Clear existing outgoing edges for this note
@@ -101,7 +104,7 @@ export class GraphEngine {
     }
 
     // Build new tag edges
-    for (const tag of metadata.tags) {
+    for (const tag of allTags) {
       if (!this.tags.has(tag)) {
         this.tags.set(tag, new Set());
       }

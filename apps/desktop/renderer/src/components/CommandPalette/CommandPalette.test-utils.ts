@@ -50,15 +50,19 @@ export const BASE_TIME = Date.now();
 
 /**
  * Helper to create mock notes with specific properties
+ * Matches production note creation pattern from storage.ts
  */
 export function createMockNote(overrides: Partial<Note> & { id: string }): Note {
   const now = Date.now();
-  // Check if title was explicitly provided in metadata (including null)
-  const hasExplicitTitle = overrides.metadata && 'title' in overrides.metadata;
+  // Use explicit title or fallback to 'Untitled' (matches production pattern)
+  const title = overrides.title ?? overrides.metadata?.title ?? 'Untitled';
   return {
     id: overrides.id,
+    title,
     createdAt: overrides.createdAt ?? now,
     updatedAt: overrides.updatedAt ?? now,
+    type: overrides.type,
+    tags: overrides.tags ?? [],
     content: overrides.content ?? {
       root: {
         type: 'root',
@@ -66,7 +70,7 @@ export function createMockNote(overrides: Partial<Note> & { id: string }): Note 
       },
     },
     metadata: {
-      title: hasExplicitTitle ? overrides.metadata!.title : `Note ${overrides.id}`,
+      title: overrides.metadata?.title ?? null,
       tags: overrides.metadata?.tags ?? [],
       links: overrides.metadata?.links ?? [],
       mentions: overrides.metadata?.mentions ?? [],

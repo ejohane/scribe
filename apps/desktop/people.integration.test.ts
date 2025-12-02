@@ -62,10 +62,10 @@ describe('People Feature Integration Tests', () => {
   describe('Flow 1: Create person via vault', () => {
     it('should create a person note with type="person"', async () => {
       const content = createPersonContent('John Smith');
-      const person = await vault.create({ content, type: 'person' });
+      const person = await vault.create({ title: 'John Smith', content, type: 'person' });
 
       expect(person.metadata.type).toBe('person');
-      expect(person.metadata.title).toBe('John Smith');
+      expect(person.title).toBe('John Smith');
       expect(person.content.type).toBe('person');
     });
 
@@ -87,17 +87,17 @@ describe('People Feature Integration Tests', () => {
 
     it('should create regular note with content but no type', async () => {
       const content = createNoteContent('Regular Note', 'Some content');
-      const note = await vault.create({ content });
+      const note = await vault.create({ title: 'Regular Note', content });
 
       expect(note.metadata.type).toBeUndefined();
-      expect(note.metadata.title).toBe('Regular Note');
+      expect(note.title).toBe('Regular Note');
     });
 
-    it('should extract person name as title from H1 heading', async () => {
+    it('should set person name as title', async () => {
       const content = createPersonContent('Alice Johnson');
-      const person = await vault.create({ content, type: 'person' });
+      const person = await vault.create({ title: 'Alice Johnson', content, type: 'person' });
 
-      expect(person.metadata.title).toBe('Alice Johnson');
+      expect(person.title).toBe('Alice Johnson');
     });
   });
 
@@ -122,6 +122,7 @@ describe('People Feature Integration Tests', () => {
 
     it('should persist person title through save and reload', async () => {
       const person = await vault.create({
+        title: 'Bob Wilson',
         content: createPersonContent('Bob Wilson'),
         type: 'person',
       });
@@ -129,17 +130,19 @@ describe('People Feature Integration Tests', () => {
       const vault2 = await simulateAppRestart(tempDir);
 
       const loaded = vault2.read(person.id);
-      expect(loaded.metadata.title).toBe('Bob Wilson');
+      expect(loaded.title).toBe('Bob Wilson');
     });
 
     it('should maintain type after note update', async () => {
       const person = await vault.create({
+        title: 'Carol Davis',
         content: createPersonContent('Carol Davis'),
         type: 'person',
       });
 
       // Update the person note
       const loaded = vault.read(person.id);
+      loaded.title = 'Carol Davis-Smith';
       loaded.content = {
         ...loaded.content,
         root: {
@@ -162,7 +165,7 @@ describe('People Feature Integration Tests', () => {
       // Verify type is preserved
       const updated = vault.read(person.id);
       expect(updated.metadata.type).toBe('person');
-      expect(updated.metadata.title).toBe('Carol Davis-Smith');
+      expect(updated.title).toBe('Carol Davis-Smith');
     });
 
     it('should persist multiple people through restart', async () => {
@@ -596,6 +599,7 @@ describe('People Feature Integration Tests', () => {
     it('should handle complete workflow: create person -> mention in note -> view mentions', async () => {
       // Step 1: Create a person
       const alice = await vault.create({
+        title: 'Alice',
         content: createPersonContent('Alice'),
         type: 'person',
       });
@@ -604,7 +608,7 @@ describe('People Feature Integration Tests', () => {
 
       // Verify person created
       expect(alice.metadata.type).toBe('person');
-      expect(alice.metadata.title).toBe('Alice');
+      expect(alice.title).toBe('Alice');
       expect(graphEngine.getAllPeople()).toContain(alice.id);
 
       // Step 2: Create meeting note that mentions Alice

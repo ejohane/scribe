@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, LexicalState, NoteType } from '@scribe/shared';
+
+/**
+ * Partial note metadata that can be updated via the header UI
+ */
+interface NoteMetadataUpdate {
+  title?: string;
+  type?: NoteType | undefined;
+  tags?: string[];
+}
 
 interface UseNoteStateReturn {
   /** Current note being edited (null if none loaded) */
@@ -19,6 +28,9 @@ interface UseNoteStateReturn {
 
   /** Save the current note with updated content */
   saveNote: (content: LexicalState) => Promise<void>;
+
+  /** Update note metadata (title, type, tags) */
+  updateMetadata: (updates: NoteMetadataUpdate) => Promise<void>;
 
   /** Create and load a new note */
   createNote: () => Promise<void>;
@@ -46,6 +58,15 @@ export function useNoteState(): UseNoteStateReturn {
   // Track whether initialization has been attempted to prevent infinite loop
   // if both loadNote and createNote fail
   const hasInitialized = useRef(false);
+
+  // Track the latest note state for rollback purposes in optimistic updates
+  // This prevents race conditions where rapid updates would use stale closure values
+  const latestNoteRef = useRef<Note | null>(null);
+
+  // Keep the ref in sync with the latest state
+  useEffect(() => {
+    latestNoteRef.current = currentNote;
+  }, [currentNote]);
 
   /**
    * Load a note by ID from the engine
@@ -106,6 +127,80 @@ export function useNoteState(): UseNoteStateReturn {
       }
     },
     [currentNote]
+  );
+
+  /**
+   * Update note metadata (title, type, tags) without changing content
+   *
+   * Uses functional setState and refs to prevent race conditions with rapid updates.
+   * The stateBeforeUpdate is captured at call time to enable proper rollback on failure.
+   */
+  const updateMetadata = useCallback(
+    async (updates: NoteMetadataUpdate) => {
+      // Capture the current state at call time for rollback
+      // We use the ref to get the actual latest state, not a stale closure value
+      const stateBeforeUpdate = latestNoteRef.current;
+
+      if (!stateBeforeUpdate) {
+        setError('No note loaded to update');
+        return;
+      }
+
+      // Use functional setState to ensure we're working with the latest state
+      // This is critical for preventing race conditions with rapid updates
+      let updatedNote: Note | null = null;
+
+      setCurrentNote((prevNote) => {
+        if (!prevNote) return null;
+
+        updatedNote = {
+          ...prevNote,
+          ...(updates.title !== undefined && { title: updates.title }),
+          ...(updates.type !== undefined && { type: updates.type }),
+          ...(updates.tags !== undefined && { tags: updates.tags }),
+          updatedAt: Date.now(),
+        };
+
+        return updatedNote;
+      });
+
+      // Wait for the state update to be reflected in the ref
+      // The updatedNote was captured during the setState call
+      if (!updatedNote) {
+        return;
+      }
+
+      try {
+        // Save to backend
+        const result = await window.scribe.notes.save(updatedNote);
+
+        if (!result.success) {
+          // Revert on failure - use functional update to only revert if still at our state
+          setCurrentNote((prevNote) => {
+            // Only revert if the current state is still our optimistic update
+            // This prevents reverting changes made by subsequent updates
+            if (prevNote && updatedNote && prevNote.updatedAt === updatedNote.updatedAt) {
+              return stateBeforeUpdate;
+            }
+            return prevNote;
+          });
+          setError('Failed to update note metadata');
+        }
+      } catch (err) {
+        // Revert on error - use functional update to only revert if still at our state
+        setCurrentNote((prevNote) => {
+          // Only revert if the current state is still our optimistic update
+          if (prevNote && updatedNote && prevNote.updatedAt === updatedNote.updatedAt) {
+            return stateBeforeUpdate;
+          }
+          return prevNote;
+        });
+        const errorMessage = err instanceof Error ? err.message : 'Failed to update note metadata';
+        setError(errorMessage);
+        console.error('Failed to update note metadata:', err);
+      }
+    },
+    [] // No dependencies needed - we use ref for current state
   );
 
   /**
@@ -194,9 +289,20 @@ export function useNoteState(): UseNoteStateReturn {
       error,
       loadNote,
       saveNote,
+      updateMetadata,
       createNote,
       deleteNote,
     }),
-    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, createNote, deleteNote]
+    [
+      currentNote,
+      currentNoteId,
+      isLoading,
+      error,
+      loadNote,
+      saveNote,
+      updateMetadata,
+      createNote,
+      deleteNote,
+    ]
   );
 }

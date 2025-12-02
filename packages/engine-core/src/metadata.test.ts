@@ -12,7 +12,10 @@ import {
 } from './metadata.js';
 import type { LexicalState } from '@scribe/shared';
 
-describe('extractTitle', () => {
+describe('extractTitle (deprecated)', () => {
+  // Note: extractTitle is deprecated. Title is now stored on Note.title.
+  // These tests verify the function still works for backward compatibility.
+
   it('should extract title from first text node', () => {
     const content: LexicalState = {
       root: {
@@ -607,7 +610,7 @@ describe('extractMentions', () => {
 });
 
 describe('extractMetadata', () => {
-  it('should extract all metadata from content', () => {
+  it('should extract all metadata from content with title always null', () => {
     const content: LexicalState = {
       root: {
         type: 'root',
@@ -636,7 +639,8 @@ describe('extractMetadata', () => {
     };
 
     const metadata = extractMetadata(content);
-    expect(metadata.title).toBe('My Note Title with #scribe tag');
+    // metadata.title is always null - title is now stored on Note.title
+    expect(metadata.title).toBeNull();
     expect(metadata.tags).toEqual(['scribe']);
     expect(metadata.links).toEqual(['linked-note']);
   });
@@ -665,6 +669,30 @@ describe('extractMetadata', () => {
     };
 
     const metadata = extractMetadata(content);
+    expect(metadata.title).toBeNull(); // title is always null
     expect(metadata.mentions).toEqual(['person-123']);
+  });
+
+  it('should always return null for title field', () => {
+    const content: LexicalState = {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [
+              {
+                type: 'text',
+                text: 'Some content that would have been a title',
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const metadata = extractMetadata(content);
+    // Title is now stored on Note.title, not derived from metadata
+    expect(metadata.title).toBeNull();
   });
 });

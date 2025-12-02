@@ -11,7 +11,7 @@
 
 import { useMemo, useCallback, type CSSProperties } from 'react';
 import clsx from 'clsx';
-import type { NoteMetadata, NoteId } from '@scribe/shared';
+import type { NoteId, NoteType } from '@scribe/shared';
 import { PlusIcon, MoonIcon, SunIcon } from '@scribe/design-system';
 import { NoteListItem } from './NoteListItem';
 import { ResizeHandle } from '../ResizeHandle';
@@ -23,10 +23,20 @@ export const SIDEBAR_DEFAULT_WIDTH = 280;
 export const SIDEBAR_MIN_WIDTH = 200;
 export const SIDEBAR_MAX_WIDTH = 400;
 
-/** Extended note type that includes id and timestamps needed for the sidebar */
-export interface SidebarNote extends NoteMetadata {
+/**
+ * Note data needed for the sidebar display
+ * Uses the explicit title field from Note, not the derived metadata.title
+ */
+export interface SidebarNote {
   id: NoteId;
+  /** Explicit user-editable title (may be empty for new notes) */
+  title?: string;
+  createdAt: number;
   updatedAt: number;
+  /** User-defined tags (explicit) */
+  tags: string[];
+  /** Note type discriminator */
+  type?: NoteType;
 }
 
 export interface SidebarProps {
@@ -80,7 +90,9 @@ export function Sidebar({
   );
 
   // Set CSS custom property for dynamic width
-  const sidebarStyles = isOpen ? ({ [sidebarWidth]: `${width}px` } as CSSProperties) : undefined;
+  // sidebarWidth is 'var(--name)', extract just '--name' for inline style property
+  const sidebarVarName = sidebarWidth.replace(/^var\(|\)$/g, '');
+  const sidebarStyles = isOpen ? ({ [sidebarVarName]: `${width}px` } as CSSProperties) : undefined;
 
   return (
     <aside

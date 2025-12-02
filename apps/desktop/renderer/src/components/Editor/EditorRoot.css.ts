@@ -23,7 +23,7 @@ export const editorContainer = style({
 export const editorInput = style({
   flex: 1,
   outline: 'none',
-  // Note: Top padding reduced since mainContent provides titlebar clearance (40px)
+  // Note: Top padding reduced since NoteHeader and mainContent provide titlebar clearance
   padding: `${vars.spacing['4']} ${vars.spacing['8']} ${vars.spacing['12']} ${vars.spacing['8']}`,
   fontSize: vars.typography.size.lg,
   lineHeight: vars.typography.lineHeight.relaxed,

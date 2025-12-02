@@ -7,7 +7,7 @@ import { SearchEngine } from './search-engine';
 import type { Note, LexicalState } from '@scribe/shared';
 
 /**
- * Helper to create a test note
+ * Helper to create a test note with all required fields
  */
 function createTestNote(id: string, title: string, content: string, tags: string[] = []): Note {
   const lexicalContent: LexicalState = {
@@ -29,8 +29,10 @@ function createTestNote(id: string, title: string, content: string, tags: string
 
   return {
     id,
+    title, // Top-level explicit title
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    tags, // Top-level user-defined tags
     content: lexicalContent,
     metadata: {
       title,

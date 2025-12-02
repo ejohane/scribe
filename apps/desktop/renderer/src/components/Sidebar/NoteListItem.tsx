@@ -7,13 +7,13 @@
 
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
-import type { NoteMetadata, NoteId } from '@scribe/shared';
+import type { SidebarNote } from './Sidebar';
 import { CloseIcon } from '@scribe/design-system';
 import * as styles from './NoteListItem.css';
 
 export interface NoteListItemProps {
-  /** Note metadata including id, title, and timestamps */
-  note: NoteMetadata & { id: NoteId; updatedAt: number };
+  /** Note data for display */
+  note: SidebarNote;
   /** Whether this note is currently active/selected */
   isActive: boolean;
   /** Callback when note is selected */
