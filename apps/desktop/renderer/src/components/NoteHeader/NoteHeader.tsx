@@ -9,6 +9,8 @@ interface NoteHeaderProps {
   note: Note;
   onTitleChange: (title: string) => void;
   onTagsChange: (tags: string[]) => void;
+  /** Transform Y value for parallax scroll effect */
+  translateY?: number;
 }
 
 /**
@@ -33,7 +35,7 @@ function formatDate(timestamp: number): string {
  *
  * Designed to blend seamlessly with the editor content below.
  */
-export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProps) {
+export function NoteHeader({ note, onTitleChange, onTagsChange, translateY = 0 }: NoteHeaderProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagValue, setNewTagValue] = useState('');
   // Local title state for immediate UI updates
@@ -128,8 +130,18 @@ export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProp
     setIsAddingTag(false);
   }, [newTagValue, note.tags, onTagsChange]);
 
+  // Calculate opacity based on translateY (fade out as it hides)
+  const opacity = translateY === 0 ? 1 : Math.max(0, 1 + translateY / 100);
+
   return (
-    <div className={styles.noteHeader}>
+    <div
+      className={styles.noteHeader}
+      style={{
+        transform: `translateY(${translateY}px)`,
+        opacity,
+        pointerEvents: opacity < 0.5 ? 'none' : 'auto',
+      }}
+    >
       {/* Editable title */}
       <input
         type="text"

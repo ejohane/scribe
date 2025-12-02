@@ -24,11 +24,13 @@ export const editorInput = style({
   flex: 1,
   outline: 'none',
   // Note: Top padding reduced since NoteHeader and mainContent provide titlebar clearance
-  padding: `${vars.spacing['4']} ${vars.spacing['8']} ${vars.spacing['12']} ${vars.spacing['8']}`,
+  // Bottom padding: 75vh allows scrolling ~3/4 up the screen from the last line
+  padding: `${vars.spacing['4']} ${vars.spacing['8']} 75vh ${vars.spacing['8']}`,
   fontSize: vars.typography.size.lg,
   lineHeight: vars.typography.lineHeight.relaxed,
   fontFamily: vars.typography.fontFamily.ui,
-  overflowY: 'auto',
+  // Scrolling is now handled by the parent scroll container for parallax header effect
+  overflowY: 'visible',
   color: vars.color.foreground,
   ':focus': {
     outline: 'none',

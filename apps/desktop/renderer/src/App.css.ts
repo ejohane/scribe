@@ -39,6 +39,16 @@ export const mainContent = style({
   position: 'relative',
 });
 
+// Scrollable container for header + editor with parallax effect
+export const scrollContainer = style({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  position: 'relative',
+});
+
 // Backlinks overlay styles
 export const backlinksOverlay = style({
   position: 'fixed',
