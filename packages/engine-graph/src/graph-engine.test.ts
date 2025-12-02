@@ -6,7 +6,26 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GraphEngine } from './graph-engine.js';
-import type { Note } from '@scribe/shared';
+import type { Note, NoteMetadata, NoteType } from '@scribe/shared';
+
+/**
+ * Helper function to create a valid test Note with all required fields.
+ * This ensures tests use the correct Note structure with top-level title and tags.
+ */
+function createTestNote(id: string, metadata: NoteMetadata, options?: { type?: NoteType }): Note {
+  return {
+    id,
+    title: metadata.title ?? 'Untitled',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    type: options?.type ?? metadata.type,
+    tags: [], // User-defined tags (separate from inline #tags in metadata.tags)
+    content: options?.type
+      ? { root: { type: 'root', children: [] }, type: options.type }
+      : { root: { type: 'root', children: [] } },
+    metadata,
+  };
+}
 
 describe('GraphEngine', () => {
   let graph: GraphEngine;
@@ -26,13 +45,12 @@ describe('GraphEngine', () => {
 
   describe('addNote', () => {
     it('should add a note with no links or tags', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -43,13 +61,12 @@ describe('GraphEngine', () => {
     });
 
     it('should add a note with tags', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['tag1', 'tag2'], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['tag1', 'tag2'],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -63,13 +80,12 @@ describe('GraphEngine', () => {
     });
 
     it('should add a note with outgoing links', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2', 'note-3'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2', 'note-3'],
+        mentions: [],
+      });
 
       graph.addNote(note1);
 
@@ -79,21 +95,22 @@ describe('GraphEngine', () => {
     });
 
     it('should update existing note', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['tag1'], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['tag1'],
+        links: ['note-2'],
+        mentions: [],
+      });
 
       graph.addNote(note1);
 
       // Update with different tags and links
-      const note1Updated: Note = {
-        ...note1,
-        metadata: { title: 'Note 1 Updated', tags: ['tag2'], links: ['note-3'], mentions: [] },
-      };
+      const note1Updated = createTestNote('note-1', {
+        title: 'Note 1 Updated',
+        tags: ['tag2'],
+        links: ['note-3'],
+        mentions: [],
+      });
 
       graph.addNote(note1Updated);
 
@@ -109,13 +126,12 @@ describe('GraphEngine', () => {
 
   describe('backlinks', () => {
     it('should return empty array for note with no backlinks', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -124,21 +140,19 @@ describe('GraphEngine', () => {
     });
 
     it('should return backlinks for note', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -150,29 +164,26 @@ describe('GraphEngine', () => {
     });
 
     it('should return multiple backlinks', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-3'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-3'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: ['note-3'], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: ['note-3'],
+        mentions: [],
+      });
 
-      const note3: Note = {
-        id: 'note-3',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 3', tags: [], links: [], mentions: [] },
-      };
+      const note3 = createTestNote('note-3', {
+        title: 'Note 3',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -186,21 +197,19 @@ describe('GraphEngine', () => {
     });
 
     it('should update backlinks when note links change', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -208,10 +217,12 @@ describe('GraphEngine', () => {
       expect(graph.backlinks('note-2')).toHaveLength(1);
 
       // Update note1 to link to note-3 instead
-      const note1Updated: Note = {
-        ...note1,
-        metadata: { title: 'Note 1', tags: [], links: ['note-3'], mentions: [] },
-      };
+      const note1Updated = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-3'],
+        mentions: [],
+      });
 
       graph.addNote(note1Updated);
 
@@ -222,13 +233,12 @@ describe('GraphEngine', () => {
 
   describe('neighbors', () => {
     it('should return empty array for isolated note', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -237,21 +247,19 @@ describe('GraphEngine', () => {
     });
 
     it('should return outgoing neighbors', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -262,21 +270,19 @@ describe('GraphEngine', () => {
     });
 
     it('should return incoming neighbors', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -287,29 +293,26 @@ describe('GraphEngine', () => {
     });
 
     it('should return both incoming and outgoing neighbors', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: ['note-3'], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: ['note-3'],
+        mentions: [],
+      });
 
-      const note3: Note = {
-        id: 'note-3',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 3', tags: [], links: [], mentions: [] },
-      };
+      const note3 = createTestNote('note-3', {
+        title: 'Note 3',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -323,21 +326,19 @@ describe('GraphEngine', () => {
     });
 
     it('should not duplicate bidirectional links', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: ['note-1'], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: ['note-1'],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -355,21 +356,19 @@ describe('GraphEngine', () => {
     });
 
     it('should return notes with tag', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['important'], links: [], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['important'],
+        links: [],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: ['important'], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: ['important'],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -382,23 +381,24 @@ describe('GraphEngine', () => {
     });
 
     it('should update when tags change', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['old-tag'], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['old-tag'],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
       expect(graph.notesWithTag('old-tag')).toHaveLength(1);
 
       // Update tags
-      const noteUpdated: Note = {
-        ...note,
-        metadata: { title: 'Note 1', tags: ['new-tag'], links: [], mentions: [] },
-      };
+      const noteUpdated = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['new-tag'],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(noteUpdated);
 
@@ -414,21 +414,19 @@ describe('GraphEngine', () => {
     });
 
     it('should return all unique tags sorted', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['zebra', 'apple'], links: [], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['zebra', 'apple'],
+        links: [],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: ['banana', 'apple'], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: ['banana', 'apple'],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -440,21 +438,19 @@ describe('GraphEngine', () => {
 
   describe('removeNote', () => {
     it('should remove note and all its edges', () => {
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['tag1'], links: ['note-2'], mentions: [] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['tag1'],
+        links: ['note-2'],
+        mentions: [],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: [], mentions: [] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note1);
       graph.addNote(note2);
@@ -472,13 +468,12 @@ describe('GraphEngine', () => {
 
   describe('clear', () => {
     it('should clear all graph data', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: ['tag1'], links: ['note-2'], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: ['tag1'],
+        links: ['note-2'],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -493,21 +488,18 @@ describe('GraphEngine', () => {
     });
 
     it('should clear person mention indexes', () => {
-      const person: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
       graph.addNote(person);
       graph.addNote(note);
@@ -523,21 +515,18 @@ describe('GraphEngine', () => {
 
   describe('person mentions', () => {
     it('should track mentions - adding note updates mentioning/mentionedBy indexes', () => {
-      const person: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
       graph.addNote(person);
       graph.addNote(note);
@@ -550,21 +539,18 @@ describe('GraphEngine', () => {
     });
 
     it('should remove note cleans mentions - removing note clears mention relationships', () => {
-      const person: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
       graph.addNote(person);
       graph.addNote(note);
@@ -577,29 +563,25 @@ describe('GraphEngine', () => {
     });
 
     it('should remove person cleans references - removing a person clears all mention-of references', () => {
-      const person: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Project Notes', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Project Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
       graph.addNote(person);
       graph.addNote(note1);
@@ -618,29 +600,24 @@ describe('GraphEngine', () => {
     });
 
     it('should update mentions when note is updated', () => {
-      const person1: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person1 = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const person2: Note = {
-        id: 'person-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person2 = createTestNote(
+        'person-2',
+        { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
       graph.addNote(person1);
       graph.addNote(person2);
@@ -650,10 +627,12 @@ describe('GraphEngine', () => {
       expect(graph.notesMentioning('person-2')).toHaveLength(0);
 
       // Update note to mention person-2 instead
-      const noteUpdated: Note = {
-        ...note,
-        metadata: { title: 'Meeting Notes', tags: [], links: [], mentions: ['person-2'] },
-      };
+      const noteUpdated = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-2'],
+      });
 
       graph.addNote(noteUpdated);
 
@@ -663,34 +642,24 @@ describe('GraphEngine', () => {
     });
 
     it('should handle multiple mentions in one note', () => {
-      const person1: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person1 = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const person2: Note = {
-        id: 'person-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person2 = createTestNote(
+        'person-2',
+        { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: {
-          title: 'Meeting Notes',
-          tags: [],
-          links: [],
-          mentions: ['person-1', 'person-2'],
-        },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1', 'person-2'],
+      });
 
       graph.addNote(person1);
       graph.addNote(person2);
@@ -704,13 +673,12 @@ describe('GraphEngine', () => {
 
   describe('getAllPeople', () => {
     it('should return empty array when no people exist', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Regular Note', tags: [], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Regular Note',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -719,29 +687,24 @@ describe('GraphEngine', () => {
     });
 
     it('should return only notes with type=person', () => {
-      const person1: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person1 = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const person2: Note = {
-        id: 'person-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person2 = createTestNote(
+        'person-2',
+        { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const regularNote: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Regular Note', tags: [], links: [], mentions: [] },
-      };
+      const regularNote = createTestNote('note-1', {
+        title: 'Regular Note',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(person1);
       graph.addNote(person2);
@@ -753,13 +716,11 @@ describe('GraphEngine', () => {
     });
 
     it('should update when person is removed', () => {
-      const person: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
       graph.addNote(person);
       expect(graph.getAllPeople()).toHaveLength(1);
@@ -776,37 +737,32 @@ describe('GraphEngine', () => {
     });
 
     it('should return correct notes for a person', () => {
-      const person: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note1: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
-      const note2: Note = {
-        id: 'note-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 2', tags: [], links: [], mentions: ['person-1'] },
-      };
+      const note2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: [],
+        mentions: ['person-1'],
+      });
 
-      const note3: Note = {
-        id: 'note-3',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 3', tags: [], links: [], mentions: [] },
-      };
+      const note3 = createTestNote('note-3', {
+        title: 'Note 3',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(person);
       graph.addNote(note1);
@@ -821,13 +777,12 @@ describe('GraphEngine', () => {
 
   describe('peopleMentionedIn', () => {
     it('should return empty array for note with no mentions', () => {
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: { title: 'Note 1', tags: [], links: [], mentions: [] },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
 
       graph.addNote(note);
 
@@ -836,34 +791,24 @@ describe('GraphEngine', () => {
     });
 
     it('should return correct people for a note', () => {
-      const person1: Note = {
-        id: 'person-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person1 = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const person2: Note = {
-        id: 'person-2',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] }, type: 'person' },
-        metadata: { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
-      };
+      const person2 = createTestNote(
+        'person-2',
+        { title: 'Jane Doe', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
 
-      const note: Note = {
-        id: 'note-1',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        content: { root: { type: 'root', children: [] } },
-        metadata: {
-          title: 'Meeting Notes',
-          tags: [],
-          links: [],
-          mentions: ['person-1', 'person-2'],
-        },
-      };
+      const note = createTestNote('note-1', {
+        title: 'Meeting Notes',
+        tags: [],
+        links: [],
+        mentions: ['person-1', 'person-2'],
+      });
 
       graph.addNote(person1);
       graph.addNote(person2);

@@ -16,12 +16,15 @@ const createMockNoteState = (note: Note | null = null) => ({
   saveNote: vi.fn().mockResolvedValue(undefined),
   createNote: vi.fn(),
   deleteNote: vi.fn().mockResolvedValue(undefined),
+  updateMetadata: vi.fn(),
 });
 
 const createEmptyNote = (): Note => ({
   id: 'test-note-1',
+  title: 'Untitled',
   createdAt: Date.now(),
   updatedAt: Date.now(),
+  tags: [],
   content: {
     root: {
       type: 'root',
@@ -343,8 +346,10 @@ describe('EditorRoot', () => {
       // Create a different note with content
       const note2: Note = {
         id: 'test-note-2',
+        title: 'Different Note',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        tags: [],
         content: {
           root: {
             type: 'root',

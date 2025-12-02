@@ -252,6 +252,16 @@ export function useNoteState(): UseNoteStateReturn {
       createNote,
       deleteNote,
     }),
-    [currentNote, currentNoteId, isLoading, error, loadNote, saveNote, updateMetadata, createNote, deleteNote]
+    [
+      currentNote,
+      currentNoteId,
+      isLoading,
+      error,
+      loadNote,
+      saveNote,
+      updateMetadata,
+      createNote,
+      deleteNote,
+    ]
   );
 }

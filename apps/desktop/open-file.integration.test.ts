@@ -393,7 +393,10 @@ describe('Open File Command - Search and Open Flow', () => {
 
     testNotes = [];
     for (const data of noteData) {
-      const note = await vault.create({ content: createNoteContent(data.title, data.body) });
+      const note = await vault.create({
+        title: data.title,
+        content: createNoteContent(data.title, data.body),
+      });
       await vault.save(note);
       const savedNote = vault.read(note.id);
       if (savedNote) {

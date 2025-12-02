@@ -90,7 +90,9 @@ export function Sidebar({
   );
 
   // Set CSS custom property for dynamic width
-  const sidebarStyles = isOpen ? ({ [sidebarWidth]: `${width}px` } as CSSProperties) : undefined;
+  // sidebarWidth is 'var(--name)', extract just '--name' for inline style property
+  const sidebarVarName = sidebarWidth.replace(/^var\(|\)$/g, '');
+  const sidebarStyles = isOpen ? ({ [sidebarVarName]: `${width}px` } as CSSProperties) : undefined;
 
   return (
     <aside

@@ -16,7 +16,7 @@ import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
 import type { Command, PaletteMode } from './commands/types';
-import type { GraphNode, NoteId, LexicalState, NoteType } from '@scribe/shared';
+import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
@@ -416,7 +416,6 @@ function App() {
             <NoteHeader
               note={noteState.currentNote}
               onTitleChange={(title: string) => noteState.updateMetadata({ title })}
-              onTypeChange={(type: NoteType | undefined) => noteState.updateMetadata({ type })}
               onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
             />
           </ErrorBoundary>

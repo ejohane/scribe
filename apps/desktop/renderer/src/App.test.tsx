@@ -18,8 +18,10 @@ const renderApp = () => {
 // Mock the window.scribe API
 const mockNote: Note = {
   id: 'test-note-id',
+  title: 'Untitled',
   createdAt: Date.now(),
   updatedAt: Date.now(),
+  tags: [],
   content: {
     root: {
       type: 'root',
@@ -85,8 +87,10 @@ describe('App', () => {
     it('cmd+n creates a new note', async () => {
       const newNote: Note = {
         id: 'new-note-id',
+        title: 'Untitled',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        tags: [],
         content: { root: { type: 'root', children: [] } },
         metadata: { title: null, tags: [], links: [], mentions: [] },
       };
@@ -111,8 +115,10 @@ describe('App', () => {
     it('ctrl+n creates a new note (Windows/Linux)', async () => {
       const newNote: Note = {
         id: 'new-note-id',
+        title: 'Untitled',
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        tags: [],
         content: { root: { type: 'root', children: [] } },
         metadata: { title: null, tags: [], links: [], mentions: [] },
       };

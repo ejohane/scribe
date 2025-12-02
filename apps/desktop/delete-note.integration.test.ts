@@ -616,14 +616,17 @@ describe('Delete Note E2E Integration Tests', () => {
 
   describe('Search index cleanup after deletion', () => {
     it('should not return deleted note in search results', async () => {
-      // Create notes with searchable content
+      // Create notes with searchable content and explicit titles
       const note1 = await vault.create({
+        title: 'Meeting Notes',
         content: createNoteContent('Meeting Notes', 'Discussion about the project timeline'),
       });
       const note2 = await vault.create({
+        title: 'Project Ideas',
         content: createNoteContent('Project Ideas', 'Brainstorming new features'),
       });
       const note3 = await vault.create({
+        title: 'Weekly Meeting',
         content: createNoteContent('Weekly Meeting', 'Team standup notes'),
       });
 

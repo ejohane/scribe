@@ -1,23 +1,10 @@
 import { useState, useCallback, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
-import type { Note, NoteType } from '@scribe/shared';
+import type { Note } from '@scribe/shared';
 import * as styles from './NoteHeader.css';
-
-/**
- * Note type configuration with display labels and icons
- */
-const NOTE_TYPES: Array<{ value: NoteType | undefined; label: string; icon: string }> = [
-  { value: undefined, label: 'Note', icon: '📝' },
-  { value: 'project', label: 'Project', icon: '📁' },
-  { value: 'meeting', label: 'Meeting', icon: '📅' },
-  { value: 'person', label: 'Person', icon: '👤' },
-  { value: 'daily', label: 'Daily', icon: '📆' },
-  { value: 'template', label: 'Template', icon: '📋' },
-];
 
 interface NoteHeaderProps {
   note: Note;
   onTitleChange: (title: string) => void;
-  onTypeChange: (type: NoteType | undefined) => void;
   onTagsChange: (tags: string[]) => void;
 }
 
@@ -39,35 +26,15 @@ function formatDate(timestamp: number): string {
  * Displays and allows editing of note metadata:
  * - Title (editable inline)
  * - Creation date (read-only)
- * - Note type (dropdown selector)
  * - Tags (pills with add/remove)
  *
  * Designed to blend seamlessly with the editor content below.
  */
-export function NoteHeader({ note, onTitleChange, onTypeChange, onTagsChange }: NoteHeaderProps) {
-  const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
+export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagValue, setNewTagValue] = useState('');
 
-  const typeMenuRef = useRef<HTMLDivElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
-
-  // Get current type config
-  const currentType = NOTE_TYPES.find((t) => t.value === note.type) ?? NOTE_TYPES[0];
-
-  // Close type menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (typeMenuRef.current && !typeMenuRef.current.contains(event.target as Node)) {
-        setIsTypeMenuOpen(false);
-      }
-    }
-
-    if (isTypeMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isTypeMenuOpen]);
 
   // Focus tag input when adding
   useEffect(() => {
@@ -82,15 +49,6 @@ export function NoteHeader({ note, onTitleChange, onTypeChange, onTagsChange }: 
       onTitleChange(e.target.value);
     },
     [onTitleChange]
-  );
-
-  // Handle type selection
-  const handleTypeSelect = useCallback(
-    (type: NoteType | undefined) => {
-      onTypeChange(type);
-      setIsTypeMenuOpen(false);
-    },
-    [onTypeChange]
   );
 
   // Handle tag removal
@@ -149,43 +107,11 @@ export function NoteHeader({ note, onTitleChange, onTypeChange, onTagsChange }: 
         aria-label="Note title"
       />
 
-      {/* Metadata row: date, type, tags */}
+      {/* Metadata row: date, tags */}
       <div className={styles.metadataRow}>
         {/* Creation date */}
         <div className={styles.metadataItem}>
           <span className={styles.metadataValue}>{formatDate(note.createdAt)}</span>
-        </div>
-
-        <div className={styles.divider} />
-
-        {/* Note type selector */}
-        <div className={styles.typeMenuWrapper} ref={typeMenuRef}>
-          <button
-            className={styles.typeSelector}
-            onClick={() => setIsTypeMenuOpen(!isTypeMenuOpen)}
-            aria-label="Select note type"
-            aria-expanded={isTypeMenuOpen}
-          >
-            <span className={styles.typeIcon}>{currentType.icon}</span>
-            <span>{currentType.label}</span>
-          </button>
-
-          {isTypeMenuOpen && (
-            <div className={styles.typeMenu} role="listbox" aria-label="Note types">
-              {NOTE_TYPES.map((type) => (
-                <div
-                  key={type.label}
-                  className={`${styles.typeMenuItem} ${type.value === note.type ? styles.typeMenuItemActive : ''}`}
-                  onClick={() => handleTypeSelect(type.value)}
-                  role="option"
-                  aria-selected={type.value === note.type}
-                >
-                  <span>{type.icon}</span>
-                  <span>{type.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Tags */}

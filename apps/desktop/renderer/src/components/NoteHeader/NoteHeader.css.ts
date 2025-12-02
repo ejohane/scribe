@@ -9,16 +9,24 @@ import { vars } from '@scribe/design-system';
  */
 
 export const noteHeader = style({
+  // Match editorContainer layout exactly
+  position: 'relative',
+  width: '100%',
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['2'],
   maxWidth: '800px',
   margin: '0 auto',
-  padding: `${vars.spacing['12']} ${vars.spacing['8']} 0`,
+  // NoteHeader-specific padding (matches editorInput horizontal padding)
+  paddingTop: vars.spacing['12'],
+  paddingLeft: vars.spacing['8'],
+  paddingRight: vars.spacing['8'],
+  paddingBottom: 0,
+  gap: vars.spacing['2'],
   backgroundColor: vars.color.background,
 });
 
 export const titleInput = style({
+  display: 'block',
   width: '100%',
   border: 'none',
   outline: 'none',
@@ -30,16 +38,25 @@ export const titleInput = style({
   lineHeight: vars.typography.lineHeight.tight,
   padding: 0,
   margin: 0,
+  textAlign: 'left',
   '::placeholder': {
     color: vars.color.foregroundMuted,
+  },
+  ':focus': {
+    outline: 'none',
+  },
+  ':focus-visible': {
+    outline: 'none',
   },
 });
 
 export const metadataRow = style({
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'flex-start',
   gap: vars.spacing['4'],
   flexWrap: 'wrap',
+  width: '100%',
   color: vars.color.foregroundMuted,
   fontSize: vars.typography.size.sm,
 });
@@ -62,34 +79,6 @@ export const divider = style({
   width: '1px',
   height: '14px',
   backgroundColor: vars.color.border,
-});
-
-// Note type selector
-export const typeSelector = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['1'],
-  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
-  borderRadius: vars.radius.sm,
-  border: `1px solid transparent`,
-  backgroundColor: 'transparent',
-  color: vars.color.foreground,
-  fontSize: vars.typography.size.sm,
-  fontFamily: vars.typography.fontFamily.ui,
-  cursor: 'pointer',
-  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
-  ':hover': {
-    backgroundColor: vars.color.surface,
-    border: `1px solid ${vars.color.border}`,
-  },
-  ':focus': {
-    outline: 'none',
-    border: `1px solid ${vars.color.accent}`,
-  },
-});
-
-export const typeIcon = style({
-  fontSize: vars.typography.size.sm,
 });
 
 // Tags section
@@ -165,51 +154,10 @@ export const tagInput = style({
   outline: 'none',
   minWidth: '60px',
   fontFamily: vars.typography.fontFamily.ui,
-});
-
-// Type dropdown menu
-export const typeMenu = style({
-  position: 'absolute',
-  top: '100%',
-  left: 0,
-  marginTop: vars.spacing['1'],
-  backgroundColor: vars.color.background,
-  border: `1px solid ${vars.color.border}`,
-  borderRadius: vars.radius.md,
-  boxShadow: vars.shadow.md,
-  zIndex: vars.zIndex.popover,
-  minWidth: '160px',
-  overflow: 'hidden',
-});
-
-export const typeMenuWrapper = style({
-  position: 'relative',
-});
-
-export const typeMenuItem = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-  cursor: 'pointer',
-  fontSize: vars.typography.size.sm,
-  color: vars.color.foreground,
-  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
-  ':hover': {
-    backgroundColor: vars.color.surface,
+  ':focus': {
+    outline: 'none',
   },
-});
-
-export const typeMenuItemActive = style({
-  backgroundColor: vars.color.surface,
-});
-
-globalStyle(`${typeMenuItem}:first-child`, {
-  borderTopLeftRadius: vars.radius.md,
-  borderTopRightRadius: vars.radius.md,
-});
-
-globalStyle(`${typeMenuItem}:last-child`, {
-  borderBottomLeftRadius: vars.radius.md,
-  borderBottomRightRadius: vars.radius.md,
+  ':focus-visible': {
+    outline: 'none',
+  },
 });

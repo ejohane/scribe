@@ -411,9 +411,7 @@ export function CommandPalette({
   // Only indexes notes with titles (excludes untitled notes from search)
   // Also excludes the current note from the index
   const fuseIndex = useMemo(() => {
-    const searchableNotes = allNotes.filter(
-      (note) => note.id !== currentNoteId && note.title
-    );
+    const searchableNotes = allNotes.filter((note) => note.id !== currentNoteId && note.title);
     return new Fuse(searchableNotes, {
       keys: ['title'],
       threshold: 0.4, // Reasonable fuzzy matching threshold
