@@ -55,6 +55,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
+      "artifactName": "${productName}.${ext}",
       "contents": [
         {
           "x": 130,
@@ -83,6 +84,7 @@
       ]
     },
     "nsis": {
+      "artifactName": "${productName}-Setup.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -92,7 +94,8 @@
       "target": [
         "AppImage"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "artifactName": "${productName}.${ext}"
     },
     "npmRebuild": false,
     "buildDependenciesFromSource": false,
