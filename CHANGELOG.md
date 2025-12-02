@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.1](https://github.com/ejohane/scribe/compare/v1.10.0...v1.10.1) (2025-12-02)
+
+### Bug Fixes
+
+* **desktop:** set NODE_ENV to production in build scripts ([4c84b1d](https://github.com/ejohane/scribe/commit/4c84b1d9cd82b5ae464b8fe393c635bfb74737a3))
+
 ## [1.10.0](https://github.com/ejohane/scribe/compare/v1.9.0...v1.10.0) (2025-12-02)
 
 ### Features
