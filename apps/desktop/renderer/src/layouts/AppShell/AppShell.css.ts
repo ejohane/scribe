@@ -54,6 +54,8 @@ export const main = style({
 export const mainContent = style({
   flex: 1,
   overflow: 'auto',
+  // Add padding top to account for titlebar drag region
+  paddingTop: '40px',
 });
 
 export const contextPanel = style({

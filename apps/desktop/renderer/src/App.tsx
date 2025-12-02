@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as styles from './App.css';
-import { useTheme } from '@scribe/design-system';
+import { useTheme, FilePlusIcon } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
@@ -111,13 +111,14 @@ function App() {
 
   // Register commands on mount
   useEffect(() => {
-    // Command: New Note
+    // Command: Create Note
     commandRegistry.register({
       id: 'new-note',
-      title: 'New Note',
+      title: 'Create Note',
       description: 'Create a new note',
-      keywords: ['create', 'add'],
+      keywords: ['create', 'add', 'new'],
       group: 'notes',
+      icon: <FilePlusIcon size={16} />,
       closeOnSelect: true, // Close palette immediately, then create note
       run: async (context) => {
         clearHistory(); // Fresh navigation - clear wiki-link history
@@ -133,6 +134,7 @@ function App() {
       keywords: ['find', 'search', 'switch'],
       group: 'notes',
       closeOnSelect: false, // Keep palette open to show file browser
+      hidden: true,
       run: async () => {
         // Switch palette to file-browse mode to show note list
         setPaletteMode('file-browse');
@@ -147,6 +149,7 @@ function App() {
       keywords: ['save', 'write'],
       group: 'notes',
       closeOnSelect: true,
+      hidden: true,
       run: async () => {
         // Manual save is handled by ManualSavePlugin
         // This command is more for visibility
@@ -161,6 +164,7 @@ function App() {
       keywords: ['devtools', 'debug', 'inspect'],
       group: 'developer',
       closeOnSelect: true,
+      hidden: true,
       run: async () => {
         await window.scribe.app.openDevTools();
       },
@@ -174,6 +178,7 @@ function App() {
       keywords: ['backlinks', 'references', 'links', 'graph'],
       group: 'navigation',
       closeOnSelect: true,
+      hidden: true,
       run: async (context) => {
         const currentNoteId = context.getCurrentNoteId();
         if (!currentNoteId) {
@@ -200,6 +205,7 @@ function App() {
       keywords: ['remove', 'trash', 'destroy'],
       group: 'notes',
       closeOnSelect: false, // Keep palette open for file selection + confirmation
+      hidden: true,
       run: async () => {
         setPaletteMode('delete-browse');
       },
@@ -213,6 +219,7 @@ function App() {
       keywords: ['theme', 'dark', 'light', 'appearance'],
       group: 'settings',
       closeOnSelect: true,
+      hidden: true,
       run: async () => {
         const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
@@ -440,7 +447,7 @@ function App() {
               }
               setIsPaletteOpen(false);
             }}
-            commands={commandRegistry.getAll()}
+            commands={commandRegistry.getVisible()}
             onCommandSelect={handleCommandSelect}
             onSearchResultSelect={(result) => {
               clearHistory(); // Fresh navigation - clear wiki-link history

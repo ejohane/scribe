@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0](https://github.com/ejohane/scribe/compare/v1.8.0...v1.9.0) (2025-11-29)
+
+### Features
+
+* **ui:** migrate to Lucide icons and enhance command palette ([22fbf44](https://github.com/ejohane/scribe/commit/22fbf44c59e8cd8f1f7f22d2318fffcc0f75c153))
+
+### Bug Fixes
+
+* remove redesign-poc ([3a32c0c](https://github.com/ejohane/scribe/commit/3a32c0c341ec00fbbee2e7db3c862ffa85a0bb69))
+* **ui:** ensure resize handles are clickable with proper z-index stacking ([e63ad90](https://github.com/ejohane/scribe/commit/e63ad90ecd584ba8bdad18168291f1455e765e58))
+* **ui:** restore draggable resize handles by fixing overflow clipping ([8cb251f](https://github.com/ejohane/scribe/commit/8cb251f6dc3967ffa7f64112ac360de674dd0281))
+
 ## [1.8.0](https://github.com/ejohane/scribe/compare/v1.7.0...v1.8.0) (2025-11-29)
 
 ### Features
