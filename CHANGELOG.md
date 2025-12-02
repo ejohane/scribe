@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0](https://github.com/ejohane/scribe/compare/v1.10.3...v1.11.0) (2025-12-02)
+
+### Features
+
+* **editor:** add bottom scroll padding and parallax header hide effect ([3f9a461](https://github.com/ejohane/scribe/commit/3f9a4611d5f4c337349a5911b4d31181bebba9d2))
+
 ## [1.10.3](https://github.com/ejohane/scribe/compare/v1.10.2...v1.10.3) (2025-12-02)
 
 ### Bug Fixes
