@@ -55,7 +55,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
-      "artifactName": "${productName}.${ext}",
+      "artifactName": "${productName}-${arch}.${ext}",
       "contents": [
         {
           "x": 130,
