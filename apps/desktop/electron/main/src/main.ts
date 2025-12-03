@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import * as fs from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { format } from 'date-fns';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
@@ -132,6 +133,98 @@ function createPersonContent(name: string): LexicalState {
 }
 
 /**
+ * Create initial content for daily notes.
+ * Matches the structure in renderer/src/templates/daily.ts
+ */
+function createDailyContent(): LexicalState {
+  return {
+    root: {
+      children: [
+        {
+          type: 'list',
+          listType: 'bullet',
+          children: [
+            {
+              type: 'listitem',
+              children: [],
+              direction: null,
+              format: '',
+              indent: 0,
+              version: 1,
+            },
+          ],
+          direction: null,
+          format: '',
+          indent: 0,
+          version: 1,
+        },
+      ],
+      type: 'root',
+      format: '',
+      indent: 0,
+      version: 1,
+    },
+    type: 'daily',
+  } as LexicalState;
+}
+
+/**
+ * Create initial content for meeting notes.
+ * Matches the structure in renderer/src/templates/meeting.ts
+ */
+function createMeetingContent(): LexicalState {
+  const createH3 = (text: string) => ({
+    type: 'heading',
+    tag: 'h3',
+    children: [{ type: 'text', text, format: 0, mode: 'normal', style: '', detail: 0, version: 1 }],
+    direction: null,
+    format: '',
+    indent: 0,
+    version: 1,
+  });
+
+  const emptyBulletList = () => ({
+    type: 'list',
+    listType: 'bullet',
+    start: 1,
+    tag: 'ul',
+    children: [
+      {
+        type: 'listitem',
+        value: 1,
+        children: [],
+        direction: null,
+        format: '',
+        indent: 0,
+        version: 1,
+      },
+    ],
+    direction: null,
+    format: '',
+    indent: 0,
+    version: 1,
+  });
+
+  return {
+    root: {
+      children: [
+        createH3('Pre-Read'),
+        emptyBulletList(),
+        createH3('Notes'),
+        emptyBulletList(),
+        createH3('Action Items'),
+        emptyBulletList(),
+      ],
+      type: 'root',
+      format: '',
+      indent: 0,
+      version: 1,
+    },
+    type: 'meeting',
+  } as LexicalState;
+}
+
+/**
  * Setup IPC handlers for notes operations
  */
 function setupIPCHandlers() {
@@ -254,6 +347,56 @@ function setupIPCHandlers() {
 
     return match ?? null;
   });
+
+  // Find notes by date (for date-based linked mentions in daily notes)
+  ipcMain.handle(
+    'notes:findByDate',
+    async (
+      _event,
+      {
+        date,
+        includeCreated,
+        includeUpdated,
+      }: { date: string; includeCreated: boolean; includeUpdated: boolean }
+    ) => {
+      if (!vault) {
+        throw new Error('Vault not initialized');
+      }
+
+      // Parse the date string (expecting "MM-dd-yyyy" format from daily note titles)
+      const [month, day, year] = date.split('-').map(Number);
+      const targetDate = new Date(year, month - 1, day);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const startMs = startOfDay.getTime();
+      const endMs = endOfDay.getTime();
+
+      const notes = vault.list();
+      const results: Array<{ note: Note; reason: 'created' | 'updated' }> = [];
+
+      for (const note of notes) {
+        // Skip the daily note itself (will be excluded later by noteId, but good to skip early)
+        if (note.type === 'daily' && note.title === date) {
+          continue;
+        }
+
+        const wasCreatedOnDate = note.createdAt >= startMs && note.createdAt <= endMs;
+        const wasUpdatedOnDate = note.updatedAt >= startMs && note.updatedAt <= endMs;
+
+        if (includeCreated && wasCreatedOnDate) {
+          results.push({ note, reason: 'created' });
+        } else if (includeUpdated && wasUpdatedOnDate && !wasCreatedOnDate) {
+          // Only mark as "updated" if it wasn't also created on this date
+          results.push({ note, reason: 'updated' });
+        }
+      }
+
+      return results;
+    }
+  );
 
   // Search note titles (for wiki-link autocomplete)
   ipcMain.handle('notes:searchTitles', async (_event, query: string, limit = 10) => {
@@ -419,6 +562,186 @@ function setupIPCHandlers() {
     await saveConfig(updatedConfig);
     return { success: true };
   });
+
+  // Open external URL in default browser
+  ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+    // Validate URL to prevent arbitrary command execution
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      throw new Error('Only http:// and https:// URLs are allowed');
+    }
+    await shell.openExternal(url);
+    return { success: true };
+  });
+
+  // ============================================
+  // Daily Note Handlers
+  // ============================================
+
+  /**
+   * Get or create today's daily note.
+   * Idempotent: returns existing note if one exists for today.
+   */
+  ipcMain.handle('daily:getOrCreate', async () => {
+    if (!vault) {
+      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
+    }
+
+    const today = new Date();
+    const dateStr = format(today, 'MM-dd-yyyy');
+
+    // Find existing daily note by matching type and title (MM-dd-yyyy date)
+    const notes = vault.list();
+    const existing = notes.find((n) => n.type === 'daily' && n.title === dateStr);
+    if (existing) {
+      return existing;
+    }
+
+    // Create new daily note
+    const content = createDailyContent();
+    const note = await vault.create({
+      type: 'daily',
+      title: dateStr,
+      tags: ['daily'],
+      content,
+      daily: { date: dateStr },
+    });
+
+    // Index in engines
+    graphEngine!.addNote(note);
+    searchEngine!.indexNote(note);
+
+    return note;
+  });
+
+  /**
+   * Find daily note for a specific date.
+   * Returns null if no daily note exists for that date.
+   */
+  ipcMain.handle('daily:find', async (_, { date }: { date: string }) => {
+    if (!vault) {
+      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
+    }
+
+    const notes = vault.list();
+    return notes.find((n) => n.type === 'daily' && n.title === date) ?? null;
+  });
+
+  // ============================================
+  // Meeting Note Handlers
+  // ============================================
+
+  /**
+   * Create a new meeting note for today.
+   * Auto-creates today's daily note if it doesn't exist.
+   */
+  ipcMain.handle('meeting:create', async (_, { title }: { title: string }) => {
+    if (!vault) {
+      throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
+    }
+    if (!title?.trim()) {
+      throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Meeting title required');
+    }
+
+    const today = new Date();
+    const dateStr = format(today, 'MM-dd-yyyy');
+
+    // Ensure daily note exists (create if needed)
+    let dailyNote = vault.list().find((n) => n.type === 'daily' && n.title === dateStr);
+    if (!dailyNote) {
+      dailyNote = await vault.create({
+        type: 'daily',
+        title: dateStr,
+        tags: ['daily'],
+        content: createDailyContent(),
+        daily: { date: dateStr },
+      });
+      graphEngine!.addNote(dailyNote);
+      searchEngine!.indexNote(dailyNote);
+    }
+
+    // Create meeting note
+    const content = createMeetingContent();
+    const note = await vault.create({
+      type: 'meeting',
+      title: title.trim(),
+      tags: ['meeting'],
+      content,
+      meeting: {
+        date: dateStr,
+        dailyNoteId: dailyNote.id,
+        attendees: [],
+      },
+    });
+
+    graphEngine!.addNote(note);
+    searchEngine!.indexNote(note);
+
+    return note;
+  });
+
+  /**
+   * Add a person as attendee to a meeting.
+   * Idempotent: adding same person twice has no effect.
+   */
+  ipcMain.handle(
+    'meeting:addAttendee',
+    async (_, { noteId, personId }: { noteId: NoteId; personId: NoteId }) => {
+      if (!vault) {
+        throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
+      }
+
+      const note = vault.read(noteId);
+      if (note.type !== 'meeting') {
+        throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Note is not a meeting');
+      }
+
+      const attendees = note.meeting?.attendees ?? [];
+      if (attendees.includes(personId)) {
+        return { success: true }; // Already added, idempotent
+      }
+
+      const updatedNote = {
+        ...note,
+        meeting: {
+          ...note.meeting!,
+          attendees: [...attendees, personId],
+        },
+      };
+
+      await vault.save(updatedNote);
+      return { success: true };
+    }
+  );
+
+  /**
+   * Remove a person from a meeting's attendees.
+   * Idempotent: removing non-existent attendee has no effect.
+   */
+  ipcMain.handle(
+    'meeting:removeAttendee',
+    async (_, { noteId, personId }: { noteId: NoteId; personId: NoteId }) => {
+      if (!vault) {
+        throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
+      }
+
+      const note = vault.read(noteId);
+      if (note.type !== 'meeting') {
+        throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Note is not a meeting');
+      }
+
+      const attendees = note.meeting?.attendees ?? [];
+      const updatedNote = {
+        ...note,
+        meeting: {
+          ...note.meeting!,
+          attendees: attendees.filter((id) => id !== personId),
+        },
+      };
+
+      await vault.save(updatedNote);
+      return { success: true };
+    }
+  );
 }
 
 function createWindow() {

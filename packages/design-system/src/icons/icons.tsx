@@ -42,6 +42,10 @@ export {
   Link as LinkIcon,
   // Navigation icons
   ArrowLeft as ArrowLeftIcon,
+  // Calendar icons for daily notes and meetings
+  CalendarPlus as CalendarPlusIcon,
+  CalendarCheck as CalendarCheckIcon,
+  CalendarDays as CalendarDaysIcon,
 } from 'lucide-react';
 
 // Re-export LucideProps as IconComponentProps for backwards compatibility

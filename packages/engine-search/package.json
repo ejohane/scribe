@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@scribe/shared": "workspace:*",
+    "date-fns": "^4.1.0",
     "flexsearch": "^0.7.43"
   },
   "devDependencies": {

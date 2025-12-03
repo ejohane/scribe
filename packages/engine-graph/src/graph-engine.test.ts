@@ -12,7 +12,14 @@ import type { Note, NoteMetadata, NoteType } from '@scribe/shared';
  * Helper function to create a valid test Note with all required fields.
  * This ensures tests use the correct Note structure with top-level title and tags.
  */
-function createTestNote(id: string, metadata: NoteMetadata, options?: { type?: NoteType }): Note {
+function createTestNote(
+  id: string,
+  metadata: NoteMetadata,
+  options?: {
+    type?: NoteType;
+    meeting?: { date: string; dailyNoteId: string; attendees: string[] };
+  }
+): Note {
   return {
     id,
     title: metadata.title ?? 'Untitled',
@@ -24,6 +31,7 @@ function createTestNote(id: string, metadata: NoteMetadata, options?: { type?: N
       ? { root: { type: 'root', children: [] }, type: options.type }
       : { root: { type: 'root', children: [] } },
     metadata,
+    meeting: options?.meeting,
   };
 }
 
@@ -822,6 +830,198 @@ describe('GraphEngine', () => {
     it('should return empty array for non-existent note', () => {
       const people = graph.peopleMentionedIn('non-existent');
       expect(people).toHaveLength(0);
+    });
+  });
+
+  describe('meeting -> daily note relationship', () => {
+    it('should include dailyNoteId as a backlink', () => {
+      const dailyNote = createTestNote(
+        'daily-2024-12-02',
+        { title: '12-02-2024', tags: ['daily'], links: [], mentions: [] },
+        { type: 'daily' }
+      );
+
+      const meetingNote = createTestNote(
+        'meeting-1',
+        { title: 'Team Sync', tags: ['meeting'], links: [], mentions: [] },
+        {
+          type: 'meeting',
+          meeting: {
+            date: '2024-12-02',
+            dailyNoteId: 'daily-2024-12-02',
+            attendees: [],
+          },
+        }
+      );
+
+      graph.addNote(dailyNote);
+      graph.addNote(meetingNote);
+
+      // The meeting should appear as a backlink on the daily note
+      const backlinks = graph.backlinks('daily-2024-12-02');
+      expect(backlinks).toHaveLength(1);
+      expect(backlinks[0].id).toBe('meeting-1');
+      expect(backlinks[0].title).toBe('Team Sync');
+    });
+
+    it('should include dailyNoteId in neighbors', () => {
+      const dailyNote = createTestNote(
+        'daily-2024-12-02',
+        { title: '12-02-2024', tags: ['daily'], links: [], mentions: [] },
+        { type: 'daily' }
+      );
+
+      const meetingNote = createTestNote(
+        'meeting-1',
+        { title: 'Team Sync', tags: ['meeting'], links: [], mentions: [] },
+        {
+          type: 'meeting',
+          meeting: {
+            date: '2024-12-02',
+            dailyNoteId: 'daily-2024-12-02',
+            attendees: [],
+          },
+        }
+      );
+
+      graph.addNote(dailyNote);
+      graph.addNote(meetingNote);
+
+      // Daily note should have meeting as neighbor (via incoming edge)
+      const dailyNeighbors = graph.neighbors('daily-2024-12-02');
+      expect(dailyNeighbors).toHaveLength(1);
+      expect(dailyNeighbors[0].id).toBe('meeting-1');
+
+      // Meeting should have daily as neighbor (via outgoing edge)
+      const meetingNeighbors = graph.neighbors('meeting-1');
+      expect(meetingNeighbors).toHaveLength(1);
+      expect(meetingNeighbors[0].id).toBe('daily-2024-12-02');
+    });
+
+    it('should update backlinks when meeting is updated', () => {
+      const dailyNote1 = createTestNote(
+        'daily-2024-12-01',
+        { title: '12-01-2024', tags: ['daily'], links: [], mentions: [] },
+        { type: 'daily' }
+      );
+
+      const dailyNote2 = createTestNote(
+        'daily-2024-12-02',
+        { title: '12-02-2024', tags: ['daily'], links: [], mentions: [] },
+        { type: 'daily' }
+      );
+
+      const meetingNote = createTestNote(
+        'meeting-1',
+        { title: 'Team Sync', tags: ['meeting'], links: [], mentions: [] },
+        {
+          type: 'meeting',
+          meeting: {
+            date: '2024-12-01',
+            dailyNoteId: 'daily-2024-12-01',
+            attendees: [],
+          },
+        }
+      );
+
+      graph.addNote(dailyNote1);
+      graph.addNote(dailyNote2);
+      graph.addNote(meetingNote);
+
+      expect(graph.backlinks('daily-2024-12-01')).toHaveLength(1);
+      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(0);
+
+      // Update meeting to link to different daily note
+      const meetingUpdated = createTestNote(
+        'meeting-1',
+        { title: 'Team Sync', tags: ['meeting'], links: [], mentions: [] },
+        {
+          type: 'meeting',
+          meeting: {
+            date: '2024-12-02',
+            dailyNoteId: 'daily-2024-12-02',
+            attendees: [],
+          },
+        }
+      );
+
+      graph.addNote(meetingUpdated);
+
+      expect(graph.backlinks('daily-2024-12-01')).toHaveLength(0);
+      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(1);
+    });
+
+    it('should clean up backlinks when meeting is removed', () => {
+      const dailyNote = createTestNote(
+        'daily-2024-12-02',
+        { title: '12-02-2024', tags: ['daily'], links: [], mentions: [] },
+        { type: 'daily' }
+      );
+
+      const meetingNote = createTestNote(
+        'meeting-1',
+        { title: 'Team Sync', tags: ['meeting'], links: [], mentions: [] },
+        {
+          type: 'meeting',
+          meeting: {
+            date: '2024-12-02',
+            dailyNoteId: 'daily-2024-12-02',
+            attendees: [],
+          },
+        }
+      );
+
+      graph.addNote(dailyNote);
+      graph.addNote(meetingNote);
+
+      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(1);
+
+      graph.removeNote('meeting-1');
+
+      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(0);
+    });
+
+    it('should handle meeting with both dailyNoteId and content links', () => {
+      const dailyNote = createTestNote(
+        'daily-2024-12-02',
+        { title: '12-02-2024', tags: ['daily'], links: [], mentions: [] },
+        { type: 'daily' }
+      );
+
+      const projectNote = createTestNote('project-1', {
+        title: 'Project Alpha',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      // Meeting links to project in content AND has dailyNoteId
+      const meetingNote = createTestNote(
+        'meeting-1',
+        { title: 'Team Sync', tags: ['meeting'], links: ['project-1'], mentions: [] },
+        {
+          type: 'meeting',
+          meeting: {
+            date: '2024-12-02',
+            dailyNoteId: 'daily-2024-12-02',
+            attendees: [],
+          },
+        }
+      );
+
+      graph.addNote(dailyNote);
+      graph.addNote(projectNote);
+      graph.addNote(meetingNote);
+
+      // Both should appear in meeting's outgoing neighbors
+      const meetingNeighbors = graph.neighbors('meeting-1');
+      expect(meetingNeighbors).toHaveLength(2);
+      const neighborIds = meetingNeighbors.map((n) => n.id).sort();
+      expect(neighborIds).toEqual(['daily-2024-12-02', 'project-1']);
+
+      // Meeting should appear as backlink for both
+      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(1);
+      expect(graph.backlinks('project-1')).toHaveLength(1);
     });
   });
 });

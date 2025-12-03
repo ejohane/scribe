@@ -15,6 +15,7 @@ import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextP
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
+import { templateCommands } from './commands/templates';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
@@ -108,6 +109,12 @@ function App() {
     },
     [navigateToNote]
   );
+
+  // Handle date click - open or create today's daily note
+  const handleDateClick = useCallback(async () => {
+    const note = await window.scribe.daily.getOrCreate();
+    navigateToNote(note.id, true);
+  }, [navigateToNote]);
 
   // Register commands on mount
   useEffect(() => {
@@ -235,6 +242,9 @@ function App() {
 
     // Register People commands
     commandRegistry.registerMany(peopleCommands);
+
+    // Register Template commands
+    commandRegistry.registerMany(templateCommands);
   }, [resolvedTheme, setTheme, clearHistory]);
 
   // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back)
@@ -417,6 +427,7 @@ function App() {
               note={noteState.currentNote}
               onTitleChange={(title: string) => noteState.updateMetadata({ title })}
               onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
+              onDateClick={handleDateClick}
             />
           </ErrorBoundary>
         )}
@@ -535,10 +546,16 @@ function App() {
       <ErrorBoundary name="Context Panel">
         <ContextPanel
           isOpen={contextPanelOpen}
-          currentNoteId={noteState.currentNoteId}
-          onSelectBacklink={(noteId) => {
+          note={noteState.currentNote}
+          onNavigate={(noteId) => {
             clearHistory();
             noteState.loadNote(noteId);
+          }}
+          onNoteUpdate={() => {
+            // Refresh the current note to get updated data (e.g., attendees changes)
+            if (noteState.currentNoteId) {
+              noteState.loadNote(noteState.currentNoteId);
+            }
           }}
           width={contextPanelWidth}
           onWidthChange={setContextPanelWidth}

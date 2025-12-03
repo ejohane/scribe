@@ -53,6 +53,20 @@ const scribeAPI = {
      */
     searchTitles: (query: string, limit?: number): Promise<SearchResult[]> =>
       ipcRenderer.invoke('notes:searchTitles', query, limit ?? 10),
+
+    /**
+     * Find notes by creation/update date (for date-based linked mentions)
+     * @param date - Date string in "MM-dd-yyyy" format
+     * @param includeCreated - Include notes created on this date
+     * @param includeUpdated - Include notes updated on this date
+     * @returns Array of notes with their match reason ('created' | 'updated')
+     */
+    findByDate: (
+      date: string,
+      includeCreated: boolean,
+      includeUpdated: boolean
+    ): Promise<Array<{ note: Note; reason: 'created' | 'updated' }>> =>
+      ipcRenderer.invoke('notes:findByDate', { date, includeCreated, includeUpdated }),
   },
 
   // Search API (placeholder for future implementation)
@@ -80,6 +94,16 @@ const scribeAPI = {
      */
     notesWithTag: (tag: string): Promise<GraphNode[]> =>
       ipcRenderer.invoke('graph:notesWithTag', tag),
+  },
+
+  // Shell API
+  shell: {
+    /**
+     * Open a URL in the default external browser
+     * Only http:// and https:// URLs are allowed
+     */
+    openExternal: (url: string): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('shell:openExternal', url),
   },
 
   // App API
@@ -129,6 +153,54 @@ const scribeAPI = {
      */
     search: (query: string, limit?: number): Promise<SearchResult[]> =>
       ipcRenderer.invoke('people:search', query, limit ?? 10),
+  },
+
+  /**
+   * Daily note operations
+   */
+  daily: {
+    /**
+     * Get or create today's daily note.
+     * Idempotent: returns same note on repeat calls within same day.
+     */
+    getOrCreate: (): Promise<Note> => ipcRenderer.invoke('daily:getOrCreate'),
+
+    /**
+     * Find daily note for a specific date.
+     * @param date - ISO date string "YYYY-MM-DD"
+     * @returns The daily note or null if not found
+     */
+    find: (date: string): Promise<Note | null> => ipcRenderer.invoke('daily:find', { date }),
+  },
+
+  /**
+   * Meeting note operations
+   */
+  meeting: {
+    /**
+     * Create a new meeting note for today.
+     * Auto-creates daily note if needed and links the meeting to it.
+     * @param title - The meeting title (required, cannot be empty)
+     */
+    create: (title: string): Promise<Note> => ipcRenderer.invoke('meeting:create', { title }),
+
+    /**
+     * Add a person as attendee to a meeting.
+     * Idempotent: adding same person twice has no effect.
+     * @param noteId - The meeting note ID
+     * @param personId - The person note ID to add
+     */
+    addAttendee: (noteId: NoteId, personId: NoteId): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('meeting:addAttendee', { noteId, personId }),
+
+    /**
+     * Remove a person from a meeting's attendees.
+     * Idempotent: removing non-existent attendee has no effect.
+     * @param noteId - The meeting note ID
+     * @param personId - The person note ID to remove
+     */
+    removeAttendee: (noteId: NoteId, personId: NoteId): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('meeting:removeAttendee', { noteId, personId }),
   },
 };
 

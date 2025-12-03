@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import type { Note } from '@scribe/shared';
+import { getTemplate } from '../../templates';
+// Import templates to auto-register them
+import '../../templates/daily';
 import * as styles from './NoteHeader.css';
 
 /** Debounce delay for title changes (ms) */
@@ -9,6 +12,8 @@ interface NoteHeaderProps {
   note: Note;
   onTitleChange: (title: string) => void;
   onTagsChange: (tags: string[]) => void;
+  /** Called when the date is clicked. Opens/creates today's daily note. */
+  onDateClick?: () => void;
 }
 
 /**
@@ -24,6 +29,27 @@ function formatDate(timestamp: number): string {
 }
 
 /**
+ * Get the display title for a note.
+ * - Daily notes: "Today" or "MM/dd/yyyy"
+ * - Other notes: use stored title
+ */
+function getDisplayTitle(note: Note): string {
+  const template = getTemplate(note.type);
+  if (template) {
+    return template.renderTitle(note, { date: new Date() });
+  }
+  return note.title;
+}
+
+/**
+ * Check if note title should be editable.
+ * Daily note titles are derived from date and should not be edited.
+ */
+function isTitleEditable(note: Note): boolean {
+  return note.type !== 'daily';
+}
+
+/**
  * NoteHeader component
  *
  * Displays and allows editing of note metadata:
@@ -33,19 +59,21 @@ function formatDate(timestamp: number): string {
  *
  * Designed to blend seamlessly with the editor content below.
  */
-export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProps) {
+export function NoteHeader({ note, onTitleChange, onTagsChange, onDateClick }: NoteHeaderProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagValue, setNewTagValue] = useState('');
-  // Local title state for immediate UI updates
-  const [localTitle, setLocalTitle] = useState(note.title);
+  // Determine if title is editable (daily notes are not editable)
+  const titleEditable = isTitleEditable(note);
+  // Local title state for immediate UI updates (use display title for non-editable notes)
+  const [localTitle, setLocalTitle] = useState(titleEditable ? note.title : getDisplayTitle(note));
 
   const tagInputRef = useRef<HTMLInputElement>(null);
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync local title when note changes (e.g., switching notes)
   useEffect(() => {
-    setLocalTitle(note.title);
-  }, [note.id, note.title]);
+    setLocalTitle(titleEditable ? note.title : getDisplayTitle(note));
+  }, [note.id, note.title, titleEditable]);
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -130,7 +158,7 @@ export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProp
 
   return (
     <div className={styles.noteHeader}>
-      {/* Editable title */}
+      {/* Editable title (read-only for daily notes) */}
       <input
         type="text"
         className={styles.titleInput}
@@ -138,13 +166,21 @@ export function NoteHeader({ note, onTitleChange, onTagsChange }: NoteHeaderProp
         onChange={handleTitleChange}
         placeholder="Untitled"
         aria-label="Note title"
+        readOnly={!titleEditable}
       />
 
       {/* Metadata row: date, tags */}
       <div className={styles.metadataRow}>
-        {/* Creation date */}
+        {/* Creation date - clickable to open today's daily note */}
         <div className={styles.metadataItem}>
-          <span className={styles.metadataValue}>{formatDate(note.createdAt)}</span>
+          <button
+            className={styles.dateButton}
+            onClick={onDateClick}
+            title="Open today's daily note"
+            aria-label="Open today's daily note"
+          >
+            {formatDate(note.createdAt)}
+          </button>
         </div>
 
         {/* Tags */}

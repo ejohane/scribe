@@ -7,6 +7,7 @@
  */
 
 import { Document } from 'flexsearch';
+import { format, parse, isValid } from 'date-fns';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { extractTextForSearch, extractTextWithContext, generateSnippet } from './text-extraction';
 
@@ -71,10 +72,26 @@ export class SearchEngine {
     // Combine explicit user tags with inline #tags from content for search
     const allTags = [...new Set([...note.tags, ...note.metadata.tags])];
 
+    // Build searchable title - for daily notes, also include formatted date (MM/dd/yyyy)
+    let searchableTitle = note.title || '';
+    if (note.type === 'daily' && note.title) {
+      try {
+        // Daily notes store their title as MM-dd-yyyy date
+        const date = parse(note.title, 'MM-dd-yyyy', new Date());
+        if (isValid(date)) {
+          // Add formatted date as additional searchable text
+          const formattedDate = format(date, 'MM/dd/yyyy');
+          searchableTitle = `${note.title} ${formattedDate}`;
+        }
+      } catch {
+        // Ignore invalid dates, keep original title
+      }
+    }
+
     // Prepare document for indexing (using explicit title field)
     const doc: SearchDocument = {
       id: note.id,
-      title: note.title || '',
+      title: searchableTitle,
       tags: allTags.join(' '),
       content: fullText.slice(0, 1000), // Index first 1000 chars for performance
       fullText: contextText, // Store more for snippets

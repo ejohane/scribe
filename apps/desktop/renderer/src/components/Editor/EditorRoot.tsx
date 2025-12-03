@@ -29,6 +29,7 @@ import { WikiLinkNode } from './plugins/WikiLinkNode';
 import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
 import { PersonMentionNode } from './plugins/PersonMentionNode';
 import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
+import { LinkClickPlugin } from './plugins/LinkClickPlugin';
 import { SelectionToolbarPlugin } from './SelectionToolbar';
 import { SlashMenuPlugin } from './SlashMenu';
 import * as styles from './EditorRoot.css';
@@ -141,6 +142,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <WikiLinkPlugin currentNoteId={currentNoteId} />
           {/* Person mention autocomplete and creation */}
           <PersonMentionPlugin currentNoteId={currentNoteId} />
+          {/* Handle clicks on external hyperlinks */}
+          <LinkClickPlugin />
           {/* Floating toolbar for text selection formatting */}
           <SelectionToolbarPlugin />
           {/* Slash command menu */}
