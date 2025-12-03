@@ -162,6 +162,28 @@ export interface Note {
    * while note.title and note.tags are user-editable explicit fields.
    */
   metadata: NoteMetadata;
+
+  /**
+   * Daily note specific data (only present for daily notes)
+   * Present when note.type === 'daily'
+   */
+  daily?: {
+    /** ISO date string "YYYY-MM-DD" */
+    date: string;
+  };
+
+  /**
+   * Meeting specific data (only present for meeting notes)
+   * Present when note.type === 'meeting'
+   */
+  meeting?: {
+    /** ISO date string "YYYY-MM-DD" */
+    date: string;
+    /** Associated daily note for this meeting */
+    dailyNoteId: NoteId;
+    /** Person note IDs of meeting attendees */
+    attendees: NoteId[];
+  };
 }
 
 /**

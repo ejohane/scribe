@@ -1,0 +1,220 @@
+/**
+ * AttendeesWidget component styles
+ *
+ * Styles for the attendees widget that displays and manages meeting attendees.
+ * Uses card-based styling consistent with other context panel widgets.
+ */
+
+import { style } from '@vanilla-extract/css';
+import { vars } from '@scribe/design-system';
+
+/**
+ * Card container matching other context panel widgets
+ */
+export const card = style({
+  backgroundColor: vars.color.background,
+  borderRadius: vars.radius.xl,
+  padding: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
+  boxShadow: vars.shadow.sm,
+  border: `1px solid ${vars.color.border}`,
+  transition: `background-color ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
+});
+
+/**
+ * Card header with icon, title, and add button
+ */
+export const cardHeader = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.spacing['2'],
+  marginBottom: vars.spacing['3'],
+  color: vars.color.foreground,
+  fontWeight: vars.typography.weight.medium,
+});
+
+export const cardIcon = style({
+  width: '14px',
+  height: '14px',
+  flexShrink: 0,
+});
+
+export const cardTitle = style({
+  fontSize: vars.typography.size.xs,
+  flex: 1,
+});
+
+/**
+ * Add button in header
+ */
+export const addButton = style({
+  background: 'none',
+  border: 'none',
+  color: vars.color.foregroundMuted,
+  fontSize: vars.typography.size.lg,
+  cursor: 'pointer',
+  padding: vars.spacing['1'],
+  borderRadius: vars.radius.sm,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '24px',
+  height: '24px',
+  transition: `all ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+    color: vars.color.foreground,
+  },
+});
+
+/**
+ * Autocomplete container for adding attendees
+ */
+export const autocomplete = style({
+  marginBottom: vars.spacing['3'],
+});
+
+/**
+ * Search input for finding people
+ */
+export const searchInput = style({
+  width: '100%',
+  padding: vars.spacing['2'],
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.sm,
+  backgroundColor: vars.color.surface,
+  color: vars.color.foreground,
+  fontSize: vars.typography.size.sm,
+  marginBottom: vars.spacing['2'],
+  transition: `border-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':focus': {
+    outline: 'none',
+    borderColor: vars.color.accent,
+  },
+
+  '::placeholder': {
+    color: vars.color.foregroundMuted,
+  },
+});
+
+/**
+ * Suggestions list container
+ */
+export const suggestionsList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['1'],
+  maxHeight: '150px',
+  overflowY: 'auto',
+});
+
+/**
+ * Individual suggestion item (clickable button)
+ */
+export const suggestionItem = style({
+  display: 'flex',
+  alignItems: 'center',
+  padding: vars.spacing['2'],
+  borderRadius: vars.radius.sm,
+  background: 'none',
+  border: 'none',
+  color: vars.color.foreground,
+  cursor: 'pointer',
+  textAlign: 'left',
+  width: '100%',
+  fontSize: vars.typography.size.sm,
+  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+  },
+});
+
+/**
+ * No results message
+ */
+export const noResults = style({
+  color: vars.color.foregroundMuted,
+  fontSize: vars.typography.size.sm,
+  fontStyle: 'italic',
+  padding: vars.spacing['2'],
+});
+
+/**
+ * List of current attendees
+ */
+export const list = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.spacing['1'],
+});
+
+/**
+ * Individual attendee row with name and remove button
+ */
+export const attendeeRow = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: vars.spacing['2'],
+  borderRadius: vars.radius.sm,
+  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+  },
+});
+
+/**
+ * Attendee name button (clickable to navigate)
+ */
+export const attendeeName = style({
+  background: 'none',
+  border: 'none',
+  color: vars.color.foreground,
+  cursor: 'pointer',
+  padding: 0,
+  fontSize: vars.typography.size.sm,
+  textAlign: 'left',
+
+  ':hover': {
+    textDecoration: 'underline',
+  },
+});
+
+/**
+ * Remove button (× icon), only visible on row hover
+ */
+export const removeButton = style({
+  background: 'none',
+  border: 'none',
+  color: vars.color.foregroundMuted,
+  cursor: 'pointer',
+  padding: vars.spacing['1'],
+  fontSize: vars.typography.size.md,
+  lineHeight: 1,
+  opacity: 0,
+  transition: `all ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  selectors: {
+    [`${attendeeRow}:hover &`]: {
+      opacity: 1,
+    },
+  },
+
+  ':hover': {
+    color: vars.color.danger,
+  },
+});
+
+/**
+ * Empty state message
+ */
+export const emptyState = style({
+  fontSize: vars.typography.size.sm,
+  color: vars.color.foregroundMuted,
+  fontStyle: 'italic',
+  padding: vars.spacing['2'],
+});

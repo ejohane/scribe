@@ -24,6 +24,20 @@ export interface CreateNoteOptions {
   type?: NoteType;
   /** Initial user-defined tags (optional) */
   tags?: string[];
+  /** Daily note specific data (for daily notes) */
+  daily?: {
+    /** ISO date string "YYYY-MM-DD" */
+    date: string;
+  };
+  /** Meeting specific data (for meeting notes) */
+  meeting?: {
+    /** ISO date string "YYYY-MM-DD" */
+    date: string;
+    /** Associated daily note for this meeting */
+    dailyNoteId: NoteId;
+    /** Person note IDs of meeting attendees */
+    attendees: NoteId[];
+  };
 }
 
 /**
@@ -170,6 +184,8 @@ export class FileSystemVault {
       tags: options?.tags ?? [],
       content: noteContent,
       metadata: extractMetadata(noteContent),
+      daily: options?.daily,
+      meeting: options?.meeting,
     };
 
     // Save to disk and add to memory
@@ -213,6 +229,9 @@ export class FileSystemVault {
         content: noteContent,
         updatedAt: Date.now(),
         metadata,
+        // Preserve daily/meeting fields from existing note if not in update
+        daily: note.daily ?? existingNote?.daily,
+        meeting: note.meeting ?? existingNote?.meeting,
       };
 
       // Perform atomic write
@@ -333,6 +352,32 @@ export class FileSystemVault {
       }
     }
 
+    // Validate daily field if present
+    if (n.daily !== undefined) {
+      if (typeof n.daily !== 'object' || n.daily === null) {
+        return false;
+      }
+      const daily = n.daily as Record<string, unknown>;
+      if (typeof daily.date !== 'string') {
+        return false;
+      }
+    }
+
+    // Validate meeting field if present
+    if (n.meeting !== undefined) {
+      if (typeof n.meeting !== 'object' || n.meeting === null) {
+        return false;
+      }
+      const meeting = n.meeting as Record<string, unknown>;
+      if (
+        typeof meeting.date !== 'string' ||
+        typeof meeting.dailyNoteId !== 'string' ||
+        !Array.isArray(meeting.attendees)
+      ) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -384,6 +429,9 @@ export class FileSystemVault {
       tags: legacyNote.tags ?? [],
       content: legacyNote.content,
       metadata: legacyNote.metadata,
+      // Preserve daily/meeting fields if present
+      daily: legacyNote.daily,
+      meeting: legacyNote.meeting,
     };
   }
 }

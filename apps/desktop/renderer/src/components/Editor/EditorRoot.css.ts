@@ -222,6 +222,7 @@ globalStyle(`${editorInput} a`, {
   textUnderlineOffset: '2px',
   borderRadius: vars.radius.sm,
   padding: `0 ${vars.spacing['1']}`,
+  cursor: 'pointer',
 });
 
 globalStyle(`${editorInput} a:hover`, {

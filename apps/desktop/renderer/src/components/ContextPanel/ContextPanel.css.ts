@@ -283,3 +283,52 @@ export const backlinkList = style({
   flexDirection: 'column',
   gap: vars.spacing['1'],
 });
+
+/**
+ * Badge container for date-based mentions
+ */
+export const backlinkBadges = style({
+  display: 'flex',
+  gap: vars.spacing['1'],
+  marginTop: vars.spacing['1'],
+});
+
+/**
+ * Badge for indicating mention type (Created, Modified)
+ */
+export const mentionBadge = style({
+  fontSize: '10px',
+  fontWeight: vars.typography.weight.medium,
+  color: vars.color.foregroundMuted,
+  backgroundColor: vars.color.surface,
+  padding: `2px 6px`,
+  borderRadius: vars.radius.sm,
+  textTransform: 'uppercase',
+  letterSpacing: '0.025em',
+});
+
+/**
+ * Expand/collapse button for linked mentions
+ */
+export const expandButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: vars.spacing['1'],
+  width: '100%',
+  padding: vars.spacing['2'],
+  marginTop: vars.spacing['1'],
+  border: 'none',
+  background: 'transparent',
+  color: vars.color.foregroundMuted,
+  fontSize: vars.typography.size.xs,
+  fontWeight: vars.typography.weight.medium,
+  cursor: 'pointer',
+  borderRadius: vars.radius.sm,
+  transition: `all ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+    color: vars.color.foreground,
+  },
+});

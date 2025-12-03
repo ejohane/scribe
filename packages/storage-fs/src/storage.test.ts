@@ -202,4 +202,135 @@ describe('FileSystemVault', () => {
     expect(savedNote.title).toBe('Updated Name');
     expect(savedNote.metadata.title).toBeNull(); // metadata.title is always null (deprecated)
   });
+
+  describe('daily/meeting fields', () => {
+    it('creates note with daily field', async () => {
+      const note = await vault.create({
+        type: 'daily',
+        title: '2024-12-02',
+        daily: { date: '2024-12-02' },
+      });
+      expect(note.daily).toEqual({ date: '2024-12-02' });
+      expect(note.type).toBe('daily');
+    });
+
+    it('creates note with meeting field', async () => {
+      const note = await vault.create({
+        type: 'meeting',
+        title: 'Team Sync',
+        meeting: {
+          date: '2024-12-02',
+          dailyNoteId: 'daily-123',
+          attendees: ['person-1', 'person-2'],
+        },
+      });
+      expect(note.meeting).toEqual({
+        date: '2024-12-02',
+        dailyNoteId: 'daily-123',
+        attendees: ['person-1', 'person-2'],
+      });
+      expect(note.type).toBe('meeting');
+    });
+
+    it('preserves daily field on save', async () => {
+      const note = await vault.create({
+        type: 'daily',
+        title: '2024-12-02',
+        daily: { date: '2024-12-02' },
+      });
+
+      await vault.save({ ...note, tags: ['updated'] });
+      const saved = vault.read(note.id);
+
+      expect(saved.daily).toEqual({ date: '2024-12-02' });
+      expect(saved.tags).toContain('updated');
+    });
+
+    it('preserves meeting field on save', async () => {
+      const note = await vault.create({
+        type: 'meeting',
+        title: 'Team Sync',
+        meeting: {
+          date: '2024-12-02',
+          dailyNoteId: 'daily-123',
+          attendees: ['person-1', 'person-2'],
+        },
+      });
+
+      await vault.save({ ...note, tags: ['updated'] });
+      const saved = vault.read(note.id);
+
+      expect(saved.meeting).toEqual({
+        date: '2024-12-02',
+        dailyNoteId: 'daily-123',
+        attendees: ['person-1', 'person-2'],
+      });
+      expect(saved.tags).toContain('updated');
+    });
+
+    it('persists daily field to disk', async () => {
+      const note = await vault.create({
+        type: 'daily',
+        title: '2024-12-02',
+        daily: { date: '2024-12-02' },
+      });
+
+      // Create a new vault instance and load
+      const vault2 = new FileSystemVault(tempDir);
+      await vault2.load();
+
+      const loadedNote = vault2.read(note.id);
+      expect(loadedNote.daily).toEqual({ date: '2024-12-02' });
+      expect(loadedNote.type).toBe('daily');
+    });
+
+    it('persists meeting field to disk', async () => {
+      const note = await vault.create({
+        type: 'meeting',
+        title: 'Team Sync',
+        meeting: {
+          date: '2024-12-02',
+          dailyNoteId: 'daily-123',
+          attendees: ['person-1', 'person-2'],
+        },
+      });
+
+      // Create a new vault instance and load
+      const vault2 = new FileSystemVault(tempDir);
+      await vault2.load();
+
+      const loadedNote = vault2.read(note.id);
+      expect(loadedNote.meeting).toEqual({
+        date: '2024-12-02',
+        dailyNoteId: 'daily-123',
+        attendees: ['person-1', 'person-2'],
+      });
+      expect(loadedNote.type).toBe('meeting');
+    });
+
+    it('allows updating meeting attendees', async () => {
+      const note = await vault.create({
+        type: 'meeting',
+        title: 'Team Sync',
+        meeting: {
+          date: '2024-12-02',
+          dailyNoteId: 'daily-123',
+          attendees: ['person-1'],
+        },
+      });
+
+      // Update attendees
+      const updatedNote = {
+        ...note,
+        meeting: {
+          ...note.meeting!,
+          attendees: ['person-1', 'person-2', 'person-3'],
+        },
+      };
+      await vault.save(updatedNote);
+
+      const saved = vault.read(note.id);
+      expect(saved.meeting?.attendees).toEqual(['person-1', 'person-2', 'person-3']);
+    });
+  });
 });

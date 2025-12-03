@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Fuse from 'fuse.js';
+import { format, parse, isValid } from 'date-fns';
 import type { Command, PaletteMode } from '../../commands/types';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { formatRelativeDate } from '../../utils/formatRelativeDate';
@@ -23,6 +24,7 @@ import {
   UserIcon,
   CloseIcon,
   ArrowLeftIcon,
+  CalendarPlusIcon,
 } from '@scribe/design-system';
 import * as styles from './CommandPalette.css';
 import {
@@ -44,6 +46,41 @@ function truncateTitle(title: string | null, maxLength = DEFAULT_TITLE_TRUNCATIO
   if (!title) return 'Untitled';
   if (title.length <= maxLength) return title;
   return title.slice(0, maxLength).trimEnd() + '...';
+}
+
+/**
+ * Regex for MM/dd/yyyy date format.
+ * Matches dates like 01/01/2024, 12/31/2024, etc.
+ */
+const DATE_PATTERN = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/;
+
+/**
+ * Check if search query is a valid date in MM/dd/yyyy format.
+ */
+function isDateQuery(query: string): boolean {
+  if (!DATE_PATTERN.test(query)) return false;
+  // Additional validation: ensure the date is actually valid
+  try {
+    const date = parse(query, 'MM/dd/yyyy', new Date());
+    return isValid(date);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parse MM/dd/yyyy to ISO date (yyyy-MM-dd).
+ * Returns null if the query is not a valid date.
+ */
+function parseSearchDate(query: string): string | null {
+  if (!isDateQuery(query)) return null;
+  try {
+    const date = parse(query, 'MM/dd/yyyy', new Date());
+    if (!isValid(date)) return null;
+    return format(date, 'yyyy-MM-dd');
+  } catch {
+    return null;
+  }
 }
 
 export interface CommandPaletteProps {
@@ -129,6 +166,13 @@ export interface CommandPaletteProps {
    * Callback when user cancels prompt-input mode
    */
   onPromptCancel?: () => void;
+
+  /**
+   * Callback to create a daily note for a specific date.
+   * Called when user selects "Create daily note for MM/dd/yyyy" option.
+   * @param isoDate - ISO date string (yyyy-MM-dd)
+   */
+  onCreateDailyNote?: (isoDate: string) => Promise<void>;
 }
 
 export function CommandPalette({
@@ -147,6 +191,7 @@ export function CommandPalette({
   promptPlaceholder,
   onPromptSubmit,
   onPromptCancel,
+  onCreateDailyNote,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -265,6 +310,10 @@ export function CommandPalette({
         );
       });
 
+  // State for "Create daily note" option when searching dates
+  const [showCreateDailyOption, setShowCreateDailyOption] = useState(false);
+  const [createDailyIsoDate, setCreateDailyIsoDate] = useState<string | null>(null);
+
   // Fetch search results when query changes
   useEffect(() => {
     const performSearch = async () => {
@@ -272,21 +321,48 @@ export function CommandPalette({
         try {
           const results = await window.scribe.search.query(query);
           setSearchResults(results);
+
+          // Check if query is a valid date format (MM/dd/yyyy)
+          const isoDate = parseSearchDate(query.trim());
+          if (isoDate && onCreateDailyNote) {
+            // Check if a daily note already exists for this date
+            const dailyNoteExists = results.some((r) => {
+              // Daily notes have ISO date as title (yyyy-MM-dd)
+              return r.title === isoDate;
+            });
+
+            if (!dailyNoteExists) {
+              setShowCreateDailyOption(true);
+              setCreateDailyIsoDate(isoDate);
+            } else {
+              setShowCreateDailyOption(false);
+              setCreateDailyIsoDate(null);
+            }
+          } else {
+            setShowCreateDailyOption(false);
+            setCreateDailyIsoDate(null);
+          }
         } catch (error) {
           console.error('Search failed:', error);
           setSearchResults([]);
+          setShowCreateDailyOption(false);
+          setCreateDailyIsoDate(null);
         }
       } else {
         setSearchResults([]);
+        setShowCreateDailyOption(false);
+        setCreateDailyIsoDate(null);
       }
     };
 
     const debounce = setTimeout(performSearch, 150);
     return () => clearTimeout(debounce);
-  }, [query, filteredCommands.length]);
+  }, [query, filteredCommands.length, onCreateDailyNote]);
 
-  // Combine commands and search results for navigation
+  // Combine commands, search results, and create daily option for navigation
+  // The "Create daily note" option is counted as an additional item at the end
   const allItems = [...filteredCommands, ...searchResults];
+  const totalItemCount = allItems.length + (showCreateDailyOption ? 1 : 0);
 
   // Reset state when palette opens/closes and sync mode from initialMode prop
   // This effect handles:
@@ -318,6 +394,9 @@ export function CommandPalette({
       // Reset delete state
       setIsDeleting(false);
       setPendingDeleteNote(null);
+      // Reset create daily note state
+      setShowCreateDailyOption(false);
+      setCreateDailyIsoDate(null);
     }
   }, [isOpen, initialMode]);
 
@@ -656,7 +735,7 @@ export function CommandPalette({
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex((prev) => Math.min(prev + 1, allItems.length - 1));
+          setSelectedIndex((prev) => Math.min(prev + 1, totalItemCount - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -667,13 +746,17 @@ export function CommandPalette({
           if (selectedIndex < filteredCommands.length) {
             // It's a command - let the command decide whether to close
             onCommandSelect(filteredCommands[selectedIndex]);
-          } else if (onSearchResultSelect) {
+          } else if (selectedIndex < filteredCommands.length + searchResults.length) {
             // It's a search result - always close after selection
             const searchIndex = selectedIndex - filteredCommands.length;
-            if (searchResults[searchIndex]) {
+            if (searchResults[searchIndex] && onSearchResultSelect) {
               onSearchResultSelect(searchResults[searchIndex]);
               onClose();
             }
+          } else if (showCreateDailyOption && createDailyIsoDate && onCreateDailyNote) {
+            // It's the "Create daily note" option
+            onCreateDailyNote(createDailyIsoDate);
+            onClose();
           }
           break;
         case 'Escape':
@@ -695,12 +778,15 @@ export function CommandPalette({
     searchResults,
     displayedNotes,
     displayedPeople,
-    allItems.length,
+    totalItemCount,
+    showCreateDailyOption,
+    createDailyIsoDate,
     onCommandSelect,
     onSearchResultSelect,
     onNoteSelect,
     onModeChange,
     onClose,
+    onCreateDailyNote,
     // handleDeleteCancel and handleDeleteConfirm are accessed via refs
     // to avoid re-creating this effect when their dependencies change
   ]);
@@ -1045,13 +1131,18 @@ export function CommandPalette({
 
   // Render command mode results
   const renderCommandResults = () => {
-    if (allItems.length === 0) {
+    // Show "no results" only if there are no items AND no create daily option
+    if (allItems.length === 0 && !showCreateDailyOption) {
       return (
         <Text color="foregroundMuted" className={styles.noResults}>
           No results found
         </Text>
       );
     }
+
+    // Calculate the index for the "Create daily note" option
+    const createDailyIndex = filteredCommands.length + searchResults.length;
+    const isCreateDailySelected = showCreateDailyOption && selectedIndex === createDailyIndex;
 
     return (
       <>
@@ -1125,6 +1216,38 @@ export function CommandPalette({
               );
             })}
           </>
+        )}
+        {showCreateDailyOption && createDailyIsoDate && onCreateDailyNote && (
+          <div
+            key="create-daily-note"
+            className={clsx(
+              styles.paletteItem,
+              isCreateDailySelected && styles.paletteItemSelected
+            )}
+            onClick={() => {
+              onCreateDailyNote(createDailyIsoDate);
+              onClose();
+            }}
+            onMouseEnter={() => setSelectedIndex(createDailyIndex)}
+            data-testid="create-daily-note-option"
+          >
+            <span className={styles.itemIcon}>
+              <CalendarPlusIcon />
+            </span>
+            <div className={styles.itemTextContainer}>
+              <Text size="sm" weight="medium" className={styles.itemTitle}>
+                Create daily note for {query.trim()}
+              </Text>
+              <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
+                Create a new daily note for this date
+              </Text>
+            </div>
+            <span
+              className={clsx(styles.enterHint, isCreateDailySelected && styles.enterHintVisible)}
+            >
+              <CornerDownLeftIcon />
+            </span>
+          </div>
         )}
       </>
     );

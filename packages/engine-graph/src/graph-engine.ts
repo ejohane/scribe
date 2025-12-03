@@ -83,6 +83,13 @@ export class GraphEngine {
 
     // Build new outgoing edges
     const newOutgoing = new Set(metadata.links ?? []);
+
+    // Include meeting -> daily note relationship as a link
+    // This ensures meetings appear in the daily note's backlinks
+    if (note.meeting?.dailyNoteId) {
+      newOutgoing.add(note.meeting.dailyNoteId);
+    }
+
     this.outgoing.set(id, newOutgoing);
 
     // Build incoming edges (backlinks) for linked notes
