@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.1](https://github.com/ejohane/scribe/compare/v1.11.0...v1.11.1) (2025-12-02)
+
+### Bug Fixes
+
+* **build:** include arch in DMG artifact name to prevent collision ([bb9a01d](https://github.com/ejohane/scribe/commit/bb9a01df24e807fd38026cf852436352e3eaa3ac))
+
+## [1.11.0](https://github.com/ejohane/scribe/compare/v1.10.3...v1.11.0) (2025-12-02)
+
+### Features
+
+* **editor:** add bottom scroll padding and parallax header hide effect ([3f9a461](https://github.com/ejohane/scribe/commit/3f9a4611d5f4c337349a5911b4d31181bebba9d2))
+
+## [1.10.3](https://github.com/ejohane/scribe/compare/v1.10.2...v1.10.3) (2025-12-02)
+
+### Bug Fixes
+
+* **build:** remove version from release artifact names ([92a8e97](https://github.com/ejohane/scribe/commit/92a8e97be755ccb0bd01ea86d819cd434d187c52))
+
 ## [1.10.2](https://github.com/ejohane/scribe/compare/v1.10.1...v1.10.2) (2025-12-02)
 
 ### Bug Fixes

@@ -14,6 +14,8 @@ interface NoteHeaderProps {
   onTagsChange: (tags: string[]) => void;
   /** Called when the date is clicked. Opens/creates today's daily note. */
   onDateClick?: () => void;
+  /** Transform Y value for parallax scroll effect */
+  translateY?: number;
 }
 
 /**
@@ -59,7 +61,13 @@ function isTitleEditable(note: Note): boolean {
  *
  * Designed to blend seamlessly with the editor content below.
  */
-export function NoteHeader({ note, onTitleChange, onTagsChange, onDateClick }: NoteHeaderProps) {
+export function NoteHeader({
+  note,
+  onTitleChange,
+  onTagsChange,
+  onDateClick,
+  translateY = 0,
+}: NoteHeaderProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagValue, setNewTagValue] = useState('');
   // Determine if title is editable (daily notes are not editable)
@@ -156,8 +164,18 @@ export function NoteHeader({ note, onTitleChange, onTagsChange, onDateClick }: N
     setIsAddingTag(false);
   }, [newTagValue, note.tags, onTagsChange]);
 
+  // Calculate opacity based on translateY (fade out as it hides)
+  const opacity = translateY === 0 ? 1 : Math.max(0, 1 + translateY / 100);
+
   return (
-    <div className={styles.noteHeader}>
+    <div
+      className={styles.noteHeader}
+      style={{
+        transform: `translateY(${translateY}px)`,
+        opacity,
+        pointerEvents: opacity < 0.5 ? 'none' : 'auto',
+      }}
+    >
       {/* Editable title (read-only for daily notes) */}
       <input
         type="text"

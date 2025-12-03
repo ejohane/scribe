@@ -9,8 +9,11 @@ import { vars } from '@scribe/design-system';
  */
 
 export const noteHeader = style({
+  // Sticky positioning for parallax scroll effect
+  position: 'sticky',
+  top: 0,
+  zIndex: 10,
   // Match editorContainer layout exactly
-  position: 'relative',
   width: '100%',
   display: 'flex',
   flexDirection: 'column',
@@ -20,9 +23,12 @@ export const noteHeader = style({
   paddingTop: vars.spacing['12'],
   paddingLeft: vars.spacing['8'],
   paddingRight: vars.spacing['8'],
-  paddingBottom: 0,
+  paddingBottom: vars.spacing['4'],
   gap: vars.spacing['2'],
   backgroundColor: vars.color.background,
+  // Smooth transform for parallax effect
+  transition: `transform ${vars.animation.duration.fast} ${vars.animation.easing.default}, opacity ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+  willChange: 'transform, opacity',
 });
 
 export const titleInput = style({

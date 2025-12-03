@@ -21,6 +21,7 @@ import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
+import { useScrollHeader } from './hooks/useScrollHeader';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 
@@ -63,6 +64,12 @@ function App() {
 
   // Manage toast notifications
   const { toasts, showToast, dismissToast } = useToast();
+
+  // Scroll header parallax effect
+  const { translateY, scrollContainerRef, handleScroll } = useScrollHeader({
+    headerHeight: 150, // Header height including padding
+    threshold: 20,
+  });
 
   // Expose error handler for child components
   const showError = useCallback((error: string) => {
@@ -420,32 +427,35 @@ function App() {
       </ErrorBoundary>
       <div className={styles.mainContent}>
         <BackButton visible={canGoBack} onClick={navigateBack} />
-        {/* Note header with editable metadata */}
-        {noteState.currentNote && (
-          <ErrorBoundary name="NoteHeader">
-            <NoteHeader
-              note={noteState.currentNote}
-              onTitleChange={(title: string) => noteState.updateMetadata({ title })}
-              onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
-              onDateClick={handleDateClick}
-            />
-          </ErrorBoundary>
-        )}
-        <ErrorBoundary name="Editor">
-          <WikiLinkProvider
-            currentNoteId={noteState.currentNoteId}
-            onLinkClick={handleWikiLinkClick}
-            onError={(message) => showToast(message, 'error')}
-          >
-            <PersonMentionProvider
+        <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
+          {/* Note header with editable metadata and parallax effect */}
+          {noteState.currentNote && (
+            <ErrorBoundary name="NoteHeader">
+              <NoteHeader
+                note={noteState.currentNote}
+                onTitleChange={(title: string) => noteState.updateMetadata({ title })}
+                onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
+                onDateClick={handleDateClick}
+                translateY={translateY}
+              />
+            </ErrorBoundary>
+          )}
+          <ErrorBoundary name="Editor">
+            <WikiLinkProvider
               currentNoteId={noteState.currentNoteId}
-              onMentionClick={handlePersonMentionClick}
+              onLinkClick={handleWikiLinkClick}
               onError={(message) => showToast(message, 'error')}
             >
-              <EditorRoot noteState={noteState} />
-            </PersonMentionProvider>
-          </WikiLinkProvider>
-        </ErrorBoundary>
+              <PersonMentionProvider
+                currentNoteId={noteState.currentNoteId}
+                onMentionClick={handlePersonMentionClick}
+                onError={(message) => showToast(message, 'error')}
+              >
+                <EditorRoot noteState={noteState} />
+              </PersonMentionProvider>
+            </WikiLinkProvider>
+          </ErrorBoundary>
+        </div>
         <ErrorBoundary name="Command Palette">
           <CommandPalette
             isOpen={isPaletteOpen}
