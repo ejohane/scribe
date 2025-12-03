@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0](https://github.com/ejohane/scribe/compare/v1.11.1...v1.12.0) (2025-12-03)
+
+### Features
+
+* add templates feature with daily notes, meetings, and attendees ([c7e2a0e](https://github.com/ejohane/scribe/commit/c7e2a0ed251cbfea8eb6d55879ce48f9a947cf2a))
+
 ## [1.11.1](https://github.com/ejohane/scribe/compare/v1.11.0...v1.11.1) (2025-12-02)
 
 ### Bug Fixes
