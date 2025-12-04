@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.1](https://github.com/ejohane/scribe/compare/v1.12.0...v1.12.1) (2025-12-04)
+
+### Bug Fixes
+
+* enable code signing and notarization for macOS CI builds ([244fa42](https://github.com/ejohane/scribe/commit/244fa42149467a024e2634aec2633bebf7c6ed4a))
+
 ## [1.12.0](https://github.com/ejohane/scribe/compare/v1.11.1...v1.12.0) (2025-12-03)
 
 ### Features
