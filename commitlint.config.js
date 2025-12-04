@@ -25,6 +25,7 @@ export default {
       2,
       'always',
       [
+        'beads',
         'editor',
         'engine',
         'storage',
