@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.2](https://github.com/ejohane/scribe/compare/v1.12.1...v1.12.2) (2025-12-04)
+
+### Bug Fixes
+
+* use boolean for electron-builder notarize config ([02f8b7c](https://github.com/ejohane/scribe/commit/02f8b7c7cf1bd8f2f5c32c1434c9104b6dd2093f))
+
 ## [1.12.1](https://github.com/ejohane/scribe/compare/v1.12.0...v1.12.1) (2025-12-04)
 
 ### Bug Fixes
