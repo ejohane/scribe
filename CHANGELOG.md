@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.3](https://github.com/ejohane/scribe/compare/v1.13.2...v1.13.3) (2025-12-06)
+
+### Bug Fixes
+
+* **release:** configure GitHub publish settings and sync version ([faa05d5](https://github.com/ejohane/scribe/commit/faa05d5cdcadf5cda433ec194453cb60c462ed2a))
+
 ## [1.13.2](https://github.com/ejohane/scribe/compare/v1.13.1...v1.13.2) (2025-12-06)
 
 ### Bug Fixes
