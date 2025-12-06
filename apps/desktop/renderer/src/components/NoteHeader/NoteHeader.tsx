@@ -12,8 +12,8 @@ interface NoteHeaderProps {
   note: Note;
   onTitleChange: (title: string) => void;
   onTagsChange: (tags: string[]) => void;
-  /** Called when the date is clicked. Opens/creates today's daily note. */
-  onDateClick?: () => void;
+  /** Called when the date is clicked. Opens/creates the daily note for that date. */
+  onDateClick?: (date: Date) => void;
   /** Transform Y value for parallax scroll effect */
   translateY?: number;
 }
@@ -189,13 +189,17 @@ export function NoteHeader({
 
       {/* Metadata row: date, tags */}
       <div className={styles.metadataRow}>
-        {/* Creation date - clickable to open today's daily note */}
+        {/* Creation date - clickable to open the daily note for that date */}
         <div className={styles.metadataItem}>
           <button
             className={styles.dateButton}
-            onClick={onDateClick}
-            title="Open today's daily note"
-            aria-label="Open today's daily note"
+            onClick={() => {
+              // Use the note's creation date for navigation
+              const dateForNavigation = new Date(note.createdAt);
+              onDateClick?.(dateForNavigation);
+            }}
+            title="Open daily note for this date"
+            aria-label="Open daily note for this date"
           >
             {formatDate(note.createdAt)}
           </button>

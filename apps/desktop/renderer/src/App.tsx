@@ -117,11 +117,14 @@ function App() {
     [navigateToNote]
   );
 
-  // Handle date click - open or create today's daily note
-  const handleDateClick = useCallback(async () => {
-    const note = await window.scribe.daily.getOrCreate();
-    navigateToNote(note.id, true);
-  }, [navigateToNote]);
+  // Handle date click - open or create the daily note for the given date
+  const handleDateClick = useCallback(
+    async (date: Date) => {
+      const note = await window.scribe.daily.getOrCreate(date);
+      navigateToNote(note.id, true);
+    },
+    [navigateToNote]
+  );
 
   // Register commands on mount
   useEffect(() => {

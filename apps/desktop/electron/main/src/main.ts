@@ -579,16 +579,18 @@ function setupIPCHandlers() {
   // ============================================
 
   /**
-   * Get or create today's daily note.
-   * Idempotent: returns existing note if one exists for today.
+   * Get or create a daily note for a specific date.
+   * If no date is provided, uses today's date.
+   * Idempotent: returns existing note if one exists for the date.
    */
-  ipcMain.handle('daily:getOrCreate', async () => {
+  ipcMain.handle('daily:getOrCreate', async (_, options?: { date?: string }) => {
     if (!vault) {
       throw new ScribeError(ErrorCode.VAULT_NOT_INITIALIZED, 'Vault not initialized');
     }
 
-    const today = new Date();
-    const dateStr = format(today, 'MM-dd-yyyy');
+    // Use provided date or default to today
+    const targetDate = options?.date ? new Date(options.date) : new Date();
+    const dateStr = format(targetDate, 'MM-dd-yyyy');
 
     // Find existing daily note by matching type and title (MM-dd-yyyy date)
     const notes = vault.list();
@@ -598,13 +600,17 @@ function setupIPCHandlers() {
     }
 
     // Create new daily note
+    // Set createdAt to noon on the target date (avoids timezone edge cases)
     const content = createDailyContent();
+    const createdAt = new Date(targetDate);
+    createdAt.setHours(12, 0, 0, 0);
     const note = await vault.create({
       type: 'daily',
       title: dateStr,
       tags: ['daily'],
       content,
       daily: { date: dateStr },
+      createdAt: createdAt.getTime(),
     });
 
     // Index in engines

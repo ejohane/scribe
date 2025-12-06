@@ -174,6 +174,7 @@ function mergeLinkedMentions(
 
 /**
  * Creates a daily note for a specific date
+ * Sets createdAt to noon on the target date (matching production behavior)
  */
 async function createDailyNote(
   vault: FileSystemVault,
@@ -183,6 +184,10 @@ async function createDailyNote(
 ): Promise<Note> {
   const dateStr = format(date, 'MM-dd-yyyy');
 
+  // Set createdAt to noon on the target date (avoids timezone edge cases)
+  const createdAt = new Date(date);
+  createdAt.setHours(12, 0, 0, 0);
+
   const content = createDailyContent();
   const note = await vault.create({
     type: 'daily',
@@ -190,6 +195,7 @@ async function createDailyNote(
     tags: ['daily'],
     content,
     daily: { date: dateStr },
+    createdAt: createdAt.getTime(),
   });
 
   const savedNote = vault.read(note.id);
