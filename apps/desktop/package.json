@@ -27,6 +27,11 @@
     "appId": "com.scribe.app",
     "electronVersion": "33.2.0",
     "productName": "Scribe",
+    "publish": {
+      "provider": "github",
+      "owner": "OWNER",
+      "repo": "REPO"
+    },
     "copyright": "Copyright © 2025 Scribe Team",
     "directories": {
       "output": "dist",
@@ -43,6 +48,13 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "x64",
             "arm64"
@@ -104,7 +116,9 @@
     "asar": true,
     "asarUnpack": []
   },
-  "dependencies": {},
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
   "devDependencies": {
     "electron": "^33.2.0",
     "turbo": "^2.3.3"
