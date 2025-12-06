@@ -18,10 +18,12 @@ export interface PeopleAPI {
  */
 export interface DailyAPI {
   /**
-   * Get or create today's daily note.
-   * Idempotent: returns same note on repeat calls within same day.
+   * Get or create a daily note for a specific date.
+   * If no date is provided, uses today's date.
+   * Idempotent: returns same note on repeat calls for the same date.
+   * @param date - Optional date to get/create the daily note for
    */
-  getOrCreate(): Promise<Note>;
+  getOrCreate(date?: Date): Promise<Note>;
 
   /**
    * Find daily note for a specific date.

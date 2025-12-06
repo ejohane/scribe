@@ -24,6 +24,8 @@ export interface CreateNoteOptions {
   type?: NoteType;
   /** Initial user-defined tags (optional) */
   tags?: string[];
+  /** Custom creation timestamp in milliseconds (optional, defaults to now) */
+  createdAt?: number;
   /** Daily note specific data (for daily notes) */
   daily?: {
     /** ISO date string "YYYY-MM-DD" */
@@ -166,6 +168,7 @@ export class FileSystemVault {
    */
   async create(options?: CreateNoteOptions): Promise<Note> {
     const now = Date.now();
+    const createdAt = options?.createdAt ?? now;
 
     // Build content with optional type
     const noteContent: LexicalState = options?.content ?? this.createEmptyContent();
@@ -178,7 +181,7 @@ export class FileSystemVault {
     const note: Note = {
       id: randomUUID(),
       title: options?.title ?? 'Untitled',
-      createdAt: now,
+      createdAt,
       updatedAt: now,
       type: options?.type,
       tags: options?.tags ?? [],
