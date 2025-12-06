@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.2](https://github.com/ejohane/scribe/compare/v1.13.1...v1.13.2) (2025-12-06)
+
+### Bug Fixes
+
+* slash menu, header date, and add people UX bugs ([03941dc](https://github.com/ejohane/scribe/commit/03941dcd04896a8b5d8377af7945d55935133623)), closes [#27](https://github.com/ejohane/scribe/issues/27) [#25](https://github.com/ejohane/scribe/issues/25) [#26](https://github.com/ejohane/scribe/issues/26)
+
 ## [1.13.1](https://github.com/ejohane/scribe/compare/v1.13.0...v1.13.1) (2025-12-06)
 
 ### Bug Fixes
