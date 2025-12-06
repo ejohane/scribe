@@ -56,9 +56,10 @@ if (isWatch) {
     if (electronProcess) {
       electronProcess.kill();
     }
-    electronProcess = spawn(electronPath, ['.'], {
+    // Start Electron from apps/desktop where package.json with "main" field lives
+    const appRoot = join(__dirname, '../..');
+    electronProcess = spawn(electronPath, [appRoot], {
       stdio: 'inherit',
-      cwd: process.cwd(),
     });
 
     electronProcess.on('error', (err) => {
