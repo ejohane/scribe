@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0](https://github.com/ejohane/scribe/compare/v1.12.2...v1.13.0) (2025-12-06)
+
+### Features
+
+* **ui:** implement auto-update for macOS ([8db01e7](https://github.com/ejohane/scribe/commit/8db01e7270c4acab9f0b4f7c30fbcf1d76a9c0f2))
+
 ## [1.12.2](https://github.com/ejohane/scribe/compare/v1.12.1...v1.12.2) (2025-12-04)
 
 ### Bug Fixes
