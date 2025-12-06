@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.1](https://github.com/ejohane/scribe/compare/v1.13.0...v1.13.1) (2025-12-06)
+
+### Bug Fixes
+
+* **build:** prevent electron-builder from auto-publishing in CI ([5455a4d](https://github.com/ejohane/scribe/commit/5455a4d8bc3494fd0e04e76c7c196515742bec1f))
+
 ## [1.13.0](https://github.com/ejohane/scribe/compare/v1.12.2...v1.13.0) (2025-12-06)
 
 ### Features
