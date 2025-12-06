@@ -91,6 +91,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Sync version to desktop package
+        run: |
+          # Extract version from root package.json and update apps/desktop/package.json
+          VERSION=$(jq -r .version package.json)
+          echo "Syncing version $VERSION to apps/desktop/package.json"
+          jq --arg v "$VERSION" '.version = $v' apps/desktop/package.json > tmp.json && mv tmp.json apps/desktop/package.json
+
       - name: Build all packages
         run: bun run build
 

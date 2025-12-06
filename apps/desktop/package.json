@@ -29,8 +29,8 @@
     "productName": "Scribe",
     "publish": {
       "provider": "github",
-      "owner": "OWNER",
-      "repo": "REPO"
+      "owner": "ejohane",
+      "repo": "scribe"
     },
     "copyright": "Copyright © 2025 Scribe Team",
     "directories": {
