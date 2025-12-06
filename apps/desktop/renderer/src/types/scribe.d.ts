@@ -78,6 +78,30 @@ export interface ShellAPI {
   openExternal(url: string): Promise<{ success: boolean }>;
 }
 
+/** API for auto-update functionality */
+export interface UpdateAPI {
+  /** Manually trigger update check */
+  check(): Promise<void>;
+
+  /** Quit and install downloaded update */
+  install(): void;
+
+  /** Subscribe to checking event, returns unsubscribe function */
+  onChecking(callback: () => void): () => void;
+
+  /** Subscribe to available event with version info */
+  onAvailable(callback: (info: { version: string }) => void): () => void;
+
+  /** Subscribe to not-available event */
+  onNotAvailable(callback: () => void): () => void;
+
+  /** Subscribe to downloaded event with version info */
+  onDownloaded(callback: (info: { version: string }) => void): () => void;
+
+  /** Subscribe to error event with error message */
+  onError(callback: (error: { message: string }) => void): () => void;
+}
+
 export interface ScribeAPI {
   ping: () => Promise<{ message: string; timestamp: number }>;
   shell: ShellAPI;
@@ -120,9 +144,14 @@ export interface ScribeAPI {
   people: PeopleAPI;
   daily: DailyAPI;
   meeting: MeetingAPI;
+  /** Auto-update API */
+  update: UpdateAPI;
 }
 
 declare global {
+  /** App version injected at build time by Vite */
+  const __APP_VERSION__: string;
+
   interface Window {
     scribe: ScribeAPI;
   }

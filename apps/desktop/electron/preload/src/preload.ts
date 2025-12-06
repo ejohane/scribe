@@ -202,6 +202,74 @@ const scribeAPI = {
     removeAttendee: (noteId: NoteId, personId: NoteId): Promise<{ success: boolean }> =>
       ipcRenderer.invoke('meeting:removeAttendee', { noteId, personId }),
   },
+
+  /**
+   * Update API for auto-update functionality
+   */
+  update: {
+    /**
+     * Manually check for updates
+     */
+    check: (): Promise<void> => ipcRenderer.invoke('update:check'),
+
+    /**
+     * Quit and install the downloaded update
+     */
+    install: (): void => ipcRenderer.send('update:install'),
+
+    /**
+     * Subscribe to checking event
+     * @returns Unsubscribe function for cleanup
+     */
+    onChecking: (callback: () => void): (() => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('update:checking', handler);
+      return () => ipcRenderer.removeListener('update:checking', handler);
+    },
+
+    /**
+     * Subscribe to available event
+     * @returns Unsubscribe function for cleanup
+     */
+    onAvailable: (callback: (info: { version: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) =>
+        callback(info);
+      ipcRenderer.on('update:available', handler);
+      return () => ipcRenderer.removeListener('update:available', handler);
+    },
+
+    /**
+     * Subscribe to not-available event
+     * @returns Unsubscribe function for cleanup
+     */
+    onNotAvailable: (callback: () => void): (() => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('update:not-available', handler);
+      return () => ipcRenderer.removeListener('update:not-available', handler);
+    },
+
+    /**
+     * Subscribe to downloaded event
+     * @returns Unsubscribe function for cleanup
+     */
+    onDownloaded: (callback: (info: { version: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) =>
+        callback(info);
+      ipcRenderer.on('update:downloaded', handler);
+      return () => ipcRenderer.removeListener('update:downloaded', handler);
+    },
+
+    /**
+     * Subscribe to error event
+     * @returns Unsubscribe function for cleanup
+     */
+    onError: (callback: (error: { message: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: { message: string }) =>
+        callback(error);
+      ipcRenderer.on('update:error', handler);
+      return () => ipcRenderer.removeListener('update:error', handler);
+    },
+  },
 };
 
 // Expose the API to the renderer via contextBridge

@@ -8,6 +8,7 @@ import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import type { Note, NoteId, LexicalState } from '@scribe/shared';
 import { ScribeError, ErrorCode } from '@scribe/shared';
+import { setupAutoUpdater } from './auto-updater';
 
 // __filename and __dirname are provided by the build script banner
 
@@ -779,6 +780,18 @@ app.whenReady().then(async () => {
 
   setupIPCHandlers();
   createWindow();
+
+  // Only enable auto-updates in production
+  if (!isDev && mainWindow) {
+    setupAutoUpdater(mainWindow);
+  }
+
+  // On macOS in dev mode, we need to explicitly activate the app
+  // to make it the frontmost application and show in the dock
+  if (process.platform === 'darwin') {
+    app.dock?.show();
+    app.focus({ steal: true });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
