@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0](https://github.com/ejohane/scribe/compare/v1.14.0...v1.15.0) (2025-12-07)
+
+### Features
+
+* add history ([9345d77](https://github.com/ejohane/scribe/commit/9345d774b15d4d643135b5d89a2b769f2ce5485f))
+
+### Bug Fixes
+
+* address navigation history code review issues ([f1c723e](https://github.com/ejohane/scribe/commit/f1c723ea3d6e8de6f340633959b2b31b3eeed46b))
+
 ## [1.14.0](https://github.com/ejohane/scribe/compare/v1.13.3...v1.14.0) (2025-12-07)
 
 ### Features
