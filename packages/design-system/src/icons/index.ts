@@ -35,10 +35,14 @@ export {
   LinkIcon,
   // Navigation icons
   ArrowLeftIcon,
+  ArrowRightIcon,
   // Calendar icons for daily notes and meetings
   CalendarPlusIcon,
   CalendarCheckIcon,
   CalendarDaysIcon,
+  // Utility icons
+  TrashIcon,
+  HistoryIcon,
 } from './icons';
 
 export type { IconComponentProps } from './icons';

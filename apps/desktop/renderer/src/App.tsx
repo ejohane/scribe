@@ -6,18 +6,18 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast/Toast';
-import { BackButton } from './components/BackButton/BackButton';
+import { NavigationButtons } from './components/NavigationButtons';
 import { FloatingDock } from './components/FloatingDock/FloatingDock';
 import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
-import type { SidebarNote } from './components/Sidebar';
+import type { HistoryEntry } from './components/Sidebar';
 import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
 import { templateCommands } from './commands/templates';
 import type { Command, PaletteMode } from './commands/types';
-import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
+import type { GraphNode, NoteId } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
@@ -43,8 +43,8 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [contextPanelWidth, setContextPanelWidth] = useState(CONTEXT_PANEL_DEFAULT_WIDTH);
 
-  // Sidebar notes list
-  const [sidebarNotes, setSidebarNotes] = useState<SidebarNote[]>([]);
+  // History entries with titles for sidebar display
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
 
   // Prompt input state for text input modal
   const [promptPlaceholder, setPromptPlaceholder] = useState('');
@@ -53,11 +53,18 @@ function App() {
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
 
-  // Add navigation history for wiki-link back navigation
-  const { canGoBack, navigateToNote, navigateBack, clearHistory } = useNavigationHistory(
-    noteState.currentNoteId,
-    noteState.loadNote
-  );
+  // Add navigation history for wiki-link back/forward navigation
+  const {
+    canGoBack,
+    canGoForward,
+    historyStack,
+    currentIndex,
+    navigateToNote,
+    navigateBack,
+    navigateForward,
+    removeFromHistory,
+    clearHistory,
+  } = useNavigationHistory(noteState.currentNoteId, noteState.loadNote);
 
   // Manage theme
   const { resolvedTheme, setTheme } = useTheme();
@@ -91,7 +98,7 @@ function App() {
 
       if (resolvedId) {
         // Navigate to existing note (adds current to history)
-        navigateToNote(resolvedId, true);
+        navigateToNote(resolvedId);
       } else {
         // Create new note with the wiki-link title and navigate to it
         const newNote = await window.scribe.notes.create();
@@ -102,7 +109,7 @@ function App() {
           title: noteTitle,
         });
 
-        navigateToNote(newNote.id, true);
+        navigateToNote(newNote.id);
       }
     },
     [navigateToNote]
@@ -112,7 +119,7 @@ function App() {
   const handlePersonMentionClick = useCallback(
     async (personId: NoteId) => {
       // Person mentions always have a resolved ID, so we can navigate directly
-      navigateToNote(personId, true);
+      navigateToNote(personId);
     },
     [navigateToNote]
   );
@@ -121,7 +128,7 @@ function App() {
   const handleDateClick = useCallback(
     async (date: Date) => {
       const note = await window.scribe.daily.getOrCreate(date);
-      navigateToNote(note.id, true);
+      navigateToNote(note.id);
     },
     [navigateToNote]
   );
@@ -138,7 +145,6 @@ function App() {
       icon: <FilePlusIcon size={16} />,
       closeOnSelect: true, // Close palette immediately, then create note
       run: async (context) => {
-        clearHistory(); // Fresh navigation - clear wiki-link history
         await context.createNote();
       },
     });
@@ -255,9 +261,9 @@ function App() {
 
     // Register Template commands
     commandRegistry.registerMany(templateCommands);
-  }, [resolvedTheme, setTheme, clearHistory]);
+  }, [resolvedTheme, setTheme]);
 
-  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back)
+  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back), cmd+] (forward)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // ⌘K: toggle palette in command mode
@@ -284,11 +290,10 @@ function App() {
           setIsPaletteOpen(true);
         }
       }
-      // ⌘N: create new note (clears wiki-link navigation history)
+      // ⌘N: create new note
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
         setIsPaletteOpen(false);
-        clearHistory();
         noteState.createNote();
       }
       // ⌘[ / Ctrl+[: Navigate back through wiki-link history
@@ -296,6 +301,13 @@ function App() {
         e.preventDefault();
         if (canGoBack) {
           navigateBack();
+        }
+      }
+      // ⌘] / Ctrl+]: Navigate forward through wiki-link history
+      if ((e.metaKey || e.ctrlKey) && e.key === ']') {
+        e.preventDefault();
+        if (canGoForward) {
+          navigateForward();
         }
       }
       // ⌘J / Ctrl+J: Toggle left sidebar
@@ -312,7 +324,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaletteOpen, noteState, canGoBack, navigateBack, clearHistory]);
+  }, [isPaletteOpen, noteState, canGoBack, canGoForward, navigateBack, navigateForward]);
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
@@ -366,37 +378,58 @@ function App() {
     }
   }, [noteState.error, showError]);
 
-  // Fetch notes for sidebar when it opens (and refresh when notes change)
-  const fetchSidebarNotes = useCallback(async () => {
-    try {
-      const notes = await window.scribe.notes.list();
-      // Transform to SidebarNote format using explicit note fields
-      const sidebarNotes: SidebarNote[] = notes.map((note) => ({
-        id: note.id,
-        title: note.title,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-        tags: note.tags,
-        type: note.type,
-      }));
-      setSidebarNotes(sidebarNotes);
-    } catch (error) {
-      console.error('Failed to fetch sidebar notes:', error);
+  // Fetch titles for history entries when sidebar is open or history changes
+  const fetchHistoryEntries = useCallback(async () => {
+    if (historyStack.length === 0) {
+      setHistoryEntries([]);
+      return;
     }
-  }, []);
+
+    try {
+      // Fetch all notes to get titles
+      const notes = await window.scribe.notes.list();
+      const noteMap = new Map(notes.map((note) => [note.id, note.title]));
+
+      // Build history entries with titles
+      const entries: HistoryEntry[] = historyStack.map((noteId) => ({
+        id: noteId,
+        title: noteMap.get(noteId),
+      }));
+
+      setHistoryEntries(entries);
+    } catch (error) {
+      console.error('Failed to fetch history entries:', error);
+    }
+  }, [historyStack]);
 
   useEffect(() => {
     if (sidebarOpen) {
-      fetchSidebarNotes();
+      fetchHistoryEntries();
     }
-  }, [sidebarOpen, fetchSidebarNotes]);
+  }, [sidebarOpen, fetchHistoryEntries]);
 
-  // Refresh sidebar notes when a note is saved/created/deleted
-  useEffect(() => {
-    if (sidebarOpen && noteState.currentNote) {
-      fetchSidebarNotes();
-    }
-  }, [sidebarOpen, noteState.currentNote, fetchSidebarNotes]);
+  // Navigate to a specific position in history
+  const handleSelectHistoryEntry = useCallback(
+    (targetIndex: number) => {
+      if (targetIndex === currentIndex) return;
+
+      // Navigate backwards or forwards to reach the target
+      if (targetIndex < currentIndex) {
+        // Navigate back
+        const stepsBack = currentIndex - targetIndex;
+        for (let i = 0; i < stepsBack; i++) {
+          navigateBack();
+        }
+      } else {
+        // Navigate forward
+        const stepsForward = targetIndex - currentIndex;
+        for (let i = 0; i < stepsForward; i++) {
+          navigateForward();
+        }
+      }
+    },
+    [currentIndex, navigateBack, navigateForward]
+  );
 
   return (
     <div className={styles.app}>
@@ -404,21 +437,10 @@ function App() {
       <ErrorBoundary name="Sidebar">
         <Sidebar
           isOpen={sidebarOpen}
-          notes={sidebarNotes}
-          activeNoteId={noteState.currentNoteId}
-          onSelectNote={(noteId) => {
-            clearHistory();
-            noteState.loadNote(noteId);
-          }}
-          onCreateNote={async () => {
-            clearHistory();
-            await noteState.createNote();
-            fetchSidebarNotes(); // Refresh list after creation
-          }}
-          onDeleteNote={async (noteId) => {
-            await noteState.deleteNote(noteId);
-            fetchSidebarNotes(); // Refresh list after deletion
-          }}
+          historyEntries={historyEntries}
+          currentHistoryIndex={currentIndex}
+          onSelectHistoryEntry={handleSelectHistoryEntry}
+          onClearHistory={clearHistory}
           onThemeToggle={() => {
             const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
             setTheme(newTheme);
@@ -429,7 +451,12 @@ function App() {
         />
       </ErrorBoundary>
       <div className={styles.mainContent}>
-        <BackButton visible={canGoBack} onClick={navigateBack} />
+        <NavigationButtons
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          onBack={navigateBack}
+          onForward={navigateForward}
+        />
         <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
           {/* Note header with editable metadata and parallax effect */}
           {noteState.currentNote && (
@@ -473,16 +500,14 @@ function App() {
             commands={commandRegistry.getVisible()}
             onCommandSelect={handleCommandSelect}
             onSearchResultSelect={(result) => {
-              clearHistory(); // Fresh navigation - clear wiki-link history
-              noteState.loadNote(result.id);
+              navigateToNote(result.id);
               setIsPaletteOpen(false);
             }}
             filterCommands={fuzzySearchCommands}
             initialMode={paletteMode}
             currentNoteId={noteState.currentNoteId}
             onNoteSelect={(noteId) => {
-              clearHistory(); // Fresh navigation - clear wiki-link history
-              noteState.loadNote(noteId);
+              navigateToNote(noteId);
             }}
             onModeChange={(mode) => setPaletteMode(mode)}
             showToast={showToast}
@@ -491,6 +516,7 @@ function App() {
               deleteNote: noteState.deleteNote,
               loadNote: noteState.loadNote,
               createNote: noteState.createNote,
+              removeFromHistory,
             }}
             promptPlaceholder={promptPlaceholder}
             onPromptSubmit={(value) => {
@@ -561,8 +587,7 @@ function App() {
           isOpen={contextPanelOpen}
           note={noteState.currentNote}
           onNavigate={(noteId) => {
-            clearHistory();
-            noteState.loadNote(noteId);
+            navigateToNote(noteId);
           }}
           onNoteUpdate={() => {
             // Refresh the current note to get updated data (e.g., attendees changes)
