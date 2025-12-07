@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0](https://github.com/ejohane/scribe/compare/v1.15.0...v1.16.0) (2025-12-07)
+
+### Features
+
+* **build:** update app icon with new design ([9c6b4a3](https://github.com/ejohane/scribe/commit/9c6b4a36fd61212cba84d980a3d023192c2f1794))
+
 ## [1.15.0](https://github.com/ejohane/scribe/compare/v1.14.0...v1.15.0) (2025-12-07)
 
 ### Features
