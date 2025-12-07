@@ -31,7 +31,7 @@ export function NavigationButtons({
         onClick={onBack}
         disabled={!canGoBack}
         aria-label="Go back to previous note"
-        title="Go back (Cmd+[)"
+        title="Go back (⌘[)"
         type="button"
       >
         <ArrowLeftIcon size={16} />
@@ -44,7 +44,7 @@ export function NavigationButtons({
         onClick={onForward}
         disabled={!canGoForward}
         aria-label="Go forward to next note"
-        title="Go forward (Cmd+])"
+        title="Go forward (⌘])"
         type="button"
       >
         <ArrowRightIcon size={16} />

@@ -40,6 +40,9 @@ export {
   CalendarPlusIcon,
   CalendarCheckIcon,
   CalendarDaysIcon,
+  // Utility icons
+  TrashIcon,
+  HistoryIcon,
 } from './icons';
 
 export type { IconComponentProps } from './icons';

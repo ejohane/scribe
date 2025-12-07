@@ -30,8 +30,8 @@ import {
 } from './test-helpers';
 
 /**
- * Simulated navigation history state matching useNavigationHistory hook behavior
- * This mirrors the dual-pointer model with a stack and currentIndex
+ * Simulated navigation history state matching useNavigationHistory hook behavior.
+ * This mirrors the dual-pointer model with a stack and currentIndex.
  */
 interface NavigationState {
   stack: NoteId[];
@@ -39,8 +39,24 @@ interface NavigationState {
 }
 
 /**
- * NavigationHistory class simulating the useNavigationHistory hook
- * Used for testing navigation flows without React/DOM dependencies
+ * NavigationHistory class simulating the useNavigationHistory hook.
+ *
+ * IMPORTANT: This class intentionally duplicates the hook's logic rather than
+ * testing the actual React hook directly. This design decision was made because:
+ *
+ * 1. These are E2E integration tests focused on testing navigation FLOWS
+ *    (wiki-links, sidebar, command palette) with real vault/graph operations,
+ *    not the hook's React-specific behavior.
+ *
+ * 2. Testing the real hook would require @testing-library/react-hooks and
+ *    DOM dependencies, adding complexity without testing the actual integration
+ *    points (IPC, file system, graph engine).
+ *
+ * 3. The hook itself has separate unit tests that cover React-specific behavior
+ *    (effects, refs, flushSync, etc.).
+ *
+ * This simulation ensures the navigation state model is correct while allowing
+ * us to test the broader system integration without React/DOM overhead.
  */
 class NavigationHistory {
   private state: NavigationState = {

@@ -8,7 +8,7 @@ import { vars } from '@scribe/design-system';
  * upper-left of the editor area below the titlebar drag region.
  */
 export const container = style({
-  position: 'fixed',
+  position: 'absolute',
   top: '48px', // Below titlebar drag region
   left: '16px',
   zIndex: vars.zIndex.overlay,

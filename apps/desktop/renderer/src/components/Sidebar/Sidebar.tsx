@@ -1,19 +1,19 @@
 /**
  * Sidebar component
  *
- * Left panel showing the note library with:
- * - App branding ("Scribe" / "LIBRARY")
- * - New Note button
- * - Scrollable note list sorted by updatedAt
+ * Left panel showing navigation history with:
+ * - App branding ("Scribe" / "HISTORY")
+ * - Scrollable history list showing visited notes
+ * - Clear history button
  * - Footer with user placeholder and theme toggle
  * - Draggable resize handle on the right edge
  */
 
-import { useMemo, useCallback, type CSSProperties } from 'react';
+import { useCallback, type CSSProperties } from 'react';
 import clsx from 'clsx';
-import type { NoteId, NoteType } from '@scribe/shared';
-import { PlusIcon, MoonIcon, SunIcon } from '@scribe/design-system';
-import { NoteListItem } from './NoteListItem';
+import type { NoteId } from '@scribe/shared';
+import { MoonIcon, SunIcon, TrashIcon } from '@scribe/design-system';
+import { HistoryListItem } from './HistoryListItem';
 import { ResizeHandle } from '../ResizeHandle';
 import * as styles from './Sidebar.css';
 import { sidebarWidth } from './Sidebar.css';
@@ -24,34 +24,24 @@ export const SIDEBAR_MIN_WIDTH = 200;
 export const SIDEBAR_MAX_WIDTH = 400;
 
 /**
- * Note data needed for the sidebar display
- * Uses the explicit title field from Note, not the derived metadata.title
+ * History entry with note metadata for display
  */
-export interface SidebarNote {
+export interface HistoryEntry {
   id: NoteId;
-  /** Explicit user-editable title (may be empty for new notes) */
   title?: string;
-  createdAt: number;
-  updatedAt: number;
-  /** User-defined tags (explicit) */
-  tags: string[];
-  /** Note type discriminator */
-  type?: NoteType;
 }
 
 export interface SidebarProps {
   /** Whether the sidebar is open */
   isOpen: boolean;
-  /** List of notes to display */
-  notes: SidebarNote[];
-  /** Currently active/selected note ID */
-  activeNoteId: string | null;
-  /** Callback when a note is selected */
-  onSelectNote: (id: string) => void;
-  /** Callback to create a new note */
-  onCreateNote: () => void;
-  /** Callback to delete a note */
-  onDeleteNote: (id: string) => void;
+  /** Navigation history stack (note IDs with titles) */
+  historyEntries: HistoryEntry[];
+  /** Current position in history (0-indexed) */
+  currentHistoryIndex: number;
+  /** Callback when a history entry is selected */
+  onSelectHistoryEntry: (index: number) => void;
+  /** Callback to clear all history */
+  onClearHistory: () => void;
   /** Callback to toggle theme */
   onThemeToggle: () => void;
   /** Current theme */
@@ -64,21 +54,15 @@ export interface SidebarProps {
 
 export function Sidebar({
   isOpen,
-  notes,
-  activeNoteId,
-  onSelectNote,
-  onCreateNote,
-  onDeleteNote,
+  historyEntries,
+  currentHistoryIndex,
+  onSelectHistoryEntry,
+  onClearHistory,
   onThemeToggle,
   currentTheme,
   width = SIDEBAR_DEFAULT_WIDTH,
   onWidthChange,
 }: SidebarProps) {
-  // Sort notes by updatedAt (most recent first)
-  const sortedNotes = useMemo(() => {
-    return [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [notes]);
-
   // Handle resize from the drag handle
   const handleResize = useCallback(
     (delta: number) => {
@@ -94,6 +78,8 @@ export function Sidebar({
   const sidebarVarName = sidebarWidth.replace(/^var\(|\)$/g, '');
   const sidebarStyles = isOpen ? ({ [sidebarVarName]: `${width}px` } as CSSProperties) : undefined;
 
+  const hasHistory = historyEntries.length > 0;
+
   return (
     <aside
       className={clsx(styles.sidebar, isOpen ? styles.sidebarOpen : styles.sidebarClosed)}
@@ -104,31 +90,46 @@ export function Sidebar({
         <div className={styles.header}>
           <div className={styles.branding}>
             <h2 className={styles.brandTitle}>Scribe</h2>
-            <p className={styles.brandLabel}>LIBRARY</p>
+            <p className={styles.brandLabel}>HISTORY</p>
           </div>
         </div>
 
-        {/* Scrollable list */}
+        {/* Scrollable history list */}
         <div className={styles.noteListContainer}>
-          {/* New Note Button */}
-          <button onClick={onCreateNote} className={styles.newNoteButton} type="button">
-            <div className={styles.newNoteIconCircle}>
-              <PlusIcon size={16} />
-            </div>
-            <span>New Note</span>
-          </button>
+          {/* Clear History Button */}
+          {hasHistory && (
+            <button onClick={onClearHistory} className={styles.clearHistoryButton} type="button">
+              <div className={styles.clearHistoryIconCircle}>
+                <TrashIcon size={16} />
+              </div>
+              <span>Clear History</span>
+            </button>
+          )}
 
-          {/* Note List */}
+          {/* History List - reversed so most recent is at top */}
           <div className={styles.noteList}>
-            {sortedNotes.map((note) => (
-              <NoteListItem
-                key={note.id}
-                note={note}
-                isActive={activeNoteId === note.id}
-                onSelect={() => onSelectNote(note.id)}
-                onDelete={() => onDeleteNote(note.id)}
-              />
-            ))}
+            {historyEntries.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>No history yet</p>
+                <p className={styles.emptyStateHint}>
+                  Navigate between notes to build your history
+                </p>
+              </div>
+            ) : (
+              [...historyEntries].reverse().map((entry, reversedIndex) => {
+                // Convert reversed index back to original index
+                const originalIndex = historyEntries.length - 1 - reversedIndex;
+                return (
+                  <HistoryListItem
+                    key={`${entry.id}-${originalIndex}`}
+                    title={entry.title || 'Untitled'}
+                    position={originalIndex + 1}
+                    isCurrent={originalIndex === currentHistoryIndex}
+                    onSelect={() => onSelectHistoryEntry(originalIndex)}
+                  />
+                );
+              })
+            )}
           </div>
         </div>
 

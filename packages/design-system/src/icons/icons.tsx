@@ -47,6 +47,9 @@ export {
   CalendarPlus as CalendarPlusIcon,
   CalendarCheck as CalendarCheckIcon,
   CalendarDays as CalendarDaysIcon,
+  // Utility icons
+  Trash2 as TrashIcon,
+  History as HistoryIcon,
 } from 'lucide-react';
 
 // Re-export LucideProps as IconComponentProps for backwards compatibility

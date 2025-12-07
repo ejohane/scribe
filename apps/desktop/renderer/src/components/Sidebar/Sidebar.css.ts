@@ -95,9 +95,9 @@ export const noteListContainer = style({
 });
 
 /**
- * New Note button styles
+ * Clear History button styles
  */
-export const newNoteButton = style({
+export const clearHistoryButton = style({
   width: '100%',
   display: 'flex',
   alignItems: 'center',
@@ -115,14 +115,14 @@ export const newNoteButton = style({
   boxShadow: vars.shadow.sm,
 
   ':hover': {
-    color: vars.color.foreground,
+    color: vars.color.danger,
     backgroundColor: vars.color.background,
     borderColor: vars.color.border,
     boxShadow: vars.shadow.md,
   },
 });
 
-export const newNoteIconCircle = style({
+export const clearHistoryIconCircle = style({
   width: '32px',
   height: '32px',
   borderRadius: vars.radius.full,
@@ -133,11 +133,28 @@ export const newNoteIconCircle = style({
   transition: `all ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
 
   selectors: {
-    [`${newNoteButton}:hover &`]: {
-      backgroundColor: vars.color.accent,
+    [`${clearHistoryButton}:hover &`]: {
+      backgroundColor: vars.color.danger,
       color: vars.color.accentForeground,
     },
   },
+});
+
+/**
+ * Empty state styles
+ */
+export const emptyState = style({
+  padding: vars.spacing['6'],
+  textAlign: 'center',
+  color: vars.color.foregroundMuted,
+  fontSize: vars.typography.size.sm,
+});
+
+export const emptyStateHint = style({
+  marginTop: vars.spacing['2'],
+  fontSize: vars.typography.size.xs,
+  color: vars.color.foregroundMuted,
+  opacity: 0.7,
 });
 
 /**

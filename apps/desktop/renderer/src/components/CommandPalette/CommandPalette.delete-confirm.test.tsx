@@ -281,6 +281,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       deleteNote: vi.fn().mockResolvedValue(undefined),
       loadNote: vi.fn().mockResolvedValue(undefined),
       createNote: vi.fn().mockResolvedValue(undefined),
+      removeFromHistory: vi.fn(),
     });
 
     it('Delete button triggers confirmation and closes palette', async () => {

@@ -151,7 +151,7 @@ export interface CommandPaletteProps {
     loadNote: (id: NoteId) => Promise<void>;
     createNote: () => Promise<void>;
     /** Remove a deleted note from navigation history */
-    removeFromHistory?: (id: NoteId) => void;
+    removeFromHistory: (id: NoteId) => void;
   };
 
   /**
@@ -259,7 +259,7 @@ export function CommandPalette({
 
       // Remove the deleted note from navigation history
       // This ensures users don't navigate back to deleted notes
-      noteState.removeFromHistory?.(noteId);
+      noteState.removeFromHistory(noteId);
 
       if (wasCurrentNote) {
         // Fetch fresh notes list to avoid stale closure issue.

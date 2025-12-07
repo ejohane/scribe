@@ -130,14 +130,14 @@ describe('NavigationButtons', () => {
       renderComponent();
 
       const backButton = screen.getByRole('button', { name: /go back to previous note/i });
-      expect(backButton).toHaveAttribute('title', 'Go back (Cmd+[)');
+      expect(backButton).toHaveAttribute('title', 'Go back (⌘[)');
     });
 
     it('forward button has correct title with keyboard shortcut', () => {
       renderComponent();
 
       const forwardButton = screen.getByRole('button', { name: /go forward to next note/i });
-      expect(forwardButton).toHaveAttribute('title', 'Go forward (Cmd+])');
+      expect(forwardButton).toHaveAttribute('title', 'Go forward (⌘])');
     });
 
     it('renders two buttons with proper button roles', () => {

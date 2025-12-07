@@ -10,14 +10,14 @@ import { NavigationButtons } from './components/NavigationButtons';
 import { FloatingDock } from './components/FloatingDock/FloatingDock';
 import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
-import type { SidebarNote } from './components/Sidebar';
+import type { HistoryEntry } from './components/Sidebar';
 import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import { peopleCommands } from './commands/people';
 import { templateCommands } from './commands/templates';
 import type { Command, PaletteMode } from './commands/types';
-import type { GraphNode, NoteId, LexicalState } from '@scribe/shared';
+import type { GraphNode, NoteId } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
@@ -43,8 +43,8 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [contextPanelWidth, setContextPanelWidth] = useState(CONTEXT_PANEL_DEFAULT_WIDTH);
 
-  // Sidebar notes list
-  const [sidebarNotes, setSidebarNotes] = useState<SidebarNote[]>([]);
+  // History entries with titles for sidebar display
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
 
   // Prompt input state for text input modal
   const [promptPlaceholder, setPromptPlaceholder] = useState('');
@@ -57,10 +57,13 @@ function App() {
   const {
     canGoBack,
     canGoForward,
+    historyStack,
+    currentIndex,
     navigateToNote,
     navigateBack,
     navigateForward,
     removeFromHistory,
+    clearHistory,
   } = useNavigationHistory(noteState.currentNoteId, noteState.loadNote);
 
   // Manage theme
@@ -372,37 +375,58 @@ function App() {
     }
   }, [noteState.error, showError]);
 
-  // Fetch notes for sidebar when it opens (and refresh when notes change)
-  const fetchSidebarNotes = useCallback(async () => {
-    try {
-      const notes = await window.scribe.notes.list();
-      // Transform to SidebarNote format using explicit note fields
-      const sidebarNotes: SidebarNote[] = notes.map((note) => ({
-        id: note.id,
-        title: note.title,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-        tags: note.tags,
-        type: note.type,
-      }));
-      setSidebarNotes(sidebarNotes);
-    } catch (error) {
-      console.error('Failed to fetch sidebar notes:', error);
+  // Fetch titles for history entries when sidebar is open or history changes
+  const fetchHistoryEntries = useCallback(async () => {
+    if (historyStack.length === 0) {
+      setHistoryEntries([]);
+      return;
     }
-  }, []);
+
+    try {
+      // Fetch all notes to get titles
+      const notes = await window.scribe.notes.list();
+      const noteMap = new Map(notes.map((note) => [note.id, note.title]));
+
+      // Build history entries with titles
+      const entries: HistoryEntry[] = historyStack.map((noteId) => ({
+        id: noteId,
+        title: noteMap.get(noteId),
+      }));
+
+      setHistoryEntries(entries);
+    } catch (error) {
+      console.error('Failed to fetch history entries:', error);
+    }
+  }, [historyStack]);
 
   useEffect(() => {
     if (sidebarOpen) {
-      fetchSidebarNotes();
+      fetchHistoryEntries();
     }
-  }, [sidebarOpen, fetchSidebarNotes]);
+  }, [sidebarOpen, fetchHistoryEntries]);
 
-  // Refresh sidebar notes when a note is saved/created/deleted
-  useEffect(() => {
-    if (sidebarOpen && noteState.currentNote) {
-      fetchSidebarNotes();
-    }
-  }, [sidebarOpen, noteState.currentNote, fetchSidebarNotes]);
+  // Navigate to a specific position in history
+  const handleSelectHistoryEntry = useCallback(
+    (targetIndex: number) => {
+      if (targetIndex === currentIndex) return;
+
+      // Navigate backwards or forwards to reach the target
+      if (targetIndex < currentIndex) {
+        // Navigate back
+        const stepsBack = currentIndex - targetIndex;
+        for (let i = 0; i < stepsBack; i++) {
+          navigateBack();
+        }
+      } else {
+        // Navigate forward
+        const stepsForward = targetIndex - currentIndex;
+        for (let i = 0; i < stepsForward; i++) {
+          navigateForward();
+        }
+      }
+    },
+    [currentIndex, navigateBack, navigateForward]
+  );
 
   return (
     <div className={styles.app}>
@@ -410,20 +434,10 @@ function App() {
       <ErrorBoundary name="Sidebar">
         <Sidebar
           isOpen={sidebarOpen}
-          notes={sidebarNotes}
-          activeNoteId={noteState.currentNoteId}
-          onSelectNote={(noteId) => {
-            navigateToNote(noteId);
-          }}
-          onCreateNote={async () => {
-            await noteState.createNote();
-            fetchSidebarNotes(); // Refresh list after creation
-          }}
-          onDeleteNote={async (noteId) => {
-            await noteState.deleteNote(noteId);
-            removeFromHistory(noteId); // Clean up navigation history
-            fetchSidebarNotes(); // Refresh list after deletion
-          }}
+          historyEntries={historyEntries}
+          currentHistoryIndex={currentIndex}
+          onSelectHistoryEntry={handleSelectHistoryEntry}
+          onClearHistory={clearHistory}
           onThemeToggle={() => {
             const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
             setTheme(newTheme);

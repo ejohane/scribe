@@ -625,6 +625,111 @@ describe('useNavigationHistory', () => {
       expect(result.current.canGoBack).toBe(false);
       expect(result.current.canGoForward).toBe(false);
     });
+
+    it('navigates to adjacent note when current note is deleted', () => {
+      const { result, rerender } = renderHook(
+        ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
+        { initialProps: { currentNoteId: 'note-1' as string | null } }
+      );
+
+      // Build history: note-1 -> note-2 -> note-3
+      act(() => {
+        result.current.navigateToNote('note-2');
+      });
+      rerender({ currentNoteId: 'note-2' });
+
+      act(() => {
+        result.current.navigateToNote('note-3');
+      });
+      rerender({ currentNoteId: 'note-3' });
+
+      // Stack is [note-1, note-2, note-3], index = 2 (viewing note-3)
+      mockLoadNote.mockClear();
+
+      // Remove note-3 (the current note)
+      act(() => {
+        result.current.removeFromHistory('note-3');
+      });
+
+      // Stack should be [note-1, note-2], index = 1
+      // loadNote should have been called to navigate to note-2
+      expect(mockLoadNote).toHaveBeenCalledWith('note-2');
+      expect(result.current.canGoBack).toBe(true);
+      expect(result.current.canGoForward).toBe(false);
+    });
+
+    it('navigates to next note when first note in history is deleted while current', () => {
+      const { result, rerender } = renderHook(
+        ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
+        { initialProps: { currentNoteId: 'note-1' as string | null } }
+      );
+
+      // Build history: note-1 -> note-2 -> note-3
+      act(() => {
+        result.current.navigateToNote('note-2');
+      });
+      rerender({ currentNoteId: 'note-2' });
+
+      act(() => {
+        result.current.navigateToNote('note-3');
+      });
+      rerender({ currentNoteId: 'note-3' });
+
+      // Go back to note-1
+      act(() => {
+        result.current.navigateBack();
+      });
+      act(() => {
+        result.current.navigateBack();
+      });
+      rerender({ currentNoteId: 'note-1' });
+
+      // Stack is [note-1, note-2, note-3], index = 0 (viewing note-1)
+      mockLoadNote.mockClear();
+
+      // Remove note-1 (the current note at start of history)
+      act(() => {
+        result.current.removeFromHistory('note-1');
+      });
+
+      // Stack should be [note-2, note-3], index = 0
+      // loadNote should have been called to navigate to note-2
+      expect(mockLoadNote).toHaveBeenCalledWith('note-2');
+      expect(result.current.canGoBack).toBe(false);
+      expect(result.current.canGoForward).toBe(true);
+    });
+
+    it('does not call loadNote when removing non-current note', () => {
+      const { result, rerender } = renderHook(
+        ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
+        { initialProps: { currentNoteId: 'note-1' as string | null } }
+      );
+
+      // Build history: note-1 -> note-2 -> note-3
+      act(() => {
+        result.current.navigateToNote('note-2');
+      });
+      rerender({ currentNoteId: 'note-2' });
+
+      act(() => {
+        result.current.navigateToNote('note-3');
+      });
+      rerender({ currentNoteId: 'note-3' });
+
+      // Stack is [note-1, note-2, note-3], index = 2 (viewing note-3)
+      mockLoadNote.mockClear();
+
+      // Remove note-2 (not the current note)
+      act(() => {
+        result.current.removeFromHistory('note-2');
+      });
+
+      // loadNote should NOT have been called since note-2 wasn't current
+      expect(mockLoadNote).not.toHaveBeenCalled();
+      // Stack should be [note-1, note-3], index = 1
+      expect(result.current.canGoBack).toBe(true);
+      expect(result.current.canGoForward).toBe(false);
+    });
   });
 
   describe('FIFO eviction', () => {
