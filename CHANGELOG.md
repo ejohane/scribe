@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0](https://github.com/ejohane/scribe/compare/v1.13.3...v1.14.0) (2025-12-07)
+
+### Features
+
+* **build:** add platform-specific app icons for macOS and Windows ([d2fe764](https://github.com/ejohane/scribe/commit/d2fe764a2cbc23da442a2e12196fd6323a55bf0b))
+
 ## [1.13.3](https://github.com/ejohane/scribe/compare/v1.13.2...v1.13.3) (2025-12-06)
 
 ### Bug Fixes
