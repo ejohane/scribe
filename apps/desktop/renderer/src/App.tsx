@@ -6,7 +6,7 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast/Toast';
-import { BackButton } from './components/BackButton/BackButton';
+import { NavigationButtons } from './components/NavigationButtons';
 import { FloatingDock } from './components/FloatingDock/FloatingDock';
 import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
@@ -53,11 +53,15 @@ function App() {
   // Manage note state at app level so commands can access it
   const noteState = useNoteState();
 
-  // Add navigation history for wiki-link back navigation
-  const { canGoBack, navigateToNote, navigateBack, clearHistory } = useNavigationHistory(
-    noteState.currentNoteId,
-    noteState.loadNote
-  );
+  // Add navigation history for wiki-link back/forward navigation
+  const {
+    canGoBack,
+    canGoForward,
+    navigateToNote,
+    navigateBack,
+    navigateForward,
+    removeFromHistory,
+  } = useNavigationHistory(noteState.currentNoteId, noteState.loadNote);
 
   // Manage theme
   const { resolvedTheme, setTheme } = useTheme();
@@ -91,7 +95,7 @@ function App() {
 
       if (resolvedId) {
         // Navigate to existing note (adds current to history)
-        navigateToNote(resolvedId, true);
+        navigateToNote(resolvedId);
       } else {
         // Create new note with the wiki-link title and navigate to it
         const newNote = await window.scribe.notes.create();
@@ -102,7 +106,7 @@ function App() {
           title: noteTitle,
         });
 
-        navigateToNote(newNote.id, true);
+        navigateToNote(newNote.id);
       }
     },
     [navigateToNote]
@@ -112,7 +116,7 @@ function App() {
   const handlePersonMentionClick = useCallback(
     async (personId: NoteId) => {
       // Person mentions always have a resolved ID, so we can navigate directly
-      navigateToNote(personId, true);
+      navigateToNote(personId);
     },
     [navigateToNote]
   );
@@ -120,7 +124,7 @@ function App() {
   // Handle date click - open or create today's daily note
   const handleDateClick = useCallback(async () => {
     const note = await window.scribe.daily.getOrCreate();
-    navigateToNote(note.id, true);
+    navigateToNote(note.id);
   }, [navigateToNote]);
 
   // Register commands on mount
@@ -135,7 +139,6 @@ function App() {
       icon: <FilePlusIcon size={16} />,
       closeOnSelect: true, // Close palette immediately, then create note
       run: async (context) => {
-        clearHistory(); // Fresh navigation - clear wiki-link history
         await context.createNote();
       },
     });
@@ -252,9 +255,9 @@ function App() {
 
     // Register Template commands
     commandRegistry.registerMany(templateCommands);
-  }, [resolvedTheme, setTheme, clearHistory]);
+  }, [resolvedTheme, setTheme]);
 
-  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back)
+  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back), cmd+] (forward)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // ⌘K: toggle palette in command mode
@@ -281,11 +284,10 @@ function App() {
           setIsPaletteOpen(true);
         }
       }
-      // ⌘N: create new note (clears wiki-link navigation history)
+      // ⌘N: create new note
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
         setIsPaletteOpen(false);
-        clearHistory();
         noteState.createNote();
       }
       // ⌘[ / Ctrl+[: Navigate back through wiki-link history
@@ -293,6 +295,13 @@ function App() {
         e.preventDefault();
         if (canGoBack) {
           navigateBack();
+        }
+      }
+      // ⌘] / Ctrl+]: Navigate forward through wiki-link history
+      if ((e.metaKey || e.ctrlKey) && e.key === ']') {
+        e.preventDefault();
+        if (canGoForward) {
+          navigateForward();
         }
       }
       // ⌘J / Ctrl+J: Toggle left sidebar
@@ -309,7 +318,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaletteOpen, noteState, canGoBack, navigateBack, clearHistory]);
+  }, [isPaletteOpen, noteState, canGoBack, canGoForward, navigateBack, navigateForward]);
 
   // Handle command selection
   const handleCommandSelect = async (command: Command) => {
@@ -404,16 +413,15 @@ function App() {
           notes={sidebarNotes}
           activeNoteId={noteState.currentNoteId}
           onSelectNote={(noteId) => {
-            clearHistory();
-            noteState.loadNote(noteId);
+            navigateToNote(noteId);
           }}
           onCreateNote={async () => {
-            clearHistory();
             await noteState.createNote();
             fetchSidebarNotes(); // Refresh list after creation
           }}
           onDeleteNote={async (noteId) => {
             await noteState.deleteNote(noteId);
+            removeFromHistory(noteId); // Clean up navigation history
             fetchSidebarNotes(); // Refresh list after deletion
           }}
           onThemeToggle={() => {
@@ -426,7 +434,12 @@ function App() {
         />
       </ErrorBoundary>
       <div className={styles.mainContent}>
-        <BackButton visible={canGoBack} onClick={navigateBack} />
+        <NavigationButtons
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          onBack={navigateBack}
+          onForward={navigateForward}
+        />
         <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
           {/* Note header with editable metadata and parallax effect */}
           {noteState.currentNote && (
@@ -470,16 +483,14 @@ function App() {
             commands={commandRegistry.getVisible()}
             onCommandSelect={handleCommandSelect}
             onSearchResultSelect={(result) => {
-              clearHistory(); // Fresh navigation - clear wiki-link history
-              noteState.loadNote(result.id);
+              navigateToNote(result.id);
               setIsPaletteOpen(false);
             }}
             filterCommands={fuzzySearchCommands}
             initialMode={paletteMode}
             currentNoteId={noteState.currentNoteId}
             onNoteSelect={(noteId) => {
-              clearHistory(); // Fresh navigation - clear wiki-link history
-              noteState.loadNote(noteId);
+              navigateToNote(noteId);
             }}
             onModeChange={(mode) => setPaletteMode(mode)}
             showToast={showToast}
@@ -488,6 +499,7 @@ function App() {
               deleteNote: noteState.deleteNote,
               loadNote: noteState.loadNote,
               createNote: noteState.createNote,
+              removeFromHistory,
             }}
             promptPlaceholder={promptPlaceholder}
             onPromptSubmit={(value) => {
@@ -558,8 +570,7 @@ function App() {
           isOpen={contextPanelOpen}
           note={noteState.currentNote}
           onNavigate={(noteId) => {
-            clearHistory();
-            noteState.loadNote(noteId);
+            navigateToNote(noteId);
           }}
           onNoteUpdate={() => {
             // Refresh the current note to get updated data (e.g., attendees changes)

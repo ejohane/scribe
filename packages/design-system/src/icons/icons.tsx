@@ -42,6 +42,7 @@ export {
   Link as LinkIcon,
   // Navigation icons
   ArrowLeft as ArrowLeftIcon,
+  ArrowRight as ArrowRightIcon,
   // Calendar icons for daily notes and meetings
   CalendarPlus as CalendarPlusIcon,
   CalendarCheck as CalendarCheckIcon,
