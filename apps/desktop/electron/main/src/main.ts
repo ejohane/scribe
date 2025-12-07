@@ -752,11 +752,16 @@ function setupIPCHandlers() {
 }
 
 function createWindow() {
+  // Set window icon for Windows (macOS uses dock icon, Linux uses desktop file)
+  const iconPath =
+    process.platform === 'win32' ? path.join(__dirname, '../../../build/icon.ico') : undefined;
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -792,10 +797,18 @@ app.whenReady().then(async () => {
     setupAutoUpdater(mainWindow);
   }
 
-  // On macOS in dev mode, we need to explicitly activate the app
-  // to make it the frontmost application and show in the dock
-  if (process.platform === 'darwin') {
-    app.dock?.show();
+  // On macOS, set the dock icon explicitly (needed for dev mode, production uses bundled icon)
+  if (process.platform === 'darwin' && app.dock) {
+    // app.getAppPath() returns the apps/desktop directory (where package.json with "main" is)
+    // Note: dock.setIcon() requires PNG format, not .icns
+    const appPath = app.getAppPath();
+    const iconPath = path.join(appPath, 'build', 'icon.png');
+    try {
+      app.dock.setIcon(iconPath);
+    } catch (err) {
+      console.error('[main] Failed to set dock icon:', err);
+    }
+    app.dock.show();
     app.focus({ steal: true });
   }
 
