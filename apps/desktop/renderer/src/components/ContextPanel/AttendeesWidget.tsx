@@ -98,6 +98,32 @@ export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWid
     [allPeople, attendeeIds, searchQuery]
   );
 
+  // Check if an exact match exists (case-insensitive)
+  const hasExactMatch = useMemo(
+    () => filteredPeople.some((p) => p.name.toLowerCase() === searchQuery.toLowerCase()),
+    [filteredPeople, searchQuery]
+  );
+
+  // Should show create option: query exists and no exact match
+  const showCreateOption = searchQuery.trim().length > 0 && !hasExactMatch;
+
+  const handleCreatePerson = useCallback(
+    async (name: string) => {
+      try {
+        // Create the person via API
+        const newPerson = await window.scribe.people.create(name);
+        // Add the new person as an attendee
+        await window.scribe.meeting.addAttendee(note.id, newPerson.id);
+        setIsAdding(false);
+        setSearchQuery('');
+        onNoteUpdate?.();
+      } catch (error) {
+        console.error('Failed to create person:', error);
+      }
+    },
+    [note.id, onNoteUpdate]
+  );
+
   const handleAddAttendee = useCallback(
     async (personId: NoteId) => {
       await window.scribe.meeting.addAttendee(note.id, personId);
@@ -164,7 +190,19 @@ export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWid
                 @{person.name}
               </button>
             ))}
-            {filteredPeople.length === 0 && <p className={styles.noResults}>No people found</p>}
+            {showCreateOption && (
+              <button
+                className={styles.createOption}
+                onClick={() => handleCreatePerson(searchQuery.trim())}
+                type="button"
+              >
+                <span className={styles.createIcon}>+</span>
+                <span>Create &quot;{searchQuery.trim()}&quot;</span>
+              </button>
+            )}
+            {filteredPeople.length === 0 && !showCreateOption && (
+              <p className={styles.noResults}>No people found</p>
+            )}
           </div>
         </div>
       )}

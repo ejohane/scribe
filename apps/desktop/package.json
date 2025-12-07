@@ -15,9 +15,9 @@
     "build:renderer": "cd renderer && bun run build",
     "build:main": "cd electron/main && bun run build",
     "build:preload": "cd electron/preload && bun run build",
-    "dist": "bun run build && electron-builder",
-    "dist:mac": "bun run build && electron-builder --mac",
-    "dist:win": "bun run build && electron-builder --win",
+    "dist": "bun run build && electron-builder --publish never",
+    "dist:mac": "bun run build && electron-builder --mac --publish never",
+    "dist:win": "bun run build && electron-builder --win --publish never",
     "start": "../../node_modules/.bin/electron .",
     "clean": "rm -rf renderer/dist electron/main/dist electron/preload/dist",
     "lint": "cd electron/main && eslint src && cd ../preload && eslint src",
@@ -27,6 +27,11 @@
     "appId": "com.scribe.app",
     "electronVersion": "33.2.0",
     "productName": "Scribe",
+    "publish": {
+      "provider": "github",
+      "owner": "ejohane",
+      "repo": "scribe"
+    },
     "copyright": "Copyright © 2025 Scribe Team",
     "directories": {
       "output": "dist",
@@ -43,6 +48,13 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "x64",
             "arm64"
@@ -104,7 +116,9 @@
     "asar": true,
     "asarUnpack": []
   },
-  "dependencies": {},
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
   "devDependencies": {
     "electron": "^33.2.0",
     "turbo": "^2.3.3"

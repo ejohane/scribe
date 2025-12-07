@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0](https://github.com/ejohane/scribe/compare/v1.13.3...v1.14.0) (2025-12-07)
+
+### Features
+
+* **build:** add platform-specific app icons for macOS and Windows ([d2fe764](https://github.com/ejohane/scribe/commit/d2fe764a2cbc23da442a2e12196fd6323a55bf0b))
+
+## [1.13.3](https://github.com/ejohane/scribe/compare/v1.13.2...v1.13.3) (2025-12-06)
+
+### Bug Fixes
+
+* **release:** configure GitHub publish settings and sync version ([faa05d5](https://github.com/ejohane/scribe/commit/faa05d5cdcadf5cda433ec194453cb60c462ed2a))
+
+## [1.13.2](https://github.com/ejohane/scribe/compare/v1.13.1...v1.13.2) (2025-12-06)
+
+### Bug Fixes
+
+* slash menu, header date, and add people UX bugs ([03941dc](https://github.com/ejohane/scribe/commit/03941dcd04896a8b5d8377af7945d55935133623)), closes [#27](https://github.com/ejohane/scribe/issues/27) [#25](https://github.com/ejohane/scribe/issues/25) [#26](https://github.com/ejohane/scribe/issues/26)
+
+## [1.13.1](https://github.com/ejohane/scribe/compare/v1.13.0...v1.13.1) (2025-12-06)
+
+### Bug Fixes
+
+* **build:** prevent electron-builder from auto-publishing in CI ([5455a4d](https://github.com/ejohane/scribe/commit/5455a4d8bc3494fd0e04e76c7c196515742bec1f))
+
+## [1.13.0](https://github.com/ejohane/scribe/compare/v1.12.2...v1.13.0) (2025-12-06)
+
+### Features
+
+* **ui:** implement auto-update for macOS ([8db01e7](https://github.com/ejohane/scribe/commit/8db01e7270c4acab9f0b4f7c30fbcf1d76a9c0f2))
+
 ## [1.12.2](https://github.com/ejohane/scribe/compare/v1.12.1...v1.12.2) (2025-12-04)
 
 ### Bug Fixes

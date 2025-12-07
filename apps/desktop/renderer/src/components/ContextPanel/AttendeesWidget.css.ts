@@ -143,6 +143,48 @@ export const noResults = style({
 });
 
 /**
+ * Create new person option in suggestions list
+ */
+export const createOption = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.spacing['2'],
+  padding: vars.spacing['2'],
+  borderRadius: vars.radius.sm,
+  background: 'none',
+  border: 'none',
+  color: vars.color.accent,
+  cursor: 'pointer',
+  textAlign: 'left',
+  width: '100%',
+  fontSize: vars.typography.size.sm,
+  borderTop: `1px solid ${vars.color.border}`,
+  marginTop: vars.spacing['1'],
+  paddingTop: vars.spacing['2'],
+  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+  },
+});
+
+/**
+ * Plus icon for create option
+ */
+export const createIcon = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '20px',
+  height: '20px',
+  borderRadius: vars.radius.full,
+  backgroundColor: vars.color.surface,
+  color: vars.color.accent,
+  fontSize: vars.typography.size.md,
+  flexShrink: 0,
+});
+
+/**
  * List of current attendees
  */
 export const list = style({

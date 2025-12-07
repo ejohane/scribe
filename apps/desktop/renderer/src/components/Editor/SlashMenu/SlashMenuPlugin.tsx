@@ -76,26 +76,6 @@ export function SlashMenuPlugin() {
     setTriggerState(null);
   }, []);
 
-  // Remove "/" and query text when cancelling
-  const removeSlashAndQuery = useCallback(() => {
-    const currentTriggerState = triggerStateRef.current;
-    if (!currentTriggerState) return;
-
-    editor.update(() => {
-      const node = $getNodeByKey(currentTriggerState.anchorKey);
-      if (node instanceof TextNode) {
-        const text = node.getTextContent();
-        // Remove "/" and any query text
-        const endOffset = currentTriggerState.startOffset + 1 + currentTriggerState.query.length;
-        const newText = text.slice(0, currentTriggerState.startOffset) + text.slice(endOffset);
-        node.setTextContent(newText);
-
-        // Move cursor to where "/" was
-        node.select(currentTriggerState.startOffset, currentTriggerState.startOffset);
-      }
-    });
-  }, [editor]);
-
   // Execute selected command
   const executeCommand = useCallback(
     (command: SlashCommand) => {
@@ -233,6 +213,13 @@ export function SlashMenuPlugin() {
         ) {
           const newQuery = text.slice(currentTriggerState.startOffset + 1, offset);
 
+          // If space is typed immediately after "/" (query starts with space),
+          // dismiss the dropdown and keep "/ " in the editor
+          if (newQuery.startsWith(' ')) {
+            handleClose();
+            return;
+          }
+
           // Update query if changed
           if (newQuery !== currentTriggerState.query) {
             setTriggerState((prev) => (prev ? { ...prev, query: newQuery } : null));
@@ -251,13 +238,13 @@ export function SlashMenuPlugin() {
     });
   }, [editor, handleClose]);
 
-  // Escape key handling
+  // Escape key handling - dismiss dropdown but keep "/" in editor
   useEffect(() => {
     return editor.registerCommand(
       KEY_ESCAPE_COMMAND,
       () => {
         if (triggerStateRef.current?.isActive) {
-          removeSlashAndQuery();
+          // Just close the menu without removing the "/" character
           handleClose();
           return true;
         }
@@ -265,7 +252,7 @@ export function SlashMenuPlugin() {
       },
       COMMAND_PRIORITY_LOW
     );
-  }, [editor, handleClose, removeSlashAndQuery]);
+  }, [editor, handleClose]);
 
   // Arrow down handling - uses ref to avoid re-registering on filteredCommands changes
   useEffect(() => {

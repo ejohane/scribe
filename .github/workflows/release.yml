@@ -62,14 +62,18 @@ jobs:
             exit 0
           fi
 
-          # Check if release already has DMG artifacts
+          # Check if release already has all required artifacts (DMG, ZIP, and manifest)
           ASSETS=$(gh release view "$TAG" --json assets -q '.assets[].name' 2>/dev/null || echo "")
-          if echo "$ASSETS" | grep -q '\.dmg$'; then
+          HAS_DMG=$(echo "$ASSETS" | grep -q '\.dmg$' && echo "true" || echo "false")
+          HAS_ZIP=$(echo "$ASSETS" | grep -q '\.zip$' && echo "true" || echo "false")
+          HAS_MANIFEST=$(echo "$ASSETS" | grep -q 'latest-mac\.yml$' && echo "true" || echo "false")
+
+          if [ "$HAS_DMG" = "true" ] && [ "$HAS_ZIP" = "true" ] && [ "$HAS_MANIFEST" = "true" ]; then
             echo "should_release=false" >> $GITHUB_OUTPUT
-            echo "Release $TAG already has DMG artifacts"
+            echo "Release $TAG already has all artifacts (DMG, ZIP, manifest)"
           else
             echo "should_release=true" >> $GITHUB_OUTPUT
-            echo "Release $TAG needs artifacts"
+            echo "Release $TAG needs artifacts (DMG: $HAS_DMG, ZIP: $HAS_ZIP, manifest: $HAS_MANIFEST)"
           fi
 
   build-macos:
@@ -86,6 +90,13 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Sync version to desktop package
+        run: |
+          # Extract version from root package.json and update apps/desktop/package.json
+          VERSION=$(jq -r .version package.json)
+          echo "Syncing version $VERSION to apps/desktop/package.json"
+          jq --arg v "$VERSION" '.version = $v' apps/desktop/package.json > tmp.json && mv tmp.json apps/desktop/package.json
 
       - name: Build all packages
         run: bun run build
@@ -117,8 +128,11 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-dmg
-          path: apps/desktop/dist/*.dmg
+          name: macos-artifacts
+          path: |
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/latest-mac.yml
 
   publish-release:
     name: Publish Release
@@ -140,6 +154,8 @@ jobs:
           RELEASE_TAG: ${{ needs.resolve-tag.outputs.tag }}
         run: |
           gh release upload "$RELEASE_TAG" \
-            artifacts/macos-dmg/*.dmg
+            artifacts/macos-artifacts/*.dmg \
+            artifacts/macos-artifacts/*.zip \
+            artifacts/macos-artifacts/latest-mac.yml
 
           gh release edit "$RELEASE_TAG" --draft=false

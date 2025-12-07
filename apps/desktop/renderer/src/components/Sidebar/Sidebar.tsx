@@ -15,6 +15,7 @@ import type { NoteId } from '@scribe/shared';
 import { MoonIcon, SunIcon, TrashIcon } from '@scribe/design-system';
 import { HistoryListItem } from './HistoryListItem';
 import { ResizeHandle } from '../ResizeHandle';
+import { VersionIndicator } from './VersionIndicator';
 import * as styles from './Sidebar.css';
 import { sidebarWidth } from './Sidebar.css';
 
@@ -140,14 +141,17 @@ export function Sidebar({
             <div className={styles.userName}>Guest User</div>
           </div>
 
-          <button
-            onClick={onThemeToggle}
-            className={styles.themeToggle}
-            title={currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            type="button"
-          >
-            {currentTheme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
-          </button>
+          <div className={styles.footerRight}>
+            <VersionIndicator />
+            <button
+              onClick={onThemeToggle}
+              className={styles.themeToggle}
+              title={currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              type="button"
+            >
+              {currentTheme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+            </button>
+          </div>
         </div>
       </div>
       {/* Resize handle on the right edge - outside sidebarInner to avoid overflow clipping */}

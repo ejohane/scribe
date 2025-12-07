@@ -160,10 +160,13 @@ const scribeAPI = {
    */
   daily: {
     /**
-     * Get or create today's daily note.
-     * Idempotent: returns same note on repeat calls within same day.
+     * Get or create a daily note for a specific date.
+     * If no date is provided, uses today's date.
+     * Idempotent: returns same note on repeat calls for the same date.
+     * @param date - Optional date to get/create the daily note for
      */
-    getOrCreate: (): Promise<Note> => ipcRenderer.invoke('daily:getOrCreate'),
+    getOrCreate: (date?: Date): Promise<Note> =>
+      ipcRenderer.invoke('daily:getOrCreate', date ? { date: date.toISOString() } : undefined),
 
     /**
      * Find daily note for a specific date.
@@ -201,6 +204,74 @@ const scribeAPI = {
      */
     removeAttendee: (noteId: NoteId, personId: NoteId): Promise<{ success: boolean }> =>
       ipcRenderer.invoke('meeting:removeAttendee', { noteId, personId }),
+  },
+
+  /**
+   * Update API for auto-update functionality
+   */
+  update: {
+    /**
+     * Manually check for updates
+     */
+    check: (): Promise<void> => ipcRenderer.invoke('update:check'),
+
+    /**
+     * Quit and install the downloaded update
+     */
+    install: (): void => ipcRenderer.send('update:install'),
+
+    /**
+     * Subscribe to checking event
+     * @returns Unsubscribe function for cleanup
+     */
+    onChecking: (callback: () => void): (() => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('update:checking', handler);
+      return () => ipcRenderer.removeListener('update:checking', handler);
+    },
+
+    /**
+     * Subscribe to available event
+     * @returns Unsubscribe function for cleanup
+     */
+    onAvailable: (callback: (info: { version: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) =>
+        callback(info);
+      ipcRenderer.on('update:available', handler);
+      return () => ipcRenderer.removeListener('update:available', handler);
+    },
+
+    /**
+     * Subscribe to not-available event
+     * @returns Unsubscribe function for cleanup
+     */
+    onNotAvailable: (callback: () => void): (() => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('update:not-available', handler);
+      return () => ipcRenderer.removeListener('update:not-available', handler);
+    },
+
+    /**
+     * Subscribe to downloaded event
+     * @returns Unsubscribe function for cleanup
+     */
+    onDownloaded: (callback: (info: { version: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) =>
+        callback(info);
+      ipcRenderer.on('update:downloaded', handler);
+      return () => ipcRenderer.removeListener('update:downloaded', handler);
+    },
+
+    /**
+     * Subscribe to error event
+     * @returns Unsubscribe function for cleanup
+     */
+    onError: (callback: (error: { message: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: { message: string }) =>
+        callback(error);
+      ipcRenderer.on('update:error', handler);
+      return () => ipcRenderer.removeListener('update:error', handler);
+    },
   },
 };
 

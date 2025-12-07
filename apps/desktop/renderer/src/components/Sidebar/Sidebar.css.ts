@@ -203,6 +203,12 @@ export const userName = style({
   color: vars.color.foregroundMuted,
 });
 
+export const footerRight = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.spacing['2'],
+});
+
 export const themeToggle = style({
   padding: vars.spacing['2'],
   borderRadius: vars.radius.full,
