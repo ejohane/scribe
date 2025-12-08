@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.17.0](https://github.com/ejohane/scribe/compare/v1.16.0...v1.17.0) (2025-12-08)
+
+### Features
+
+* **editor:** add dictionary support with native context menu ([5e90cac](https://github.com/ejohane/scribe/commit/5e90cace827da0d26b0f38e971bc74e0961525bb))
+
 ## [1.16.0](https://github.com/ejohane/scribe/compare/v1.15.0...v1.16.0) (2025-12-07)
 
 ### Features
