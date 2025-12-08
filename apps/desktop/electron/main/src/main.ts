@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Menu, MenuItem } from 'electron';
 import path from 'path';
 import * as fs from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -575,6 +575,62 @@ function setupIPCHandlers() {
   });
 
   // ============================================
+  // Dictionary/Spellcheck Handlers
+  // ============================================
+
+  // Add a word to the spellcheck dictionary
+  ipcMain.handle('dictionary:addWord', async (_event, word: string) => {
+    if (!mainWindow) {
+      throw new Error('Main window not available');
+    }
+    if (!word?.trim()) {
+      throw new Error('Word is required');
+    }
+    mainWindow.webContents.session.addWordToSpellCheckerDictionary(word.trim());
+    return { success: true };
+  });
+
+  // Remove a word from the spellcheck dictionary
+  ipcMain.handle('dictionary:removeWord', async (_event, word: string) => {
+    if (!mainWindow) {
+      throw new Error('Main window not available');
+    }
+    if (!word?.trim()) {
+      throw new Error('Word is required');
+    }
+    mainWindow.webContents.session.removeWordFromSpellCheckerDictionary(word.trim());
+    return { success: true };
+  });
+
+  // Get current spellcheck languages
+  ipcMain.handle('dictionary:getLanguages', async () => {
+    if (!mainWindow) {
+      throw new Error('Main window not available');
+    }
+    return mainWindow.webContents.session.getSpellCheckerLanguages();
+  });
+
+  // Set spellcheck languages
+  ipcMain.handle('dictionary:setLanguages', async (_event, languages: string[]) => {
+    if (!mainWindow) {
+      throw new Error('Main window not available');
+    }
+    if (!Array.isArray(languages)) {
+      throw new Error('Languages must be an array');
+    }
+    mainWindow.webContents.session.setSpellCheckerLanguages(languages);
+    return { success: true };
+  });
+
+  // Get available spellcheck languages
+  ipcMain.handle('dictionary:getAvailableLanguages', async () => {
+    if (!mainWindow) {
+      throw new Error('Main window not available');
+    }
+    return mainWindow.webContents.session.availableSpellCheckerLanguages;
+  });
+
+  // ============================================
   // Daily Note Handlers
   // ============================================
 
@@ -765,6 +821,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      spellcheck: true,
       preload: path.join(__dirname, '../../preload/dist/preload.js'),
     },
   });
@@ -782,6 +839,56 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // Setup context menu for spellcheck and editing operations
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    const menu = new Menu();
+
+    // Add spelling suggestions if there's a misspelled word
+    if (params.misspelledWord) {
+      // Add spelling suggestions
+      for (const suggestion of params.dictionarySuggestions) {
+        menu.append(
+          new MenuItem({
+            label: suggestion,
+            click: () => mainWindow?.webContents.replaceMisspelling(suggestion),
+          })
+        );
+      }
+
+      // Add separator after suggestions (if any)
+      if (params.dictionarySuggestions.length > 0) {
+        menu.append(new MenuItem({ type: 'separator' }));
+      }
+
+      // Add "Add to Dictionary" option
+      menu.append(
+        new MenuItem({
+          label: 'Add to Dictionary',
+          click: () =>
+            mainWindow?.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+        })
+      );
+
+      // Add separator before edit operations
+      menu.append(new MenuItem({ type: 'separator' }));
+    }
+
+    // Standard editing actions for editable fields
+    if (params.isEditable) {
+      menu.append(new MenuItem({ role: 'cut' }));
+      menu.append(new MenuItem({ role: 'copy' }));
+      menu.append(new MenuItem({ role: 'paste' }));
+    } else if (params.selectionText) {
+      // For non-editable text with selection, only show copy
+      menu.append(new MenuItem({ role: 'copy' }));
+    }
+
+    // Only show menu if there are items
+    if (menu.items.length > 0) {
+      menu.popup();
+    }
   });
 }
 
