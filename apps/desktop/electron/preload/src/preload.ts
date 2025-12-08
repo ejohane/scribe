@@ -207,6 +207,45 @@ const scribeAPI = {
   },
 
   /**
+   * Dictionary/Spellcheck API for managing custom dictionary
+   */
+  dictionary: {
+    /**
+     * Add a word to the spellcheck dictionary
+     * @param word - The word to add
+     */
+    addWord: (word: string): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('dictionary:addWord', word),
+
+    /**
+     * Remove a word from the spellcheck dictionary
+     * @param word - The word to remove
+     */
+    removeWord: (word: string): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('dictionary:removeWord', word),
+
+    /**
+     * Get the currently active spellcheck languages
+     * @returns Array of language codes (e.g., ['en-US', 'en-GB'])
+     */
+    getLanguages: (): Promise<string[]> => ipcRenderer.invoke('dictionary:getLanguages'),
+
+    /**
+     * Set the active spellcheck languages
+     * @param languages - Array of language codes to enable
+     */
+    setLanguages: (languages: string[]): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('dictionary:setLanguages', languages),
+
+    /**
+     * Get all available spellcheck languages that can be enabled
+     * @returns Array of available language codes
+     */
+    getAvailableLanguages: (): Promise<string[]> =>
+      ipcRenderer.invoke('dictionary:getAvailableLanguages'),
+  },
+
+  /**
    * Update API for auto-update functionality
    */
   update: {
