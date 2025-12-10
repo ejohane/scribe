@@ -10,6 +10,7 @@ import { $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical'
 import { $setBlocksType } from '@lexical/selection';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND } from '@lexical/list';
+import { INSERT_TABLE_COMMAND } from '@lexical/table';
 
 export interface SlashCommand {
   id: string;
@@ -117,6 +118,21 @@ export const slashCommands: SlashCommand[] = [
         if ($isRangeSelection(selection)) {
           $setBlocksType(selection, () => $createQuoteNode());
         }
+      });
+    },
+  },
+  {
+    id: 'table',
+    label: 'Table',
+    description: 'Insert a table',
+    keywords: ['table', 'grid', 'rows', 'columns'],
+    section: 'formatting',
+    execute: (editor) => {
+      // Insert a 2x2 table with header row
+      editor.dispatchCommand(INSERT_TABLE_COMMAND, {
+        rows: '2',
+        columns: '2',
+        includeHeaders: { rows: true, columns: false },
       });
     },
   },

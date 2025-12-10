@@ -298,3 +298,55 @@ globalStyle('.person-mention:hover', {
   textDecoration: 'underline',
   backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
 });
+
+// === Table styles ===
+
+// Horizontal scroll container for wide tables
+export const tableScrollContainer = style({
+  overflowX: 'auto',
+  margin: `${vars.spacing['4']} 0`,
+  maxWidth: '100%',
+});
+
+// Base table style
+export const table = style({
+  borderCollapse: 'collapse',
+  width: '100%',
+  margin: `${vars.spacing['4']} 0`,
+  tableLayout: 'auto',
+});
+
+// Table row
+export const tableRow = style({});
+
+// Table cell (td)
+export const tableCell = style({
+  border: `1px solid ${vars.color.border}`,
+  padding: vars.spacing['2'],
+  minWidth: '80px',
+  verticalAlign: 'top',
+  textAlign: 'left',
+});
+
+// Table header cell (th)
+export const tableCellHeader = style({
+  border: `1px solid ${vars.color.border}`,
+  borderBottomWidth: '2px',
+  padding: vars.spacing['2'],
+  minWidth: '80px',
+  verticalAlign: 'top',
+  textAlign: 'left',
+  fontWeight: vars.typography.weight.bold,
+  backgroundColor: vars.color.surface,
+});
+
+// Selected table state (multi-cell selection active)
+export const tableSelection = style({
+  outline: `2px solid ${vars.color.info}`,
+  outlineOffset: '2px',
+});
+
+// Selected cell state
+export const tableCellSelected = style({
+  backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
+});
