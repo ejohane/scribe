@@ -11,6 +11,7 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
 import { LinkNode } from '@lexical/link';
+import { TableNode, TableRowNode, TableCellNode } from '@lexical/table';
 import { TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
 import {
   $createHorizontalRuleNode,
@@ -24,6 +25,10 @@ import { InitialStatePlugin } from './plugins/InitialStatePlugin';
 import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
 import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
+import { TablePlugin } from './plugins/TablePlugin';
+import { TableKeyboardPlugin } from './plugins/TableKeyboardPlugin';
+import { TableUIPlugin } from './plugins/TableUIPlugin';
+import { TableContentPlugin } from './plugins/TableContentPlugin';
 import { HR_PATTERN } from './plugins/constants';
 import { WikiLinkNode } from './plugins/WikiLinkNode';
 import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
@@ -76,6 +81,12 @@ const editorConfig = {
     },
     hr: styles.hr,
     hrSelected: styles.hrSelected,
+    table: styles.table,
+    tableCell: styles.tableCell,
+    tableCellHeader: styles.tableCellHeader,
+    tableRow: styles.tableRow,
+    tableSelection: styles.tableSelection,
+    tableCellSelected: styles.tableCellSelected,
   },
   onError(error: Error) {
     console.error('Lexical error:', error);
@@ -91,6 +102,9 @@ const editorConfig = {
     HorizontalRuleNode,
     WikiLinkNode,
     PersonMentionNode,
+    TableNode,
+    TableRowNode,
+    TableCellNode,
   ],
 };
 
@@ -132,6 +146,10 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <TabIndentationPlugin />
           <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
           <HorizontalRulePlugin />
+          <TablePlugin />
+          <TableKeyboardPlugin />
+          <TableUIPlugin />
+          <TableContentPlugin />
           {/* Load the initial note content */}
           <InitialStatePlugin initialState={currentNote?.content ?? null} noteId={currentNoteId} />
           {/* Auto-save editor changes */}
