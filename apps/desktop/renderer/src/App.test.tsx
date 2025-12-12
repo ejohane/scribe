@@ -6,6 +6,9 @@ import type { Note } from '@scribe/shared';
 import { styles } from './components/CommandPalette/CommandPalette.test-utils';
 import * as editorStyles from './components/Editor/EditorRoot.css';
 
+// Mock __APP_VERSION__ global
+vi.stubGlobal('__APP_VERSION__', '1.0.0');
+
 // Helper to render App with ThemeProvider
 const renderApp = () => {
   return render(
@@ -45,6 +48,10 @@ beforeEach(() => {
       read: vi.fn().mockResolvedValue(mockNote),
       save: vi.fn().mockResolvedValue({ success: true }),
       create: vi.fn().mockResolvedValue(mockNote),
+      findByTitle: vi.fn().mockResolvedValue(null),
+      findByDate: vi.fn().mockResolvedValue([]),
+      searchTitles: vi.fn().mockResolvedValue([]),
+      delete: vi.fn().mockResolvedValue({ success: true }),
     },
     search: {
       query: vi.fn().mockResolvedValue([]),
@@ -60,6 +67,37 @@ beforeEach(() => {
       setLastOpenedNote: vi.fn().mockResolvedValue({ success: true }),
       getConfig: vi.fn().mockResolvedValue({ theme: 'light' }),
       setConfig: vi.fn().mockResolvedValue({ success: true }),
+    },
+    tasks: {
+      list: vi.fn().mockResolvedValue({ tasks: [], nextCursor: undefined }),
+      toggle: vi.fn().mockResolvedValue({ success: true }),
+      reorder: vi.fn().mockResolvedValue({ success: true }),
+      get: vi.fn().mockResolvedValue(null),
+      onChange: vi.fn(() => () => {}), // Returns unsubscribe function
+    },
+    update: {
+      onChecking: vi.fn(() => () => {}),
+      onAvailable: vi.fn(() => () => {}),
+      onNotAvailable: vi.fn(() => () => {}),
+      onDownloaded: vi.fn(() => () => {}),
+      onError: vi.fn(() => () => {}),
+      install: vi.fn(),
+    },
+    daily: {
+      getOrCreate: vi.fn().mockResolvedValue(mockNote),
+    },
+    meeting: {
+      create: vi.fn().mockResolvedValue(mockNote),
+      addAttendee: vi.fn().mockResolvedValue({ success: true }),
+      removeAttendee: vi.fn().mockResolvedValue({ success: true }),
+    },
+    people: {
+      list: vi.fn().mockResolvedValue([]),
+      search: vi.fn().mockResolvedValue([]),
+      create: vi.fn().mockResolvedValue({ id: 'person-1', name: 'Test Person' }),
+    },
+    shell: {
+      openExternal: vi.fn().mockResolvedValue({ success: true }),
     },
   };
 });
