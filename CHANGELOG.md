@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.0](https://github.com/ejohane/scribe/compare/v1.17.0...v1.18.0) (2025-12-12)
+
+### Features
+
+* **editor:** add tables support with /table slash command ([339e753](https://github.com/ejohane/scribe/commit/339e7537af74b938e82c8d025dfafb5904f3713f))
+* **tasks:** add task extraction, indexing, and UI foundation ([86a8076](https://github.com/ejohane/scribe/commit/86a80769eb7d7aca1843cc50772da8574e9142fb))
+
+### Bug Fixes
+
+* **tests:** add missing API mocks to App.test.tsx ([54c1782](https://github.com/ejohane/scribe/commit/54c17826eb47dc0afc7fd5cc49398f5b84c97f58))
+
 ## [1.17.0](https://github.com/ejohane/scribe/compare/v1.16.0...v1.17.0) (2025-12-08)
 
 ### Features
