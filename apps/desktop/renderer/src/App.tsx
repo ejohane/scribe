@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as styles from './App.css';
-import { useTheme, FilePlusIcon } from '@scribe/design-system';
+import { useTheme, FilePlusIcon, CheckboxIcon } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
@@ -18,6 +18,7 @@ import { peopleCommands } from './commands/people';
 import { templateCommands } from './commands/templates';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId } from '@scribe/shared';
+import { SYSTEM_NOTE_IDS } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
@@ -249,6 +250,20 @@ function App() {
       },
     });
 
+    // Command: Navigate to Tasks
+    commandRegistry.register({
+      id: 'navigate-tasks',
+      title: 'Tasks',
+      description: 'View all tasks',
+      keywords: ['tasks', 'todo', 'checklist', 'checkbox'],
+      group: 'navigation',
+      icon: <CheckboxIcon size={16} />,
+      closeOnSelect: true,
+      run: async (context) => {
+        context.navigateToNote(SYSTEM_NOTE_IDS.TASKS);
+      },
+    });
+
     // Register People command group
     commandRegistry.registerGroup({
       id: 'people',
@@ -458,33 +473,46 @@ function App() {
           onForward={navigateForward}
         />
         <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
-          {/* Note header with editable metadata and parallax effect */}
-          {noteState.currentNote && (
-            <ErrorBoundary name="NoteHeader">
-              <NoteHeader
-                note={noteState.currentNote}
-                onTitleChange={(title: string) => noteState.updateMetadata({ title })}
-                onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
-                onDateClick={handleDateClick}
-                translateY={translateY}
-              />
+          {/* Route to TasksScreen for system:tasks, otherwise show regular note editor */}
+          {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
+            <ErrorBoundary name="TasksScreen">
+              {/* TODO: TasksScreen component will be implemented in a future task */}
+              <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>
+                <h1>Tasks</h1>
+                <p>TasksScreen placeholder - component to be implemented</p>
+              </div>
             </ErrorBoundary>
+          ) : (
+            <>
+              {/* Note header with editable metadata and parallax effect */}
+              {noteState.currentNote && (
+                <ErrorBoundary name="NoteHeader">
+                  <NoteHeader
+                    note={noteState.currentNote}
+                    onTitleChange={(title: string) => noteState.updateMetadata({ title })}
+                    onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
+                    onDateClick={handleDateClick}
+                    translateY={translateY}
+                  />
+                </ErrorBoundary>
+              )}
+              <ErrorBoundary name="Editor">
+                <WikiLinkProvider
+                  currentNoteId={noteState.currentNoteId}
+                  onLinkClick={handleWikiLinkClick}
+                  onError={(message) => showToast(message, 'error')}
+                >
+                  <PersonMentionProvider
+                    currentNoteId={noteState.currentNoteId}
+                    onMentionClick={handlePersonMentionClick}
+                    onError={(message) => showToast(message, 'error')}
+                  >
+                    <EditorRoot noteState={noteState} />
+                  </PersonMentionProvider>
+                </WikiLinkProvider>
+              </ErrorBoundary>
+            </>
           )}
-          <ErrorBoundary name="Editor">
-            <WikiLinkProvider
-              currentNoteId={noteState.currentNoteId}
-              onLinkClick={handleWikiLinkClick}
-              onError={(message) => showToast(message, 'error')}
-            >
-              <PersonMentionProvider
-                currentNoteId={noteState.currentNoteId}
-                onMentionClick={handlePersonMentionClick}
-                onError={(message) => showToast(message, 'error')}
-              >
-                <EditorRoot noteState={noteState} />
-              </PersonMentionProvider>
-            </WikiLinkProvider>
-          </ErrorBoundary>
         </div>
         <ErrorBoundary name="Command Palette">
           <CommandPalette

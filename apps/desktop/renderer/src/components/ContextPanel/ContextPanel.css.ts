@@ -101,6 +101,27 @@ export const cardHeader = style({
   fontWeight: vars.typography.weight.medium,
 });
 
+/**
+ * Clickable card header (for navigating to full-screen views)
+ */
+export const cardHeaderClickable = style({
+  cursor: 'pointer',
+  borderRadius: vars.radius.sm,
+  padding: vars.spacing['1'],
+  margin: `calc(-1 * ${vars.spacing['1']})`,
+  marginBottom: vars.spacing['2'],
+  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+  },
+
+  ':focus-visible': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '2px',
+  },
+});
+
 export const cardIcon = style({
   width: '14px',
   height: '14px',

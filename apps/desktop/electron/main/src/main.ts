@@ -6,7 +6,9 @@ import { format } from 'date-fns';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import { computeTextHash } from '@scribe/engine-core';
+import { TaskIndex } from '@scribe/engine-core/node';
+import type { Note, NoteId, LexicalState, LexicalNode, Task, TaskFilter } from '@scribe/shared';
 import { ScribeError, ErrorCode } from '@scribe/shared';
 import { setupAutoUpdater } from './auto-updater';
 
@@ -18,6 +20,7 @@ let mainWindow: BrowserWindow | null = null;
 let vault: FileSystemVault | null = null;
 let graphEngine: GraphEngine | null = null;
 let searchEngine: SearchEngine | null = null;
+let taskIndex: TaskIndex | null = null;
 
 // App config
 interface AppConfig {
@@ -81,14 +84,20 @@ async function initializeEngine() {
     // Initialize search engine
     searchEngine = new SearchEngine();
 
-    // Build initial graph and search index from loaded notes
+    // Initialize task index (derived data stored in vault/derived)
+    taskIndex = new TaskIndex(path.join(vaultPath, 'derived'));
+    await taskIndex.load();
+
+    // Build initial graph, search index, and task index from loaded notes
     const notes = vault.list();
     for (const note of notes) {
       graphEngine.addNote(note);
       searchEngine.indexNote(note);
+      taskIndex.indexNote(note);
     }
     console.log(`Graph initialized with ${notes.length} notes`);
     console.log(`Search index initialized with ${searchEngine.size()} notes`);
+    console.log(`Task index initialized with ${taskIndex.size} tasks`);
 
     const stats = graphEngine.getStats();
     console.log(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
@@ -282,6 +291,9 @@ function setupIPCHandlers() {
       if (!searchEngine) {
         throw new Error('Search engine not initialized');
       }
+      if (!taskIndex) {
+        throw new Error('Task index not initialized');
+      }
       await vault.save(note);
 
       // Update graph with new note data
@@ -289,6 +301,12 @@ function setupIPCHandlers() {
 
       // Update search index with new note data
       searchEngine.indexNote(note);
+
+      // Re-index tasks for this note and broadcast changes
+      const taskChanges = taskIndex.indexNote(note);
+      if (taskChanges.length > 0) {
+        mainWindow?.webContents.send('tasks:changed', taskChanges);
+      }
 
       return { success: true };
     } catch (error) {
@@ -314,9 +332,19 @@ function setupIPCHandlers() {
       if (!searchEngine) {
         throw new Error('Search engine not initialized');
       }
+      if (!taskIndex) {
+        throw new Error('Task index not initialized');
+      }
       await vault.delete(id);
       graphEngine.removeNote(id);
       searchEngine.removeNote(id);
+
+      // Remove tasks for this note and broadcast changes
+      const taskChanges = taskIndex.removeNote(id);
+      if (taskChanges.length > 0) {
+        mainWindow?.webContents.send('tasks:changed', taskChanges);
+      }
+
       return { success: true };
     } catch (error) {
       if (error instanceof ScribeError) {
@@ -805,6 +833,248 @@ function setupIPCHandlers() {
       return { success: true };
     }
   );
+
+  // ============================================
+  // Task Handlers
+  // ============================================
+
+  /**
+   * Toggle a task's completion state.
+   *
+   * This is the write path for task completion:
+   * 1. Load note from vault
+   * 2. Find checklist node by nodeKey (fallback: textHash, lineIndex)
+   * 3. Toggle __checked property on the Lexical listitem node
+   * 4. Save note via existing persistence path
+   * 5. Update TaskIndex (completedAt set/cleared)
+   * 6. Handle conflicts/missing tasks with error
+   */
+  ipcMain.handle('tasks:toggle', async (_, { taskId }: { taskId: string }) => {
+    try {
+      if (!vault) {
+        return { success: false, error: 'Vault not initialized' };
+      }
+      if (!taskIndex) {
+        return { success: false, error: 'Task index not initialized' };
+      }
+      if (!graphEngine) {
+        return { success: false, error: 'Graph engine not initialized' };
+      }
+      if (!searchEngine) {
+        return { success: false, error: 'Search engine not initialized' };
+      }
+
+      // Get task from index
+      const task = taskIndex.get(taskId);
+      if (!task) {
+        return { success: false, error: 'Task not found' };
+      }
+
+      // Load note
+      let note: Note;
+      try {
+        note = vault.read(task.noteId);
+      } catch {
+        // Task's note was deleted - remove from index
+        const changes = taskIndex.removeNote(task.noteId);
+        mainWindow?.webContents.send('tasks:changed', changes);
+        return { success: false, error: 'Note not found' };
+      }
+
+      // Find and toggle the checklist node in Lexical content
+      const toggled = toggleChecklistNode(note.content, {
+        nodeKey: task.nodeKey,
+        textHash: task.textHash,
+        lineIndex: task.lineIndex,
+      });
+
+      if (!toggled) {
+        // Task no longer exists in note - remove from index and re-index
+        const removeChanges = taskIndex.removeNote(task.noteId);
+        const addChanges = taskIndex.indexNote(note);
+        const allChanges = [...removeChanges, ...addChanges];
+        mainWindow?.webContents.send('tasks:changed', allChanges);
+        return { success: false, error: 'Task no longer exists in note' };
+      }
+
+      // Save note
+      await vault.save(note);
+
+      // Update graph and search (in case content affects metadata)
+      graphEngine.addNote(note);
+      searchEngine.indexNote(note);
+
+      // Re-index to update completedAt
+      const changes = taskIndex.indexNote(note);
+      mainWindow?.webContents.send('tasks:changed', changes);
+
+      const updatedTask = taskIndex.get(taskId);
+      return { success: true, task: updatedTask };
+    } catch (error) {
+      console.error('[tasks:toggle] Error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  /**
+   * List tasks with optional filtering.
+   */
+  ipcMain.handle('tasks:list', async (_, filter?: TaskFilter) => {
+    if (!taskIndex) {
+      throw new Error('Task index not initialized');
+    }
+    return taskIndex.list(filter);
+  });
+
+  /**
+   * Get a single task by ID.
+   */
+  ipcMain.handle('tasks:get', async (_, { taskId }: { taskId: string }) => {
+    if (!taskIndex) {
+      throw new Error('Task index not initialized');
+    }
+    return taskIndex.get(taskId) ?? null;
+  });
+
+  /**
+   * Reorder tasks by priority.
+   */
+  ipcMain.handle('tasks:reorder', async (_, { taskIds }: { taskIds: string[] }) => {
+    if (!taskIndex) {
+      throw new Error('Task index not initialized');
+    }
+    taskIndex.reorder(taskIds);
+    mainWindow?.webContents.send('tasks:changed', [{ type: 'reordered', taskIds }]);
+    return { success: true };
+  });
+}
+
+// ============================================================================
+// Checklist Node Toggle Helper
+// ============================================================================
+
+/**
+ * Locator for finding a checklist node in Lexical content.
+ */
+interface ChecklistNodeLocator {
+  /** Lexical node key (primary anchor) */
+  nodeKey: string;
+  /** SHA-256 hash of task text (fallback) */
+  textHash: string;
+  /** List item block ordinal (last resort fallback) */
+  lineIndex: number;
+}
+
+/**
+ * Toggle the __checked property on a checklist listitem node.
+ *
+ * Uses fallback chain: nodeKey -> textHash -> lineIndex
+ *
+ * @param content - The Lexical state to modify (mutates in place)
+ * @param locator - Locator to find the target node
+ * @returns true if toggle succeeded, false if node not found
+ */
+function toggleChecklistNode(content: LexicalState, locator: ChecklistNodeLocator): boolean {
+  if (!content?.root?.children) {
+    return false;
+  }
+
+  // Track candidates for fallback matching
+  let textHashMatch: LexicalNode | null = null;
+  let lineIndexMatch: LexicalNode | null = null;
+  let currentLineIndex = 0;
+
+  // First pass: try to find by nodeKey (most reliable)
+  const nodeKeyResult = findNodeByKey(content.root.children, locator.nodeKey);
+  if (nodeKeyResult) {
+    return toggleNode(nodeKeyResult);
+  }
+
+  // Second pass: collect fallback candidates
+  traverseNodes(content.root.children, (node) => {
+    if (node.type === 'listitem' && '__checked' in node) {
+      // Check textHash match
+      const text = extractTextFromNode(node);
+      const hash = computeTextHash(text);
+      if (hash === locator.textHash && !textHashMatch) {
+        textHashMatch = node;
+      }
+
+      // Track lineIndex
+      if (currentLineIndex === locator.lineIndex && !lineIndexMatch) {
+        lineIndexMatch = node;
+      }
+    }
+
+    // Count all listitems for lineIndex tracking
+    if (node.type === 'listitem') {
+      currentLineIndex++;
+    }
+  });
+
+  // Try textHash fallback
+  if (textHashMatch) {
+    return toggleNode(textHashMatch);
+  }
+
+  // Try lineIndex fallback (least reliable)
+  if (lineIndexMatch) {
+    return toggleNode(lineIndexMatch);
+  }
+
+  return false;
+}
+
+/**
+ * Find a node by its __key property.
+ */
+function findNodeByKey(nodes: LexicalNode[], nodeKey: string): LexicalNode | null {
+  for (const node of nodes) {
+    if (node.__key === nodeKey) {
+      return node;
+    }
+    if (Array.isArray(node.children)) {
+      const found = findNodeByKey(node.children as LexicalNode[], nodeKey);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * Traverse all nodes in a Lexical tree.
+ */
+function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode) => void): void {
+  for (const node of nodes) {
+    callback(node);
+    if (Array.isArray(node.children)) {
+      traverseNodes(node.children as LexicalNode[], callback);
+    }
+  }
+}
+
+/**
+ * Extract text content from a node and its children.
+ */
+function extractTextFromNode(node: LexicalNode): string {
+  const textParts: string[] = [];
+  traverseNodes([node], (n) => {
+    if (n.type === 'text' && typeof n.text === 'string') {
+      textParts.push(n.text as string);
+    }
+  });
+  return textParts.join('');
+}
+
+/**
+ * Toggle the __checked property on a checklist node.
+ */
+function toggleNode(node: LexicalNode): boolean {
+  if (node.type === 'listitem' && '__checked' in node) {
+    node.__checked = !node.__checked;
+    return true;
+  }
+  return false;
 }
 
 function createWindow() {
@@ -929,5 +1199,17 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// Flush task index before quitting to persist any pending changes
+app.on('before-quit', async () => {
+  if (taskIndex) {
+    try {
+      await taskIndex.flush();
+      console.log('Task index flushed successfully');
+    } catch (error) {
+      console.error('Failed to flush task index:', error);
+    }
   }
 });

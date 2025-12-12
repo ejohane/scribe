@@ -1,6 +1,14 @@
 // Type definitions for the Scribe API exposed via contextBridge
 
-import type { Note, NoteId, SearchResult, GraphNode } from '@scribe/shared';
+import type {
+  Note,
+  NoteId,
+  SearchResult,
+  GraphNode,
+  Task,
+  TaskFilter,
+  TaskChangeEvent,
+} from '@scribe/shared';
 
 export interface PeopleAPI {
   /** List all people */
@@ -80,6 +88,46 @@ export interface ShellAPI {
   openExternal(url: string): Promise<{ success: boolean }>;
 }
 
+/**
+ * Tasks API for task management
+ */
+export interface TasksAPI {
+  /**
+   * List tasks with optional filtering and pagination
+   * @param filter - Optional filter criteria
+   * @returns Tasks and optional nextCursor for pagination
+   */
+  list(filter?: TaskFilter): Promise<{ tasks: Task[]; nextCursor?: string }>;
+
+  /**
+   * Toggle a task's completion state
+   * @param taskId - The task ID to toggle
+   * @returns Success status and updated task
+   */
+  toggle(taskId: string): Promise<{ success: boolean; task?: Task; error?: string }>;
+
+  /**
+   * Reorder tasks by priority
+   * @param taskIds - Array of task IDs in new priority order
+   * @returns Success status
+   */
+  reorder(taskIds: string[]): Promise<{ success: boolean }>;
+
+  /**
+   * Get a single task by ID
+   * @param taskId - The task ID to retrieve
+   * @returns The task or null if not found
+   */
+  get(taskId: string): Promise<Task | null>;
+
+  /**
+   * Subscribe to task change events
+   * @param callback - Called when tasks change
+   * @returns Unsubscribe function for cleanup
+   */
+  onChange(callback: (events: TaskChangeEvent[]) => void): () => void;
+}
+
 /** API for auto-update functionality */
 export interface UpdateAPI {
   /** Manually trigger update check */
@@ -146,6 +194,8 @@ export interface ScribeAPI {
   people: PeopleAPI;
   daily: DailyAPI;
   meeting: MeetingAPI;
+  /** Tasks API */
+  tasks: TasksAPI;
   /** Auto-update API */
   update: UpdateAPI;
 }

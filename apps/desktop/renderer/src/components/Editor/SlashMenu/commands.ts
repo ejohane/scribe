@@ -97,10 +97,10 @@ export const slashCommands: SlashCommand[] = [
     },
   },
   {
-    id: 'todo',
-    label: 'To-do',
+    id: 'task',
+    label: 'Add Task',
     description: 'Track tasks with checkboxes',
-    keywords: ['todo', 'checkbox', 'task', '[]', 'check', 'checklist'],
+    keywords: ['task', 'todo', 'checkbox', '[]', 'check', 'checklist'],
     section: 'formatting',
     execute: (editor) => {
       editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);

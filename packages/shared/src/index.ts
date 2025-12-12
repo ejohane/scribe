@@ -16,6 +16,13 @@ export type {
   GraphEdge,
   SearchResult,
   VaultConfig,
+  // Task types
+  TaskId,
+  Task,
+  TaskFilter,
+  TaskChangeEvent,
 } from './types.js';
+
+export { serializeTaskId, parseTaskId, SYSTEM_NOTE_IDS, isSystemNoteId } from './types.js';
 
 export { ErrorCode, ScribeError } from './errors.js';

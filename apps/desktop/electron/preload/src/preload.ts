@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { Note, NoteId, SearchResult, GraphNode } from '@scribe/shared';
+import type {
+  Note,
+  NoteId,
+  SearchResult,
+  GraphNode,
+  Task,
+  TaskFilter,
+  TaskChangeEvent,
+} from '@scribe/shared';
 
 /**
  * Scribe API exposed to the renderer process
@@ -243,6 +251,54 @@ const scribeAPI = {
      */
     getAvailableLanguages: (): Promise<string[]> =>
       ipcRenderer.invoke('dictionary:getAvailableLanguages'),
+  },
+
+  /**
+   * Tasks API for task management
+   */
+  tasks: {
+    /**
+     * List tasks with optional filtering and pagination
+     * @param filter - Optional filter criteria
+     * @returns Tasks and optional nextCursor for pagination
+     */
+    list: (filter?: TaskFilter): Promise<{ tasks: Task[]; nextCursor?: string }> =>
+      ipcRenderer.invoke('tasks:list', filter),
+
+    /**
+     * Toggle a task's completion state
+     * @param taskId - The task ID to toggle
+     * @returns Success status and updated task
+     */
+    toggle: (taskId: string): Promise<{ success: boolean; task?: Task; error?: string }> =>
+      ipcRenderer.invoke('tasks:toggle', { taskId }),
+
+    /**
+     * Reorder tasks by priority
+     * @param taskIds - Array of task IDs in new priority order
+     * @returns Success status
+     */
+    reorder: (taskIds: string[]): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('tasks:reorder', { taskIds }),
+
+    /**
+     * Get a single task by ID
+     * @param taskId - The task ID to retrieve
+     * @returns The task or null if not found
+     */
+    get: (taskId: string): Promise<Task | null> => ipcRenderer.invoke('tasks:get', { taskId }),
+
+    /**
+     * Subscribe to task change events
+     * @param callback - Called when tasks change
+     * @returns Unsubscribe function for cleanup
+     */
+    onChange: (callback: (events: TaskChangeEvent[]) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, events: TaskChangeEvent[]) =>
+        callback(events);
+      ipcRenderer.on('tasks:changed', handler);
+      return () => ipcRenderer.removeListener('tasks:changed', handler);
+    },
   },
 
   /**

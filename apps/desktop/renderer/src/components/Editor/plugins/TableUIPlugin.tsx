@@ -1,259 +1,416 @@
 /**
  * TableUIPlugin
  *
- * Manages hover state detection for tables and renders TableControls
- * for adding/removing rows and columns.
+ * Shows add row/column buttons when hovering over a table.
+ * Based on Lexical's official TableHoverActionsPlugin pattern.
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getNodeByKey } from 'lexical';
+import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import {
-  $isTableNode,
-  $isTableRowNode,
   $isTableCellNode,
-  $insertTableColumn__EXPERIMENTAL,
-  $insertTableRow__EXPERIMENTAL,
-  $deleteTableColumn__EXPERIMENTAL,
-  $deleteTableRow__EXPERIMENTAL,
+  $isTableNode,
+  $getTableRowIndexFromTableCellNode,
+  $getTableColumnIndexFromTableCellNode,
+  $insertTableRowAtSelection,
+  $insertTableColumnAtSelection,
+  $deleteTableRowAtSelection,
+  $deleteTableColumnAtSelection,
+  TableRowNode,
 } from '@lexical/table';
-import { TableControls } from '../components/TableControls';
+import { $findMatchingParent } from '@lexical/utils';
+import { $getNearestNodeFromDOMNode } from 'lexical';
+import { createPortal } from 'react-dom';
+import * as styles from '../components/TableControls.css';
 
-interface TableHoverState {
-  tableKey: string;
-  tableElement: HTMLTableElement;
-  isHovered: boolean;
-  hoveredRowIndex: number;
-  hoveredColumnIndex: number;
-  isHeaderRow: boolean;
-  rowCount: number;
-  columnCount: number;
-}
+const BUTTON_SIZE_PX = 24;
 
 export function TableUIPlugin(): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
-  const [hoverState, setHoverState] = useState<TableHoverState | null>(null);
-  const tableMapRef = useRef<Map<string, HTMLTableElement>>(new Map());
+  const isEditable = useLexicalEditable();
+  const [showAddRow, setShowAddRow] = useState(false);
+  const [showAddColumn, setShowAddColumn] = useState(false);
+  const [showDeleteRow, setShowDeleteRow] = useState(false);
+  const [showDeleteColumn, setShowDeleteColumn] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
+  const [deleteRowPosition, setDeleteRowPosition] = useState({ top: 0, left: 0 });
+  const [deleteColumnPosition, setDeleteColumnPosition] = useState({ top: 0, left: 0 });
+  const tableCellRef = useRef<HTMLElement | null>(null);
+  const tableRectRef = useRef<DOMRect | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Track all tables in the editor
-  useEffect(() => {
-    const updateTableMap = () => {
-      const rootElement = editor.getRootElement();
-      if (!rootElement) return;
-
-      const tables = rootElement.querySelectorAll('table');
-      const newMap = new Map<string, HTMLTableElement>();
-
-      editor.getEditorState().read(() => {
-        tables.forEach((tableEl) => {
-          // Find the Lexical node key from the data attribute
-          const key = tableEl.getAttribute('data-lexical-node-key');
-          if (key) {
-            newMap.set(key, tableEl as HTMLTableElement);
-          }
-        });
-      });
-
-      tableMapRef.current = newMap;
-    };
-
-    // Update on editor changes
-    const removeListener = editor.registerUpdateListener(() => {
-      updateTableMap();
-    });
-
-    // Initial update
-    updateTableMap();
-
-    return removeListener;
-  }, [editor]);
-
-  // Handle mouse events for hover detection
-  useEffect(() => {
-    const rootElement = editor.getRootElement();
-    if (!rootElement) return;
-
-    const handleMouseMove = (event: MouseEvent) => {
+  const handleMouseMove = useCallback(
+    (event: MouseEvent) => {
       const target = event.target as HTMLElement;
+      const { clientX, clientY } = event;
 
-      // Check if we're over a table
-      const tableEl = target.closest('table') as HTMLTableElement | null;
-
-      if (!tableEl) {
-        // Not over any table
-        if (hoverState?.isHovered) {
-          setHoverState(null);
+      // Check if we're hovering over our buttons - if so, cancel any hide timer
+      if (target.closest('[data-table-control]')) {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        if (hideTimerRef.current) {
+          clearTimeout(hideTimerRef.current);
         }
         return;
       }
 
-      // Get the table key
-      const tableKey = tableEl.getAttribute('data-lexical-node-key');
-      if (!tableKey) return;
+      // Find the table cell we're hovering
+      const tableCellDOM = target.closest('td, th') as HTMLElement | null;
 
-      // Determine which row and column we're hovering
-      const cell = target.closest('td, th') as HTMLTableCellElement | null;
-      const row = target.closest('tr') as HTMLTableRowElement | null;
+      // Find the table element we're hovering (anywhere in the table)
+      const tableDOM = target.closest('table') as HTMLElement | null;
 
-      let hoveredRowIndex = -1;
-      let hoveredColumnIndex = -1;
-      let isHeaderRow = false;
+      // If completely outside any table, check if we're near the button area
+      if (!tableDOM) {
+        // Check if mouse is in the "hover zone" near the table (for reaching buttons)
+        const rect = tableRectRef.current;
+        if (rect) {
+          const HOVER_ZONE = 40; // pixels beyond table edge
+          const isNearTable =
+            clientX >= rect.left - HOVER_ZONE &&
+            clientX <= rect.right + HOVER_ZONE &&
+            clientY >= rect.top - HOVER_ZONE &&
+            clientY <= rect.bottom + HOVER_ZONE;
 
-      if (row) {
-        const rows = Array.from(tableEl.querySelectorAll('tr'));
-        hoveredRowIndex = rows.indexOf(row);
-        isHeaderRow = hoveredRowIndex === 0;
-      }
-
-      if (cell) {
-        const cells = Array.from(row?.querySelectorAll('td, th') ?? []);
-        hoveredColumnIndex = cells.indexOf(cell);
-      }
-
-      // Count rows and columns
-      const rows = tableEl.querySelectorAll('tr');
-      const rowCount = rows.length;
-      const columnCount = rows[0]?.querySelectorAll('td, th').length ?? 0;
-
-      setHoverState({
-        tableKey,
-        tableElement: tableEl,
-        isHovered: true,
-        hoveredRowIndex,
-        hoveredColumnIndex,
-        isHeaderRow,
-        rowCount,
-        columnCount,
-      });
-    };
-
-    const handleMouseLeave = (event: MouseEvent) => {
-      // Check if we're leaving the editor entirely or just moving between tables
-      const relatedTarget = event.relatedTarget as HTMLElement | null;
-      const isLeavingToControls = relatedTarget?.closest('[class*="tableControlsWrapper"]');
-
-      if (!isLeavingToControls) {
-        // Give a small delay to allow moving to controls
-        setTimeout(() => {
-          const isOverTable = document.querySelector('table:hover');
-          const isOverControls = document.querySelector('[class*="tableControlsWrapper"]:hover');
-          if (!isOverTable && !isOverControls) {
-            setHoverState(null);
+          if (isNearTable) {
+            // Still near table, don't hide yet
+            return;
           }
-        }, 50);
-      }
-    };
+        }
 
-    rootElement.addEventListener('mousemove', handleMouseMove);
-    rootElement.addEventListener('mouseleave', handleMouseLeave);
+        // Fully outside, hide buttons
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        if (hideTimerRef.current) {
+          clearTimeout(hideTimerRef.current);
+        }
+        setShowAddRow(false);
+        setShowAddColumn(false);
+        setShowDeleteRow(false);
+        setShowDeleteColumn(false);
+        return;
+      }
+
+      // Cancel any pending hide timer since we're over a table
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+
+      // If inside table but not in a cell (e.g., on border), keep current state
+      if (!tableCellDOM) {
+        return;
+      }
+
+      // Clear any pending debounce
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      tableCellRef.current = tableCellDOM;
+
+      // Debounce the button show/hide logic
+      debounceTimerRef.current = setTimeout(() => {
+        const result: {
+          shouldShowRow: boolean;
+          shouldShowColumn: boolean;
+          shouldShowDeleteRow: boolean;
+          shouldShowDeleteColumn: boolean;
+          tableRect: DOMRect | null;
+          cellRect: DOMRect | null;
+          rowIndex: number;
+          colIndex: number;
+          rowCount: number;
+          colCount: number;
+        } = {
+          shouldShowRow: false,
+          shouldShowColumn: false,
+          shouldShowDeleteRow: false,
+          shouldShowDeleteColumn: false,
+          tableRect: null,
+          cellRect: null,
+          rowIndex: -1,
+          colIndex: -1,
+          rowCount: 0,
+          colCount: 0,
+        };
+
+        editor.read(() => {
+          const maybeTableCell = $getNearestNodeFromDOMNode(tableCellDOM);
+
+          if ($isTableCellNode(maybeTableCell)) {
+            const table = $findMatchingParent(maybeTableCell, $isTableNode);
+            if (!$isTableNode(table)) {
+              return;
+            }
+
+            const tableElement = editor.getElementByKey(table.getKey());
+            if (!tableElement) {
+              return;
+            }
+
+            result.tableRect = tableElement.getBoundingClientRect();
+            result.cellRect = tableCellDOM.getBoundingClientRect();
+
+            result.rowCount = table.getChildrenSize();
+            const firstRow = table.getChildAtIndex(0) as TableRowNode | null;
+            result.colCount = firstRow?.getChildrenSize() ?? 0;
+
+            result.rowIndex = $getTableRowIndexFromTableCellNode(maybeTableCell);
+            result.colIndex = $getTableColumnIndexFromTableCellNode(maybeTableCell);
+
+            // Show add row button when hovering last row
+            if (result.rowIndex === result.rowCount - 1) {
+              result.shouldShowRow = true;
+            }
+            // Show add column button when hovering last column
+            if (result.colIndex === result.colCount - 1) {
+              result.shouldShowColumn = true;
+            }
+
+            // Show delete row button if more than 1 row and not header row
+            if (result.rowCount > 1 && result.rowIndex > 0) {
+              result.shouldShowDeleteRow = true;
+            }
+            // Show delete column button if more than 1 column
+            if (result.colCount > 1) {
+              result.shouldShowDeleteColumn = true;
+            }
+          }
+        });
+
+        const {
+          shouldShowRow,
+          shouldShowColumn,
+          shouldShowDeleteRow,
+          shouldShowDeleteColumn,
+          tableRect,
+          cellRect,
+        } = result;
+
+        if (tableRect) {
+          // Store the table rect for hover zone calculations
+          tableRectRef.current = tableRect;
+
+          if (shouldShowRow) {
+            setShowAddColumn(false);
+            setShowAddRow(true);
+            setPosition({
+              top: tableRect.bottom + 4,
+              left: tableRect.left + tableRect.width / 2 - BUTTON_SIZE_PX / 2,
+              width: tableRect.width,
+              height: tableRect.height,
+            });
+          } else if (shouldShowColumn) {
+            setShowAddRow(false);
+            setShowAddColumn(true);
+            setPosition({
+              top: tableRect.top + tableRect.height / 2 - BUTTON_SIZE_PX / 2,
+              left: tableRect.right + 4,
+              width: tableRect.width,
+              height: tableRect.height,
+            });
+          } else {
+            setShowAddRow(false);
+            setShowAddColumn(false);
+          }
+
+          // Position delete buttons relative to the hovered cell
+          if (cellRect) {
+            if (shouldShowDeleteRow) {
+              setShowDeleteRow(true);
+              setDeleteRowPosition({
+                top: cellRect.top + cellRect.height / 2 - 9, // 9 = half of 18px button
+                left: tableRect.left - 26,
+              });
+            } else {
+              setShowDeleteRow(false);
+            }
+
+            if (shouldShowDeleteColumn) {
+              setShowDeleteColumn(true);
+              setDeleteColumnPosition({
+                top: tableRect.top - 26,
+                left: cellRect.left + cellRect.width / 2 - 9,
+              });
+            } else {
+              setShowDeleteColumn(false);
+            }
+          }
+        }
+      }, 50);
+    },
+    [editor]
+  );
+
+  useEffect(() => {
+    const rootElement = editor.getRootElement();
+    if (!rootElement) return;
+
+    // Listen on document to catch all mouse moves
+    document.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      rootElement.removeEventListener('mousemove', handleMouseMove);
-      rootElement.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mousemove', handleMouseMove);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
     };
-  }, [editor, hoverState?.isHovered]);
+  }, [editor, handleMouseMove]);
 
-  // Add column handler
-  const handleAddColumn = useCallback(() => {
-    if (!hoverState) return;
-
+  const insertRow = useCallback(() => {
     editor.update(() => {
-      const tableNode = $getNodeByKey(hoverState.tableKey);
-      if (!$isTableNode(tableNode)) return;
-
-      // Insert column at the end
-      $insertTableColumn__EXPERIMENTAL(false); // false = after current column
+      if (tableCellRef.current) {
+        const maybeTableCell = $getNearestNodeFromDOMNode(tableCellRef.current);
+        if ($isTableCellNode(maybeTableCell)) {
+          maybeTableCell.selectEnd();
+          $insertTableRowAtSelection(true);
+        }
+      }
     });
-  }, [editor, hoverState]);
+    setShowAddRow(false);
+  }, [editor]);
 
-  // Add row handler
-  const handleAddRow = useCallback(() => {
-    if (!hoverState) return;
-
+  const insertColumn = useCallback(() => {
     editor.update(() => {
-      const tableNode = $getNodeByKey(hoverState.tableKey);
-      if (!$isTableNode(tableNode)) return;
-
-      // Insert row at the end
-      $insertTableRow__EXPERIMENTAL(false); // false = after current row
+      if (tableCellRef.current) {
+        const maybeTableCell = $getNearestNodeFromDOMNode(tableCellRef.current);
+        if ($isTableCellNode(maybeTableCell)) {
+          maybeTableCell.selectEnd();
+          $insertTableColumnAtSelection(true);
+        }
+      }
     });
-  }, [editor, hoverState]);
+    setShowAddColumn(false);
+  }, [editor]);
 
-  // Remove column handler
-  const handleRemoveColumn = useCallback(
-    (columnIndex: number) => {
-      if (!hoverState || hoverState.columnCount <= 1) return;
+  const deleteRow = useCallback(() => {
+    editor.update(() => {
+      if (tableCellRef.current) {
+        const maybeTableCell = $getNearestNodeFromDOMNode(tableCellRef.current);
+        if ($isTableCellNode(maybeTableCell)) {
+          maybeTableCell.selectEnd();
+          $deleteTableRowAtSelection();
+        }
+      }
+    });
+    setShowDeleteRow(false);
+  }, [editor]);
 
-      editor.update(() => {
-        const tableNode = $getNodeByKey(hoverState.tableKey);
-        if (!$isTableNode(tableNode)) return;
+  const deleteColumn = useCallback(() => {
+    editor.update(() => {
+      if (tableCellRef.current) {
+        const maybeTableCell = $getNearestNodeFromDOMNode(tableCellRef.current);
+        if ($isTableCellNode(maybeTableCell)) {
+          maybeTableCell.selectEnd();
+          $deleteTableColumnAtSelection();
+        }
+      }
+    });
+    setShowDeleteColumn(false);
+  }, [editor]);
 
-        // Select a cell in the column to remove
-        const rows = tableNode.getChildren();
-        if (rows.length === 0) return;
+  if (!isEditable) {
+    return null;
+  }
 
-        const firstRow = rows[0];
-        if (!$isTableRowNode(firstRow)) return;
-
-        const cells = firstRow.getChildren();
-        if (columnIndex >= cells.length) return;
-
-        const targetCell = cells[columnIndex];
-        if (!$isTableCellNode(targetCell)) return;
-
-        // Select the cell first, then delete the column
-        targetCell.selectStart();
-        $deleteTableColumn__EXPERIMENTAL();
-      });
-    },
-    [editor, hoverState]
-  );
-
-  // Remove row handler
-  const handleRemoveRow = useCallback(
-    (rowIndex: number) => {
-      if (!hoverState || rowIndex === 0) return; // Can't remove header row
-
-      editor.update(() => {
-        const tableNode = $getNodeByKey(hoverState.tableKey);
-        if (!$isTableNode(tableNode)) return;
-
-        const rows = tableNode.getChildren();
-        if (rowIndex >= rows.length) return;
-
-        const targetRow = rows[rowIndex];
-        if (!$isTableRowNode(targetRow)) return;
-
-        // Select a cell in the row to remove, then delete
-        const cells = targetRow.getChildren();
-        if (cells.length === 0) return;
-
-        const targetCell = cells[0];
-        if (!$isTableCellNode(targetCell)) return;
-
-        targetCell.selectStart();
-        $deleteTableRow__EXPERIMENTAL();
-      });
-    },
-    [editor, hoverState]
-  );
-
-  // Render controls if a table is hovered
-  if (!hoverState) return null;
-
-  return (
-    <TableControls
-      tableElement={hoverState.tableElement}
-      isTableHovered={hoverState.isHovered}
-      hoveredRowIndex={hoverState.hoveredRowIndex}
-      hoveredColumnIndex={hoverState.hoveredColumnIndex}
-      isHeaderRow={hoverState.isHeaderRow}
-      rowCount={hoverState.rowCount}
-      columnCount={hoverState.columnCount}
-      onAddColumn={handleAddColumn}
-      onAddRow={handleAddRow}
-      onRemoveColumn={handleRemoveColumn}
-      onRemoveRow={handleRemoveRow}
-    />
+  return createPortal(
+    <>
+      {showAddRow && (
+        <button
+          data-table-control="add-row"
+          className={styles.addButton}
+          style={{
+            position: 'fixed',
+            top: position.top,
+            left: position.left,
+            zIndex: 100,
+            pointerEvents: 'auto',
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            insertRow();
+          }}
+          title="Add row"
+          aria-label="Add row"
+        >
+          +
+        </button>
+      )}
+      {showAddColumn && (
+        <button
+          data-table-control="add-column"
+          className={styles.addButton}
+          style={{
+            position: 'fixed',
+            top: position.top,
+            left: position.left,
+            zIndex: 100,
+            pointerEvents: 'auto',
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            insertColumn();
+          }}
+          title="Add column"
+          aria-label="Add column"
+        >
+          +
+        </button>
+      )}
+      {showDeleteRow && (
+        <button
+          data-table-control="delete-row"
+          className={styles.removeButton}
+          style={{
+            position: 'fixed',
+            top: deleteRowPosition.top,
+            left: deleteRowPosition.left,
+            zIndex: 100,
+            pointerEvents: 'auto',
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteRow();
+          }}
+          title="Delete row"
+          aria-label="Delete row"
+        >
+          ×
+        </button>
+      )}
+      {showDeleteColumn && (
+        <button
+          data-table-control="delete-column"
+          className={styles.removeButton}
+          style={{
+            position: 'fixed',
+            top: deleteColumnPosition.top,
+            left: deleteColumnPosition.left,
+            zIndex: 100,
+            pointerEvents: 'auto',
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteColumn();
+          }}
+          title="Delete column"
+          aria-label="Delete column"
+        >
+          ×
+        </button>
+      )}
+    </>,
+    document.body
   );
 }

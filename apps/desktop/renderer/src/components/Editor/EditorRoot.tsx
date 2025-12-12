@@ -35,6 +35,7 @@ import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
 import { PersonMentionNode } from './plugins/PersonMentionNode';
 import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
 import { LinkClickPlugin } from './plugins/LinkClickPlugin';
+import { FocusNodePlugin } from './plugins/FocusNodePlugin';
 import { SelectionToolbarPlugin } from './SelectionToolbar';
 import { SlashMenuPlugin } from './SlashMenu';
 import * as styles from './EditorRoot.css';
@@ -162,6 +163,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <PersonMentionPlugin currentNoteId={currentNoteId} />
           {/* Handle clicks on external hyperlinks */}
           <LinkClickPlugin />
+          {/* Focus and navigate to specific nodes (used by Tasks panel) */}
+          <FocusNodePlugin />
           {/* Floating toolbar for text selection formatting */}
           <SelectionToolbarPlugin />
           {/* Slash command menu */}

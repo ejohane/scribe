@@ -10,6 +10,7 @@ import { PersonMentionProvider } from './plugins/PersonMentionContext';
 const createMockNoteState = (note: Note | null = null) => ({
   currentNote: note,
   currentNoteId: note?.id ?? null,
+  isSystemNote: false,
   isLoading: false,
   error: null,
   loadNote: vi.fn(),

@@ -72,22 +72,16 @@ export const removeButton = style([
   },
 ]);
 
-// Container for add column button (right edge of header row)
+// Container for add column button (right edge of table)
 export const addColumnContainer = style({
-  position: 'absolute',
-  right: '-32px',
-  top: '50%',
-  transform: 'translateY(-50%)',
   zIndex: 10,
+  pointerEvents: 'auto',
 });
 
-// Container for add row button (below last row)
+// Container for add row button (below table)
 export const addRowContainer = style({
-  position: 'absolute',
-  bottom: '-32px',
-  left: '50%',
-  transform: 'translateX(-50%)',
   zIndex: 10,
+  pointerEvents: 'auto',
 });
 
 // Container for remove column button (top-right of header cell)

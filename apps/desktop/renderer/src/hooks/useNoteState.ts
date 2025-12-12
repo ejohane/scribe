@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Note, NoteId, LexicalState, NoteType } from '@scribe/shared';
+import { isSystemNoteId, SYSTEM_NOTE_IDS } from '@scribe/shared';
 
 /**
  * Partial note metadata that can be updated via the header UI
@@ -16,6 +17,9 @@ interface UseNoteStateReturn {
 
   /** Current note ID */
   currentNoteId: NoteId | null;
+
+  /** Whether the current note is a system note (e.g., system:tasks) */
+  isSystemNote: boolean;
 
   /** Whether a note is currently loading */
   isLoading: boolean;
@@ -70,8 +74,19 @@ export function useNoteState(): UseNoteStateReturn {
 
   /**
    * Load a note by ID from the engine
+   * System notes (e.g., system:tasks) are handled specially - they don't load
+   * actual content but set the ID for routing purposes
    */
   const loadNote = useCallback(async (id: NoteId) => {
+    // Handle system notes specially - no content to load
+    if (isSystemNoteId(id)) {
+      setCurrentNote(null);
+      setCurrentNoteId(id);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -228,9 +243,17 @@ export function useNoteState(): UseNoteStateReturn {
 
   /**
    * Delete a note by ID
+   * System notes cannot be deleted
    */
   const deleteNote = useCallback(
     async (id: NoteId) => {
+      // Protect system notes from deletion
+      if (isSystemNoteId(id)) {
+        const errorMessage = 'System notes cannot be deleted';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+
       try {
         await window.scribe.notes.delete(id);
 
@@ -279,12 +302,16 @@ export function useNoteState(): UseNoteStateReturn {
     initializeNote();
   }, [currentNoteId, isLoading, loadNote, createNote]);
 
+  // Compute whether current note is a system note
+  const isSystemNote = isSystemNoteId(currentNoteId);
+
   // Return a memoized object to ensure stable reference for consumers
   // This prevents unnecessary effect re-runs in components that depend on noteState
   return useMemo(
     () => ({
       currentNote,
       currentNoteId,
+      isSystemNote,
       isLoading,
       error,
       loadNote,
@@ -296,6 +323,7 @@ export function useNoteState(): UseNoteStateReturn {
     [
       currentNote,
       currentNoteId,
+      isSystemNote,
       isLoading,
       error,
       loadNote,
