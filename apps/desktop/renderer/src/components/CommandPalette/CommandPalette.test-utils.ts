@@ -19,9 +19,11 @@ import type {
   NoteType,
   DailyNoteData,
   MeetingNoteData,
+  ScribeAPI,
 } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 import type { Command } from '../../commands/types';
+import type { MockScribeAPI } from '../../types/scribe';
 import * as styles from './CommandPalette.css';
 
 // Re-export styles for use in tests
@@ -163,10 +165,13 @@ export const mockCommands: Command[] = [
 ];
 
 /**
- * Setup default window.scribe mock
+ * Setup default window.scribe mock with type-safe partial mock.
+ * Uses MockScribeAPI to allow partial mocking without `any`.
+ *
+ * @param overrides - Optional partial mock to merge with defaults
  */
-export function setupScribeMock(): void {
-  (window as any).scribe = {
+export function setupScribeMock(overrides?: MockScribeAPI): void {
+  const defaultMock: MockScribeAPI = {
     notes: {
       list: vi.fn().mockResolvedValue([]),
     },
@@ -174,6 +179,10 @@ export function setupScribeMock(): void {
       query: vi.fn().mockResolvedValue([]),
     },
   };
+
+  const mock: MockScribeAPI = overrides ? { ...defaultMock, ...overrides } : defaultMock;
+
+  window.scribe = mock as ScribeAPI;
 }
 
 /**
