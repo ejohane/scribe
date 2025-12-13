@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.19.1](https://github.com/ejohane/scribe/compare/v1.19.0...v1.19.1) (2025-12-13)
+
+### Bug Fixes
+
+* **engine-search:** make text-extraction helpers internal ([4a34926](https://github.com/ejohane/scribe/commit/4a34926bfe6e3fb141f992bb6f6517bc4658b68f))
+* **ui:** skip flaky keyboard navigation tests ([780a0c5](https://github.com/ejohane/scribe/commit/780a0c57d385ee316ac70474930f02defb99f41f))
+* **ui:** skip flaky tests and fix test suite issues ([5dcd055](https://github.com/ejohane/scribe/commit/5dcd05532849f5216d2c13c23b26cb60ea7bbcf4))
+
+### Documentation
+
+* **storage-fs:** add comprehensive JSDoc to FileSystemVault class ([d6c1763](https://github.com/ejohane/scribe/commit/d6c17636fbb17f96646f4ee57ad58648b6a7904a))
+
+### Code Refactoring
+
+* **CommandPalette:** adopt useErrorHandler hook for delete note error handling (scribe-95c) ([2b9f093](https://github.com/ejohane/scribe/commit/2b9f0931fcd42c1a1059b7f7870e6309e8f8a86f))
+* **CommandPalette:** extract shared PaletteItem component from browse panels (scribe-wzv) ([a6ff54b](https://github.com/ejohane/scribe/commit/a6ff54bbded71ae723fdcade57c037ea5cc66063))
+* **ContextPanel:** extract shared widget card styles (scribe-7id) ([fffe9ef](https://github.com/ejohane/scribe/commit/fffe9ef14a47e72c28c619442b20976a996af983))
+* **ContextPanel:** extract shared widget card styles (scribe-7id) ([fe6dc74](https://github.com/ejohane/scribe/commit/fe6dc7490fa56d8797099fcec1607f83305ed027))
+* **design-system:** extract CollapsiblePanel primitive from Sidebar and ContextPanel (scribe-yzl) ([27e25c3](https://github.com/ejohane/scribe/commit/27e25c38986321fef6970a8347bd0836e0ebb87e))
+* extract magic numbers and strings to constants (scribe-6tq, scribe-9nb) ([c41ea5b](https://github.com/ejohane/scribe/commit/c41ea5b53be6727586c90b4f54cb35aa4ec7c5a2))
+* major code cleanup and technical debt reduction ([567d469](https://github.com/ejohane/scribe/commit/567d469adaac7f938960862cea42f05d752de4fc))
+* remove unimplemented features and consolidate shared patterns ([a71a5ad](https://github.com/ejohane/scribe/commit/a71a5ad9d317d25f7a38b429f6ccdd5e563dc763))
+* **shared:** extract traverseNodes utility from engine packages (scribe-22l) ([71f4130](https://github.com/ejohane/scribe/commit/71f4130f0d76887038a620fba34ee686d031a5a7))
+* **storage-fs:** extract QuarantineManager for corrupt files (scribe-xub) ([d6fcfd1](https://github.com/ejohane/scribe/commit/d6fcfd135658e8ccbd5f5e89f09d729eb7ddcea0))
+
 ## [1.19.0](https://github.com/ejohane/scribe/compare/v1.18.0...v1.19.0) (2025-12-13)
 
 ### Features
