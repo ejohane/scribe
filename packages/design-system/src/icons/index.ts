@@ -42,7 +42,6 @@ export {
   CalendarDaysIcon,
   // Utility icons
   TrashIcon,
-  HistoryIcon,
   // Context panel icons
   UsersIcon,
   ExternalLinkIcon,
