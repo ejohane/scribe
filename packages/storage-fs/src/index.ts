@@ -24,3 +24,8 @@ export {
   NOTE_FORMAT_VERSION,
   type INoteMigrator,
 } from './note-migrator.js';
+export {
+  QuarantineManager,
+  createQuarantineManager,
+  type IQuarantineManager,
+} from './quarantine-manager.js';

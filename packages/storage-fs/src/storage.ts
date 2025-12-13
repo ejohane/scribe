@@ -19,10 +19,15 @@ import type {
 import { createNoteId, isDailyNote, isMeetingNote } from '@scribe/shared';
 import { ErrorCode, ScribeError } from '@scribe/shared';
 import { extractMetadata } from '@scribe/engine-core';
-import { getNotesDir, getNoteFilePath, getQuarantineDir } from './vault.js';
+import { getNotesDir, getNoteFilePath } from './vault.js';
 import { noteValidator } from './note-validator.js';
 import { atomicFileWriter } from './atomic-file-writer.js';
 import { noteMigrator } from './note-migrator.js';
+import {
+  QuarantineManager,
+  createQuarantineManager,
+  type IQuarantineManager,
+} from './quarantine-manager.js';
 
 /**
  * Options for creating a new note
@@ -59,7 +64,7 @@ export interface CreateNoteOptions {
  */
 export class FileSystemVault {
   private notes: Map<NoteId, Note> = new Map();
-  private quarantinedFiles: string[] = [];
+  private quarantineManager: QuarantineManager;
   /**
    * Per-note locks for serializing concurrent operations.
    * Uses promise-chaining pattern: each operation chains onto the previous
@@ -67,7 +72,9 @@ export class FileSystemVault {
    */
   private noteLocks: Map<NoteId, Promise<void>> = new Map();
 
-  constructor(private vaultPath: VaultPath) {}
+  constructor(private vaultPath: VaultPath) {
+    this.quarantineManager = createQuarantineManager(vaultPath);
+  }
 
   /**
    * Execute a function with exclusive access to a note's lock.
@@ -111,64 +118,18 @@ export class FileSystemVault {
 
   /**
    * Get list of quarantined file names
+   * @deprecated Use getQuarantineManager().listQuarantined() for full functionality
    */
   getQuarantinedFiles(): string[] {
-    return [...this.quarantinedFiles];
+    return this.quarantineManager.listQuarantined();
   }
 
   /**
-   * Quarantine a corrupt note file
-   *
-   * Uses a two-strategy approach:
-   * 1. Primary: Move file to quarantine directory
-   * 2. Fallback: Rename in place with .corrupt extension
-   *
-   * This ensures corrupt files are always removed from the notes directory
-   * to prevent repeated parse failures on startup.
-   *
-   * @param fileName - Name of the file to quarantine
-   * @throws ScribeError if both quarantine strategies fail
+   * Get the QuarantineManager for advanced quarantine operations
+   * (restore, delete, detailed info)
    */
-  private async quarantineFile(fileName: string): Promise<void> {
-    const sourcePath = path.join(getNotesDir(this.vaultPath), fileName);
-    const quarantineDir = getQuarantineDir(this.vaultPath);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const quarantinePath = path.join(quarantineDir, `${timestamp}_${fileName}`);
-
-    // Strategy 1: Move to quarantine directory
-    try {
-      // Ensure quarantine directory exists
-      await fs.mkdir(quarantineDir, { recursive: true });
-
-      await fs.rename(sourcePath, quarantinePath);
-      this.quarantinedFiles.push(fileName);
-      console.warn(`Quarantined corrupt file: ${fileName} -> ${path.basename(quarantinePath)}`);
-      return;
-    } catch (moveError) {
-      console.warn(
-        `Failed to move ${fileName} to quarantine directory, trying fallback:`,
-        moveError
-      );
-    }
-
-    // Strategy 2: Rename in place with .corrupt extension
-    const corruptPath = path.join(getNotesDir(this.vaultPath), `${fileName}.corrupt`);
-    try {
-      await fs.rename(sourcePath, corruptPath);
-      this.quarantinedFiles.push(fileName);
-      console.warn(`Renamed corrupt file in place: ${fileName} -> ${path.basename(corruptPath)}`);
-      return;
-    } catch (renameError) {
-      console.error(`Failed to rename ${fileName} in place:`, renameError);
-    }
-
-    // Both strategies failed - this is a critical error
-    // The corrupt file remains in place and will cause repeated parse failures
-    throw new ScribeError(
-      ErrorCode.FILE_WRITE_ERROR,
-      `Failed to quarantine corrupt file ${fileName}: both move and rename strategies failed. ` +
-        `File remains in notes directory and will cause repeated parse failures.`
-    );
+  getQuarantineManager(): IQuarantineManager {
+    return this.quarantineManager;
   }
 
   /**
@@ -210,12 +171,12 @@ export class FileSystemVault {
           } else {
             // Quarantine invalid notes
             console.warn(`Invalid note structure in ${file}, quarantining`);
-            await this.quarantineFile(file);
+            await this.quarantineManager.quarantine(file, 'Invalid note structure');
           }
         } catch (error) {
           // Quarantine corrupt files (e.g., invalid JSON)
           console.warn(`Failed to load note ${file}, quarantining:`, error);
-          await this.quarantineFile(file);
+          await this.quarantineManager.quarantine(file, 'Parse error or corrupt file');
         }
       });
 
