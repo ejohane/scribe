@@ -4,6 +4,45 @@
  * Provides fast, in-memory full-text search across notes with support for
  * title, tag, and content indexing. Implements incremental updates and
  * ranked search results.
+ *
+ * ## Architecture Overview
+ *
+ * The SearchEngine wraps FlexSearch's Document index to provide:
+ * - Multi-field indexing (title, tags, content)
+ * - Weighted scoring based on match location
+ * - Snippet generation with context around matches
+ * - Incremental index updates (add/remove individual notes)
+ *
+ * ## Query Syntax
+ *
+ * The search engine supports FlexSearch's default query syntax:
+ * - **Simple terms**: `meeting` - matches notes containing "meeting"
+ * - **Multiple terms**: `project update` - matches notes containing both terms (AND logic)
+ * - **Prefix matching**: Due to `tokenize: 'forward'`, partial prefixes match
+ *   (e.g., "meet" matches "meeting")
+ *
+ * Note: FlexSearch does NOT support:
+ * - Boolean operators (AND, OR, NOT)
+ * - Phrase matching with quotes
+ * - Field-specific queries (e.g., title:meeting)
+ * - Wildcards or regex patterns
+ *
+ * ## Scoring Algorithm
+ *
+ * Results are ranked by a weighted scoring system based on WHERE the match occurred:
+ * - **Title matches**: weight = 10 (highest priority - titles are most relevant)
+ * - **Tag matches**: weight = 5 (medium priority - explicit categorization)
+ * - **Content matches**: weight = 1 (lowest priority - body text)
+ *
+ * If a term matches in multiple fields, the scores are additive. For example,
+ * a note with "project" in both title and content would score 11 (10 + 1).
+ *
+ * ## Performance Characteristics
+ *
+ * - **Indexing**: O(n) where n is content length (capped at 1000 chars)
+ * - **Search**: O(log n) typical for FlexSearch with context indexing
+ * - **Memory**: ~2-3x the indexed text size due to forward tokenization
+ * - **Cache**: Enabled for repeated queries with identical terms
  */
 
 import {
@@ -26,6 +65,15 @@ const SNIPPET_MAX_LENGTH = 160;
 const SNIPPET_CONTEXT_RADIUS = 80;
 
 // Search scoring weights
+// These weights determine how matches in different fields contribute to the
+// final relevance score. The rationale:
+// - Title (10): Highest weight because if a search term appears in the title,
+//   the note is almost certainly about that topic
+// - Tags (5): Medium weight since tags are explicit user categorization,
+//   indicating strong relevance but less than a title match
+// - Content (1): Lowest weight as content matches may be incidental mentions
+//   rather than the primary topic of the note
+
 /** Weight for matches in title field (highest priority) */
 const SEARCH_WEIGHT_TITLE = 10;
 /** Weight for matches in tags field (medium priority) */
@@ -49,28 +97,71 @@ interface SearchDocument {
  *
  * Maintains an in-memory search index using FlexSearch and provides
  * methods for indexing notes and executing queries.
+ *
+ * ## FlexSearch Configuration Explained
+ *
+ * The index is configured with specific options optimized for note-taking search:
+ *
+ * ### Tokenization Strategy: `tokenize: 'forward'`
+ * - Indexes all forward-facing prefixes of each word
+ * - Example: "meeting" → ["m", "me", "mee", "meet", "meeti", "meetin", "meeting"]
+ * - Enables instant search-as-you-type without requiring wildcards
+ * - Trade-off: ~2-3x memory usage vs 'strict' tokenization
+ *
+ * ### Context Indexing: `context: { resolution: 9, depth: 2, bidirectional: true }`
+ * Context indexing improves relevance by considering word relationships:
+ *
+ * - **resolution: 9** - Precision level (1-9 scale, 9 = highest precision)
+ *   Controls how finely word positions are tracked. Higher values give more
+ *   accurate phrase/proximity matching but use more memory.
+ *
+ * - **depth: 2** - How many words of context to consider around each term
+ *   A depth of 2 means FlexSearch indexes relationships between words that
+ *   are up to 2 positions apart. Helps rank "project meeting" higher when
+ *   those words appear near each other.
+ *
+ * - **bidirectional: true** - Consider context in both directions
+ *   Without this, only words AFTER the current word are considered as context.
+ *   With bidirectional, both "project meeting" and "meeting project" benefit
+ *   from context scoring.
+ *
+ * ### Caching: `cache: true`
+ * - Enables query result caching
+ * - Repeated identical searches return cached results instantly
+ * - Cache is automatically invalidated when documents are added/removed
  */
 export class SearchEngine {
   private index: Document<SearchDocument, string[]>;
   private documents: Map<NoteId, SearchDocument>;
 
+  /**
+   * Create a new SearchEngine instance
+   *
+   * Initializes an empty FlexSearch document index with optimized settings
+   * for note-taking search (forward tokenization, context indexing, caching).
+   */
   constructor() {
     this.documents = new Map();
 
     // Configure FlexSearch with document index
+    // See class-level JSDoc for detailed explanation of each option
     this.index = new Document<SearchDocument, string[]>({
       document: {
         id: 'id',
+        // Fields to index for search (not stored, just searchable)
         index: ['title', 'tags', 'content'],
+        // Fields to store for retrieval (returned with search results)
         store: ['id', 'title', 'tags', 'fullText'],
       },
+      // Forward tokenization: enables prefix/partial matching (e.g., "meet" → "meeting")
       tokenize: 'forward',
-      // Optimize for speed and memory
+      // Cache repeated queries for performance
       cache: true,
+      // Context indexing: improves relevance by considering word proximity
       context: {
-        resolution: 9,
-        depth: 2,
-        bidirectional: true,
+        resolution: 9, // Highest precision for position tracking
+        depth: 2, // Consider words up to 2 positions apart as related
+        bidirectional: true, // Consider context in both directions
       },
     });
   }
@@ -148,18 +239,62 @@ export class SearchEngine {
   /**
    * Search for notes matching a query
    *
-   * Returns ranked search results with snippets and match information.
+   * Executes a full-text search across all indexed fields (title, tags, content)
+   * and returns ranked results with snippets and match information.
    *
-   * @param query - Search query string
-   * @param limit - Maximum number of results to return (default: 20)
-   * @returns Array of search results sorted by relevance
+   * ## Query Behavior
+   *
+   * - **Empty/whitespace queries**: Returns empty array immediately (no index query)
+   * - **Single terms**: Matches any note containing the term (prefix-matched)
+   * - **Multiple terms**: Treated as AND - all terms must be present
+   * - **Case sensitivity**: Searches are case-insensitive
+   *
+   * ## Result Structure
+   *
+   * FlexSearch returns results grouped by field (one array per indexed field).
+   * This method merges those results into a single ranked list:
+   *
+   * 1. **Deduplication**: Same note may match in multiple fields; we merge these
+   * 2. **Score accumulation**: Each field match adds its weight to the note's score
+   * 3. **Snippet generation**: Uses the first/best matching field for context
+   * 4. **Final ranking**: Sort by total accumulated score, descending
+   *
+   * ## Performance Notes
+   *
+   * - Cached queries return instantly (FlexSearch internal caching)
+   * - First query after index modification may be slower
+   * - Result limiting happens AFTER scoring, so all matches are considered
+   *
+   * @param query - Search query string. Multiple words are AND-ed together.
+   *                Empty or whitespace-only strings return empty results.
+   * @param limit - Maximum number of results to return (default: 20).
+   *                Set higher if you need comprehensive results.
+   * @returns Array of search results sorted by relevance score (highest first).
+   *          Empty array if query is empty or no matches found.
+   *
+   * @example
+   * ```typescript
+   * // Simple search
+   * const results = engine.search('meeting');
+   *
+   * // Multi-term search (AND logic)
+   * const results = engine.search('project update');
+   *
+   * // Prefix matching works automatically
+   * const results = engine.search('meet'); // matches "meeting", "meetings", etc.
+   *
+   * // Limit results
+   * const topFive = engine.search('todo', 5);
+   * ```
    */
   search(query: string, limit: number = 20): SearchResult[] {
+    // Early return for empty queries - no need to hit the index
     if (!query || query.trim().length === 0) {
       return [];
     }
 
     // Type alias for the enriched search result structure
+    // FlexSearch returns full documents when enrich: true is set
     type EnrichedResult = EnrichedDocumentSearchResultSetUnit<SearchDocument>;
     type EnrichedResultItem = EnrichedDocumentSearchResultSetUnitResultUnit<SearchDocument>;
 
@@ -167,14 +302,25 @@ export class SearchEngine {
     // FlexSearch's type inference doesn't properly handle the enrich option,
     // so we use explicit generic parameters to get the correct enriched result type
     const results = this.index.search<true>(query, limit, {
-      enrich: true, // Get full documents
+      enrich: true, // Get full documents instead of just IDs
     }) as EnrichedResult[];
 
-    // FlexSearch returns results grouped by field
-    // We need to merge and rank them
+    // === Result Merging Logic ===
+    //
+    // FlexSearch returns results grouped by field, e.g.:
+    // [
+    //   { field: 'title', result: [{ id: 'note1', doc: {...} }] },
+    //   { field: 'content', result: [{ id: 'note1', doc: {...} }, { id: 'note2', doc: {...} }] }
+    // ]
+    //
+    // We need to:
+    // 1. Merge results for the same note across different fields
+    // 2. Accumulate scores based on which fields matched
+    // 3. Track which fields matched for debugging/display
     const resultMap = new Map<NoteId, SearchResult>();
 
     for (const fieldResult of results) {
+      // Skip malformed results (defensive - shouldn't happen in practice)
       if (!Array.isArray(fieldResult.result)) {
         continue;
       }
@@ -186,32 +332,34 @@ export class SearchEngine {
         const noteId = doc.id;
 
         if (!resultMap.has(noteId)) {
-          // Create new result entry
+          // First time seeing this note - create result entry
+          // Generate snippet based on this (first encountered) matching field
           const snippet = this.generateResultSnippet(doc, query, field);
 
           resultMap.set(noteId, {
             id: noteId,
             title: doc.title || null,
             snippet,
-            score: 0,
+            score: 0, // Will be accumulated below
             matches: [],
           });
         }
 
-        // Add match information
+        // Add match information for this field
         const result = resultMap.get(noteId)!;
         result.matches.push({
           field,
-          positions: [], // FlexSearch doesn't provide exact positions
+          positions: [], // FlexSearch doesn't provide exact character positions
         });
 
-        // Update score based on field weight
+        // Accumulate score: each field match adds its weight
+        // Example: match in title (10) + content (1) = score of 11
         const fieldWeight = this.getFieldWeight(field);
         result.score += fieldWeight;
       }
     }
 
-    // Convert to array and sort by score
+    // Sort by score descending (most relevant first) and apply limit
     const rankedResults = Array.from(resultMap.values()).sort((a, b) => b.score - a.score);
 
     return rankedResults.slice(0, limit);
@@ -252,6 +400,24 @@ export class SearchEngine {
 
   /**
    * Get field weight for scoring
+   *
+   * Returns the relevance weight for a given field. These weights are used
+   * to calculate the final score of a search result:
+   *
+   * - **Title (10)**: Highest weight. A term in the title strongly indicates
+   *   the note is about that topic.
+   * - **Tags (5)**: Medium weight. Tags are explicit user categorization,
+   *   but a tag match doesn't mean the note is primarily about that term.
+   * - **Content (1)**: Lowest weight. Content matches may be incidental
+   *   mentions rather than the main topic.
+   *
+   * The weights are designed so that:
+   * - A title match alone (10) outranks content-only matches from multiple notes
+   * - A tag match (5) is worth 5 content matches
+   * - Multiple field matches accumulate (title + content = 11)
+   *
+   * @param field - The field where the match occurred
+   * @returns Numeric weight to add to the result's score
    */
   private getFieldWeight(field: 'title' | 'tags' | 'content'): number {
     const weights = {

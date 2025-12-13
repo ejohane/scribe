@@ -2,10 +2,11 @@
  * SelectionToolbar Component
  *
  * A floating toolbar that appears above selected text with formatting options.
- * Organized into three sections:
+ * Organized into two sections:
  * 1. Text formatting: Bold, Italic, Underline, Strikethrough
  * 2. Block formatting: H1, H2, Highlight
- * 3. Actions: Link, "Ask AI" (placeholder)
+ *
+ * TODO: Re-enable Actions section (Link, Ask AI) when implemented
  */
 
 import { type MouseEvent } from 'react';
@@ -18,8 +19,9 @@ import {
   Heading1Icon,
   Heading2Icon,
   HighlightIcon,
-  LinkIcon,
-  SparklesIcon,
+  // TODO: Re-enable when Link and Ask AI features are implemented
+  // LinkIcon,
+  // SparklesIcon,
 } from '@scribe/design-system';
 import * as styles from './SelectionToolbar.css';
 
@@ -56,16 +58,12 @@ export interface SelectionToolbarProps {
   activeFormats: ActiveFormats;
   /** Callback when a format button is clicked */
   onFormat: (format: FormatType) => void;
-  /** Callback when "Ask AI" is clicked */
-  onAskAi?: () => void;
+  // TODO: Re-enable when Ask AI feature is implemented
+  // /** Callback when "Ask AI" is clicked */
+  // onAskAi?: () => void;
 }
 
-export function SelectionToolbar({
-  position,
-  activeFormats,
-  onFormat,
-  onAskAi,
-}: SelectionToolbarProps) {
+export function SelectionToolbar({ position, activeFormats, onFormat }: SelectionToolbarProps) {
   if (!position) return null;
 
   // Prevent losing text selection when clicking toolbar buttons
@@ -129,10 +127,9 @@ export function SelectionToolbar({
         title="Highlight"
       />
 
-      <div className={styles.divider} />
-
-      {/* Actions section */}
-      <ToolbarButton
+      {/* TODO: Re-enable Actions section when Link and Ask AI features are implemented */}
+      {/* <div className={styles.divider} /> */}
+      {/* <ToolbarButton
         icon={<LinkIcon size={16} strokeWidth={2.5} />}
         active={activeFormats.link}
         onClick={() => onFormat('link')}
@@ -141,7 +138,7 @@ export function SelectionToolbar({
       <button className={styles.askAiButton} onClick={onAskAi} type="button" title="Ask AI">
         <SparklesIcon size={12} strokeWidth={2.5} />
         <span>Ask AI</span>
-      </button>
+      </button> */}
 
       {/* Triangle pointer */}
       <div className={styles.pointerBorder} />

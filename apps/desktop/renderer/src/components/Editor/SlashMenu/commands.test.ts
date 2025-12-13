@@ -21,12 +21,8 @@ describe('slashCommands', () => {
     expect(formattingIds).toContain('table');
   });
 
-  it('contains expected AI commands', () => {
-    const aiIds = slashCommands.filter((cmd) => cmd.section === 'ai').map((cmd) => cmd.id);
-
-    expect(aiIds).toContain('ai-continue');
-    expect(aiIds).toContain('ai-summarize');
-  });
+  // AI commands are temporarily removed until AI functionality is implemented
+  // See: https://github.com/scribe/scribe/issues/XXX (future AI feature epic)
 
   it('all commands have required properties', () => {
     for (const cmd of slashCommands) {
@@ -35,7 +31,7 @@ describe('slashCommands', () => {
       expect(cmd.description).toBeTruthy();
       expect(cmd.keywords).toBeInstanceOf(Array);
       expect(cmd.keywords.length).toBeGreaterThan(0);
-      expect(['formatting', 'ai']).toContain(cmd.section);
+      expect(['formatting']).toContain(cmd.section);
       expect(typeof cmd.execute).toBe('function');
     }
   });
@@ -114,17 +110,7 @@ describe('filterCommands', () => {
       expect(result.some((c) => c.id === 'heading1')).toBe(true);
     });
 
-    it('matches multiple AI commands by "ai" keyword', () => {
-      const result = filterCommands('ai');
-
-      // "ai" matches ai-continue and ai-summarize (via keywords),
-      // and also "text" command (via "plain" keyword containing "ai")
-      expect(result.map((c) => c.id)).toContain('ai-continue');
-      expect(result.map((c) => c.id)).toContain('ai-summarize');
-      // Filter to just AI section commands
-      const aiSectionCommands = result.filter((c) => c.section === 'ai');
-      expect(aiSectionCommands.length).toBe(2);
-    });
+    // AI command tests temporarily removed until AI functionality is implemented
   });
 
   describe('no matches', () => {
@@ -168,7 +154,8 @@ describe('getCommandsBySection', () => {
     const result = getCommandsBySection(slashCommands);
 
     expect(result.formatting.length).toBeGreaterThan(0);
-    expect(result.ai.length).toBeGreaterThan(0);
+    // AI commands temporarily removed until AI functionality is implemented
+    expect(result.ai.length).toBe(0);
   });
 
   it('returns all formatting commands in formatting section', () => {
@@ -179,13 +166,7 @@ describe('getCommandsBySection', () => {
     }
   });
 
-  it('returns all AI commands in ai section', () => {
-    const result = getCommandsBySection(slashCommands);
-
-    for (const cmd of result.ai) {
-      expect(cmd.section).toBe('ai');
-    }
-  });
+  // AI command tests temporarily removed until AI functionality is implemented
 
   it('handles empty input', () => {
     const result = getCommandsBySection([]);
@@ -194,13 +175,12 @@ describe('getCommandsBySection', () => {
     expect(result.ai).toEqual([]);
   });
 
-  it('handles filtered commands', () => {
-    // Use a more specific filter that only matches AI commands
+  it('handles filtered commands with no matches', () => {
+    // Use a filter that returns no matches since AI commands are removed
     const filtered = filterCommands('summarize');
     const result = getCommandsBySection(filtered);
 
     expect(result.formatting).toEqual([]);
-    expect(result.ai.length).toBe(1);
-    expect(result.ai[0].id).toBe('ai-summarize');
+    expect(result.ai).toEqual([]);
   });
 });

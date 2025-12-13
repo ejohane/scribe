@@ -4,7 +4,7 @@
  * Provides core note operations and metadata extraction
  */
 
-export { extractMetadata, extractTitle, extractTags, extractLinks } from './metadata.js';
+export { extractMetadata, extractTags, extractLinks } from './metadata.js';
 export { MetadataIndex } from './metadata-index.js';
 
 // Task extraction (browser-safe)

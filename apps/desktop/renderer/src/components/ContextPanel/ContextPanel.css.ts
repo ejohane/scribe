@@ -8,9 +8,6 @@ import {
   panelOpenRight,
   panelClosedRight,
   panelInnerBase,
-  createPanelContainerVars,
-  createPanelOpenVars,
-  createPanelInnerVars,
 } from '@scribe/design-system';
 import { widgetCard, widgetCardHeader, widgetCardIcon, widgetCardTitle } from './shared.css';
 
@@ -32,10 +29,10 @@ export const contextPanel = style([
   panelBase,
   panelTransition,
   panelBorderLeft,
-  createPanelContainerVars(panelWidth, '280px'),
+  { vars: { [panelWidth]: '280px' } },
 ]);
 
-export const contextPanelOpen = style([panelOpenRight, createPanelOpenVars(panelWidth)]);
+export const contextPanelOpen = style([panelOpenRight, { width: panelWidth }]);
 
 export const contextPanelClosed = panelClosedRight;
 
@@ -45,8 +42,8 @@ export const contextPanelClosed = panelClosedRight;
  */
 export const panelInner = style([
   panelInnerBase,
-  createPanelInnerVars(panelWidth),
   {
+    width: panelWidth,
     padding: vars.spacing['4'],
     paddingTop: vars.spacing['8'],
     overflowX: 'hidden', // Hide horizontal content during collapse animation

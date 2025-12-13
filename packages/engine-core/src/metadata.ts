@@ -1,14 +1,11 @@
 /**
  * Metadata extraction from Lexical JSON content
  *
- * Extracts title, tags, and links from Lexical editor state
+ * Extracts tags, links, and mentions from Lexical editor state
  */
 
 import type { LexicalState, LexicalNode, NoteMetadata, NoteId } from '@scribe/shared';
 import { createNoteId, traverseNodes } from '@scribe/shared';
-
-/** Maximum length for extracted titles (characters) */
-const MAX_TITLE_LENGTH = 200;
 
 /**
  * Extract metadata from Lexical content
@@ -24,33 +21,6 @@ export function extractMetadata(content: LexicalState): NoteMetadata {
     mentions: extractMentions(content),
     type: content.type,
   };
-}
-
-/**
- * Extract title from Lexical content
- *
- * Finds the first text block in the content tree and uses it as the title.
- * Returns null if no text content is found.
- *
- * @deprecated Title is now stored explicitly on Note.title. This function is
- * kept for potential future use (e.g., suggesting titles from content).
- * @param content - Lexical editor state
- * @returns Extracted title or null
- */
-export function extractTitle(content: LexicalState): string | null {
-  if (!content.root || !content.root.children || content.root.children.length === 0) {
-    return null;
-  }
-
-  // Traverse nodes to find first text content
-  const firstText = findFirstText(content.root.children);
-
-  if (!firstText || firstText.trim().length === 0) {
-    return null;
-  }
-
-  // Truncate to reasonable title length and clean up
-  return firstText.trim().slice(0, MAX_TITLE_LENGTH);
 }
 
 /**
@@ -129,28 +99,6 @@ export function extractLinks(content: LexicalState): NoteId[] {
   });
 
   return Array.from(links);
-}
-
-/**
- * Find first text content in node tree
- */
-function findFirstText(nodes: LexicalNode[]): string | null {
-  for (const node of nodes) {
-    // Direct text node
-    if (node.type === 'text' && typeof node.text === 'string') {
-      return node.text;
-    }
-
-    // Paragraph or other container with children
-    if (Array.isArray(node.children)) {
-      const text = findFirstText(node.children as LexicalNode[]);
-      if (text) {
-        return text;
-      }
-    }
-  }
-
-  return null;
 }
 
 /**

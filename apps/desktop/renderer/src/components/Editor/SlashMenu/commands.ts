@@ -136,29 +136,8 @@ export const slashCommands: SlashCommand[] = [
       });
     },
   },
-  // AI commands (placeholders)
-  {
-    id: 'ai-continue',
-    label: 'Continue writing',
-    description: 'AI continues your text',
-    keywords: ['ai', 'continue', 'generate', 'write', 'complete'],
-    section: 'ai',
-    execute: () => {
-      // Placeholder - AI functionality not yet implemented
-      console.log('AI Continue: Not yet implemented');
-    },
-  },
-  {
-    id: 'ai-summarize',
-    label: 'Summarize',
-    description: 'AI summarizes content',
-    keywords: ['ai', 'summarize', 'summary', 'tldr'],
-    section: 'ai',
-    execute: () => {
-      // Placeholder - AI functionality not yet implemented
-      console.log('AI Summarize: Not yet implemented');
-    },
-  },
+  // TODO: Re-enable AI commands when AI functionality is implemented
+  // See: https://github.com/scribe/scribe/issues/XXX (future AI feature epic)
 ];
 
 /**

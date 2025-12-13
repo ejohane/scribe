@@ -43,3 +43,16 @@ export {
   base as emptyStateBase,
   variants as emptyStateVariants,
 } from './EmptyState';
+
+// CollapsiblePanel styles for consistent collapsible panel patterns
+export {
+  panelBase,
+  panelTransition,
+  panelBorderRight,
+  panelBorderLeft,
+  panelOpenLeft,
+  panelOpenRight,
+  panelClosedLeft,
+  panelClosedRight,
+  panelInnerBase,
+} from './CollapsiblePanel';

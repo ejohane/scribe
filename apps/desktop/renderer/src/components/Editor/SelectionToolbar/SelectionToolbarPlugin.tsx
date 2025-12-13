@@ -271,10 +271,9 @@ export function SelectionToolbarPlugin() {
         case 'h2':
           formatHeading('h2');
           break;
-        case 'link':
-          // Placeholder for link handling
-          console.log('Link formatting not yet implemented');
-          break;
+        // TODO: Re-enable link formatting when implemented
+        // case 'link':
+        //   break;
       }
 
       // Update active formats after applying
@@ -315,18 +314,17 @@ export function SelectionToolbarPlugin() {
     [editor]
   );
 
-  // Handle "Ask AI" button click (placeholder)
-  const handleAskAi = useCallback(() => {
-    console.log('Ask AI clicked - not yet implemented');
-    // Future: Open AI assistant modal with selected text
-  }, []);
+  // TODO: Re-enable Ask AI functionality when implemented
+  // const handleAskAi = useCallback(() => {
+  //   // Future: Open AI assistant modal with selected text
+  // }, []);
 
   return (
     <SelectionToolbar
       position={position}
       activeFormats={activeFormats}
       onFormat={handleFormat}
-      onAskAi={handleAskAi}
+      // onAskAi prop removed until AI functionality is implemented
     />
   );
 }

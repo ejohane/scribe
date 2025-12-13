@@ -5,9 +5,10 @@
  * - Toolbar visibility based on position prop
  * - Format button rendering and active states
  * - Format button click callbacks
- * - Ask AI button functionality
  * - mouseDown preventDefault behavior (to preserve selection)
  * - Accessibility attributes
+ *
+ * TODO: Re-enable Ask AI and Link button tests when those features are implemented
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -61,7 +62,7 @@ describe('SelectionToolbar', () => {
     position: { top: 100, left: 200 },
     activeFormats: defaultActiveFormats,
     onFormat: vi.fn(),
-    onAskAi: vi.fn(),
+    // onAskAi prop removed - Ask AI feature not yet implemented
   };
 
   beforeEach(() => {
@@ -121,8 +122,7 @@ describe('SelectionToolbar', () => {
       expect(screen.getByTitle('Heading 1')).toBeInTheDocument();
       expect(screen.getByTitle('Heading 2')).toBeInTheDocument();
       expect(screen.getByTitle('Highlight')).toBeInTheDocument();
-      expect(screen.getByTitle('Link')).toBeInTheDocument();
-      expect(screen.getByTitle('Ask AI')).toBeInTheDocument();
+      // Link and Ask AI buttons temporarily removed until features are implemented
     });
   });
 
@@ -145,18 +145,7 @@ describe('SelectionToolbar', () => {
         expect(screen.getByTestId('highlight-icon')).toBeInTheDocument();
       });
 
-      it('renders link button', () => {
-        render(<SelectionToolbar {...defaultProps} />);
-
-        expect(screen.getByTestId('link-icon')).toBeInTheDocument();
-      });
-
-      it('renders Ask AI button with text', () => {
-        render(<SelectionToolbar {...defaultProps} />);
-
-        expect(screen.getByTestId('sparkles-icon')).toBeInTheDocument();
-        expect(screen.getByText('Ask AI')).toBeInTheDocument();
-      });
+      // Link button and Ask AI button tests temporarily removed until features are implemented
     });
 
     describe('click handling', () => {
@@ -230,15 +219,7 @@ describe('SelectionToolbar', () => {
         expect(onFormat).toHaveBeenCalledWith('highlight');
       });
 
-      it('calls onFormat with "link" when link button is clicked', () => {
-        const onFormat = vi.fn();
-        render(<SelectionToolbar {...defaultProps} onFormat={onFormat} />);
-
-        fireEvent.click(screen.getByTitle('Link'));
-
-        expect(onFormat).toHaveBeenCalledTimes(1);
-        expect(onFormat).toHaveBeenCalledWith('link');
-      });
+      // Link button test temporarily removed until Link feature is implemented
     });
 
     describe('active states', () => {
@@ -327,17 +308,7 @@ describe('SelectionToolbar', () => {
         expect(highlightButton.className).toContain('buttonActive');
       });
 
-      it('shows link as active when activeFormats.link is true', () => {
-        render(
-          <SelectionToolbar
-            {...defaultProps}
-            activeFormats={{ ...defaultActiveFormats, link: true }}
-          />
-        );
-
-        const linkButton = screen.getByTitle('Link');
-        expect(linkButton.className).toContain('buttonActive');
-      });
+      // Link active state test temporarily removed until Link feature is implemented
 
       it('can show multiple formats as active simultaneously', () => {
         render(
@@ -368,30 +339,12 @@ describe('SelectionToolbar', () => {
         expect(screen.getByTitle('Heading 1').className).not.toContain('buttonActive');
         expect(screen.getByTitle('Heading 2').className).not.toContain('buttonActive');
         expect(screen.getByTitle('Highlight').className).not.toContain('buttonActive');
-        expect(screen.getByTitle('Link').className).not.toContain('buttonActive');
+        // Link button temporarily removed until feature is implemented
       });
     });
   });
 
-  describe('Ask AI button', () => {
-    it('calls onAskAi when clicked', () => {
-      const onAskAi = vi.fn();
-      render(<SelectionToolbar {...defaultProps} onAskAi={onAskAi} />);
-
-      fireEvent.click(screen.getByTitle('Ask AI'));
-
-      expect(onAskAi).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not throw when onAskAi is not provided', () => {
-      render(<SelectionToolbar {...defaultProps} onAskAi={undefined} />);
-
-      // Should not throw when clicking
-      expect(() => {
-        fireEvent.click(screen.getByTitle('Ask AI'));
-      }).not.toThrow();
-    });
-  });
+  // Ask AI button tests temporarily removed until Ask AI feature is implemented
 
   describe('selection preservation', () => {
     it('prevents default on mousedown to preserve text selection', () => {
@@ -411,10 +364,10 @@ describe('SelectionToolbar', () => {
     it('renders dividers between sections', () => {
       const { container } = render(<SelectionToolbar {...defaultProps} />);
 
-      // The toolbar has 2 dividers separating the 3 sections
+      // The toolbar has 1 divider separating the 2 sections (Actions section temporarily removed)
       // We can check by looking for divider class elements
       const dividers = container.querySelectorAll('[class*="divider"]');
-      expect(dividers.length).toBe(2);
+      expect(dividers.length).toBe(1);
     });
 
     it('renders pointer elements for visual design', () => {
