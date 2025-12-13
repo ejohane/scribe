@@ -26,9 +26,9 @@ export const spin = keyframes({
 export const container = style({
   position: 'fixed',
   zIndex: vars.zIndex.popover,
-  minWidth: '200px',
-  maxWidth: '320px',
-  maxHeight: '300px',
+  minWidth: vars.component.menu.minWidthMd,
+  maxWidth: vars.component.menu.maxWidthMd,
+  maxHeight: vars.component.menu.maxHeight,
   overflow: 'auto',
 
   backgroundColor: vars.color.background,
@@ -43,9 +43,9 @@ export const container = style({
  * Container width variants for different use cases
  */
 export const containerWidth = styleVariants({
-  sm: { minWidth: '160px', maxWidth: '240px' },
-  md: { minWidth: '200px', maxWidth: '320px' },
-  lg: { minWidth: '280px', maxWidth: '400px' },
+  sm: { minWidth: vars.component.menu.minWidthSm, maxWidth: vars.component.menu.maxWidthSm },
+  md: { minWidth: vars.component.menu.minWidthMd, maxWidth: vars.component.menu.maxWidthMd },
+  lg: { minWidth: vars.component.menu.minWidthLg, maxWidth: vars.component.menu.maxWidthLg },
 });
 
 /**
@@ -79,8 +79,8 @@ export const itemIcon = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '32px',
-  height: '32px',
+  width: vars.component.menu.iconSize,
+  height: vars.component.menu.iconSize,
   borderRadius: vars.radius.md,
   backgroundColor: vars.color.surface,
   color: vars.color.foregroundMuted,
@@ -171,8 +171,8 @@ export const loadingState = style({
  * Spinner indicator for loading state
  */
 export const spinner = style({
-  width: '14px',
-  height: '14px',
+  width: vars.component.spinner.size,
+  height: vars.component.spinner.size,
   border: `2px solid ${vars.color.border}`,
   borderTopColor: vars.color.accent,
   borderRadius: vars.radius.full,
@@ -197,7 +197,7 @@ export const sectionLabel = style({
   fontWeight: vars.typography.weight.medium,
   color: vars.color.foregroundMuted,
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
+  letterSpacing: vars.typography.letterSpacing.wide,
 });
 
 /**

@@ -11,7 +11,7 @@ export const base = style({
   fontFamily: vars.typography.fontFamily.ui,
   fontWeight: vars.typography.weight.medium,
   borderRadius: vars.radius.md,
-  transition: 'background-color 0.15s, color 0.15s, box-shadow 0.15s',
+  transition: `background-color ${vars.animation.duration.fast}, color ${vars.animation.duration.fast}, box-shadow ${vars.animation.duration.fast}`,
   ':focus-visible': {
     outline: 'none',
     boxShadow: `0 0 0 2px ${vars.color.background}, 0 0 0 4px ${vars.color.accent}`,
@@ -26,12 +26,12 @@ export const sizes = styleVariants({
   sm: {
     fontSize: vars.typography.size.sm,
     padding: `${vars.spacing['1']} ${vars.spacing['3']}`,
-    height: '1.75rem',
+    height: vars.component.button.heightSm,
   },
   md: {
     fontSize: vars.typography.size.md,
     padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
-    height: '2.25rem',
+    height: vars.component.button.heightMd,
   },
 });
 

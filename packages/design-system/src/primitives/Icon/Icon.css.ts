@@ -15,10 +15,10 @@ globalStyle(`${base} svg`, {
 });
 
 export const sizes = styleVariants({
-  xs: { width: '0.75rem', height: '0.75rem' }, // 12px
-  sm: { width: '1rem', height: '1rem' }, // 16px
-  md: { width: '1.25rem', height: '1.25rem' }, // 20px
-  lg: { width: '1.5rem', height: '1.5rem' }, // 24px
+  xs: { width: vars.component.icon.xs, height: vars.component.icon.xs }, // 12px
+  sm: { width: vars.component.icon.sm, height: vars.component.icon.sm }, // 16px
+  md: { width: vars.component.icon.md, height: vars.component.icon.md }, // 20px
+  lg: { width: vars.component.icon.lg, height: vars.component.icon.lg }, // 24px
 });
 
 export const colors = styleVariants({

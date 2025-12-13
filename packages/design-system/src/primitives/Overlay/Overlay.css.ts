@@ -9,18 +9,18 @@ export const overlay = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  animation: `${fadeIn} 150ms ease-out`,
+  animation: `${fadeIn} ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
 });
 
 export const backdrop = styleVariants({
   none: {},
   transparent: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: vars.color.backdropDark,
   },
   blur: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    backdropFilter: 'blur(4px)',
-    WebkitBackdropFilter: 'blur(4px)',
+    backgroundColor: vars.color.backdropLight,
+    backdropFilter: `blur(${vars.blur.sm})`,
+    WebkitBackdropFilter: `blur(${vars.blur.sm})`,
   },
 });
 

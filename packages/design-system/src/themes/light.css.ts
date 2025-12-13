@@ -18,6 +18,8 @@ export const lightTheme = createTheme(vars, {
     success: '#16A34A', // green-600 - tasks, completed items
     secondary: '#059669', // emerald-600 - people, attendees
     tertiary: '#7C3AED', // violet-600 - links, references
+    backdropLight: 'rgba(0, 0, 0, 0.3)', // for blur overlays
+    backdropDark: 'rgba(0, 0, 0, 0.4)', // for solid overlays
   },
   typography: {
     fontFamily: {
@@ -43,6 +45,11 @@ export const lightTheme = createTheme(vars, {
       tight: '1.25',
       normal: '1.5',
       relaxed: '1.75',
+    },
+    letterSpacing: {
+      tight: '-0.025em',
+      normal: '0',
+      wide: '0.05em', // for uppercase labels
     },
   },
   spacing: {
@@ -91,5 +98,39 @@ export const lightTheme = createTheme(vars, {
       default: 'ease-out',
       smooth: 'cubic-bezier(0.32, 0.72, 0, 1)',
     },
+  },
+  component: {
+    icon: {
+      xs: '0.75rem', // 12px
+      sm: '1rem', // 16px
+      md: '1.25rem', // 20px
+      lg: '1.5rem', // 24px
+    },
+    button: {
+      heightSm: '1.75rem', // 28px
+      heightMd: '2.25rem', // 36px
+    },
+    menu: {
+      minWidthSm: '160px',
+      maxWidthSm: '240px',
+      minWidthMd: '200px',
+      maxWidthMd: '320px',
+      minWidthLg: '280px',
+      maxWidthLg: '400px',
+      maxHeight: '300px',
+      iconSize: '32px',
+    },
+    spinner: {
+      size: '14px',
+    },
+    panel: {
+      slideOffset: '40px',
+      defaultWidth: '280px',
+    },
+  },
+  blur: {
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
   },
 });
