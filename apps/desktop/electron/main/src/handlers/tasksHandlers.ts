@@ -34,13 +34,7 @@ import { ipcMain } from 'electron';
 import { computeTextHash } from '@scribe/engine-core';
 import type { Note, LexicalState, LexicalNode, TaskFilter } from '@scribe/shared';
 import { traverseNodes, findNodeByKey, extractTextFromNode } from '@scribe/shared';
-import {
-  HandlerDependencies,
-  requireVault,
-  requireGraphEngine,
-  requireSearchEngine,
-  requireTaskIndex,
-} from './types';
+import { HandlerDependencies, requireTaskIndex, withEngines } from './types';
 import { tasksLogger } from '../logger';
 
 // ============================================================================
@@ -175,64 +169,62 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
    * 5. Update TaskIndex (completedAt set/cleared)
    * 6. Handle conflicts/missing tasks with error
    */
-  ipcMain.handle('tasks:toggle', async (_, { taskId }: { taskId: string }) => {
-    try {
-      const vault = requireVault(deps);
-      const graphEngine = requireGraphEngine(deps);
-      const searchEngine = requireSearchEngine(deps);
-      const taskIndex = requireTaskIndex(deps);
-
-      // Get task from index
-      const task = taskIndex.get(taskId);
-      if (!task) {
-        return { success: false, error: 'Task not found' };
-      }
-
-      // Load note
-      let note: Note;
+  ipcMain.handle(
+    'tasks:toggle',
+    withEngines(deps, async (engines, { taskId }: { taskId: string }) => {
       try {
-        note = vault.read(task.noteId);
-      } catch {
-        // Task's note was deleted - remove from index
-        const changes = taskIndex.removeNote(task.noteId);
+        // Get task from index
+        const task = engines.taskIndex.get(taskId);
+        if (!task) {
+          return { success: false, error: 'Task not found' };
+        }
+
+        // Load note
+        let note: Note;
+        try {
+          note = engines.vault.read(task.noteId);
+        } catch {
+          // Task's note was deleted - remove from index
+          const changes = engines.taskIndex.removeNote(task.noteId);
+          deps.mainWindow?.webContents.send('tasks:changed', changes);
+          return { success: false, error: 'Note not found' };
+        }
+
+        // Find and toggle the checklist node in Lexical content
+        const toggled = toggleChecklistNode(note.content, {
+          nodeKey: task.nodeKey,
+          textHash: task.textHash,
+          lineIndex: task.lineIndex,
+        });
+
+        if (!toggled) {
+          // Task no longer exists in note - remove from index and re-index
+          const removeChanges = engines.taskIndex.removeNote(task.noteId);
+          const addChanges = engines.taskIndex.indexNote(note);
+          const allChanges = [...removeChanges, ...addChanges];
+          deps.mainWindow?.webContents.send('tasks:changed', allChanges);
+          return { success: false, error: 'Task no longer exists in note' };
+        }
+
+        // Save note
+        await engines.vault.save(note);
+
+        // Update graph and search (in case content affects metadata)
+        engines.graphEngine.addNote(note);
+        engines.searchEngine.indexNote(note);
+
+        // Re-index to update completedAt
+        const changes = engines.taskIndex.indexNote(note);
         deps.mainWindow?.webContents.send('tasks:changed', changes);
-        return { success: false, error: 'Note not found' };
+
+        const updatedTask = engines.taskIndex.get(taskId);
+        return { success: true, task: updatedTask };
+      } catch (error) {
+        tasksLogger.error('Toggle error:', error);
+        return { success: false, error: String(error) };
       }
-
-      // Find and toggle the checklist node in Lexical content
-      const toggled = toggleChecklistNode(note.content, {
-        nodeKey: task.nodeKey,
-        textHash: task.textHash,
-        lineIndex: task.lineIndex,
-      });
-
-      if (!toggled) {
-        // Task no longer exists in note - remove from index and re-index
-        const removeChanges = taskIndex.removeNote(task.noteId);
-        const addChanges = taskIndex.indexNote(note);
-        const allChanges = [...removeChanges, ...addChanges];
-        deps.mainWindow?.webContents.send('tasks:changed', allChanges);
-        return { success: false, error: 'Task no longer exists in note' };
-      }
-
-      // Save note
-      await vault.save(note);
-
-      // Update graph and search (in case content affects metadata)
-      graphEngine.addNote(note);
-      searchEngine.indexNote(note);
-
-      // Re-index to update completedAt
-      const changes = taskIndex.indexNote(note);
-      deps.mainWindow?.webContents.send('tasks:changed', changes);
-
-      const updatedTask = taskIndex.get(taskId);
-      return { success: true, task: updatedTask };
-    } catch (error) {
-      tasksLogger.error('Toggle error:', error);
-      return { success: false, error: String(error) };
-    }
-  });
+    })
+  );
 
   /**
    * IPC: `tasks:list`

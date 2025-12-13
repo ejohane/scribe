@@ -3,18 +3,13 @@
  *
  * Autocomplete popup component for person mentions (@username).
  * Handles search, display, and selection of people in the vault.
- * Uses the FloatingMenu design system primitive for consistent styling.
+ * Uses the shared AutocompleteList component for consistent rendering patterns.
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import type { NoteId } from '@scribe/shared';
-import {
-  FloatingMenu,
-  FloatingMenuItem,
-  FloatingMenuEmpty,
-  FloatingMenuLoading,
-  FloatingMenuAction,
-} from '@scribe/design-system';
+import { FloatingMenu, FloatingMenuItem, FloatingMenuAction } from '@scribe/design-system';
+import { AutocompleteList } from './AutocompleteList';
 
 /**
  * Get initials from a person's name (up to 2 characters)
@@ -125,39 +120,42 @@ export function PersonMentionAutocomplete({
     onResultsChange(results, hasExactMatch);
   }, [results, hasExactMatch, onResultsChange]);
 
+  // Render create action as footer when applicable
+  const createActionFooter = showCreateOption ? (
+    <FloatingMenuAction
+      selected={isCreateSelected}
+      onClick={() => onCreate(query.trim())}
+      icon="+"
+      iconShape="circle"
+      iconVariant="muted"
+    >
+      Create &quot;{query.trim()}&quot;
+    </FloatingMenuAction>
+  ) : undefined;
+
   return (
     <FloatingMenu position={position} ariaLabel="Person suggestions" width="sm">
-      {isLoading ? (
-        <FloatingMenuLoading>Searching...</FloatingMenuLoading>
-      ) : results.length === 0 && !showCreateOption ? (
-        <FloatingMenuEmpty>No matching people</FloatingMenuEmpty>
-      ) : (
-        <>
-          {results.map((person, index) => (
-            <FloatingMenuItem
-              key={person.id}
-              selected={index === selectedIndex}
-              onClick={() => onSelect(person)}
-              icon={getInitials(person.name)}
-              iconShape="circle"
-              iconVariant="accent"
-            >
-              {person.name}
-            </FloatingMenuItem>
-          ))}
-          {showCreateOption && (
-            <FloatingMenuAction
-              selected={isCreateSelected}
-              onClick={() => onCreate(query.trim())}
-              icon="+"
-              iconShape="circle"
-              iconVariant="muted"
-            >
-              Create &quot;{query.trim()}&quot;
-            </FloatingMenuAction>
-          )}
-        </>
-      )}
+      <AutocompleteList
+        items={results}
+        selectedIndex={selectedIndex}
+        onSelect={onSelect}
+        isLoading={isLoading}
+        loadingMessage="Searching..."
+        emptyMessage="No matching people"
+        footer={createActionFooter}
+        renderItem={(person, isSelected) => (
+          <FloatingMenuItem
+            key={person.id}
+            selected={isSelected}
+            onClick={() => onSelect(person)}
+            icon={getInitials(person.name)}
+            iconShape="circle"
+            iconVariant="accent"
+          >
+            {person.name}
+          </FloatingMenuItem>
+        )}
+      />
     </FloatingMenu>
   );
 }

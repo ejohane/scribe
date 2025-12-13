@@ -37,13 +37,7 @@
 import { ipcMain } from 'electron';
 import type { Note, NoteId } from '@scribe/shared';
 import { ScribeError } from '@scribe/shared';
-import {
-  HandlerDependencies,
-  requireVault,
-  requireGraphEngine,
-  requireSearchEngine,
-  requireTaskIndex,
-} from './types';
+import { HandlerDependencies, requireVault, withEngines } from './types';
 
 /**
  * Wrap ScribeError for IPC transport with user-friendly message.
@@ -133,32 +127,30 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * - Updates search index for full-text search
    * - Re-indexes tasks and broadcasts `tasks:changed` event if tasks changed
    */
-  ipcMain.handle('notes:save', async (_event, note: Note) => {
-    try {
-      const vault = requireVault(deps);
-      const graphEngine = requireGraphEngine(deps);
-      const searchEngine = requireSearchEngine(deps);
-      const taskIndex = requireTaskIndex(deps);
+  ipcMain.handle(
+    'notes:save',
+    withEngines(deps, async (engines, note: Note) => {
+      try {
+        await engines.vault.save(note);
 
-      await vault.save(note);
+        // Update graph with new note data
+        engines.graphEngine.addNote(note);
 
-      // Update graph with new note data
-      graphEngine.addNote(note);
+        // Update search index with new note data
+        engines.searchEngine.indexNote(note);
 
-      // Update search index with new note data
-      searchEngine.indexNote(note);
+        // Re-index tasks for this note and broadcast changes
+        const taskChanges = engines.taskIndex.indexNote(note);
+        if (taskChanges.length > 0) {
+          deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
+        }
 
-      // Re-index tasks for this note and broadcast changes
-      const taskChanges = taskIndex.indexNote(note);
-      if (taskChanges.length > 0) {
-        deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
+        return { success: true };
+      } catch (error) {
+        wrapError(error);
       }
-
-      return { success: true };
-    } catch (error) {
-      wrapError(error);
-    }
-  });
+    })
+  );
 
   /**
    * IPC: `notes:delete`
@@ -174,28 +166,26 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * - Removes from search index
    * - Removes tasks and broadcasts `tasks:changed` event
    */
-  ipcMain.handle('notes:delete', async (_event, id: NoteId) => {
-    try {
-      const vault = requireVault(deps);
-      const graphEngine = requireGraphEngine(deps);
-      const searchEngine = requireSearchEngine(deps);
-      const taskIndex = requireTaskIndex(deps);
+  ipcMain.handle(
+    'notes:delete',
+    withEngines(deps, async (engines, id: NoteId) => {
+      try {
+        await engines.vault.delete(id);
+        engines.graphEngine.removeNote(id);
+        engines.searchEngine.removeNote(id);
 
-      await vault.delete(id);
-      graphEngine.removeNote(id);
-      searchEngine.removeNote(id);
+        // Remove tasks for this note and broadcast changes
+        const taskChanges = engines.taskIndex.removeNote(id);
+        if (taskChanges.length > 0) {
+          deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
+        }
 
-      // Remove tasks for this note and broadcast changes
-      const taskChanges = taskIndex.removeNote(id);
-      if (taskChanges.length > 0) {
-        deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
+        return { success: true };
+      } catch (error) {
+        wrapError(error);
       }
-
-      return { success: true };
-    } catch (error) {
-      wrapError(error);
-    }
-  });
+    })
+  );
 
   /**
    * IPC: `notes:findByTitle`

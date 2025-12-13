@@ -42,4 +42,5 @@ export { setupDailyHandlers } from './dailyHandlers';
 export { setupMeetingHandlers } from './meetingHandlers';
 export { setupTasksHandlers } from './tasksHandlers';
 
-export type { HandlerDependencies, AppConfig } from './types';
+export type { HandlerDependencies, AppConfig, Engines } from './types';
+export { withEngines } from './types';

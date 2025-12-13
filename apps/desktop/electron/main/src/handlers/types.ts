@@ -73,3 +73,55 @@ export function requireMainWindow(deps: HandlerDependencies): BrowserWindow {
   }
   return deps.mainWindow;
 }
+
+/**
+ * Type-safe bundle of all initialized engines.
+ * Used by {@link withEngines} to provide pre-validated engine references.
+ */
+export interface Engines {
+  vault: FileSystemVault;
+  graphEngine: GraphEngine;
+  searchEngine: SearchEngine;
+  taskIndex: TaskIndex;
+}
+
+/**
+ * Higher-order function to wrap IPC handlers that require all engines.
+ *
+ * Consolidates the common pattern of calling requireVault, requireGraphEngine,
+ * requireSearchEngine, and requireTaskIndex at the start of each handler.
+ *
+ * @param deps - Handler dependencies that may have null engines during startup
+ * @param handler - The handler function that receives validated engines and IPC args
+ * @returns A wrapped handler suitable for ipcMain.handle
+ *
+ * @example
+ * ```typescript
+ * ipcMain.handle('notes:save', withEngines(deps, async (engines, note: Note) => {
+ *   await engines.vault.save(note);
+ *   engines.graphEngine.addNote(note);
+ *   engines.searchEngine.indexNote(note);
+ *   engines.taskIndex.indexNote(note);
+ *   return { success: true };
+ * }));
+ * ```
+ *
+ * @throws Error if any engine is not initialized when the handler is invoked
+ */
+export function withEngines<T extends unknown[], R>(
+  deps: HandlerDependencies,
+  handler: (engines: Engines, ...args: T) => Promise<R>
+): (_event: Electron.IpcMainInvokeEvent, ...args: T) => Promise<R> {
+  return async (_event: Electron.IpcMainInvokeEvent, ...args: T): Promise<R> => {
+    if (!deps.vault || !deps.graphEngine || !deps.searchEngine || !deps.taskIndex) {
+      throw new Error('Engines not initialized');
+    }
+    const engines: Engines = {
+      vault: deps.vault,
+      graphEngine: deps.graphEngine,
+      searchEngine: deps.searchEngine,
+      taskIndex: deps.taskIndex,
+    };
+    return handler(engines, ...args);
+  };
+}

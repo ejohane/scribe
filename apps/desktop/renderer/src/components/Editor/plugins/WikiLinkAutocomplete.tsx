@@ -3,16 +3,12 @@
  *
  * Renders the autocomplete popup for wiki-link suggestions.
  * This is a presentational component - keyboard handling is done by WikiLinkPlugin.
- * Uses the FloatingMenu design system primitive for consistent styling.
+ * Uses the shared AutocompleteList component for consistent rendering patterns.
  */
 
 import type { SearchResult } from '@scribe/shared';
-import {
-  FloatingMenu,
-  FloatingMenuItem,
-  FloatingMenuEmpty,
-  FloatingMenuLoading,
-} from '@scribe/design-system';
+import { FloatingMenu, FloatingMenuItem } from '@scribe/design-system';
+import { AutocompleteList } from './AutocompleteList';
 
 export interface WikiLinkAutocompleteProps {
   isOpen: boolean;
@@ -39,24 +35,25 @@ export function WikiLinkAutocomplete({
 
   return (
     <FloatingMenu position={position} ariaLabel="Note suggestions">
-      {isLoading ? (
-        <FloatingMenuLoading showSpinner={false}>Searching...</FloatingMenuLoading>
-      ) : results.length === 0 ? (
-        <FloatingMenuEmpty>
-          {query ? 'No matching notes' : 'Type to search notes'}
-        </FloatingMenuEmpty>
-      ) : (
-        results.map((result, index) => (
+      <AutocompleteList
+        items={results}
+        selectedIndex={selectedIndex}
+        onSelect={onSelect}
+        isLoading={isLoading}
+        showLoadingSpinner={false}
+        loadingMessage="Searching..."
+        emptyMessage={query ? 'No matching notes' : 'Type to search notes'}
+        renderItem={(result, isSelected) => (
           <FloatingMenuItem
             key={result.id}
-            selected={index === selectedIndex}
+            selected={isSelected}
             onClick={() => onSelect(result)}
             icon="📄"
           >
             {result.title || 'Untitled'}
           </FloatingMenuItem>
-        ))
-      )}
+        )}
+      />
     </FloatingMenu>
   );
 }
