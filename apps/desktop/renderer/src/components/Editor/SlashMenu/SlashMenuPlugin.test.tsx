@@ -461,12 +461,8 @@ describe('SlashMenuPlugin', () => {
         expect(screen.getByText('Quote')).toBeInTheDocument();
         expect(screen.getByText('Table')).toBeInTheDocument();
 
-        // Check AI commands
-        expect(screen.getByText('Continue writing')).toBeInTheDocument();
-        expect(screen.getByText('Summarize')).toBeInTheDocument();
-
-        // Check AI section header
-        expect(screen.getByText('AI')).toBeInTheDocument();
+        // Note: AI commands removed - see TODO in commands.ts
+        // Tests will be re-added when AI functionality is implemented
       });
     });
 

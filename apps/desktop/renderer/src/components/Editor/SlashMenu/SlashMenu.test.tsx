@@ -108,23 +108,8 @@ describe('SlashMenuItem', () => {
     });
   });
 
-  describe('AI commands', () => {
-    const aiCommand: SlashCommand = {
-      id: 'ai-continue',
-      label: 'Continue writing',
-      description: 'AI continues your text',
-      keywords: ['ai', 'continue'],
-      section: 'ai',
-      execute: vi.fn(),
-    };
-
-    it('renders AI command with special styling', () => {
-      render(<SlashMenuItem {...defaultProps} command={aiCommand} />);
-
-      expect(screen.getByText('Continue writing')).toBeInTheDocument();
-      expect(screen.getByText('AI continues your text')).toBeInTheDocument();
-    });
-  });
+  // Note: AI commands removed - see TODO in commands.ts
+  // Tests will be re-added when AI functionality is implemented
 
   describe('different command types', () => {
     const commandTypes = [
@@ -133,10 +118,9 @@ describe('SlashMenuItem', () => {
       { id: 'heading2', label: 'Heading 2' },
       { id: 'heading3', label: 'Heading 3' },
       { id: 'bullet', label: 'Bullet List' },
-      { id: 'todo', label: 'Add Task' },
+      { id: 'task', label: 'Add Task' },
       { id: 'quote', label: 'Quote' },
-      { id: 'ai-continue', label: 'Continue writing' },
-      { id: 'ai-summarize', label: 'Summarize' },
+      { id: 'table', label: 'Table' },
     ];
 
     it.each(commandTypes)('renders icon for $id command', ({ id }) => {
@@ -195,18 +179,8 @@ describe('SlashMenu', () => {
       expect(screen.getByText('Quote')).toBeInTheDocument();
     });
 
-    it('renders AI commands', () => {
-      render(<SlashMenu {...defaultProps} />);
-
-      expect(screen.getByText('Continue writing')).toBeInTheDocument();
-      expect(screen.getByText('Summarize')).toBeInTheDocument();
-    });
-
-    it('renders AI section header when AI commands exist', () => {
-      render(<SlashMenu {...defaultProps} />);
-
-      expect(screen.getByText('AI')).toBeInTheDocument();
-    });
+    // Note: AI commands removed - see TODO in commands.ts
+    // Tests will be re-added when AI functionality is implemented
 
     it('renders with position styles', () => {
       render(<SlashMenu {...defaultProps} position={{ top: 150, left: 250 }} />);
@@ -279,14 +253,7 @@ describe('SlashMenu', () => {
       expect(screen.queryByText('AI')).not.toBeInTheDocument(); // No AI section header
     });
 
-    it('shows only AI commands when filtered', () => {
-      const aiOnly = slashCommands.filter((c) => c.section === 'ai');
-      render(<SlashMenu {...defaultProps} commands={aiOnly} />);
-
-      expect(screen.getByText('Continue writing')).toBeInTheDocument();
-      expect(screen.getByText('Summarize')).toBeInTheDocument();
-      expect(screen.queryByText('Text')).not.toBeInTheDocument();
-    });
+    // Note: AI commands removed - this test will be re-added when AI functionality is implemented
 
     it('shows single command when filtered to one result', () => {
       const singleCommand = slashCommands.filter((c) => c.id === 'heading1');
@@ -298,21 +265,14 @@ describe('SlashMenu', () => {
   });
 
   describe('section dividers', () => {
-    it('shows divider between formatting and AI sections', () => {
+    it('shows formatting section', () => {
       render(<SlashMenu {...defaultProps} />);
 
-      // Check that both sections are present
       const menu = screen.getByLabelText('Slash commands');
       expect(menu.textContent).toContain('Text');
-      expect(menu.textContent).toContain('AI');
-      expect(menu.textContent).toContain('Continue writing');
+      expect(menu.textContent).toContain('Heading 1');
     });
 
-    it('does not show AI section header when no AI commands', () => {
-      const formattingOnly = slashCommands.filter((c) => c.section === 'formatting');
-      render(<SlashMenu {...defaultProps} commands={formattingOnly} />);
-
-      expect(screen.queryByText('AI')).not.toBeInTheDocument();
-    });
+    // Note: AI section tests removed - will be re-added when AI functionality is implemented
   });
 });

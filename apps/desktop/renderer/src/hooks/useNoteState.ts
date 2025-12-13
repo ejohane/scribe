@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Note, NoteId, LexicalState, NoteType } from '@scribe/shared';
-import { isSystemNoteId, SYSTEM_NOTE_IDS } from '@scribe/shared';
+import { isSystemNoteId } from '@scribe/shared';
 
 /**
  * Partial note metadata that can be updated via the header UI
