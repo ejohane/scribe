@@ -1,9 +1,23 @@
 import { style, createVar } from '@vanilla-extract/css';
-import { vars, emptyStateInline } from '@scribe/design-system';
+import {
+  vars,
+  emptyStateInline,
+  panelBase,
+  panelTransition,
+  panelBorderLeft,
+  panelOpenRight,
+  panelClosedRight,
+  panelInnerBase,
+  createPanelContainerVars,
+  createPanelOpenVars,
+  createPanelInnerVars,
+} from '@scribe/design-system';
+import { widgetCard, widgetCardHeader, widgetCardIcon, widgetCardTitle } from './shared.css';
 
 /**
  * ContextPanel component styles
  * Right sidebar showing contextual information about the current note
+ * Uses CollapsiblePanel primitive for consistent theming
  */
 
 /** CSS custom property for dynamic panel width */
@@ -11,50 +25,34 @@ export const panelWidth = createVar();
 
 /**
  * Main panel container
- * Handles the collapse/expand animation
+ * Uses CollapsiblePanel primitive for collapse/expand animation
  * Width is controlled via CSS custom property (--panel-width) set at runtime
  */
-export const contextPanel = style({
-  vars: {
-    [panelWidth]: '280px', // Default width
-  },
-  height: '100%',
-  backgroundColor: vars.color.backgroundAlt,
-  flexShrink: 0,
-  borderLeft: `1px solid ${vars.color.border}`,
-  transition: `all ${vars.animation.duration.slower} ${vars.animation.easing.smooth}`,
-  overflow: 'visible',
-  position: 'relative', // For resize handle positioning
-  zIndex: 1, // Ensure resize handle is above main content
-});
+export const contextPanel = style([
+  panelBase,
+  panelTransition,
+  panelBorderLeft,
+  createPanelContainerVars(panelWidth, '280px'),
+]);
 
-export const contextPanelOpen = style({
-  width: panelWidth,
-  opacity: 1,
-  transform: 'translateX(0)',
-});
+export const contextPanelOpen = style([panelOpenRight, createPanelOpenVars(panelWidth)]);
 
-export const contextPanelClosed = style({
-  width: 0,
-  opacity: 0,
-  transform: 'translateX(40px)',
-  overflow: 'hidden', // Hide content when closed
-});
+export const contextPanelClosed = panelClosedRight;
 
 /**
  * Inner container maintains width during collapse animation
- * Width is set via CSS custom property to support resizing
+ * Uses CollapsiblePanel primitive with custom padding/overflow for ContextPanel
  */
-export const panelInner = style({
-  width: panelWidth,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  padding: vars.spacing['4'],
-  paddingTop: vars.spacing['8'],
-  overflowX: 'hidden', // Hide horizontal content during collapse animation
-  overflowY: 'auto', // Allow vertical scrolling
-});
+export const panelInner = style([
+  panelInnerBase,
+  createPanelInnerVars(panelWidth),
+  {
+    padding: vars.spacing['4'],
+    paddingTop: vars.spacing['8'],
+    overflowX: 'hidden', // Hide horizontal content during collapse animation
+    overflowY: 'auto', // Allow vertical scrolling
+  },
+]);
 
 /**
  * Section label (CONTEXT, CALENDAR, etc.)
@@ -77,29 +75,14 @@ export const sectionLabel = style({
 });
 
 /**
- * Card container for each widget
+ * Card container for each widget - re-exported from shared
  */
-export const card = style({
-  backgroundColor: vars.color.background,
-  borderRadius: vars.radius.xl,
-  padding: vars.spacing['4'],
-  marginBottom: vars.spacing['3'],
-  boxShadow: vars.shadow.sm,
-  border: `1px solid ${vars.color.border}`,
-  transition: `background-color ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
-});
+export const card = widgetCard;
 
 /**
- * Card header with icon and title
+ * Card header with icon and title - re-exported from shared
  */
-export const cardHeader = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-  marginBottom: vars.spacing['3'],
-  color: vars.color.foreground,
-  fontWeight: vars.typography.weight.medium,
-});
+export const cardHeader = widgetCardHeader;
 
 /**
  * Clickable card header (for navigating to full-screen views)
@@ -122,11 +105,10 @@ export const cardHeaderClickable = style({
   },
 });
 
-export const cardIcon = style({
-  width: '14px',
-  height: '14px',
-  flexShrink: 0,
-});
+/**
+ * Card icon - re-exported from shared
+ */
+export const cardIcon = widgetCardIcon;
 
 /**
  * Icon color variants for semantic coloring
@@ -135,9 +117,10 @@ export const cardIconSuccess = style({
   color: vars.color.success,
 });
 
-export const cardTitle = style({
-  fontSize: vars.typography.size.xs,
-});
+/**
+ * Card title - re-exported from shared
+ */
+export const cardTitle = widgetCardTitle;
 
 /**
  * Backlink item styles

@@ -7,37 +7,22 @@
 
 import { style } from '@vanilla-extract/css';
 import { vars, emptyStateInline } from '@scribe/design-system';
+import { widgetCard, widgetCardHeader, widgetCardIcon, widgetCardTitle } from './shared.css';
 
 /**
- * Card container matching other context panel widgets
+ * Card container matching other context panel widgets - re-exported from shared
  */
-export const card = style({
-  backgroundColor: vars.color.background,
-  borderRadius: vars.radius.xl,
-  padding: vars.spacing['4'],
-  marginBottom: vars.spacing['3'],
-  boxShadow: vars.shadow.sm,
-  border: `1px solid ${vars.color.border}`,
-  transition: `background-color ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
-});
+export const card = widgetCard;
 
 /**
- * Card header with icon, title, and add button
+ * Card header with icon, title, and add button - re-exported from shared
  */
-export const cardHeader = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-  marginBottom: vars.spacing['3'],
-  color: vars.color.foreground,
-  fontWeight: vars.typography.weight.medium,
-});
+export const cardHeader = widgetCardHeader;
 
-export const cardIcon = style({
-  width: '14px',
-  height: '14px',
-  flexShrink: 0,
-});
+/**
+ * Card icon - re-exported from shared
+ */
+export const cardIcon = widgetCardIcon;
 
 /**
  * Icon color for attendees (secondary/people semantic)
@@ -46,10 +31,16 @@ export const cardIconSecondary = style({
   color: vars.color.secondary,
 });
 
-export const cardTitle = style({
-  fontSize: vars.typography.size.xs,
-  flex: 1,
-});
+/**
+ * Card title with flex: 1 for add button positioning
+ * Extends shared title with additional flex property
+ */
+export const cardTitle = style([
+  widgetCardTitle,
+  {
+    flex: 1,
+  },
+]);
 
 /**
  * Add button in header
