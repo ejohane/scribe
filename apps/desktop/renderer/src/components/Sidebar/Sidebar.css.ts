@@ -1,5 +1,5 @@
 import { style, createVar } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, emptyStateCentered } from '@scribe/design-system';
 
 /**
  * Sidebar component styles
@@ -141,14 +141,9 @@ export const clearHistoryIconCircle = style({
 });
 
 /**
- * Empty state styles
+ * Empty state styles - extends design system with larger padding
  */
-export const emptyState = style({
-  padding: vars.spacing['6'],
-  textAlign: 'center',
-  color: vars.color.foregroundMuted,
-  fontSize: vars.typography.size.sm,
-});
+export const emptyState = style([emptyStateCentered, { padding: vars.spacing['6'] }]);
 
 export const emptyStateHint = style({
   marginTop: vars.spacing['2'],

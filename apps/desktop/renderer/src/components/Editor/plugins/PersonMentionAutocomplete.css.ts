@@ -7,7 +7,7 @@
  */
 
 import { style, keyframes } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, emptyStateCentered } from '@scribe/design-system';
 
 const fadeIn = keyframes({
   from: { opacity: 0, transform: 'translateY(-4px)' },
@@ -95,12 +95,10 @@ export const createIcon = style({
   flexShrink: 0,
 });
 
-export const emptyState = style({
-  padding: `${vars.spacing['4']} ${vars.spacing['3']}`,
-  color: vars.color.foregroundMuted,
-  textAlign: 'center',
-  fontSize: vars.typography.size.sm,
-});
+/**
+ * Empty state - re-exported from design system
+ */
+export const emptyState = emptyStateCentered;
 
 export const loadingState = style({
   padding: `${vars.spacing['4']} ${vars.spacing['3']}`,

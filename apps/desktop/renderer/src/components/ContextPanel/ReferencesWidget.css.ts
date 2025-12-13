@@ -6,7 +6,7 @@
  */
 
 import { style } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, emptyStateInline } from '@scribe/design-system';
 
 /**
  * Card container matching other context panel widgets
@@ -102,11 +102,6 @@ export const referenceText = style({
 });
 
 /**
- * Empty state message
+ * Empty state message - re-exported from design system
  */
-export const emptyState = style({
-  fontSize: vars.typography.size.sm,
-  color: vars.color.foregroundMuted,
-  fontStyle: 'italic',
-  padding: vars.spacing['2'],
-});
+export const emptyState = emptyStateInline;

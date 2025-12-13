@@ -5,7 +5,7 @@
  */
 
 import { style, keyframes } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, emptyStateFull } from '@scribe/design-system';
 
 /**
  * Main container for the Tasks screen
@@ -68,16 +68,9 @@ export const taskList = style({
 });
 
 /**
- * Empty state container
+ * Empty state container - re-exported from design system
  */
-export const emptyState = style({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: vars.spacing['12'],
-  textAlign: 'center',
-});
+export const emptyState = emptyStateFull;
 
 /**
  * Empty state icon

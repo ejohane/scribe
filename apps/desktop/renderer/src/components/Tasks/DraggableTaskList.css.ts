@@ -5,7 +5,7 @@
  */
 
 import { style, keyframes } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, emptyStateInline } from '@scribe/design-system';
 
 /**
  * Main list container
@@ -17,15 +17,9 @@ export const list = style({
 });
 
 /**
- * Empty state container
+ * Empty state container - extends design system style with centered text
  */
-export const emptyState = style({
-  fontSize: vars.typography.size.sm,
-  color: vars.color.foregroundMuted,
-  fontStyle: 'italic',
-  padding: vars.spacing['2'],
-  textAlign: 'center',
-});
+export const emptyState = style([emptyStateInline, { textAlign: 'center' }]);
 
 /**
  * Drop placeholder animation

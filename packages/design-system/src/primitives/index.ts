@@ -34,3 +34,12 @@ export type {
   FloatingMenuSectionProps,
   FloatingMenuActionProps,
 } from './FloatingMenu';
+
+// EmptyState styles for consistent empty state patterns
+export {
+  emptyStateInline,
+  emptyStateCentered,
+  emptyStateFull,
+  base as emptyStateBase,
+  variants as emptyStateVariants,
+} from './EmptyState';

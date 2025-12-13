@@ -1,5 +1,5 @@
 import { style, createVar } from '@vanilla-extract/css';
-import { vars } from '@scribe/design-system';
+import { vars, emptyStateInline } from '@scribe/design-system';
 
 /**
  * ContextPanel component styles
@@ -294,14 +294,9 @@ export const eventIcon = style({
 });
 
 /**
- * Empty state
+ * Empty state - re-exported from design system
  */
-export const emptyState = style({
-  fontSize: vars.typography.size.sm,
-  color: vars.color.foregroundMuted,
-  fontStyle: 'italic',
-  padding: vars.spacing['2'],
-});
+export const emptyState = emptyStateInline;
 
 /**
  * Backlink list container

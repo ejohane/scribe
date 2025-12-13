@@ -9,6 +9,7 @@
 import { style, keyframes, styleVariants } from '@vanilla-extract/css';
 import { vars } from '../../tokens/contract.css';
 import { slideDown } from '../../tokens';
+import { emptyStateCentered } from '../EmptyState';
 
 /**
  * Spinner animation for loading states
@@ -148,14 +149,9 @@ export const itemDescription = style({
 });
 
 /**
- * Empty state when no items match
+ * Empty state when no items match - re-exported from EmptyState primitive
  */
-export const emptyState = style({
-  padding: `${vars.spacing['4']} ${vars.spacing['3']}`,
-  color: vars.color.foregroundMuted,
-  fontSize: vars.typography.size.sm,
-  textAlign: 'center',
-});
+export const emptyState = emptyStateCentered;
 
 /**
  * Loading state container
