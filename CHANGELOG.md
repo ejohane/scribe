@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.0](https://github.com/ejohane/scribe/compare/v1.19.1...v1.20.0) (2025-12-13)
+
+### Features
+
+* **tasks:** improve task extraction and editor focus handling ([fc4f17b](https://github.com/ejohane/scribe/commit/fc4f17b6107240be273d52437d1cc15f22661f0e))
+
 ## [1.19.1](https://github.com/ejohane/scribe/compare/v1.19.0...v1.19.1) (2025-12-13)
 
 ### Bug Fixes
