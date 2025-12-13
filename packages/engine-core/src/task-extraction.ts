@@ -6,6 +6,15 @@
  */
 
 import type { LexicalState, LexicalNode, NoteId } from '@scribe/shared';
+import { traverseNodesWithAncestors, extractTextFromNode } from '@scribe/shared';
+
+// DJB2 hash algorithm constants
+/** Initial value for DJB2 hash algorithm */
+const DJB2_HASH_INITIAL = 5381;
+/** Multiplier used in DJB2 hash algorithm */
+const DJB2_HASH_MULTIPLIER = 33;
+/** Number of hex characters for text hash output */
+const TEXT_HASH_LENGTH = 16;
 
 /**
  * Raw task data extracted from a note's content.
@@ -56,7 +65,7 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
   let listItemIndex = 0;
 
   // Traverse content looking for checklist items
-  traverseForTasks(note.content.root.children, [], (node, ancestors) => {
+  traverseNodesWithAncestors(note.content.root.children, (node, ancestors) => {
     // Check if this is a checklist listitem (has __checked property)
     if (node.type === 'listitem' && '__checked' in node) {
       // Skip if inside a code block
@@ -90,55 +99,10 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
 }
 
 /**
- * Traverse nodes for task extraction, tracking ancestors for context.
- */
-function traverseForTasks(
-  nodes: LexicalNode[],
-  ancestors: LexicalNode[],
-  callback: (node: LexicalNode, ancestors: LexicalNode[]) => void
-): void {
-  for (const node of nodes) {
-    callback(node, ancestors);
-
-    if (Array.isArray(node.children)) {
-      traverseForTasks(node.children as LexicalNode[], [...ancestors, node], callback);
-    }
-  }
-}
-
-/**
  * Check if any ancestor is a code block.
  */
 function isInsideCodeBlock(ancestors: LexicalNode[]): boolean {
   return ancestors.some((node) => node.type === 'code' || node.type === 'code-block');
-}
-
-/**
- * Extract text content from a node and its children.
- */
-function extractTextFromNode(node: LexicalNode): string {
-  const textParts: string[] = [];
-
-  traverseForText(node, (textNode) => {
-    if (textNode.type === 'text' && typeof textNode.text === 'string') {
-      textParts.push(textNode.text);
-    }
-  });
-
-  return textParts.join('');
-}
-
-/**
- * Traverse a node's subtree for text extraction.
- */
-function traverseForText(node: LexicalNode, callback: (node: LexicalNode) => void): void {
-  callback(node);
-
-  if (Array.isArray(node.children)) {
-    for (const child of node.children as LexicalNode[]) {
-      traverseForText(child, callback);
-    }
-  }
 }
 
 /**
@@ -148,13 +112,13 @@ function traverseForText(node: LexicalNode, callback: (node: LexicalNode) => voi
 export function computeTextHash(text: string): string {
   // Simple hash implementation based on DJB2 algorithm
   // For production, use SHA-256 via crypto API when available
-  let hash = 5381;
+  let hash = DJB2_HASH_INITIAL;
   for (let i = 0; i < text.length; i++) {
-    hash = (hash * 33) ^ text.charCodeAt(i);
+    hash = (hash * DJB2_HASH_MULTIPLIER) ^ text.charCodeAt(i);
   }
-  // Convert to hex and pad/truncate to 16 chars
-  const hexHash = Math.abs(hash).toString(16).padStart(16, '0');
-  return hexHash.slice(0, 16);
+  // Convert to hex and pad/truncate to TEXT_HASH_LENGTH chars
+  const hexHash = Math.abs(hash).toString(16).padStart(TEXT_HASH_LENGTH, '0');
+  return hexHash.slice(0, TEXT_HASH_LENGTH);
 }
 
 /**

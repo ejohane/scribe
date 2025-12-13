@@ -5,7 +5,10 @@
  */
 
 import type { LexicalState, LexicalNode, NoteMetadata, NoteId } from '@scribe/shared';
-import { createNoteId } from '@scribe/shared';
+import { createNoteId, traverseNodes } from '@scribe/shared';
+
+/** Maximum length for extracted titles (characters) */
+const MAX_TITLE_LENGTH = 200;
 
 /**
  * Extract metadata from Lexical content
@@ -47,7 +50,7 @@ export function extractTitle(content: LexicalState): string | null {
   }
 
   // Truncate to reasonable title length and clean up
-  return firstText.trim().slice(0, 200);
+  return firstText.trim().slice(0, MAX_TITLE_LENGTH);
 }
 
 /**
@@ -163,19 +166,6 @@ function extractAllText(nodes: LexicalNode[]): string {
   });
 
   return textParts.join(' ');
-}
-
-/**
- * Traverse all nodes in tree and apply callback
- */
-function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode) => void): void {
-  for (const node of nodes) {
-    callback(node);
-
-    if (Array.isArray(node.children)) {
-      traverseNodes(node.children as LexicalNode[], callback);
-    }
-  }
 }
 
 /**

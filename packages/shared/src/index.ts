@@ -72,6 +72,17 @@ export {
 } from './errors.js';
 export type { EngineName } from './errors.js';
 
+export { DEFAULT_NOTE_TITLE } from './constants.js';
+
+// AST Traversal Utilities
+export {
+  traverseNodes,
+  traverseNodesWithAncestors,
+  findNodeByKey,
+  extractTextFromNodes,
+  extractTextFromNode,
+} from './ast-utils.js';
+
 // IPC Contract - single source of truth for preload/renderer API surface
 export { IPC_CHANNELS } from './ipc-contract.js';
 export type {

@@ -4,7 +4,8 @@
  * Extracts plain text from Lexical JSON content for search indexing
  */
 
-import type { LexicalState, LexicalNode } from '@scribe/shared';
+import type { LexicalState } from '@scribe/shared';
+import { traverseNodes } from '@scribe/shared';
 
 /**
  * Extract all text content from Lexical state for search indexing
@@ -75,17 +76,4 @@ export function generateSnippet(
   }
 
   return snippet.trim();
-}
-
-/**
- * Traverse all nodes in tree and apply callback
- */
-function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode) => void): void {
-  for (const node of nodes) {
-    callback(node);
-
-    if (Array.isArray(node.children)) {
-      traverseNodes(node.children as LexicalNode[], callback);
-    }
-  }
 }

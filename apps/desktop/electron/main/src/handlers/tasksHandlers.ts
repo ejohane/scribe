@@ -33,6 +33,7 @@
 import { ipcMain } from 'electron';
 import { computeTextHash } from '@scribe/engine-core';
 import type { Note, LexicalState, LexicalNode, TaskFilter } from '@scribe/shared';
+import { traverseNodes, findNodeByKey, extractTextFromNode } from '@scribe/shared';
 import {
   HandlerDependencies,
   requireVault,
@@ -119,57 +120,6 @@ function toggleChecklistNode(content: LexicalState, locator: ChecklistNodeLocato
   }
 
   return false;
-}
-
-/**
- * Find a node by its __key property (Lexical's internal node identifier).
- *
- * @param nodes - Array of nodes to search through
- * @param nodeKey - The node key to find
- * @returns The matching node, or null if not found
- */
-function findNodeByKey(nodes: LexicalNode[], nodeKey: string): LexicalNode | null {
-  for (const node of nodes) {
-    if (node.__key === nodeKey) {
-      return node;
-    }
-    if (Array.isArray(node.children)) {
-      const found = findNodeByKey(node.children as LexicalNode[], nodeKey);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-/**
- * Traverse all nodes in a Lexical tree (depth-first).
- *
- * @param nodes - Array of root nodes to traverse
- * @param callback - Function called for each node
- */
-function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode) => void): void {
-  for (const node of nodes) {
-    callback(node);
-    if (Array.isArray(node.children)) {
-      traverseNodes(node.children as LexicalNode[], callback);
-    }
-  }
-}
-
-/**
- * Extract text content from a node and its children.
- *
- * @param node - The root node to extract text from
- * @returns Concatenated text content of all text nodes
- */
-function extractTextFromNode(node: LexicalNode): string {
-  const textParts: string[] = [];
-  traverseNodes([node], (n) => {
-    if (n.type === 'text' && typeof n.text === 'string') {
-      textParts.push(n.text as string);
-    }
-  });
-  return textParts.join('');
 }
 
 /**
