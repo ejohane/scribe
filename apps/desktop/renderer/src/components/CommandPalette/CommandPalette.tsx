@@ -32,6 +32,7 @@ import {
   usePeopleData,
   useKeyboardNavigation,
 } from './panels';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
 
 export interface CommandPaletteProps {
   isOpen: boolean;
@@ -76,6 +77,11 @@ export function CommandPalette({
   onPromptCancel,
   onCreateDailyNote,
 }: CommandPaletteProps) {
+  // Error handling hook (only when showToast is available)
+  const { handleError } = useErrorHandler({
+    showToast: showToast ?? (() => {}),
+  });
+
   // Core state
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<PaletteMode>('command');
@@ -172,14 +178,13 @@ export function CommandPalette({
       setIsDeleting(false);
       onClose();
     } catch (error) {
-      console.error('Failed to delete note:', error);
-      showToast?.('Failed to delete note', 'error');
+      handleError(error, 'Failed to delete note');
       setPendingDeleteNote(null);
       setIsDeleting(false);
       setMode('delete-browse');
       onModeChange?.('delete-browse');
     }
-  }, [pendingDeleteNote, noteState, isDeleting, showToast, onClose, onModeChange]);
+  }, [pendingDeleteNote, noteState, isDeleting, handleError, showToast, onClose, onModeChange]);
 
   const handleSelectForDelete = useCallback(
     (note: Note) => {
