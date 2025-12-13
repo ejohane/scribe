@@ -8,15 +8,13 @@
  * while maintaining its own data fetching for encapsulation.
  */
 
-import clsx from 'clsx';
 import type { Note, NoteId } from '@scribe/shared';
-import { Text, Icon, FileTextIcon, CornerDownLeftIcon, CloseIcon } from '@scribe/design-system';
+import { FileTextIcon } from '@scribe/design-system';
 import { formatRelativeDate } from '../../../utils/formatRelativeDate';
-import * as styles from '../CommandPalette.css';
 import { MAX_RECENT_NOTES } from '../config';
 import { useCommandPaletteContext } from '../CommandPaletteContext';
-import { truncateTitle } from './utils';
 import { useFuzzySearch, useRecentNotes } from './useFuzzySearch';
+import { PaletteItem, PaletteItemList } from './PaletteItem';
 
 export interface FileBrowsePanelProps {
   /** All notes in the vault */
@@ -56,90 +54,37 @@ export function FileBrowsePanel({ allNotes, isLoading }: FileBrowsePanelProps) {
   // Determine which notes to display
   const displayedNotes = debouncedQuery.trim() === '' ? recentNotes : fuzzySearchResults;
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        Loading...
-      </Text>
-    );
-  }
-
-  // Empty vault state
-  if (allNotes.length === 0) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        No notes yet. Create one with &#8984;N
-      </Text>
-    );
-  }
-
-  // No results from fuzzy search
-  if (hasNoResults) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        No results
-      </Text>
-    );
-  }
-
-  // No notes to display (all filtered out - e.g., only current note exists)
-  if (displayedNotes.length === 0) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        No results
-      </Text>
-    );
-  }
-
-  // Render notes (either recent or fuzzy search results)
   return (
-    <>
-      {displayedNotes.map((note, index) => {
-        const isSelected = index === selectedNoteIndex;
-        return (
-          <div
-            key={note.id}
-            className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
-            onClick={() => {
-              if (onNoteSelect) {
-                onNoteSelect(note.id);
-                onClose();
-              }
-            }}
-            onMouseEnter={() => setSelectedNoteIndex(index)}
-          >
-            <span className={styles.itemIcon}>
-              <FileTextIcon />
-            </span>
-            <div className={styles.itemTextContainer}>
-              <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-                {truncateTitle(note.title)}
-              </Text>
-              <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-                {formatRelativeDate(note.updatedAt)}
-              </Text>
-            </div>
-            <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
-              <CornerDownLeftIcon />
-            </span>
-            <button
-              className={styles.deleteIcon}
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering note open
-                onDeleteNote(note);
-              }}
-              aria-label={`Delete ${note.metadata?.title || 'note'}`}
-              type="button"
-            >
-              <Icon size="sm" color="foregroundMuted">
-                <CloseIcon className={styles.deleteIconSvg} />
-              </Icon>
-            </button>
-          </div>
-        );
-      })}
-    </>
+    <PaletteItemList
+      isLoading={isLoading}
+      isEmpty={allNotes.length === 0}
+      emptyMessage="No notes yet. Create one with &#8984;N"
+      hasNoResults={hasNoResults}
+      hasNoDisplayedItems={displayedNotes.length === 0}
+    >
+      {displayedNotes.map((note, index) => (
+        <PaletteItem
+          key={note.id}
+          id={note.id}
+          title={note.title}
+          description={formatRelativeDate(note.updatedAt)}
+          icon={<FileTextIcon />}
+          isSelected={index === selectedNoteIndex}
+          index={index}
+          onMouseEnter={setSelectedNoteIndex}
+          onClick={() => {
+            if (onNoteSelect) {
+              onNoteSelect(note.id);
+              onClose();
+            }
+          }}
+          deleteButton={{
+            onDelete: () => onDeleteNote(note),
+            ariaLabel: `Delete ${note.metadata?.title || 'note'}`,
+          }}
+        />
+      ))}
+    </PaletteItemList>
   );
 }
 

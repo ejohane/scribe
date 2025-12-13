@@ -22,6 +22,10 @@ export type { PersonBrowsePanelProps } from './PersonBrowsePanel';
 export { PromptInputPanel } from './PromptInputPanel';
 export type { PromptInputPanelProps } from './PromptInputPanel';
 
+// Shared item component
+export { PaletteItem, PaletteItemList } from './PaletteItem';
+export type { PaletteItemProps, PaletteItemListProps } from './PaletteItem';
+
 // Hooks
 export { useFuzzySearch, useRecentNotes } from './useFuzzySearch';
 export type { UseFuzzySearchOptions, UseFuzzySearchResult } from './useFuzzySearch';

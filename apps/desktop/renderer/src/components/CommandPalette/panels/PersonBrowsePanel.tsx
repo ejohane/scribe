@@ -8,14 +8,12 @@
  */
 
 import { useMemo } from 'react';
-import clsx from 'clsx';
 import type { Note } from '@scribe/shared';
-import { Text, UserIcon, CornerDownLeftIcon } from '@scribe/design-system';
+import { UserIcon } from '@scribe/design-system';
 import { formatRelativeDate } from '../../../utils/formatRelativeDate';
-import * as styles from '../CommandPalette.css';
 import { useCommandPaletteContext } from '../CommandPaletteContext';
-import { truncateTitle } from './utils';
 import { useFuzzySearch } from './useFuzzySearch';
+import { PaletteItem, PaletteItemList } from './PaletteItem';
 
 export interface PersonBrowsePanelProps {
   /** All people in the vault */
@@ -54,76 +52,32 @@ export function PersonBrowsePanel({ allPeople, isLoading }: PersonBrowsePanelPro
     return fuzzyPeopleResults;
   }, [debouncedQuery, allPeople, fuzzyPeopleResults]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        Loading...
-      </Text>
-    );
-  }
-
-  // Empty state - no people created yet
-  if (allPeople.length === 0) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        No people yet. Create one with "New Person" command
-      </Text>
-    );
-  }
-
-  // No results from fuzzy search
-  if (hasNoResults) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        No results
-      </Text>
-    );
-  }
-
-  // No people to display
-  if (displayedPeople.length === 0) {
-    return (
-      <Text color="foregroundMuted" className={styles.noResults}>
-        No results
-      </Text>
-    );
-  }
-
-  // Render people list
   return (
-    <>
-      {displayedPeople.map((person, index) => {
-        const isSelected = index === selectedPersonIndex;
-        return (
-          <div
-            key={person.id}
-            className={clsx(styles.paletteItem, isSelected && styles.paletteItemSelected)}
-            onClick={() => {
-              if (onNoteSelect) {
-                onNoteSelect(person.id);
-                onClose();
-              }
-            }}
-            onMouseEnter={() => setSelectedPersonIndex(index)}
-          >
-            <span className={styles.itemIcon}>
-              <UserIcon />
-            </span>
-            <div className={styles.itemTextContainer}>
-              <Text size="sm" weight="medium" truncate className={styles.itemTitle}>
-                {truncateTitle(person.title)}
-              </Text>
-              <Text size="xs" color="foregroundMuted" className={styles.itemDescription}>
-                {formatRelativeDate(person.updatedAt)}
-              </Text>
-            </div>
-            <span className={clsx(styles.enterHint, isSelected && styles.enterHintVisible)}>
-              <CornerDownLeftIcon />
-            </span>
-          </div>
-        );
-      })}
-    </>
+    <PaletteItemList
+      isLoading={isLoading}
+      isEmpty={allPeople.length === 0}
+      emptyMessage='No people yet. Create one with "New Person" command'
+      hasNoResults={hasNoResults}
+      hasNoDisplayedItems={displayedPeople.length === 0}
+    >
+      {displayedPeople.map((person, index) => (
+        <PaletteItem
+          key={person.id}
+          id={person.id}
+          title={person.title}
+          description={formatRelativeDate(person.updatedAt)}
+          icon={<UserIcon />}
+          isSelected={index === selectedPersonIndex}
+          index={index}
+          onMouseEnter={setSelectedPersonIndex}
+          onClick={() => {
+            if (onNoteSelect) {
+              onNoteSelect(person.id);
+              onClose();
+            }
+          }}
+        />
+      ))}
+    </PaletteItemList>
   );
 }
