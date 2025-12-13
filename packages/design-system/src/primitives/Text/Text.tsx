@@ -20,6 +20,10 @@ type ElementRef<E extends ElementType> = E extends keyof HTMLElementTagNameMap
     ? SVGElementTagNameMap[E]
     : Element;
 
+// Type-safe ref type for polymorphic components
+// Uses Element as the base type since all HTML/SVG elements extend Element
+type PolymorphicRef = Ref<Element>;
+
 // Props type that includes the polymorphic 'as' prop and proper ref typing
 export type TextProps<E extends ElementType = TextElement> = TextOwnProps & {
   as?: E;
@@ -46,9 +50,8 @@ const TextImpl = <E extends ElementType = 'span'>({
 
   return (
     <Component
-      // Type assertion needed for polymorphic ref forwarding
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ref={ref as any}
+      // Type assertion for polymorphic ref forwarding - Element is the common base type
+      ref={ref as PolymorphicRef}
       className={clsx(
         styles.base,
         styles.sizes[size],

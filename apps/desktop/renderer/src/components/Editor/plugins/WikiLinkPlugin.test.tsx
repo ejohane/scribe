@@ -15,6 +15,7 @@ import {
   TextNode,
   LexicalNode,
 } from 'lexical';
+import { createNoteId } from '@scribe/shared';
 import { WikiLinkNode, $isWikiLinkNode } from './WikiLinkNode';
 import { WikiLinkPlugin } from './WikiLinkPlugin';
 import { WikiLinkProvider } from './WikiLinkContext';
@@ -51,7 +52,11 @@ function TestEditor({
   editorRef: React.MutableRefObject<LexicalEditor | null>;
 }) {
   return (
-    <WikiLinkProvider currentNoteId="test-note" onLinkClick={vi.fn()} onError={vi.fn()}>
+    <WikiLinkProvider
+      currentNoteId={createNoteId('test-note')}
+      onLinkClick={vi.fn()}
+      onError={vi.fn()}
+    >
       <LexicalComposer
         initialConfig={{
           namespace: 'test',
@@ -86,7 +91,7 @@ describe('WikiLinkPlugin', () => {
     it('detects [[ typing pattern and opens autocomplete', async () => {
       render(
         <TestEditor editorRef={editorRef}>
-          <WikiLinkPlugin currentNoteId="note-1" />
+          <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -117,7 +122,7 @@ describe('WikiLinkPlugin', () => {
     it('shows autocomplete popup with position styles', async () => {
       render(
         <TestEditor editorRef={editorRef}>
-          <WikiLinkPlugin currentNoteId="note-1" />
+          <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -151,7 +156,7 @@ describe('WikiLinkPlugin', () => {
     it('triggers search as user types after [[', async () => {
       render(
         <TestEditor editorRef={editorRef}>
-          <WikiLinkPlugin currentNoteId="note-1" />
+          <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -216,7 +221,7 @@ describe('WikiLinkPlugin integration', () => {
   it('converts [[text]] to WikiLinkNode on ]] closure', async () => {
     render(
       <TestEditor editorRef={editorRef}>
-        <WikiLinkPlugin currentNoteId="note-1" />
+        <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
       </TestEditor>
     );
 
@@ -285,7 +290,7 @@ describe('WikiLinkPlugin integration', () => {
   it('parses alias syntax (last pipe wins)', async () => {
     render(
       <TestEditor editorRef={editorRef}>
-        <WikiLinkPlugin currentNoteId="note-1" />
+        <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
       </TestEditor>
     );
 
@@ -351,7 +356,7 @@ describe('WikiLinkPlugin integration', () => {
   it('does not trigger on single [', async () => {
     render(
       <TestEditor editorRef={editorRef}>
-        <WikiLinkPlugin currentNoteId="note-1" />
+        <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
       </TestEditor>
     );
 
@@ -386,7 +391,7 @@ describe('WikiLinkPlugin integration', () => {
     // at the moment of detection.
     render(
       <TestEditor editorRef={editorRef}>
-        <WikiLinkPlugin currentNoteId="note-1" />
+        <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
       </TestEditor>
     );
 
@@ -463,7 +468,7 @@ describe('WikiLinkPlugin integration', () => {
     // exposed stale state issues with the setTimeout approach.
     render(
       <TestEditor editorRef={editorRef}>
-        <WikiLinkPlugin currentNoteId="note-1" />
+        <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
       </TestEditor>
     );
 

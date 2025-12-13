@@ -22,6 +22,7 @@ import {
 } from 'lexical';
 import { useEffect } from 'react';
 
+import { createNoteId } from '@scribe/shared';
 import { PersonMentionPlugin } from './PersonMentionPlugin';
 import { PersonMentionNode } from './PersonMentionNode';
 import { PersonMentionProvider } from './PersonMentionContext';
@@ -51,7 +52,7 @@ function TestEditor({
 }) {
   return (
     <PersonMentionProvider
-      currentNoteId="test-note"
+      currentNoteId={createNoteId('test-note')}
       onMentionClick={vi.fn()}
       onError={onError ?? vi.fn()}
     >
@@ -110,7 +111,7 @@ describe('PersonMentionPlugin', () => {
     it('opens autocomplete when @ is typed', async () => {
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -138,7 +139,7 @@ describe('PersonMentionPlugin', () => {
     it('does not trigger @ in the middle of a word', async () => {
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -173,7 +174,7 @@ describe('PersonMentionPlugin', () => {
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -241,7 +242,7 @@ describe('PersonMentionPlugin', () => {
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -317,7 +318,7 @@ describe('PersonMentionPlugin', () => {
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -383,13 +384,13 @@ describe('PersonMentionPlugin', () => {
   describe('keyboard navigation boundary tests', () => {
     it('ArrowUp at first item stays at first item', async () => {
       mockSearch.mockResolvedValue([
-        { id: 'person-1', title: 'Alice', snippet: '', score: 1, matches: [] },
-        { id: 'person-2', title: 'Bob', snippet: '', score: 1, matches: [] },
+        { id: createNoteId('person-1'), title: 'Alice', snippet: '', score: 1, matches: [] },
+        { id: createNoteId('person-2'), title: 'Bob', snippet: '', score: 1, matches: [] },
       ]);
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -456,13 +457,13 @@ describe('PersonMentionPlugin', () => {
 
     it('ArrowDown at last item stays at last item', async () => {
       mockSearch.mockResolvedValue([
-        { id: 'person-1', title: 'Alice', snippet: '', score: 1, matches: [] },
-        { id: 'person-2', title: 'Bob', snippet: '', score: 1, matches: [] },
+        { id: createNoteId('person-1'), title: 'Alice', snippet: '', score: 1, matches: [] },
+        { id: createNoteId('person-2'), title: 'Bob', snippet: '', score: 1, matches: [] },
       ]);
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -534,12 +535,12 @@ describe('PersonMentionPlugin', () => {
 
     it('ArrowDown selects create option when it is last', async () => {
       mockSearch.mockResolvedValue([
-        { id: 'person-1', title: 'Alice', snippet: '', score: 1, matches: [] },
+        { id: createNoteId('person-1'), title: 'Alice', snippet: '', score: 1, matches: [] },
       ]);
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -605,14 +606,14 @@ describe('PersonMentionPlugin', () => {
     it('Enter on create option triggers onCreate', async () => {
       mockSearch.mockResolvedValue([]);
       mockCreate.mockResolvedValue({
-        id: 'new-person',
-        metadata: { title: 'newname', type: 'person', tags: [], links: [] },
+        id: createNoteId('new-person'),
+        metadata: { title: 'newname', type: 'person', tags: [], links: [], mentions: [] },
         content: {},
       });
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 
@@ -680,7 +681,7 @@ describe('PersonMentionPlugin', () => {
 
       render(
         <TestEditor editorRef={editorRef} onError={onError}>
-          <PersonMentionPlugin currentNoteId="note-1" />
+          <PersonMentionPlugin currentNoteId={createNoteId('note-1')} />
         </TestEditor>
       );
 

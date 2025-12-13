@@ -18,3 +18,25 @@ export type { ListProps, ListItemProps } from './List';
 
 export { Overlay, Portal } from './Overlay';
 export type { OverlayProps, PortalProps } from './Overlay';
+
+export {
+  FloatingMenu,
+  FloatingMenuItem,
+  FloatingMenuItemContent,
+  FloatingMenuEmpty,
+  FloatingMenuLoading,
+  FloatingMenuDivider,
+  FloatingMenuSection,
+  FloatingMenuAction,
+  floatingMenuStyles,
+} from './FloatingMenu';
+export type {
+  FloatingMenuProps,
+  FloatingMenuWidth,
+  FloatingMenuItemProps,
+  FloatingMenuItemContentProps,
+  FloatingMenuEmptyProps,
+  FloatingMenuLoadingProps,
+  FloatingMenuSectionProps,
+  FloatingMenuActionProps,
+} from './FloatingMenu';

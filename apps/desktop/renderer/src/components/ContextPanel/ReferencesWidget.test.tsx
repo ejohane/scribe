@@ -8,11 +8,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ReferencesWidget, extractReferences, truncateUrl } from './ReferencesWidget';
 import type { Note, LexicalState } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 // Helper to create mock note with specific content
 function mockNote(contentChildren: unknown[]): Note {
   return {
-    id: 'test-id',
+    id: createNoteId('test-id'),
     title: 'Test Note',
     type: undefined,
     createdAt: Date.now(),

@@ -1,7 +1,8 @@
 import { render, waitFor, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EditorRoot } from './EditorRoot';
-import type { Note } from '@scribe/shared';
+import type { Note, NoteId } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 import * as styles from './EditorRoot.css';
 import { WikiLinkProvider } from './plugins/WikiLinkContext';
 import { PersonMentionProvider } from './plugins/PersonMentionContext';
@@ -21,7 +22,7 @@ const createMockNoteState = (note: Note | null = null) => ({
 });
 
 const createEmptyNote = (): Note => ({
-  id: 'test-note-1',
+  id: createNoteId('test-note-1'),
   title: 'Untitled',
   createdAt: Date.now(),
   updatedAt: Date.now(),
@@ -47,7 +48,7 @@ const createEmptyNote = (): Note => ({
  * Wrapper component that provides the required contexts for EditorRoot
  * (WikiLinkProvider and PersonMentionProvider)
  */
-function TestWrapper({ children, noteId }: { children: React.ReactNode; noteId: string | null }) {
+function TestWrapper({ children, noteId }: { children: React.ReactNode; noteId: NoteId | null }) {
   return (
     <WikiLinkProvider currentNoteId={noteId} onLinkClick={vi.fn()} onError={vi.fn()}>
       <PersonMentionProvider currentNoteId={noteId} onMentionClick={vi.fn()} onError={vi.fn()}>
@@ -57,7 +58,7 @@ function TestWrapper({ children, noteId }: { children: React.ReactNode; noteId: 
   );
 }
 
-function renderWithProviders(ui: React.ReactElement, noteId: string | null = null) {
+function renderWithProviders(ui: React.ReactElement, noteId: NoteId | null = null) {
   return render(ui, {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <TestWrapper noteId={noteId}>{children}</TestWrapper>
@@ -346,7 +347,7 @@ describe('EditorRoot', () => {
 
       // Create a different note with content
       const note2: Note = {
-        id: 'test-note-2',
+        id: createNoteId('test-note-2'),
         title: 'Different Note',
         createdAt: Date.now(),
         updatedAt: Date.now(),

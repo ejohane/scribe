@@ -7,22 +7,24 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { FileSystemVault } from './storage.js';
-import type { LexicalState } from '@scribe/shared';
+import { createVaultPath, type VaultPath, type LexicalState } from '@scribe/shared';
 
 describe('Metadata Integration', () => {
-  let tempDir: string;
+  let tempDirStr: string;
+  let tempDir: VaultPath;
   let vault: FileSystemVault;
 
   beforeEach(async () => {
     // Create temporary test directory
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'scribe-test-'));
-    await fs.mkdir(path.join(tempDir, 'notes'), { recursive: true });
+    tempDirStr = await fs.mkdtemp(path.join(os.tmpdir(), 'scribe-test-'));
+    tempDir = createVaultPath(tempDirStr);
+    await fs.mkdir(path.join(tempDirStr, 'notes'), { recursive: true });
     vault = new FileSystemVault(tempDir);
   });
 
   afterEach(async () => {
     // Clean up temporary directory
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await fs.rm(tempDirStr, { recursive: true, force: true });
   });
 
   describe('Save Pipeline', () => {

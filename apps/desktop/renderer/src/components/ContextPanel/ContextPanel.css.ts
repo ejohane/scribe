@@ -128,6 +128,13 @@ export const cardIcon = style({
   flexShrink: 0,
 });
 
+/**
+ * Icon color variants for semantic coloring
+ */
+export const cardIconSuccess = style({
+  color: vars.color.success,
+});
+
 export const cardTitle = style({
   fontSize: vars.typography.size.xs,
 });

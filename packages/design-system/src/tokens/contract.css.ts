@@ -14,6 +14,9 @@ export const vars = createThemeContract({
     dangerForeground: null,
     warning: null,
     info: null,
+    success: null, // semantic green for completed tasks, confirmations
+    secondary: null, // semantic teal for people, attendees
+    tertiary: null, // semantic purple for links, references
   },
   typography: {
     fontFamily: {

@@ -5,6 +5,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MetadataIndex } from './metadata-index.js';
 import type { NoteMetadata } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
+
+/**
+ * Shorthand alias for createNoteId to keep test code concise.
+ */
+const n = createNoteId;
 
 describe('MetadataIndex', () => {
   let index: MetadataIndex;
@@ -22,12 +28,12 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata);
-      expect(index.get('note-1')).toEqual(metadata);
+      index.set(n('note-1'), metadata);
+      expect(index.get(n('note-1'))).toEqual(metadata);
     });
 
     it('should return undefined for non-existent note', () => {
-      expect(index.get('non-existent')).toBeUndefined();
+      expect(index.get(n('non-existent'))).toBeUndefined();
     });
 
     it('should update metadata when set is called again', () => {
@@ -45,10 +51,10 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata1);
-      index.set('note-1', metadata2);
+      index.set(n('note-1'), metadata1);
+      index.set(n('note-1'), metadata2);
 
-      expect(index.get('note-1')).toEqual(metadata2);
+      expect(index.get(n('note-1'))).toEqual(metadata2);
     });
   });
 
@@ -61,14 +67,14 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata);
-      index.delete('note-1');
+      index.set(n('note-1'), metadata);
+      index.delete(n('note-1'));
 
-      expect(index.get('note-1')).toBeUndefined();
+      expect(index.get(n('note-1'))).toBeUndefined();
     });
 
     it('should not throw when deleting non-existent note', () => {
-      expect(() => index.delete('non-existent')).not.toThrow();
+      expect(() => index.delete(n('non-existent'))).not.toThrow();
     });
   });
 
@@ -88,8 +94,8 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata1);
-      index.set('note-2', metadata2);
+      index.set(n('note-1'), metadata1);
+      index.set(n('note-2'), metadata2);
 
       expect(index.getNotesWithTag('scribe')).toEqual(['note-1', 'note-2']);
       expect(index.getNotesWithTag('architecture')).toEqual(['note-1']);
@@ -108,8 +114,8 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata);
-      index.delete('note-1');
+      index.set(n('note-1'), metadata);
+      index.delete(n('note-1'));
 
       expect(index.getNotesWithTag('test')).toEqual([]);
     });
@@ -129,8 +135,8 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata1);
-      index.set('note-1', metadata2);
+      index.set(n('note-1'), metadata1);
+      index.set(n('note-1'), metadata2);
 
       expect(index.getNotesWithTag('old-tag')).toEqual([]);
       expect(index.getNotesWithTag('new-tag')).toEqual(['note-1']);
@@ -151,8 +157,8 @@ describe('MetadataIndex', () => {
         mentions: [],
       };
 
-      index.set('note-1', metadata1);
-      index.set('note-2', metadata2);
+      index.set(n('note-1'), metadata1);
+      index.set(n('note-2'), metadata2);
 
       expect(index.getAllTags()).toEqual(['alpha', 'beta', 'gamma']);
     });
@@ -163,65 +169,65 @@ describe('MetadataIndex', () => {
       const metadata1: NoteMetadata = {
         title: 'Note 1',
         tags: [],
-        links: ['note-2', 'note-3'],
+        links: [n('note-2'), n('note-3')],
         mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Note 2',
         tags: [],
-        links: ['note-3'],
+        links: [n('note-3')],
         mentions: [],
       };
 
-      index.set('note-1', metadata1);
-      index.set('note-2', metadata2);
+      index.set(n('note-1'), metadata1);
+      index.set(n('note-2'), metadata2);
 
       // note-2 is linked from note-1
-      expect(index.getBacklinks('note-2')).toEqual(['note-1']);
+      expect(index.getBacklinks(n('note-2'))).toEqual(['note-1']);
 
       // note-3 is linked from both note-1 and note-2
-      expect(index.getBacklinks('note-3').sort()).toEqual(['note-1', 'note-2']);
+      expect(index.getBacklinks(n('note-3')).sort()).toEqual(['note-1', 'note-2']);
     });
 
     it('should return empty array for note with no backlinks', () => {
-      expect(index.getBacklinks('note-1')).toEqual([]);
+      expect(index.getBacklinks(n('note-1'))).toEqual([]);
     });
 
     it('should remove backlinks when note is deleted', () => {
       const metadata: NoteMetadata = {
         title: 'Note 1',
         tags: [],
-        links: ['note-2'],
+        links: [n('note-2')],
         mentions: [],
       };
 
-      index.set('note-1', metadata);
-      index.delete('note-1');
+      index.set(n('note-1'), metadata);
+      index.delete(n('note-1'));
 
-      expect(index.getBacklinks('note-2')).toEqual([]);
+      expect(index.getBacklinks(n('note-2'))).toEqual([]);
     });
 
     it('should update backlinks when metadata is updated', () => {
       const metadata1: NoteMetadata = {
         title: 'Note 1',
         tags: [],
-        links: ['note-2'],
+        links: [n('note-2')],
         mentions: [],
       };
 
       const metadata2: NoteMetadata = {
         title: 'Note 1',
         tags: [],
-        links: ['note-3'],
+        links: [n('note-3')],
         mentions: [],
       };
 
-      index.set('note-1', metadata1);
-      index.set('note-1', metadata2);
+      index.set(n('note-1'), metadata1);
+      index.set(n('note-1'), metadata2);
 
-      expect(index.getBacklinks('note-2')).toEqual([]);
-      expect(index.getBacklinks('note-3')).toEqual(['note-1']);
+      expect(index.getBacklinks(n('note-2'))).toEqual([]);
+      expect(index.getBacklinks(n('note-3'))).toEqual(['note-1']);
     });
   });
 
@@ -230,16 +236,16 @@ describe('MetadataIndex', () => {
       const metadata: NoteMetadata = {
         title: 'Test Note',
         tags: ['test'],
-        links: ['note-2'],
+        links: [n('note-2')],
         mentions: [],
       };
 
-      index.set('note-1', metadata);
+      index.set(n('note-1'), metadata);
       index.clear();
 
-      expect(index.get('note-1')).toBeUndefined();
+      expect(index.get(n('note-1'))).toBeUndefined();
       expect(index.getNotesWithTag('test')).toEqual([]);
-      expect(index.getBacklinks('note-2')).toEqual([]);
+      expect(index.getBacklinks(n('note-2'))).toEqual([]);
       expect(index.size()).toBe(0);
     });
   });
@@ -248,13 +254,13 @@ describe('MetadataIndex', () => {
     it('should return number of indexed notes', () => {
       expect(index.size()).toBe(0);
 
-      index.set('note-1', { title: 'Note 1', tags: [], links: [], mentions: [] });
+      index.set(n('note-1'), { title: 'Note 1', tags: [], links: [], mentions: [] });
       expect(index.size()).toBe(1);
 
-      index.set('note-2', { title: 'Note 2', tags: [], links: [], mentions: [] });
+      index.set(n('note-2'), { title: 'Note 2', tags: [], links: [], mentions: [] });
       expect(index.size()).toBe(2);
 
-      index.delete('note-1');
+      index.delete(n('note-1'));
       expect(index.size()).toBe(1);
     });
   });

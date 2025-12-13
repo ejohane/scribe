@@ -13,6 +13,16 @@ export interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
    * @default true
    */
   closeOnEscape?: boolean;
+  /**
+   * ID of the element that labels the dialog (for accessibility).
+   * Should reference the dialog's title element.
+   */
+  ariaLabelledby?: string;
+  /**
+   * ID of the element that describes the dialog content (for accessibility).
+   * Should reference a description or main content element.
+   */
+  ariaDescribedby?: string;
   children: ReactNode;
 }
 
@@ -22,6 +32,8 @@ export const Overlay = forwardRef<HTMLDivElement, OverlayProps>(function Overlay
     open = true,
     onClose,
     closeOnEscape = true,
+    ariaLabelledby,
+    ariaDescribedby,
     className,
     children,
     onClick,
@@ -80,7 +92,15 @@ export const Overlay = forwardRef<HTMLDivElement, OverlayProps>(function Overlay
         onClick={handleBackdropClick}
         {...props}
       >
-        <div className={styles.content}>{children}</div>
+        <div
+          className={styles.content}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={ariaLabelledby}
+          aria-describedby={ariaDescribedby}
+        >
+          {children}
+        </div>
       </div>
     </Portal>
   );

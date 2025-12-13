@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { createDailyContent, getDailyDisplayTitle, dailyTemplate } from './daily';
 import { format, subDays, addDays } from 'date-fns';
-import type { Note } from '@scribe/shared';
+import type { DailyNote } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 // Helper to create mock daily note
-function mockDailyNote(isoDate: string): Note {
+function mockDailyNote(isoDate: string): DailyNote {
   return {
-    id: 'test-id',
+    id: createNoteId('test-id'),
     title: isoDate,
     type: 'daily',
     createdAt: Date.now(),
@@ -14,6 +15,7 @@ function mockDailyNote(isoDate: string): Note {
     tags: ['daily'],
     content: createDailyContent(),
     metadata: { title: null, tags: [], links: [], mentions: [] },
+    daily: { date: isoDate },
   };
 }
 

@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import App from './App';
 import { ThemeProvider } from '@scribe/design-system';
 import type { Note } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 import { styles } from './components/CommandPalette/CommandPalette.test-utils';
 import * as editorStyles from './components/Editor/EditorRoot.css';
 
@@ -20,7 +21,7 @@ const renderApp = () => {
 
 // Mock the window.scribe API
 const mockNote: Note = {
-  id: 'test-note-id',
+  id: createNoteId('test-note-id'),
   title: 'Untitled',
   createdAt: Date.now(),
   updatedAt: Date.now(),
@@ -124,7 +125,7 @@ describe('App', () => {
   describe('keyboard shortcuts', () => {
     it('cmd+n creates a new note', async () => {
       const newNote: Note = {
-        id: 'new-note-id',
+        id: createNoteId('new-note-id'),
         title: 'Untitled',
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -152,7 +153,7 @@ describe('App', () => {
 
     it('ctrl+n creates a new note (Windows/Linux)', async () => {
       const newNote: Note = {
-        id: 'new-note-id',
+        id: createNoteId('new-note-id'),
         title: 'Untitled',
         createdAt: Date.now(),
         updatedAt: Date.now(),

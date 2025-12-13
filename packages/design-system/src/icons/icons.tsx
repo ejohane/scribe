@@ -50,6 +50,16 @@ export {
   // Utility icons
   Trash2 as TrashIcon,
   History as HistoryIcon,
+  // Context panel icons
+  Users as UsersIcon,
+  ExternalLink as ExternalLinkIcon,
+  CheckCircle as CheckCircleIcon,
+  Clock as ClockIcon,
+  Calendar as CalendarIcon,
+  ChevronDown as ChevronDownIcon,
+  ChevronUp as ChevronUpIcon,
+  GripVertical as GripVerticalIcon,
+  Check as CheckIcon,
 } from 'lucide-react';
 
 // Re-export LucideProps as IconComponentProps for backwards compatibility

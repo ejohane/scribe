@@ -15,7 +15,8 @@ import { format, parse, isValid, isToday } from 'date-fns';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, LexicalState, DailyNote, MeetingNote } from '@scribe/shared';
+import { isDailyNote, isMeetingNote } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -139,25 +140,20 @@ async function dailyGetOrCreate(
   const existing = notes.find((n) => n.type === 'daily' && n.title === dateStr);
   if (existing) return existing;
 
-  // Create new daily note
+  // Create new daily note with daily data included (required for discriminated union)
   const content = createDailyContent();
   const note = await vault.create({
     type: 'daily',
     title: dateStr,
     tags: ['daily'],
     content,
+    daily: { date: dateStr },
   });
 
-  // Update note with daily metadata
-  const loaded = vault.read(note.id);
-  (loaded as any).daily = { date: dateStr };
-  await vault.save(loaded);
+  graphEngine.addNote(note);
+  searchEngine.indexNote(note);
 
-  const savedNote = vault.read(note.id);
-  graphEngine.addNote(savedNote);
-  searchEngine.indexNote(savedNote);
-
-  return savedNote;
+  return note;
 }
 
 /**
@@ -196,29 +192,24 @@ async function meetingCreate(
     dailyNote = await dailyGetOrCreate(vault, graphEngine, searchEngine, today);
   }
 
-  // Create meeting note
+  // Create meeting note with meeting data (required for discriminated union)
   const content = createMeetingContent();
   const note = await vault.create({
     type: 'meeting',
     title: title.trim(),
     tags: ['meeting'],
     content,
+    meeting: {
+      date: dateStr,
+      dailyNoteId: dailyNote.id,
+      attendees: [],
+    },
   });
 
-  // Update note with meeting metadata
-  const loaded = vault.read(note.id);
-  (loaded as any).meeting = {
-    date: dateStr,
-    dailyNoteId: dailyNote.id,
-    attendees: [],
-  };
-  await vault.save(loaded);
+  graphEngine.addNote(note);
+  searchEngine.indexNote(note);
 
-  const savedNote = vault.read(note.id);
-  graphEngine.addNote(savedNote);
-  searchEngine.indexNote(savedNote);
-
-  return savedNote;
+  return note;
 }
 
 /**
@@ -230,19 +221,20 @@ async function meetingAddAttendee(
   personId: NoteId
 ): Promise<{ success: boolean }> {
   const note = vault.read(noteId);
-  if (note.type !== 'meeting') {
+  if (!isMeetingNote(note)) {
     throw new Error('Note is not a meeting');
   }
 
-  const attendees = note.meeting?.attendees ?? [];
+  // TypeScript now knows note is a MeetingNote
+  const attendees = note.meeting.attendees;
   if (attendees.includes(personId)) {
     return { success: true }; // Already added (idempotent)
   }
 
-  const updatedNote = {
+  const updatedNote: MeetingNote = {
     ...note,
     meeting: {
-      ...note.meeting!,
+      ...note.meeting,
       attendees: [...attendees, personId],
     },
   };
@@ -260,21 +252,45 @@ async function meetingRemoveAttendee(
   personId: NoteId
 ): Promise<{ success: boolean }> {
   const note = vault.read(noteId);
-  if (note.type !== 'meeting') {
+  if (!isMeetingNote(note)) {
     throw new Error('Note is not a meeting');
   }
 
-  const attendees = note.meeting?.attendees ?? [];
-  const updatedNote = {
+  // TypeScript now knows note is a MeetingNote
+  const updatedNote: MeetingNote = {
     ...note,
     meeting: {
-      ...note.meeting!,
-      attendees: attendees.filter((id) => id !== personId),
+      ...note.meeting,
+      attendees: note.meeting.attendees.filter((id) => id !== personId),
     },
   };
 
   await vault.save(updatedNote);
   return { success: true };
+}
+
+// =============================================================================
+// Test Assertion Helpers for Discriminated Union Types
+// =============================================================================
+
+/**
+ * Asserts and narrows a note to DailyNote type.
+ * Throws if the note is not a daily note.
+ */
+function assertDailyNote(note: Note): asserts note is DailyNote {
+  if (!isDailyNote(note)) {
+    throw new Error(`Expected daily note, got type: ${note.type}`);
+  }
+}
+
+/**
+ * Asserts and narrows a note to MeetingNote type.
+ * Throws if the note is not a meeting note.
+ */
+function assertMeetingNote(note: Note): asserts note is MeetingNote {
+  if (!isMeetingNote(note)) {
+    throw new Error(`Expected meeting note, got type: ${note.type}`);
+  }
 }
 
 // =============================================================================
@@ -286,7 +302,7 @@ async function meetingRemoveAttendee(
  * For daily notes, shows "Today" if it's today's note, otherwise formatted date
  */
 function getDisplayTitle(note: Note): string {
-  if (note.type === 'daily') {
+  if (isDailyNote(note)) {
     const noteDate = parse(note.title, 'MM-dd-yyyy', new Date());
     if (!isValid(noteDate)) {
       return note.title;
@@ -340,7 +356,9 @@ describe('Templates Feature Integration Tests', () => {
         expect(dailyNote.title).toBe(dateStr);
         expect(dailyNote.tags).toContain('daily');
         expect(dailyNote.content.type).toBe('daily');
-        expect(dailyNote.daily?.date).toBe(dateStr);
+        // Use assertion helper to narrow type before accessing daily field
+        assertDailyNote(dailyNote);
+        expect(dailyNote.daily.date).toBe(dateStr);
       });
 
       it('should create daily note with empty bullet list (no H1)', async () => {
@@ -405,11 +423,8 @@ describe('Templates Feature Integration Tests', () => {
           title: dateStr,
           tags: ['daily'],
           content,
+          daily: { date: dateStr },
         });
-
-        const loaded = vault.read(pastNote.id);
-        (loaded as any).daily = { date: dateStr };
-        await vault.save(loaded);
 
         const savedNote = vault.read(pastNote.id);
         const displayTitle = getDisplayTitle(savedNote);
@@ -459,7 +474,8 @@ describe('Templates Feature Integration Tests', () => {
         expect(loaded).toBeDefined();
         expect(loaded.type).toBe('daily');
         expect(loaded.tags).toContain('daily');
-        expect(loaded.daily?.date).toBeDefined();
+        assertDailyNote(loaded);
+        expect(loaded.daily.date).toBeDefined();
       });
     });
   });
@@ -550,7 +566,8 @@ describe('Templates Feature Integration Tests', () => {
         const meeting = await meetingCreate(vault, graphEngine, searchEngine, 'Planning Session');
 
         // Meeting should link to the existing daily note
-        expect(meeting.meeting?.dailyNoteId).toBe(dailyNote.id);
+        assertMeetingNote(meeting);
+        expect(meeting.meeting.dailyNoteId).toBe(dailyNote.id);
       });
 
       it('should store meeting date as MM-dd-yyyy string', async () => {
@@ -559,7 +576,8 @@ describe('Templates Feature Integration Tests', () => {
 
         const meeting = await meetingCreate(vault, graphEngine, searchEngine, 'Sprint Review');
 
-        expect(meeting.meeting?.date).toBe(dateStr);
+        assertMeetingNote(meeting);
+        expect(meeting.meeting.date).toBe(dateStr);
       });
 
       it('should create multiple meetings linked to same daily note', async () => {
@@ -567,7 +585,9 @@ describe('Templates Feature Integration Tests', () => {
         const meeting2 = await meetingCreate(vault, graphEngine, searchEngine, 'Afternoon Sync');
 
         // Both should link to the same daily note
-        expect(meeting1.meeting?.dailyNoteId).toBe(meeting2.meeting?.dailyNoteId);
+        assertMeetingNote(meeting1);
+        assertMeetingNote(meeting2);
+        expect(meeting1.meeting.dailyNoteId).toBe(meeting2.meeting.dailyNoteId);
 
         // Only one daily note should exist
         const dailyNotes = vault.list().filter((n) => n.type === 'daily');
@@ -578,8 +598,9 @@ describe('Templates Feature Integration Tests', () => {
     describe('Persistence', () => {
       it('should persist meeting note across vault reload', async () => {
         const meeting = await meetingCreate(vault, graphEngine, searchEngine, 'Quarterly Review');
+        assertMeetingNote(meeting);
         const meetingId = meeting.id;
-        const dailyNoteId = meeting.meeting?.dailyNoteId;
+        const dailyNoteId = meeting.meeting.dailyNoteId;
 
         // Simulate restart
         const newVault = await simulateAppRestart(tempDir);
@@ -588,8 +609,9 @@ describe('Templates Feature Integration Tests', () => {
         expect(loaded).toBeDefined();
         expect(loaded.type).toBe('meeting');
         expect(loaded.title).toBe('Quarterly Review');
-        expect(loaded.meeting?.dailyNoteId).toBe(dailyNoteId);
-        expect(loaded.meeting?.attendees).toEqual([]);
+        assertMeetingNote(loaded);
+        expect(loaded.meeting.dailyNoteId).toBe(dailyNoteId);
+        expect(loaded.meeting.attendees).toEqual([]);
       });
     });
   });
@@ -630,8 +652,9 @@ describe('Templates Feature Integration Tests', () => {
         expect(result.success).toBe(true);
 
         const updated = vault.read(meeting.id);
-        expect(updated.meeting?.attendees).toContain(alice.id);
-        expect(updated.meeting?.attendees.length).toBe(1);
+        assertMeetingNote(updated);
+        expect(updated.meeting.attendees).toContain(alice.id);
+        expect(updated.meeting.attendees.length).toBe(1);
       });
 
       it('should add multiple attendees to meeting', async () => {
@@ -639,9 +662,10 @@ describe('Templates Feature Integration Tests', () => {
         await meetingAddAttendee(vault, meeting.id, bob.id);
 
         const updated = vault.read(meeting.id);
-        expect(updated.meeting?.attendees).toContain(alice.id);
-        expect(updated.meeting?.attendees).toContain(bob.id);
-        expect(updated.meeting?.attendees.length).toBe(2);
+        assertMeetingNote(updated);
+        expect(updated.meeting.attendees).toContain(alice.id);
+        expect(updated.meeting.attendees).toContain(bob.id);
+        expect(updated.meeting.attendees.length).toBe(2);
       });
 
       it('should fail when adding attendee to non-meeting note', async () => {
@@ -663,9 +687,10 @@ describe('Templates Feature Integration Tests', () => {
         expect(result.success).toBe(true);
 
         const updated = vault.read(meeting.id);
-        expect(updated.meeting?.attendees).not.toContain(alice.id);
-        expect(updated.meeting?.attendees).toContain(bob.id);
-        expect(updated.meeting?.attendees.length).toBe(1);
+        assertMeetingNote(updated);
+        expect(updated.meeting.attendees).not.toContain(alice.id);
+        expect(updated.meeting.attendees).toContain(bob.id);
+        expect(updated.meeting.attendees.length).toBe(1);
       });
 
       it('should handle removing non-existent attendee gracefully', async () => {
@@ -675,7 +700,8 @@ describe('Templates Feature Integration Tests', () => {
         expect(result.success).toBe(true);
 
         const updated = vault.read(meeting.id);
-        expect(updated.meeting?.attendees.length).toBe(0);
+        assertMeetingNote(updated);
+        expect(updated.meeting.attendees.length).toBe(0);
       });
 
       it('should fail when removing attendee from non-meeting note', async () => {
@@ -694,8 +720,9 @@ describe('Templates Feature Integration Tests', () => {
         await meetingAddAttendee(vault, meeting.id, alice.id);
 
         const updated = vault.read(meeting.id);
-        expect(updated.meeting?.attendees.length).toBe(1);
-        expect(updated.meeting?.attendees).toContain(alice.id);
+        assertMeetingNote(updated);
+        expect(updated.meeting.attendees.length).toBe(1);
+        expect(updated.meeting.attendees).toContain(alice.id);
       });
 
       it('should be idempotent for duplicate removes', async () => {
@@ -705,7 +732,8 @@ describe('Templates Feature Integration Tests', () => {
         await meetingRemoveAttendee(vault, meeting.id, alice.id);
 
         const updated = vault.read(meeting.id);
-        expect(updated.meeting?.attendees.length).toBe(0);
+        assertMeetingNote(updated);
+        expect(updated.meeting.attendees.length).toBe(0);
       });
     });
 
@@ -718,9 +746,10 @@ describe('Templates Feature Integration Tests', () => {
         const newVault = await simulateAppRestart(tempDir);
 
         const loaded = newVault.read(meeting.id);
-        expect(loaded.meeting?.attendees).toContain(alice.id);
-        expect(loaded.meeting?.attendees).toContain(bob.id);
-        expect(loaded.meeting?.attendees.length).toBe(2);
+        assertMeetingNote(loaded);
+        expect(loaded.meeting.attendees).toContain(alice.id);
+        expect(loaded.meeting.attendees).toContain(bob.id);
+        expect(loaded.meeting.attendees.length).toBe(2);
       });
     });
   });
@@ -740,7 +769,8 @@ describe('Templates Feature Integration Tests', () => {
       const meeting = await meetingCreate(vault, graphEngine, searchEngine, 'Sprint Planning');
 
       // Verify meeting links to daily note
-      expect(meeting.meeting?.dailyNoteId).toBe(dailyNote.id);
+      assertMeetingNote(meeting);
+      expect(meeting.meeting.dailyNoteId).toBe(dailyNote.id);
 
       // Step 3: Add attendees to meeting
       const alice = await vault.create({
@@ -759,9 +789,10 @@ describe('Templates Feature Integration Tests', () => {
 
       // Step 4: Verify all data
       const updatedMeeting = vault.read(meeting.id);
-      expect(updatedMeeting.meeting?.attendees.length).toBe(2);
-      expect(updatedMeeting.meeting?.attendees).toContain(alice.id);
-      expect(updatedMeeting.meeting?.attendees).toContain(bob.id);
+      assertMeetingNote(updatedMeeting);
+      expect(updatedMeeting.meeting.attendees.length).toBe(2);
+      expect(updatedMeeting.meeting.attendees).toContain(alice.id);
+      expect(updatedMeeting.meeting.attendees).toContain(bob.id);
 
       // Step 5: "Today" command returns existing daily note (idempotent)
       const sameDailyNote = await dailyGetOrCreate(vault, graphEngine, searchEngine);
@@ -769,7 +800,8 @@ describe('Templates Feature Integration Tests', () => {
 
       // Step 6: Create another meeting (same day)
       const meeting2 = await meetingCreate(vault, graphEngine, searchEngine, 'Design Review');
-      expect(meeting2.meeting?.dailyNoteId).toBe(dailyNote.id);
+      assertMeetingNote(meeting2);
+      expect(meeting2.meeting.dailyNoteId).toBe(dailyNote.id);
 
       // Verify only one daily note exists
       const dailyNotes = vault.list().filter((n) => n.type === 'daily');
@@ -807,13 +839,15 @@ describe('Templates Feature Integration Tests', () => {
       // Verify daily note
       const loadedDaily = newVault.read(dailyNote.id);
       expect(loadedDaily.type).toBe('daily');
-      expect(loadedDaily.daily?.date).toBeDefined();
+      assertDailyNote(loadedDaily);
+      expect(loadedDaily.daily.date).toBeDefined();
 
       // Verify meeting
       const loadedMeeting = newVault.read(meeting.id);
       expect(loadedMeeting.type).toBe('meeting');
-      expect(loadedMeeting.meeting?.dailyNoteId).toBe(dailyNote.id);
-      expect(loadedMeeting.meeting?.attendees).toContain(alice.id);
+      assertMeetingNote(loadedMeeting);
+      expect(loadedMeeting.meeting.dailyNoteId).toBe(dailyNote.id);
+      expect(loadedMeeting.meeting.attendees).toContain(alice.id);
 
       // Verify search works
       const searchResults = newSearchEngine.search('Persistent');
@@ -830,21 +864,23 @@ describe('Templates Feature Integration Tests', () => {
     it('should handle meeting with deleted daily note', async () => {
       // Create meeting (which creates daily note)
       const meeting = await meetingCreate(vault, graphEngine, searchEngine, 'Orphan Meeting');
-      const dailyNoteId = meeting.meeting?.dailyNoteId;
+      assertMeetingNote(meeting);
+      const dailyNoteId = meeting.meeting.dailyNoteId;
 
       // Delete the daily note
-      await vault.delete(dailyNoteId!);
+      await vault.delete(dailyNoteId);
 
       // Meeting should still be accessible
       const loadedMeeting = vault.read(meeting.id);
       expect(loadedMeeting).toBeDefined();
       expect(loadedMeeting.type).toBe('meeting');
+      assertMeetingNote(loadedMeeting);
 
       // Meeting still has stale dailyNoteId reference
-      expect(loadedMeeting.meeting?.dailyNoteId).toBe(dailyNoteId);
+      expect(loadedMeeting.meeting.dailyNoteId).toBe(dailyNoteId);
 
       // But the daily note no longer exists
-      expect(() => vault.read(dailyNoteId!)).toThrow();
+      expect(() => vault.read(dailyNoteId)).toThrow();
     });
 
     it('should handle meeting with deleted attendee', async () => {
@@ -864,9 +900,10 @@ describe('Templates Feature Integration Tests', () => {
       // Meeting should still be accessible
       const loadedMeeting = vault.read(meeting.id);
       expect(loadedMeeting).toBeDefined();
+      assertMeetingNote(loadedMeeting);
 
       // Meeting still has stale attendee ID
-      expect(loadedMeeting.meeting?.attendees).toContain(person.id);
+      expect(loadedMeeting.meeting.attendees).toContain(person.id);
 
       // But the person no longer exists
       expect(() => vault.read(person.id)).toThrow();
@@ -887,6 +924,7 @@ describe('Templates Feature Integration Tests', () => {
         title: yesterdayStr,
         tags: ['daily'],
         content: yesterdayContent,
+        daily: { date: yesterdayStr },
       });
 
       // Both should exist

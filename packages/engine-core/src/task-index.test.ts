@@ -2,6 +2,7 @@
  * TaskIndex unit tests
  *
  * Tests for:
+ * - Pure helper functions (buildExistingTaskMap, findOldTaskId, findOrphanedTaskIds)
  * - Reconciliation rules (nodeKey first, textHash fallback)
  * - Priority assignment for new tasks
  * - completedAt handling (set when checked, clear when unchecked)
@@ -12,8 +13,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { TaskIndex } from './task-index.js';
+import {
+  TaskIndex,
+  buildExistingTaskMap,
+  findOldTaskId,
+  findOrphanedTaskIds,
+} from './task-index.js';
 import type { Note, LexicalState, Task } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 // Mock fs module
 vi.mock('fs', () => ({
@@ -71,7 +78,7 @@ function createNote(
   tasks: Array<{ text: string; checked: boolean; nodeKey: string }>
 ): Note {
   return {
-    id,
+    id: createNoteId(id),
     title,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -85,6 +92,151 @@ function createNote(
     },
   };
 }
+
+/**
+ * Create a minimal Task for testing helper functions.
+ */
+function createTask(overrides: Partial<Task> = {}): Task {
+  return {
+    id: 'note1:key1:hash1',
+    noteId: createNoteId('note1'),
+    noteTitle: 'Test Note',
+    nodeKey: 'key1',
+    lineIndex: 0,
+    text: 'Test task',
+    textHash: 'hash1',
+    completed: false,
+    priority: 0,
+    createdAt: 1000,
+    updatedAt: 1000,
+    ...overrides,
+  };
+}
+
+// ============================================================================
+// Pure Helper Function Tests
+// ============================================================================
+
+describe('buildExistingTaskMap', () => {
+  it('should build a map from task IDs', () => {
+    const task1 = createTask({ id: 'task1', nodeKey: 'key1' });
+    const task2 = createTask({ id: 'task2', nodeKey: 'key2' });
+    const tasks = new Map<string, Task>([
+      ['task1', task1],
+      ['task2', task2],
+    ]);
+    const taskIds = new Set(['task1', 'task2']);
+
+    const result = buildExistingTaskMap(tasks, taskIds);
+
+    expect(result.size).toBe(2);
+    expect(result.get('task1')).toBe(task1);
+    expect(result.get('task2')).toBe(task2);
+  });
+
+  it('should handle missing task IDs gracefully', () => {
+    const task1 = createTask({ id: 'task1' });
+    const tasks = new Map<string, Task>([['task1', task1]]);
+    const taskIds = new Set(['task1', 'task2', 'task3']); // task2, task3 don't exist
+
+    const result = buildExistingTaskMap(tasks, taskIds);
+
+    expect(result.size).toBe(1);
+    expect(result.get('task1')).toBe(task1);
+  });
+
+  it('should return empty map for empty inputs', () => {
+    const tasks = new Map<string, Task>();
+    const taskIds = new Set<string>();
+
+    const result = buildExistingTaskMap(tasks, taskIds);
+
+    expect(result.size).toBe(0);
+  });
+});
+
+describe('findOldTaskId', () => {
+  it('should return undefined when task ID exists in existingTasks', () => {
+    const task = createTask({ id: 'task1', nodeKey: 'key1', textHash: 'hash1' });
+    const existingTasks = new Map<string, Task>([['task1', task]]);
+
+    const result = findOldTaskId(task, existingTasks);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('should find old task ID by matching nodeKey', () => {
+    const newTask = createTask({ id: 'new-id', nodeKey: 'key1', textHash: 'new-hash' });
+    const oldTask = createTask({ id: 'old-id', nodeKey: 'key1', textHash: 'old-hash' });
+    const existingTasks = new Map<string, Task>([['old-id', oldTask]]);
+
+    const result = findOldTaskId(newTask, existingTasks);
+
+    expect(result).toBe('old-id');
+  });
+
+  it('should find old task ID by matching textHash', () => {
+    const newTask = createTask({ id: 'new-id', nodeKey: 'new-key', textHash: 'hash1' });
+    const oldTask = createTask({ id: 'old-id', nodeKey: 'old-key', textHash: 'hash1' });
+    const existingTasks = new Map<string, Task>([['old-id', oldTask]]);
+
+    const result = findOldTaskId(newTask, existingTasks);
+
+    expect(result).toBe('old-id');
+  });
+
+  it('should return undefined when no match found', () => {
+    const newTask = createTask({ id: 'new-id', nodeKey: 'new-key', textHash: 'new-hash' });
+    const oldTask = createTask({ id: 'old-id', nodeKey: 'old-key', textHash: 'old-hash' });
+    const existingTasks = new Map<string, Task>([['old-id', oldTask]]);
+
+    const result = findOldTaskId(newTask, existingTasks);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('should return undefined for empty existingTasks', () => {
+    const task = createTask();
+    const existingTasks = new Map<string, Task>();
+
+    const result = findOldTaskId(task, existingTasks);
+
+    expect(result).toBeUndefined();
+  });
+});
+
+describe('findOrphanedTaskIds', () => {
+  it('should return toRemove array as-is', () => {
+    const existingIds = new Set(['task1', 'task2', 'task3']);
+    const toRemove = ['task2', 'task3'];
+
+    const result = findOrphanedTaskIds(existingIds, toRemove);
+
+    expect(result).toEqual(['task2', 'task3']);
+  });
+
+  it('should handle empty toRemove', () => {
+    const existingIds = new Set(['task1', 'task2']);
+    const toRemove: string[] = [];
+
+    const result = findOrphanedTaskIds(existingIds, toRemove);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should handle empty existingIds', () => {
+    const existingIds = new Set<string>();
+    const toRemove = ['task1'];
+
+    const result = findOrphanedTaskIds(existingIds, toRemove);
+
+    expect(result).toEqual(['task1']);
+  });
+});
+
+// ============================================================================
+// TaskIndex Tests
+// ============================================================================
 
 describe('TaskIndex', () => {
   const derivedPath = '/test/derived';
@@ -118,7 +270,7 @@ describe('TaskIndex', () => {
     it('should load tasks from JSONL file', async () => {
       const task1: Task = {
         id: 'note1:key1:hash1',
-        noteId: 'note1',
+        noteId: createNoteId('note1'),
         noteTitle: 'Test Note',
         nodeKey: 'key1',
         lineIndex: 0,
@@ -132,7 +284,7 @@ describe('TaskIndex', () => {
 
       const task2: Task = {
         id: 'note2:key2:hash2',
-        noteId: 'note2',
+        noteId: createNoteId('note2'),
         noteTitle: 'Another Note',
         nodeKey: 'key2',
         lineIndex: 1,
@@ -157,7 +309,7 @@ describe('TaskIndex', () => {
     it('should skip malformed lines', async () => {
       const validTask: Task = {
         id: 'note1:key1:hash1',
-        noteId: 'note1',
+        noteId: createNoteId('note1'),
         noteTitle: 'Test Note',
         nodeKey: 'key1',
         lineIndex: 0,
@@ -182,7 +334,7 @@ describe('TaskIndex', () => {
     it('should build byNote index correctly', async () => {
       const task1: Task = {
         id: 'note1:key1:hash1',
-        noteId: 'note1',
+        noteId: createNoteId('note1'),
         noteTitle: 'Test Note',
         nodeKey: 'key1',
         lineIndex: 0,
@@ -196,7 +348,7 @@ describe('TaskIndex', () => {
 
       const task2: Task = {
         id: 'note1:key2:hash2',
-        noteId: 'note1',
+        noteId: createNoteId('note1'),
         noteTitle: 'Test Note',
         nodeKey: 'key2',
         lineIndex: 1,
@@ -212,7 +364,7 @@ describe('TaskIndex', () => {
 
       await index.load();
 
-      const noteTaskIds = index.getTaskIdsForNote('note1');
+      const noteTaskIds = index.getTaskIdsForNote(createNoteId('note1'));
       expect(noteTaskIds.size).toBe(2);
       expect(noteTaskIds.has('note1:key1:hash1')).toBe(true);
       expect(noteTaskIds.has('note1:key2:hash2')).toBe(true);
@@ -566,16 +718,16 @@ describe('TaskIndex', () => {
       expect(index.size).toBe(2);
 
       // Remove note1
-      const changes = index.removeNote('note1');
+      const changes = index.removeNote(createNoteId('note1'));
 
       expect(changes.length).toBe(1);
       expect(changes[0].type).toBe('removed');
       expect(index.size).toBe(1);
-      expect(index.getTaskIdsForNote('note1').size).toBe(0);
+      expect(index.getTaskIdsForNote(createNoteId('note1')).size).toBe(0);
     });
 
     it('should return empty array for non-existent note', () => {
-      const changes = index.removeNote('nonexistent');
+      const changes = index.removeNote(createNoteId('nonexistent'));
       expect(changes.length).toBe(0);
     });
   });
@@ -607,7 +759,7 @@ describe('TaskIndex', () => {
     });
 
     it('should filter by noteId', () => {
-      const { tasks } = index.list({ noteId: 'note1' });
+      const { tasks } = index.list({ noteId: createNoteId('note1') });
       expect(tasks.length).toBe(2);
     });
 
@@ -868,6 +1020,135 @@ describe('TaskIndex', () => {
     });
   });
 
+  describe('Deterministic key stability', () => {
+    it('should preserve metadata when re-indexing note with fallback keys', () => {
+      vi.setSystemTime(1000);
+
+      // Create a note with tasks that have no __key (will use fallback)
+      const noteWithoutKeys: Note = {
+        id: createNoteId('note-no-keys'),
+        title: 'Fallback Key Test',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        tags: [],
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'list',
+                listType: 'check',
+                children: [
+                  {
+                    type: 'listitem',
+                    __checked: false,
+                    // No __key - will trigger fallback path
+                    children: [{ type: 'text', text: 'Task without key' }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        metadata: { title: null, tags: [], links: [], mentions: [] },
+      };
+
+      // Index the note
+      const changes1 = index.indexNote(noteWithoutKeys);
+      expect(changes1.length).toBe(1);
+      expect(changes1[0].type).toBe('added');
+
+      const initialTask = index.list().tasks[0];
+      const initialId = initialTask.id;
+      const initialCreatedAt = initialTask.createdAt;
+      const initialPriority = initialTask.priority;
+
+      // Reorder to change priority
+      index.reorder([initialId]);
+      expect(index.get(initialId)?.priority).toBe(0);
+
+      // Re-index the same note (simulating document re-open or re-parse)
+      vi.setSystemTime(5000);
+      const changes2 = index.indexNote(noteWithoutKeys);
+
+      // Should NOT have added/removed - only potentially updated
+      expect(changes2.every((c) => c.type !== 'added')).toBe(true);
+      expect(changes2.every((c) => c.type !== 'removed')).toBe(true);
+
+      // Task should still exist with same ID
+      const finalTask = index.get(initialId);
+      expect(finalTask).toBeDefined();
+
+      // Metadata should be preserved
+      expect(finalTask?.createdAt).toBe(initialCreatedAt);
+      expect(finalTask?.priority).toBe(initialPriority);
+    });
+
+    it('should produce stable task IDs across multiple re-indexing cycles', () => {
+      vi.setSystemTime(1000);
+
+      const noteWithoutKeys: Note = {
+        id: createNoteId('note-stable-test'),
+        title: 'Stability Test',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        tags: [],
+        content: {
+          root: {
+            type: 'root',
+            children: [
+              {
+                type: 'list',
+                listType: 'check',
+                children: [
+                  {
+                    type: 'listitem',
+                    __checked: false,
+                    children: [{ type: 'text', text: 'First task' }],
+                  },
+                  {
+                    type: 'listitem',
+                    __checked: true,
+                    children: [{ type: 'text', text: 'Second task' }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        metadata: { title: null, tags: [], links: [], mentions: [] },
+      };
+
+      // Index multiple times
+      index.indexNote(noteWithoutKeys);
+      const firstIndexIds = index
+        .list()
+        .tasks.map((t) => t.id)
+        .sort();
+
+      vi.setSystemTime(2000);
+      index.indexNote(noteWithoutKeys);
+      const secondIndexIds = index
+        .list()
+        .tasks.map((t) => t.id)
+        .sort();
+
+      vi.setSystemTime(3000);
+      index.indexNote(noteWithoutKeys);
+      const thirdIndexIds = index
+        .list()
+        .tasks.map((t) => t.id)
+        .sort();
+
+      // All should have same IDs
+      expect(firstIndexIds).toEqual(secondIndexIds);
+      expect(secondIndexIds).toEqual(thirdIndexIds);
+
+      // Should always have exactly 2 tasks
+      expect(index.size).toBe(2);
+    });
+  });
+
   describe('Edge cases', () => {
     it('should handle empty note', () => {
       const note = createNote('note1', 'Test Note', []);
@@ -879,7 +1160,7 @@ describe('TaskIndex', () => {
 
     it('should handle note with non-checklist items', () => {
       const note: Note = {
-        id: 'note1',
+        id: createNoteId('note1'),
         title: 'Test Note',
         createdAt: Date.now(),
         updatedAt: Date.now(),

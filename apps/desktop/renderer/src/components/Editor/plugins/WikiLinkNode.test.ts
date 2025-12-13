@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createEditor, $getRoot, $insertNodes, LexicalEditor } from 'lexical';
+import { createNoteId } from '@scribe/shared';
 import {
   WikiLinkNode,
   $createWikiLinkNode,
@@ -29,7 +30,7 @@ describe('WikiLinkNode', () => {
   describe('constructor and properties', () => {
     it('can be created with noteTitle, displayText, and targetId', async () => {
       await editor.update(() => {
-        const node = $createWikiLinkNode('Meeting Notes', 'Meeting Notes', 'abc123');
+        const node = $createWikiLinkNode('Meeting Notes', 'Meeting Notes', createNoteId('abc123'));
         expect(node.__noteTitle).toBe('Meeting Notes');
         expect(node.__displayText).toBe('Meeting Notes');
         expect(node.__targetId).toBe('abc123');
@@ -47,7 +48,7 @@ describe('WikiLinkNode', () => {
 
     it('can have different displayText (alias) than noteTitle', async () => {
       await editor.update(() => {
-        const node = $createWikiLinkNode('Meeting Notes', 'yesterday', 'abc123');
+        const node = $createWikiLinkNode('Meeting Notes', 'yesterday', createNoteId('abc123'));
         expect(node.__noteTitle).toBe('Meeting Notes');
         expect(node.__displayText).toBe('yesterday');
       });
@@ -57,7 +58,11 @@ describe('WikiLinkNode', () => {
   describe('clone', () => {
     it('clones node preserving all properties', async () => {
       await editor.update(() => {
-        const original = $createWikiLinkNode('Project Alpha', 'the project', 'xyz789');
+        const original = $createWikiLinkNode(
+          'Project Alpha',
+          'the project',
+          createNoteId('xyz789')
+        );
         const cloned = WikiLinkNode.clone(original);
 
         expect(cloned.__noteTitle).toBe('Project Alpha');
@@ -101,14 +106,14 @@ describe('WikiLinkNode', () => {
   describe('getTextContent', () => {
     it('returns displayText for copy/paste', async () => {
       await editor.update(() => {
-        const node = $createWikiLinkNode('Meeting Notes', 'yesterday', 'abc123');
+        const node = $createWikiLinkNode('Meeting Notes', 'yesterday', createNoteId('abc123'));
         expect(node.getTextContent()).toBe('yesterday');
       });
     });
 
     it('returns noteTitle when displayText equals noteTitle', async () => {
       await editor.update(() => {
-        const node = $createWikiLinkNode('Meeting Notes', 'Meeting Notes', 'abc123');
+        const node = $createWikiLinkNode('Meeting Notes', 'Meeting Notes', createNoteId('abc123'));
         expect(node.getTextContent()).toBe('Meeting Notes');
       });
     });
@@ -117,7 +122,7 @@ describe('WikiLinkNode', () => {
   describe('JSON serialization', () => {
     it('exportJSON includes all properties', async () => {
       await editor.update(() => {
-        const node = $createWikiLinkNode('Meeting Notes', 'yesterday', 'abc123');
+        const node = $createWikiLinkNode('Meeting Notes', 'yesterday', createNoteId('abc123'));
         const json = node.exportJSON();
 
         expect(json.type).toBe('wiki-link');
@@ -142,7 +147,7 @@ describe('WikiLinkNode', () => {
         type: 'wiki-link',
         noteTitle: 'Project Beta',
         displayText: 'the beta project',
-        targetId: 'def456',
+        targetId: createNoteId('def456'),
         version: 1,
       };
 
@@ -157,7 +162,7 @@ describe('WikiLinkNode', () => {
 
     it('JSON round-trip preserves all data', async () => {
       await editor.update(() => {
-        const original = $createWikiLinkNode('Test Note', 'test alias', 'test123');
+        const original = $createWikiLinkNode('Test Note', 'test alias', createNoteId('test123'));
         const json = original.exportJSON();
         const restored = WikiLinkNode.importJSON(json);
 
@@ -205,7 +210,7 @@ describe('WikiLinkNode', () => {
     it('can be inserted into editor', async () => {
       await editor.update(() => {
         const root = $getRoot();
-        const node = $createWikiLinkNode('Test Note', 'Test Note', 'id123');
+        const node = $createWikiLinkNode('Test Note', 'Test Note', createNoteId('id123'));
         $insertNodes([node]);
 
         const children = root.getAllTextNodes();

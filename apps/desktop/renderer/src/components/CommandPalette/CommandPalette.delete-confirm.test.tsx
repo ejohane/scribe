@@ -13,6 +13,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
+import { createNoteId } from '@scribe/shared';
 import {
   createMockNote,
   mockCommands,
@@ -277,7 +278,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
 
   describe('Confirm behavior', () => {
     const createNoteStateMock = (currentNoteId: string | null = null) => ({
-      currentNoteId,
+      currentNoteId: currentNoteId ? createNoteId(currentNoteId) : null,
       deleteNote: vi.fn().mockResolvedValue(undefined),
       loadNote: vi.fn().mockResolvedValue(undefined),
       createNote: vi.fn().mockResolvedValue(undefined),

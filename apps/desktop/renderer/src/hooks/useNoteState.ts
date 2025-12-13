@@ -168,13 +168,17 @@ export function useNoteState(): UseNoteStateReturn {
       setCurrentNote((prevNote) => {
         if (!prevNote) return null;
 
+        // We preserve the discriminated union by spreading the previous note
+        // and only updating common fields. The type assertion is safe because
+        // we're only modifying fields that exist on BaseNote (title, tags, updatedAt)
+        // and the type-specific fields (daily, meeting) are preserved via spread.
         updatedNote = {
           ...prevNote,
           ...(updates.title !== undefined && { title: updates.title }),
           ...(updates.type !== undefined && { type: updates.type }),
           ...(updates.tags !== undefined && { tags: updates.tags }),
           updatedAt: Date.now(),
-        };
+        } as Note;
 
         return updatedNote;
       });

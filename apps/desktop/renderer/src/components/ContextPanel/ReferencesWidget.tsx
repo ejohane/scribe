@@ -7,7 +7,10 @@
  */
 
 import { useMemo, useCallback } from 'react';
+import clsx from 'clsx';
 import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
+import { ExternalLinkIcon, LinkIcon } from '@scribe/design-system';
 import * as styles from './ReferencesWidget.css';
 
 export interface Reference {
@@ -40,7 +43,7 @@ export function extractReferences(content: LexicalState): Reference[] {
 
       if (targetId && !seen.has(targetId)) {
         seen.add(targetId);
-        refs.push({ type: 'wiki-link', displayText, targetId });
+        refs.push({ type: 'wiki-link', displayText, targetId: createNoteId(targetId) });
       }
     }
 
@@ -84,51 +87,6 @@ export function truncateUrl(url: string, maxLength = 40): string {
   return display;
 }
 
-/**
- * External link icon for URLs
- */
-function ExternalLinkIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-      <polyline points="15 3 21 3 21 9" />
-      <line x1="10" y1="14" x2="21" y2="3" />
-    </svg>
-  );
-}
-
-/**
- * Reference/link icon for the card header
- */
-function ReferenceIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={styles.cardIcon}
-      style={{ color: '#8b5cf6' }}
-    >
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
-  );
-}
-
 export function ReferencesWidget({ note, onNavigate }: ReferencesWidgetProps) {
   const references = useMemo(() => extractReferences(note.content), [note.content]);
 
@@ -146,7 +104,7 @@ export function ReferencesWidget({ note, onNavigate }: ReferencesWidgetProps) {
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <ReferenceIcon size={14} />
+        <LinkIcon size={14} className={clsx(styles.cardIcon, styles.cardIconTertiary)} />
         <span className={styles.cardTitle}>References</span>
       </div>
 

@@ -6,32 +6,137 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GraphEngine } from './graph-engine.js';
-import type { Note, NoteMetadata, NoteType } from '@scribe/shared';
+import type {
+  Note,
+  NoteMetadata,
+  NoteType,
+  NoteId,
+  MeetingNoteData,
+  DailyNoteData,
+} from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
+
+/**
+ * Shorthand alias for createNoteId to keep test code concise.
+ * Usage: n('note-1') instead of createNoteId('note-1')
+ */
+const n = createNoteId;
+
+/**
+ * Helper function to create NoteMetadata with proper branded types.
+ * Converts plain string arrays to branded NoteId arrays.
+ */
+function createTestMetadata(metadata: {
+  title: string | null;
+  tags: string[];
+  links: string[];
+  mentions: string[];
+  type?: NoteType;
+}): NoteMetadata {
+  return {
+    ...metadata,
+    links: metadata.links.map(createNoteId),
+    mentions: metadata.mentions.map(createNoteId),
+  };
+}
 
 /**
  * Helper function to create a valid test Note with all required fields.
  * This ensures tests use the correct Note structure with top-level title and tags.
+ * Uses discriminated union pattern for type-specific data.
  */
 function createTestNote(
   id: string,
-  metadata: NoteMetadata,
+  metadata: {
+    title: string | null;
+    tags: string[];
+    links: string[];
+    mentions: string[];
+    type?: NoteType;
+  },
   options?: {
     type?: NoteType;
     meeting?: { date: string; dailyNoteId: string; attendees: string[] };
+    daily?: { date: string };
   }
 ): Note {
-  return {
-    id,
+  const typedMetadata = createTestMetadata(metadata);
+  const noteType = options?.type ?? metadata.type;
+
+  const baseNote = {
+    id: createNoteId(id),
     title: metadata.title ?? 'Untitled',
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    type: options?.type ?? metadata.type,
     tags: [], // User-defined tags (separate from inline #tags in metadata.tags)
-    content: options?.type
-      ? { root: { type: 'root', children: [] }, type: options.type }
-      : { root: { type: 'root', children: [] } },
-    metadata,
-    meeting: options?.meeting,
+    content: noteType
+      ? { root: { type: 'root' as const, children: [] }, type: noteType }
+      : { root: { type: 'root' as const, children: [] } },
+    metadata: typedMetadata,
+  };
+
+  // Handle discriminated union based on type
+  if (noteType === 'meeting' && options?.meeting) {
+    return {
+      ...baseNote,
+      type: 'meeting',
+      meeting: {
+        date: options.meeting.date,
+        dailyNoteId: createNoteId(options.meeting.dailyNoteId),
+        attendees: options.meeting.attendees.map(createNoteId),
+      },
+    };
+  }
+
+  if (noteType === 'daily' && options?.daily) {
+    return {
+      ...baseNote,
+      type: 'daily',
+      daily: options.daily,
+    };
+  }
+
+  if (noteType === 'daily') {
+    // Daily note without explicit daily data
+    return {
+      ...baseNote,
+      type: 'daily',
+      daily: { date: new Date().toISOString().split('T')[0] },
+    };
+  }
+
+  if (noteType === 'person') {
+    return {
+      ...baseNote,
+      type: 'person',
+    };
+  }
+
+  if (noteType === 'project') {
+    return {
+      ...baseNote,
+      type: 'project',
+    };
+  }
+
+  if (noteType === 'template') {
+    return {
+      ...baseNote,
+      type: 'template',
+    };
+  }
+
+  if (noteType === 'system') {
+    return {
+      ...baseNote,
+      type: 'system',
+    };
+  }
+
+  // Regular note (no type)
+  return {
+    ...baseNote,
+    type: undefined,
   };
 }
 
@@ -143,7 +248,7 @@ describe('GraphEngine', () => {
 
       graph.addNote(note);
 
-      const backlinks = graph.backlinks('note-1');
+      const backlinks = graph.backlinks(n('note-1'));
       expect(backlinks).toHaveLength(0);
     });
 
@@ -165,7 +270,7 @@ describe('GraphEngine', () => {
       graph.addNote(note1);
       graph.addNote(note2);
 
-      const backlinks = graph.backlinks('note-2');
+      const backlinks = graph.backlinks(n('note-2'));
       expect(backlinks).toHaveLength(1);
       expect(backlinks[0].id).toBe('note-1');
       expect(backlinks[0].title).toBe('Note 1');
@@ -197,7 +302,7 @@ describe('GraphEngine', () => {
       graph.addNote(note2);
       graph.addNote(note3);
 
-      const backlinks = graph.backlinks('note-3');
+      const backlinks = graph.backlinks(n('note-3'));
       expect(backlinks).toHaveLength(2);
 
       const backlinkIds = backlinks.map((n) => n.id).sort();
@@ -222,7 +327,7 @@ describe('GraphEngine', () => {
       graph.addNote(note1);
       graph.addNote(note2);
 
-      expect(graph.backlinks('note-2')).toHaveLength(1);
+      expect(graph.backlinks(n('note-2'))).toHaveLength(1);
 
       // Update note1 to link to note-3 instead
       const note1Updated = createTestNote('note-1', {
@@ -235,7 +340,7 @@ describe('GraphEngine', () => {
       graph.addNote(note1Updated);
 
       // note-2 should no longer have backlinks
-      expect(graph.backlinks('note-2')).toHaveLength(0);
+      expect(graph.backlinks(n('note-2'))).toHaveLength(0);
     });
   });
 
@@ -250,7 +355,7 @@ describe('GraphEngine', () => {
 
       graph.addNote(note);
 
-      const neighbors = graph.neighbors('note-1');
+      const neighbors = graph.neighbors(n('note-1'));
       expect(neighbors).toHaveLength(0);
     });
 
@@ -272,7 +377,7 @@ describe('GraphEngine', () => {
       graph.addNote(note1);
       graph.addNote(note2);
 
-      const neighbors = graph.neighbors('note-1');
+      const neighbors = graph.neighbors(n('note-1'));
       expect(neighbors).toHaveLength(1);
       expect(neighbors[0].id).toBe('note-2');
     });
@@ -295,7 +400,7 @@ describe('GraphEngine', () => {
       graph.addNote(note1);
       graph.addNote(note2);
 
-      const neighbors = graph.neighbors('note-2');
+      const neighbors = graph.neighbors(n('note-2'));
       expect(neighbors).toHaveLength(1);
       expect(neighbors[0].id).toBe('note-1');
     });
@@ -326,7 +431,7 @@ describe('GraphEngine', () => {
       graph.addNote(note2);
       graph.addNote(note3);
 
-      const neighbors = graph.neighbors('note-2');
+      const neighbors = graph.neighbors(n('note-2'));
       expect(neighbors).toHaveLength(2);
 
       const neighborIds = neighbors.map((n) => n.id).sort();
@@ -351,7 +456,7 @@ describe('GraphEngine', () => {
       graph.addNote(note1);
       graph.addNote(note2);
 
-      const neighbors = graph.neighbors('note-1');
+      const neighbors = graph.neighbors(n('note-1'));
       expect(neighbors).toHaveLength(1);
       expect(neighbors[0].id).toBe('note-2');
     });
@@ -464,12 +569,12 @@ describe('GraphEngine', () => {
       graph.addNote(note2);
 
       expect(graph.getStats().nodes).toBe(2);
-      expect(graph.backlinks('note-2')).toHaveLength(1);
+      expect(graph.backlinks(n('note-2'))).toHaveLength(1);
 
-      graph.removeNote('note-1');
+      graph.removeNote(n('note-1'));
 
       expect(graph.getStats().nodes).toBe(1);
-      expect(graph.backlinks('note-2')).toHaveLength(0);
+      expect(graph.backlinks(n('note-2'))).toHaveLength(0);
       expect(graph.notesWithTag('tag1')).toHaveLength(0);
     });
   });
@@ -512,12 +617,12 @@ describe('GraphEngine', () => {
       graph.addNote(person);
       graph.addNote(note);
 
-      expect(graph.notesMentioning('person-1')).toHaveLength(1);
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(1);
 
       graph.clear();
 
-      expect(graph.notesMentioning('person-1')).toHaveLength(0);
-      expect(graph.peopleMentionedIn('note-1')).toHaveLength(0);
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(0);
+      expect(graph.peopleMentionedIn(n('note-1'))).toHaveLength(0);
     });
   });
 
@@ -540,10 +645,10 @@ describe('GraphEngine', () => {
       graph.addNote(note);
 
       // mentionedBy: person -> notes mentioning them
-      expect(graph.notesMentioning('person-1')).toEqual(['note-1']);
+      expect(graph.notesMentioning(n('person-1'))).toEqual(['note-1']);
 
       // mentioning: note -> people mentioned in it
-      expect(graph.peopleMentionedIn('note-1')).toEqual(['person-1']);
+      expect(graph.peopleMentionedIn(n('note-1'))).toEqual(['person-1']);
     });
 
     it('should remove note cleans mentions - removing note clears mention relationships', () => {
@@ -563,11 +668,11 @@ describe('GraphEngine', () => {
       graph.addNote(person);
       graph.addNote(note);
 
-      expect(graph.notesMentioning('person-1')).toHaveLength(1);
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(1);
 
-      graph.removeNote('note-1');
+      graph.removeNote(n('note-1'));
 
-      expect(graph.notesMentioning('person-1')).toHaveLength(0);
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(0);
     });
 
     it('should remove person cleans references - removing a person clears all mention-of references', () => {
@@ -595,16 +700,16 @@ describe('GraphEngine', () => {
       graph.addNote(note1);
       graph.addNote(note2);
 
-      expect(graph.notesMentioning('person-1')).toHaveLength(2);
-      expect(graph.peopleMentionedIn('note-1')).toContain('person-1');
-      expect(graph.peopleMentionedIn('note-2')).toContain('person-1');
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(2);
+      expect(graph.peopleMentionedIn(n('note-1'))).toContain('person-1');
+      expect(graph.peopleMentionedIn(n('note-2'))).toContain('person-1');
 
       // Remove the person
-      graph.removeNote('person-1');
+      graph.removeNote(n('person-1'));
 
       // Person should no longer appear in mentions
-      expect(graph.peopleMentionedIn('note-1')).not.toContain('person-1');
-      expect(graph.peopleMentionedIn('note-2')).not.toContain('person-1');
+      expect(graph.peopleMentionedIn(n('note-1'))).not.toContain('person-1');
+      expect(graph.peopleMentionedIn(n('note-2'))).not.toContain('person-1');
     });
 
     it('should update mentions when note is updated', () => {
@@ -631,8 +736,8 @@ describe('GraphEngine', () => {
       graph.addNote(person2);
       graph.addNote(note);
 
-      expect(graph.notesMentioning('person-1')).toEqual(['note-1']);
-      expect(graph.notesMentioning('person-2')).toHaveLength(0);
+      expect(graph.notesMentioning(n('person-1'))).toEqual(['note-1']);
+      expect(graph.notesMentioning(n('person-2'))).toHaveLength(0);
 
       // Update note to mention person-2 instead
       const noteUpdated = createTestNote('note-1', {
@@ -644,9 +749,9 @@ describe('GraphEngine', () => {
 
       graph.addNote(noteUpdated);
 
-      expect(graph.notesMentioning('person-1')).toHaveLength(0);
-      expect(graph.notesMentioning('person-2')).toEqual(['note-1']);
-      expect(graph.peopleMentionedIn('note-1')).toEqual(['person-2']);
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(0);
+      expect(graph.notesMentioning(n('person-2'))).toEqual(['note-1']);
+      expect(graph.peopleMentionedIn(n('note-1'))).toEqual(['person-2']);
     });
 
     it('should handle multiple mentions in one note', () => {
@@ -673,9 +778,9 @@ describe('GraphEngine', () => {
       graph.addNote(person2);
       graph.addNote(note);
 
-      expect(graph.peopleMentionedIn('note-1').sort()).toEqual(['person-1', 'person-2']);
-      expect(graph.notesMentioning('person-1')).toEqual(['note-1']);
-      expect(graph.notesMentioning('person-2')).toEqual(['note-1']);
+      expect(graph.peopleMentionedIn(n('note-1')).sort()).toEqual(['person-1', 'person-2']);
+      expect(graph.notesMentioning(n('person-1'))).toEqual(['note-1']);
+      expect(graph.notesMentioning(n('person-2'))).toEqual(['note-1']);
     });
   });
 
@@ -733,14 +838,14 @@ describe('GraphEngine', () => {
       graph.addNote(person);
       expect(graph.getAllPeople()).toHaveLength(1);
 
-      graph.removeNote('person-1');
+      graph.removeNote(n('person-1'));
       expect(graph.getAllPeople()).toHaveLength(0);
     });
   });
 
   describe('notesMentioning', () => {
     it('should return empty array for non-existent person', () => {
-      const notes = graph.notesMentioning('non-existent');
+      const notes = graph.notesMentioning(n('non-existent'));
       expect(notes).toHaveLength(0);
     });
 
@@ -777,7 +882,7 @@ describe('GraphEngine', () => {
       graph.addNote(note2);
       graph.addNote(note3);
 
-      const mentioningNotes = graph.notesMentioning('person-1');
+      const mentioningNotes = graph.notesMentioning(n('person-1'));
       expect(mentioningNotes).toHaveLength(2);
       expect(mentioningNotes.sort()).toEqual(['note-1', 'note-2']);
     });
@@ -794,7 +899,7 @@ describe('GraphEngine', () => {
 
       graph.addNote(note);
 
-      const people = graph.peopleMentionedIn('note-1');
+      const people = graph.peopleMentionedIn(n('note-1'));
       expect(people).toHaveLength(0);
     });
 
@@ -822,13 +927,13 @@ describe('GraphEngine', () => {
       graph.addNote(person2);
       graph.addNote(note);
 
-      const people = graph.peopleMentionedIn('note-1');
+      const people = graph.peopleMentionedIn(n('note-1'));
       expect(people).toHaveLength(2);
       expect(people.sort()).toEqual(['person-1', 'person-2']);
     });
 
     it('should return empty array for non-existent note', () => {
-      const people = graph.peopleMentionedIn('non-existent');
+      const people = graph.peopleMentionedIn(n('non-existent'));
       expect(people).toHaveLength(0);
     });
   });
@@ -858,7 +963,7 @@ describe('GraphEngine', () => {
       graph.addNote(meetingNote);
 
       // The meeting should appear as a backlink on the daily note
-      const backlinks = graph.backlinks('daily-2024-12-02');
+      const backlinks = graph.backlinks(n('daily-2024-12-02'));
       expect(backlinks).toHaveLength(1);
       expect(backlinks[0].id).toBe('meeting-1');
       expect(backlinks[0].title).toBe('Team Sync');
@@ -888,12 +993,12 @@ describe('GraphEngine', () => {
       graph.addNote(meetingNote);
 
       // Daily note should have meeting as neighbor (via incoming edge)
-      const dailyNeighbors = graph.neighbors('daily-2024-12-02');
+      const dailyNeighbors = graph.neighbors(n('daily-2024-12-02'));
       expect(dailyNeighbors).toHaveLength(1);
       expect(dailyNeighbors[0].id).toBe('meeting-1');
 
       // Meeting should have daily as neighbor (via outgoing edge)
-      const meetingNeighbors = graph.neighbors('meeting-1');
+      const meetingNeighbors = graph.neighbors(n('meeting-1'));
       expect(meetingNeighbors).toHaveLength(1);
       expect(meetingNeighbors[0].id).toBe('daily-2024-12-02');
     });
@@ -928,8 +1033,8 @@ describe('GraphEngine', () => {
       graph.addNote(dailyNote2);
       graph.addNote(meetingNote);
 
-      expect(graph.backlinks('daily-2024-12-01')).toHaveLength(1);
-      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(0);
+      expect(graph.backlinks(n('daily-2024-12-01'))).toHaveLength(1);
+      expect(graph.backlinks(n('daily-2024-12-02'))).toHaveLength(0);
 
       // Update meeting to link to different daily note
       const meetingUpdated = createTestNote(
@@ -947,8 +1052,8 @@ describe('GraphEngine', () => {
 
       graph.addNote(meetingUpdated);
 
-      expect(graph.backlinks('daily-2024-12-01')).toHaveLength(0);
-      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(1);
+      expect(graph.backlinks(n('daily-2024-12-01'))).toHaveLength(0);
+      expect(graph.backlinks(n('daily-2024-12-02'))).toHaveLength(1);
     });
 
     it('should clean up backlinks when meeting is removed', () => {
@@ -974,11 +1079,11 @@ describe('GraphEngine', () => {
       graph.addNote(dailyNote);
       graph.addNote(meetingNote);
 
-      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(1);
+      expect(graph.backlinks(n('daily-2024-12-02'))).toHaveLength(1);
 
-      graph.removeNote('meeting-1');
+      graph.removeNote(n('meeting-1'));
 
-      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(0);
+      expect(graph.backlinks(n('daily-2024-12-02'))).toHaveLength(0);
     });
 
     it('should handle meeting with both dailyNoteId and content links', () => {
@@ -1014,14 +1119,14 @@ describe('GraphEngine', () => {
       graph.addNote(meetingNote);
 
       // Both should appear in meeting's outgoing neighbors
-      const meetingNeighbors = graph.neighbors('meeting-1');
+      const meetingNeighbors = graph.neighbors(n('meeting-1'));
       expect(meetingNeighbors).toHaveLength(2);
       const neighborIds = meetingNeighbors.map((n) => n.id).sort();
       expect(neighborIds).toEqual(['daily-2024-12-02', 'project-1']);
 
       // Meeting should appear as backlink for both
-      expect(graph.backlinks('daily-2024-12-02')).toHaveLength(1);
-      expect(graph.backlinks('project-1')).toHaveLength(1);
+      expect(graph.backlinks(n('daily-2024-12-02'))).toHaveLength(1);
+      expect(graph.backlinks(n('project-1'))).toHaveLength(1);
     });
   });
 });

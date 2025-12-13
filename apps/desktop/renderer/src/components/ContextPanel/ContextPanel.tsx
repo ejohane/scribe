@@ -15,7 +15,7 @@
 import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { GraphNode, NoteId, Note } from '@scribe/shared';
-import { SYSTEM_NOTE_IDS } from '@scribe/shared';
+import { SYSTEM_NOTE_IDS, createNoteId } from '@scribe/shared';
 import { getTemplate, defaultContextPanelSections } from '../../templates';
 import type { ContextPanelSection } from '../../templates';
 import { LinkedMentions, type LinkedMention } from './LinkedMentions';
@@ -177,7 +177,7 @@ export function ContextPanel({
         return (
           <TasksWidget
             key={`section-${index}`}
-            onNavigateToTasks={() => onNavigate(SYSTEM_NOTE_IDS.TASKS)}
+            onNavigateToTasks={() => onNavigate(createNoteId(SYSTEM_NOTE_IDS.TASKS))}
             onNavigate={onNavigate}
           />
         );

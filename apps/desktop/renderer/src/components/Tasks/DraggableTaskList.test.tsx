@@ -9,13 +9,14 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DraggableTaskList } from './DraggableTaskList';
 import type { Task } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 // Helper to create mock tasks
 function createMockTask(overrides: Partial<Task> = {}): Task {
   const id = overrides.id ?? `task-${Math.random().toString(36).substring(7)}`;
   return {
     id,
-    noteId: 'note-1',
+    noteId: createNoteId('note-1'),
     noteTitle: 'Test Note',
     nodeKey: 'node_1',
     lineIndex: 0,

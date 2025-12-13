@@ -14,6 +14,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Task, NoteId, TaskFilter, TaskChangeEvent } from '@scribe/shared';
+import { CheckCircleIcon } from '@scribe/design-system';
 import { DraggableTaskList } from '../Tasks/DraggableTaskList';
 import { FilterBar, type SortOption, type StatusOption, type DateRangeOption } from './FilterBar';
 import * as styles from './TasksScreen.css';
@@ -140,18 +141,7 @@ function EmptyState({ status }: { status: StatusOption }) {
 
   return (
     <div className={styles.emptyState}>
-      <svg
-        className={styles.emptyIcon}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
-      </svg>
+      <CheckCircleIcon className={styles.emptyIcon} strokeWidth={1.5} />
       <div className={styles.emptyTitle}>{message}</div>
       <div className={styles.emptyDescription}>{description}</div>
     </div>

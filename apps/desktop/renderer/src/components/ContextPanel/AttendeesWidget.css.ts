@@ -39,6 +39,13 @@ export const cardIcon = style({
   flexShrink: 0,
 });
 
+/**
+ * Icon color for attendees (secondary/people semantic)
+ */
+export const cardIconSecondary = style({
+  color: vars.color.secondary,
+});
+
 export const cardTitle = style({
   fontSize: vars.typography.size.xs,
   flex: 1,

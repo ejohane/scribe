@@ -11,6 +11,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
+import { createNoteId } from '@scribe/shared';
 import {
   createMockNote,
   mockCommands,
@@ -312,11 +313,11 @@ describe('CommandPalette - Delete Browse Mode', () => {
 
   describe('Note exclusion', () => {
     it('excludes current note from delete list', async () => {
-      const currentNoteId = 'current-note';
+      const currentNoteId = createNoteId('current-note');
 
       const mockNotes = [
         createMockNote({
-          id: currentNoteId,
+          id: 'current-note',
           updatedAt: BASE_TIME + 5000,
           metadata: { title: 'Current Note', tags: [], links: [], mentions: [] },
         }),

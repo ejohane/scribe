@@ -10,24 +10,30 @@
  * 6. Manage autocomplete state and search integration
  * 7. Handle keyboard navigation for autocomplete
  * 8. Render WikiLinkAutocomplete component
+ *
+ * Uses the shared useTriggerableAutocomplete hook for common autocomplete patterns.
  */
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import {
   $getSelection,
   $isRangeSelection,
   $getNodeByKey,
   TextNode,
   COMMAND_PRIORITY_LOW,
-  KEY_ESCAPE_COMMAND,
   $createTextNode,
   createCommand,
   type LexicalCommand,
 } from 'lexical';
 import { $createWikiLinkNode } from './WikiLinkNode';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
-import type { SearchResult } from '@scribe/shared';
+import {
+  useTriggerableAutocomplete,
+  useAutocompleteKeyboardNavigation,
+  type TriggerState,
+} from '../hooks';
+import type { SearchResult, NoteId } from '@scribe/shared';
 
 /**
  * Command payload for inserting a wiki link.
@@ -36,7 +42,7 @@ import type { SearchResult } from '@scribe/shared';
  */
 export interface InsertWikiLinkPayload {
   linkText: string;
-  targetId: string | null;
+  targetId: NoteId | null;
   startOffset: number;
   anchorKey: string;
 }
@@ -53,63 +59,40 @@ export interface WikiLinkPluginProps {
   currentNoteId: string | null;
 }
 
-export interface TriggerState {
-  isActive: boolean;
-  startOffset: number;
-  anchorKey: string;
-  query: string;
-}
+// Re-export TriggerState for backward compatibility
+export type { TriggerState };
 
 export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
   const [editor] = useLexicalComposerContext();
-  const [triggerState, setTriggerState] = useState<TriggerState | null>(null);
-
-  // Autocomplete state
-  const [autocompleteState, setAutocompleteState] = useState<{
-    isOpen: boolean;
-    query: string;
-    results: SearchResult[];
-    selectedIndex: number;
-    position: { top: number; left: number };
-    isLoading: boolean;
-  }>({
-    isOpen: false,
-    query: '',
-    results: [],
-    selectedIndex: 0,
-    position: { top: 0, left: 0 },
-    isLoading: false,
-  });
-
-  // Use ref to track whether we just inserted a link to prevent re-triggering
-  const justInsertedRef = useRef(false);
 
   // Ref for debounced search timeout
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Perform search with debouncing
   const performSearch = useCallback(
-    async (query: string) => {
+    async (
+      query: string,
+      setResults: (results: SearchResult[]) => void,
+      setLoading: (loading: boolean) => void
+    ) => {
       if (!query.trim()) {
-        setAutocompleteState((s) => ({ ...s, results: [], isLoading: false }));
+        setResults([]);
+        setLoading(false);
         return;
       }
 
-      setAutocompleteState((s) => ({ ...s, isLoading: true }));
+      setLoading(true);
 
       try {
         const results = await window.scribe.notes.searchTitles(query, 10);
         // Filter out current note
         const filtered = results.filter((r) => r.id !== currentNoteId);
-        setAutocompleteState((s) => ({
-          ...s,
-          results: filtered,
-          selectedIndex: 0,
-          isLoading: false,
-        }));
+        setResults(filtered);
+        setLoading(false);
       } catch (error) {
         console.error('Search failed:', error);
-        setAutocompleteState((s) => ({ ...s, results: [], isLoading: false }));
+        setResults([]);
+        setLoading(false);
       }
     },
     [currentNoteId]
@@ -124,28 +107,50 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
     };
   }, []);
 
-  // Handle closing autocomplete
-  const handleCancel = useCallback(() => {
-    setAutocompleteState((s) => ({
-      ...s,
-      isOpen: false,
-      query: '',
-      results: [],
-      selectedIndex: 0,
-    }));
-  }, []);
+  // Use the shared triggerable autocomplete hook
+  const { state, actions, triggerState } = useTriggerableAutocomplete<SearchResult>({
+    triggerPattern: '[[',
+    closurePattern: ']]',
+    onTriggerStart: () => {
+      // Autocomplete opened - state is managed by the hook
+    },
+    onQueryChange: (query) => {
+      // Debounced search
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      searchTimeoutRef.current = setTimeout(() => {
+        performSearch(query, actions.setResults, actions.setLoading);
+      }, 150);
+    },
+    onClose: () => {
+      // Cleanup on close
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    },
+    onClosureDetected: (linkText, currentTriggerState) => {
+      // Handle ]] closure - dispatch command with captured state
+      if (linkText) {
+        editor.dispatchCommand(INSERT_WIKILINK_COMMAND, {
+          linkText,
+          targetId: null,
+          startOffset: currentTriggerState.startOffset,
+          anchorKey: currentTriggerState.anchorKey,
+        });
+      }
+    },
+  });
 
   // Register command handler for inserting wiki links
-  // This handles the actual insertion logic with all data passed via payload,
-  // avoiding race conditions from stale closure state
   useEffect(() => {
     return editor.registerCommand(
       INSERT_WIKILINK_COMMAND,
       (payload: InsertWikiLinkPayload) => {
         const { linkText, targetId, startOffset, anchorKey } = payload;
 
-        // Set flag to prevent re-triggering detection
-        justInsertedRef.current = true;
+        // Signal insertion to prevent re-triggering
+        actions.markInserted();
 
         // Parse alias syntax: "note title|display text" (last pipe wins)
         const pipeIndex = linkText.lastIndexOf('|');
@@ -161,7 +166,6 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
         }
 
         if (!noteTitle) {
-          justInsertedRef.current = false;
           return true;
         }
 
@@ -195,24 +199,18 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
           }
         }
 
-        setTriggerState(null);
-        handleCancel();
-
-        // Reset flag after a short delay
-        setTimeout(() => {
-          justInsertedRef.current = false;
-        }, 100);
+        actions.clearTriggerState();
+        actions.close();
 
         return true;
       },
       COMMAND_PRIORITY_LOW
     );
-  }, [editor, handleCancel]);
+  }, [editor, actions]);
 
-  // Insert wiki-link when called (by autocomplete selection or ]] closure)
-  // This is a convenience wrapper that dispatches the command with the current trigger state
+  // Insert wiki-link when called (by autocomplete selection)
   const insertWikiLink = useCallback(
-    (linkText: string, targetId: string | null = null) => {
+    (linkText: string, targetId: NoteId | null = null) => {
       if (!triggerState) return;
 
       editor.dispatchCommand(INSERT_WIKILINK_COMMAND, {
@@ -233,191 +231,34 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
     [insertWikiLink]
   );
 
-  // Key detection logic - monitor text changes
-  useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      // Skip if we just inserted a link
-      if (justInsertedRef.current) return;
-
-      editorState.read(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return;
-
-        const anchor = selection.anchor;
-        const anchorNode = anchor.getNode();
-
-        if (!(anchorNode instanceof TextNode)) return;
-
-        const text = anchorNode.getTextContent();
-        const offset = anchor.offset;
-
-        // Check for [[ pattern (only when not already tracking)
-        if (!triggerState && offset >= 2 && text.slice(offset - 2, offset) === '[[') {
-          // Start tracking
-          const domNode = editor.getElementByKey(anchorNode.getKey());
-          if (domNode) {
-            const rect = domNode.getBoundingClientRect();
-            // Calculate approximate cursor position
-            // Use getComputedStyle to get more accurate character width
-            const computedStyle = window.getComputedStyle(domNode);
-            const fontSize = parseFloat(computedStyle.fontSize) || 16;
-            const charWidth = fontSize * 0.6; // Approximate character width ratio
-
-            const position = {
-              top: rect.bottom + 4, // Small gap below the line
-              left: rect.left + offset * charWidth,
-            };
-
-            // Open autocomplete
-            setAutocompleteState((s) => ({
-              ...s,
-              isOpen: true,
-              query: '',
-              results: [],
-              selectedIndex: 0,
-              position,
-            }));
-
-            setTriggerState({
-              isActive: true,
-              startOffset: offset - 2,
-              anchorKey: anchorNode.getKey(),
-              query: '',
-            });
-          }
-          return;
-        }
-
-        // If tracking, update query
-        if (triggerState?.isActive && anchorNode.getKey() === triggerState.anchorKey) {
-          const query = text.slice(triggerState.startOffset + 2, offset);
-
-          // Check for ]] closure
-          if (query.endsWith(']]')) {
-            const linkText = query.slice(0, -2);
-            if (linkText) {
-              // Dispatch command with all necessary data captured now.
-              // Using the command system ensures the update executes safely
-              // after the read completes, without race conditions from setTimeout.
-              editor.dispatchCommand(INSERT_WIKILINK_COMMAND, {
-                linkText,
-                targetId: null,
-                startOffset: triggerState.startOffset,
-                anchorKey: triggerState.anchorKey,
-              });
-            }
-            return;
-          }
-
-          // Update query if changed
-          if (query !== triggerState.query) {
-            setTriggerState((prev) => (prev ? { ...prev, query } : null));
-            setAutocompleteState((s) => ({ ...s, query }));
-
-            // Debounced search
-            if (searchTimeoutRef.current) {
-              clearTimeout(searchTimeoutRef.current);
-            }
-            searchTimeoutRef.current = setTimeout(() => {
-              performSearch(query);
-            }, 150);
-          }
-        }
-
-        // If we moved to a different node, cancel tracking
-        if (triggerState?.isActive && anchorNode.getKey() !== triggerState.anchorKey) {
-          setTriggerState(null);
-          handleCancel();
-        }
-      });
-    });
-  }, [editor, triggerState, performSearch, handleCancel]);
-
-  // Escape key handling
-  useEffect(() => {
-    return editor.registerCommand(
-      KEY_ESCAPE_COMMAND,
-      () => {
-        if (triggerState?.isActive) {
-          // Remove [[ text and cancel
-          editor.update(() => {
-            const node = $getNodeByKey(triggerState.anchorKey);
-            if (node instanceof TextNode) {
-              const text = node.getTextContent();
-              const endOffset = triggerState.startOffset + 2 + triggerState.query.length;
-              const newText = text.slice(0, triggerState.startOffset) + text.slice(endOffset);
-              node.setTextContent(newText);
-
-              // Move cursor to where [[ was
-              const selection = $getSelection();
-              if ($isRangeSelection(selection)) {
-                node.select(triggerState.startOffset, triggerState.startOffset);
-              }
-            }
-          });
-          setTriggerState(null);
-          handleCancel();
-          return true;
-        }
-        return false;
-      },
-      COMMAND_PRIORITY_LOW
-    );
-  }, [editor, triggerState, handleCancel]);
-
-  // Keyboard navigation for autocomplete
-  useEffect(() => {
-    if (!autocompleteState.isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setAutocompleteState((s) => ({
-            ...s,
-            selectedIndex: Math.min(s.selectedIndex + 1, s.results.length - 1),
-          }));
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setAutocompleteState((s) => ({
-            ...s,
-            selectedIndex: Math.max(s.selectedIndex - 1, 0),
-          }));
-          break;
-        case 'Tab':
-        case 'Enter':
-          if (autocompleteState.results.length > 0) {
-            e.preventDefault();
-            e.stopPropagation();
-            const selected = autocompleteState.results[autocompleteState.selectedIndex];
-            if (selected) {
-              handleSelect(selected);
-            }
-          }
-          break;
+  // Keyboard navigation using shared hook
+  const handleKeyboardSelect = useCallback(() => {
+    if (state.results.length > 0) {
+      const selected = state.results[state.selectedIndex];
+      if (selected) {
+        handleSelect(selected);
       }
-    };
+    }
+  }, [state.results, state.selectedIndex, handleSelect]);
 
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [
-    autocompleteState.isOpen,
-    autocompleteState.selectedIndex,
-    autocompleteState.results,
-    handleSelect,
-  ]);
+  useAutocompleteKeyboardNavigation(
+    state.isOpen,
+    state.selectedIndex,
+    state.results.length,
+    handleKeyboardSelect,
+    actions
+  );
 
   return (
     <WikiLinkAutocomplete
-      isOpen={autocompleteState.isOpen}
-      query={autocompleteState.query}
-      position={autocompleteState.position}
-      results={autocompleteState.results}
-      selectedIndex={autocompleteState.selectedIndex}
+      isOpen={state.isOpen}
+      query={state.query}
+      position={state.position}
+      results={state.results}
+      selectedIndex={state.selectedIndex}
       onSelect={handleSelect}
-      onClose={handleCancel}
-      isLoading={autocompleteState.isLoading}
+      onClose={actions.close}
+      isLoading={state.isLoading}
     />
   );
 }

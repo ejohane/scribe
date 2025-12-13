@@ -15,6 +15,9 @@ export const darkTheme = createTheme(vars, {
     dangerForeground: '#FFFFFF', // white
     warning: '#F59E0B', // amber-500
     info: '#3B82F6', // blue-500
+    success: '#22C55E', // green-500 - tasks, completed items
+    secondary: '#10B981', // emerald-500 - people, attendees
+    tertiary: '#8B5CF6', // violet-500 - links, references
   },
   typography: {
     fontFamily: {

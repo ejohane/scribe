@@ -12,6 +12,7 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
 import type { Note } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 import {
   createMockNote,
   mockCommands,
@@ -73,11 +74,11 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('excludes current note from list', async () => {
-      const currentNoteId = 'current-note';
+      const currentNoteIdStr = 'current-note';
 
       const mockNotes: Note[] = [
         createMockNote({
-          id: currentNoteId,
+          id: currentNoteIdStr,
           updatedAt: BASE_TIME + 5000, // Most recent
           metadata: { title: 'Current Note', tags: [], links: [], mentions: [] },
         }),
@@ -102,7 +103,7 @@ describe('CommandPalette - File Browse Mode', () => {
           commands={mockCommands}
           onCommandSelect={vi.fn()}
           initialMode="file-browse"
-          currentNoteId={currentNoteId}
+          currentNoteId={createNoteId(currentNoteIdStr)}
         />
       );
 
@@ -545,7 +546,7 @@ describe('CommandPalette - File Browse Mode', () => {
           commands={[]}
           onCommandSelect={vi.fn()}
           initialMode="file-browse"
-          currentNoteId="current-note"
+          currentNoteId={createNoteId('current-note')}
         />
       );
 

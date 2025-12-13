@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import * as styles from './App.css';
-import { useTheme, FilePlusIcon, CheckboxIcon } from '@scribe/design-system';
+import { useTheme } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
 import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
@@ -10,12 +10,9 @@ import { NavigationButtons } from './components/NavigationButtons';
 import { FloatingDock } from './components/FloatingDock/FloatingDock';
 import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
-import type { HistoryEntry } from './components/Sidebar';
 import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
 import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
-import { peopleCommands } from './commands/people';
-import { templateCommands } from './commands/templates';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId } from '@scribe/shared';
 import { SYSTEM_NOTE_IDS } from '@scribe/shared';
@@ -23,38 +20,20 @@ import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
 import { useScrollHeader } from './hooks/useScrollHeader';
+import { useCommandPalette } from './hooks/useCommandPalette';
+import { useBacklinks } from './hooks/useBacklinks';
+import { usePanelState } from './hooks/usePanelState';
+import { useHistoryEntries } from './hooks/useHistoryEntries';
+import { useAppCommands } from './hooks/useAppCommands';
+import { useAppKeyboardShortcuts } from './hooks/useAppKeyboardShortcuts';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 
-/** Type for the prompt input resolver function */
-type PromptInputResolver = (value: string | undefined) => void;
-
 function App() {
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [paletteMode, setPaletteMode] = useState<PaletteMode>('command');
-  const [backlinkResults, setBacklinkResults] = useState<GraphNode[]>([]);
-  const [showBacklinks, setShowBacklinks] = useState(false);
-  const [globalError, setGlobalError] = useState<string | null>(null);
-
-  // FloatingDock state - sidebar and context panel visibility
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [contextPanelOpen, setContextPanelOpen] = useState(false);
-
-  // Panel width state for resizable panels
-  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
-  const [contextPanelWidth, setContextPanelWidth] = useState(CONTEXT_PANEL_DEFAULT_WIDTH);
-
-  // History entries with titles for sidebar display
-  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
-
-  // Prompt input state for text input modal
-  const [promptPlaceholder, setPromptPlaceholder] = useState('');
-  const promptResolverRef = useRef<PromptInputResolver | null>(null);
-
-  // Manage note state at app level so commands can access it
+  // Note state management
   const noteState = useNoteState();
 
-  // Add navigation history for wiki-link back/forward navigation
+  // Navigation history for wiki-link back/forward navigation
   const {
     canGoBack,
     canGoForward,
@@ -67,29 +46,75 @@ function App() {
     clearHistory,
   } = useNavigationHistory(noteState.currentNoteId, noteState.loadNote);
 
-  // Manage theme
+  // Theme management
   const { resolvedTheme, setTheme } = useTheme();
 
-  // Manage toast notifications
+  // Toast notifications
   const { toasts, showToast, dismissToast } = useToast();
 
   // Scroll header parallax effect
   const { translateY, scrollContainerRef, handleScroll } = useScrollHeader({
-    headerHeight: 150, // Header height including padding
+    headerHeight: 150,
     threshold: 20,
   });
 
-  // Expose error handler for child components
-  const showError = useCallback((error: string) => {
-    setGlobalError(error);
-  }, []);
+  // Command palette state
+  const commandPalette = useCommandPalette();
+
+  // Backlinks panel state
+  const backlinks = useBacklinks();
+
+  // Side panel states
+  const sidebar = usePanelState(SIDEBAR_DEFAULT_WIDTH);
+  const contextPanel = usePanelState(CONTEXT_PANEL_DEFAULT_WIDTH);
+
+  // History entries with titles for sidebar display
+  const historyEntries = useHistoryEntries(historyStack, sidebar.isOpen);
+
+  // Global error state (kept local since it's simple display logic)
+  const showError = useCallback(
+    (error: string) => {
+      // Note: We now use a simpler approach - just log and show toast
+      showToast(error, 'error');
+    },
+    [showToast]
+  );
+
+  // Register app commands
+  useAppCommands({
+    resolvedTheme: resolvedTheme as 'light' | 'dark',
+    setTheme,
+    setPaletteMode: commandPalette.setMode,
+    showBacklinks: backlinks.fetchForNote,
+  });
+
+  // Handle keyboard shortcuts
+  useAppKeyboardShortcuts({
+    isPaletteOpen: commandPalette.isOpen,
+    setPaletteMode: commandPalette.setMode,
+    openPalette: commandPalette.open,
+    closePalette: commandPalette.close,
+    createNote: noteState.createNote,
+    canGoBack,
+    canGoForward,
+    navigateBack,
+    navigateForward,
+    toggleSidebar: sidebar.toggle,
+    toggleContextPanel: contextPanel.toggle,
+  });
+
+  // Display errors from noteState
+  useEffect(() => {
+    if (noteState.error) {
+      showError(noteState.error);
+    }
+  }, [noteState.error, showError]);
 
   // Handle wiki-link clicks - resolve and navigate to target note
   const handleWikiLinkClick = useCallback(
     async (noteTitle: string, targetId: NoteId | null) => {
       let resolvedId = targetId;
 
-      // If no targetId, try to find by title
       if (!resolvedId) {
         const note = await window.scribe.notes.findByTitle(noteTitle);
         if (note) {
@@ -98,18 +123,13 @@ function App() {
       }
 
       if (resolvedId) {
-        // Navigate to existing note (adds current to history)
         navigateToNote(resolvedId);
       } else {
-        // Create new note with the wiki-link title and navigate to it
         const newNote = await window.scribe.notes.create();
-
-        // Save the note with the explicit title from the wiki-link
         await window.scribe.notes.save({
           ...newNote,
           title: noteTitle,
         });
-
         navigateToNote(newNote.id);
       }
     },
@@ -119,10 +139,15 @@ function App() {
   // Handle person mention clicks - navigate to the person's note
   const handlePersonMentionClick = useCallback(
     async (personId: NoteId) => {
-      // Person mentions always have a resolved ID, so we can navigate directly
       navigateToNote(personId);
     },
     [navigateToNote]
+  );
+
+  // Memoized error handler for providers to prevent infinite rerenders
+  const handleProviderError = useCallback(
+    (message: string) => showToast(message, 'error'),
+    [showToast]
   );
 
   // Handle date click - open or create the daily note for the given date
@@ -134,309 +159,51 @@ function App() {
     [navigateToNote]
   );
 
-  // Register commands on mount
-  useEffect(() => {
-    // Command: Create Note
-    commandRegistry.register({
-      id: 'new-note',
-      title: 'Create Note',
-      description: 'Create a new note',
-      keywords: ['create', 'add', 'new'],
-      group: 'notes',
-      icon: <FilePlusIcon size={16} />,
-      closeOnSelect: true, // Close palette immediately, then create note
-      run: async (context) => {
-        await context.createNote();
-      },
-    });
-
-    // Command: Open Note
-    commandRegistry.register({
-      id: 'open-note',
-      title: 'Open Note',
-      description: 'Open an existing note',
-      keywords: ['find', 'search', 'switch'],
-      group: 'notes',
-      closeOnSelect: false, // Keep palette open to show file browser
-      hidden: true,
-      run: async () => {
-        // Switch palette to file-browse mode to show note list
-        setPaletteMode('file-browse');
-      },
-    });
-
-    // Command: Save
-    commandRegistry.register({
-      id: 'save',
-      title: 'Save',
-      description: 'Save the current note',
-      keywords: ['save', 'write'],
-      group: 'notes',
-      closeOnSelect: true,
-      hidden: true,
-      run: async () => {
-        // Manual save is handled by ManualSavePlugin
-        // This command is more for visibility
-      },
-    });
-
-    // Command: Open DevTools
-    commandRegistry.register({
-      id: 'open-devtools',
-      title: 'Open Developer Tools',
-      description: 'Open Electron DevTools for debugging',
-      keywords: ['devtools', 'debug', 'inspect'],
-      group: 'developer',
-      closeOnSelect: true,
-      hidden: true,
-      run: async () => {
-        await window.scribe.app.openDevTools();
-      },
-    });
-
-    // Command: Show Backlinks
-    commandRegistry.register({
-      id: 'show-backlinks',
-      title: 'Show Backlinks',
-      description: 'Show notes that link to the current note',
-      keywords: ['backlinks', 'references', 'links', 'graph'],
-      group: 'navigation',
-      closeOnSelect: true,
-      hidden: true,
-      run: async (context) => {
-        const currentNoteId = context.getCurrentNoteId();
-        if (!currentNoteId) {
-          console.warn('No current note to show backlinks for');
-          return;
-        }
-
-        try {
-          const backlinks = await window.scribe.graph.backlinks(currentNoteId);
-          setBacklinkResults(backlinks);
-          setShowBacklinks(true);
-          console.log('Backlinks for current note:', backlinks);
-        } catch (error) {
-          console.error('Failed to fetch backlinks:', error);
-        }
-      },
-    });
-
-    // Command: Delete Note
-    commandRegistry.register({
-      id: 'delete-note',
-      title: 'Delete Note',
-      description: 'Permanently delete a note',
-      keywords: ['remove', 'trash', 'destroy'],
-      group: 'notes',
-      closeOnSelect: false, // Keep palette open for file selection + confirmation
-      hidden: true,
-      run: async () => {
-        setPaletteMode('delete-browse');
-      },
-    });
-
-    // Command: Toggle Theme
-    commandRegistry.register({
-      id: 'toggle-theme',
-      title: 'Toggle Theme',
-      description: `Current theme: ${resolvedTheme}`,
-      keywords: ['theme', 'dark', 'light', 'appearance'],
-      group: 'settings',
-      closeOnSelect: true,
-      hidden: true,
-      run: async () => {
-        const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-      },
-    });
-
-    // Command: Navigate to Tasks
-    commandRegistry.register({
-      id: 'navigate-tasks',
-      title: 'Tasks',
-      description: 'View all tasks',
-      keywords: ['tasks', 'todo', 'checklist', 'checkbox'],
-      group: 'navigation',
-      icon: <CheckboxIcon size={16} />,
-      closeOnSelect: true,
-      run: async (context) => {
-        context.navigateToNote(SYSTEM_NOTE_IDS.TASKS);
-      },
-    });
-
-    // Register People command group
-    commandRegistry.registerGroup({
-      id: 'people',
-      label: 'People',
-      priority: 3, // After 'notes' and 'navigation'
-    });
-
-    // Register People commands
-    commandRegistry.registerMany(peopleCommands);
-
-    // Register Template commands
-    commandRegistry.registerMany(templateCommands);
-  }, [resolvedTheme, setTheme]);
-
-  // Handle keyboard shortcuts: cmd+k (command palette), cmd+o (file browse), cmd+n (new note), cmd+[ (back), cmd+] (forward)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // ⌘K: toggle palette in command mode
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        if (isPaletteOpen) {
-          // If already open, switch to command mode
-          setPaletteMode('command');
-        } else {
-          // Open in command mode
-          setPaletteMode('command');
-          setIsPaletteOpen(true);
-        }
-      }
-      // ⌘O: open palette in file-browse mode
-      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
-        e.preventDefault();
-        if (isPaletteOpen) {
-          // If already open, switch to file-browse mode
-          setPaletteMode('file-browse');
-        } else {
-          // Open in file-browse mode
-          setPaletteMode('file-browse');
-          setIsPaletteOpen(true);
-        }
-      }
-      // ⌘N: create new note
-      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-        e.preventDefault();
-        setIsPaletteOpen(false);
-        noteState.createNote();
-      }
-      // ⌘[ / Ctrl+[: Navigate back through wiki-link history
-      if ((e.metaKey || e.ctrlKey) && e.key === '[') {
-        e.preventDefault();
-        if (canGoBack) {
-          navigateBack();
-        }
-      }
-      // ⌘] / Ctrl+]: Navigate forward through wiki-link history
-      if ((e.metaKey || e.ctrlKey) && e.key === ']') {
-        e.preventDefault();
-        if (canGoForward) {
-          navigateForward();
-        }
-      }
-      // ⌘J / Ctrl+J: Toggle left sidebar
-      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
-        e.preventDefault();
-        setSidebarOpen((prev) => !prev);
-      }
-      // ⌘L / Ctrl+L: Toggle right context panel
-      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
-        e.preventDefault();
-        setContextPanelOpen((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPaletteOpen, noteState, canGoBack, canGoForward, navigateBack, navigateForward]);
-
   // Handle command selection
-  const handleCommandSelect = async (command: Command) => {
-    // If closeOnSelect is explicitly true, close the palette before running the command
-    if (command.closeOnSelect === true) {
-      setIsPaletteOpen(false);
-    }
+  const handleCommandSelect = useCallback(
+    async (command: Command) => {
+      if (command.closeOnSelect === true) {
+        commandPalette.close();
+      }
 
-    await command.run({
-      closePalette: () => setIsPaletteOpen(false),
-      setCurrentNoteId: (noteId: string) => noteState.loadNote(noteId),
-      getCurrentNoteId: () => noteState.currentNoteId,
-      saveCurrentNote: async () => {
-        if (noteState.currentNote) {
-          await noteState.saveNote(noteState.currentNote.content);
-        }
-      },
-      createNote: () => noteState.createNote(),
-      promptInput: async (placeholder: string) => {
-        return new Promise<string | undefined>((resolve) => {
-          setPromptPlaceholder(placeholder);
-          promptResolverRef.current = resolve;
-          setPaletteMode('prompt-input');
-          setIsPaletteOpen(true);
-        });
-      },
-      navigateToNote: (noteId: string) => noteState.loadNote(noteId),
-      setPaletteMode: (mode: PaletteMode) => setPaletteMode(mode),
-    });
-    // Note: Commands can use closeOnSelect: true for automatic closing,
-    // closeOnSelect: false to explicitly keep the palette open (e.g., 'open-note'),
-    // or omit it to handle closing via context.closePalette() themselves.
-  };
-
-  // Close backlinks view
-  const handleCloseBacklinks = () => {
-    setShowBacklinks(false);
-    setBacklinkResults([]);
-  };
+      await command.run({
+        closePalette: commandPalette.close,
+        setCurrentNoteId: (noteId: NoteId) => noteState.loadNote(noteId),
+        getCurrentNoteId: () => noteState.currentNoteId,
+        saveCurrentNote: async () => {
+          if (noteState.currentNote) {
+            await noteState.saveNote(noteState.currentNote.content);
+          }
+        },
+        createNote: () => noteState.createNote(),
+        promptInput: commandPalette.promptInput,
+        navigateToNote: (noteId: NoteId) => noteState.loadNote(noteId),
+        setPaletteMode: (mode: PaletteMode) => commandPalette.setMode(mode),
+      });
+    },
+    [commandPalette, noteState]
+  );
 
   // Handle backlink selection
-  const handleBacklinkSelect = (backlink: GraphNode) => {
-    noteState.loadNote(backlink.id);
-    handleCloseBacklinks();
-  };
-
-  // Display errors from noteState
-  useEffect(() => {
-    if (noteState.error) {
-      showError(noteState.error);
-    }
-  }, [noteState.error, showError]);
-
-  // Fetch titles for history entries when sidebar is open or history changes
-  const fetchHistoryEntries = useCallback(async () => {
-    if (historyStack.length === 0) {
-      setHistoryEntries([]);
-      return;
-    }
-
-    try {
-      // Fetch all notes to get titles
-      const notes = await window.scribe.notes.list();
-      const noteMap = new Map(notes.map((note) => [note.id, note.title]));
-
-      // Build history entries with titles
-      const entries: HistoryEntry[] = historyStack.map((noteId) => ({
-        id: noteId,
-        title: noteMap.get(noteId),
-      }));
-
-      setHistoryEntries(entries);
-    } catch (error) {
-      console.error('Failed to fetch history entries:', error);
-    }
-  }, [historyStack]);
-
-  useEffect(() => {
-    if (sidebarOpen) {
-      fetchHistoryEntries();
-    }
-  }, [sidebarOpen, fetchHistoryEntries]);
+  const handleBacklinkSelect = useCallback(
+    (backlink: GraphNode) => {
+      noteState.loadNote(backlink.id);
+      backlinks.hide();
+    },
+    [noteState, backlinks]
+  );
 
   // Navigate to a specific position in history
   const handleSelectHistoryEntry = useCallback(
     (targetIndex: number) => {
       if (targetIndex === currentIndex) return;
 
-      // Navigate backwards or forwards to reach the target
       if (targetIndex < currentIndex) {
-        // Navigate back
         const stepsBack = currentIndex - targetIndex;
         for (let i = 0; i < stepsBack; i++) {
           navigateBack();
         }
       } else {
-        // Navigate forward
         const stepsForward = targetIndex - currentIndex;
         for (let i = 0; i < stepsForward; i++) {
           navigateForward();
@@ -451,7 +218,7 @@ function App() {
       <div className={styles.titlebarDragRegion} />
       <ErrorBoundary name="Sidebar">
         <Sidebar
-          isOpen={sidebarOpen}
+          isOpen={sidebar.isOpen}
           historyEntries={historyEntries}
           currentHistoryIndex={currentIndex}
           onSelectHistoryEntry={handleSelectHistoryEntry}
@@ -461,8 +228,8 @@ function App() {
             setTheme(newTheme);
           }}
           currentTheme={resolvedTheme as 'light' | 'dark'}
-          width={sidebarWidth}
-          onWidthChange={setSidebarWidth}
+          width={sidebar.width}
+          onWidthChange={sidebar.setWidth}
         />
       </ErrorBoundary>
       <div className={styles.mainContent}>
@@ -473,10 +240,8 @@ function App() {
           onForward={navigateForward}
         />
         <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
-          {/* Route to TasksScreen for system:tasks, otherwise show regular note editor */}
           {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
             <ErrorBoundary name="TasksScreen">
-              {/* TODO: TasksScreen component will be implemented in a future task */}
               <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>
                 <h1>Tasks</h1>
                 <p>TasksScreen placeholder - component to be implemented</p>
@@ -484,7 +249,6 @@ function App() {
             </ErrorBoundary>
           ) : (
             <>
-              {/* Note header with editable metadata and parallax effect */}
               {noteState.currentNote && (
                 <ErrorBoundary name="NoteHeader">
                   <NoteHeader
@@ -500,12 +264,12 @@ function App() {
                 <WikiLinkProvider
                   currentNoteId={noteState.currentNoteId}
                   onLinkClick={handleWikiLinkClick}
-                  onError={(message) => showToast(message, 'error')}
+                  onError={handleProviderError}
                 >
                   <PersonMentionProvider
                     currentNoteId={noteState.currentNoteId}
                     onMentionClick={handlePersonMentionClick}
-                    onError={(message) => showToast(message, 'error')}
+                    onError={handleProviderError}
                   >
                     <EditorRoot noteState={noteState} />
                   </PersonMentionProvider>
@@ -516,28 +280,21 @@ function App() {
         </div>
         <ErrorBoundary name="Command Palette">
           <CommandPalette
-            isOpen={isPaletteOpen}
-            onClose={() => {
-              // If we're in prompt-input mode, resolve the promise with undefined
-              if (paletteMode === 'prompt-input' && promptResolverRef.current) {
-                promptResolverRef.current(undefined);
-                promptResolverRef.current = null;
-              }
-              setIsPaletteOpen(false);
-            }}
+            isOpen={commandPalette.isOpen}
+            onClose={commandPalette.close}
             commands={commandRegistry.getVisible()}
             onCommandSelect={handleCommandSelect}
             onSearchResultSelect={(result) => {
               navigateToNote(result.id);
-              setIsPaletteOpen(false);
+              commandPalette.close();
             }}
             filterCommands={fuzzySearchCommands}
-            initialMode={paletteMode}
+            initialMode={commandPalette.mode}
             currentNoteId={noteState.currentNoteId}
             onNoteSelect={(noteId) => {
               navigateToNote(noteId);
             }}
-            onModeChange={(mode) => setPaletteMode(mode)}
+            onModeChange={commandPalette.setMode}
             showToast={showToast}
             noteState={{
               currentNoteId: noteState.currentNoteId,
@@ -546,47 +303,32 @@ function App() {
               createNote: noteState.createNote,
               removeFromHistory,
             }}
-            promptPlaceholder={promptPlaceholder}
-            onPromptSubmit={(value) => {
-              if (promptResolverRef.current) {
-                promptResolverRef.current(value);
-                promptResolverRef.current = null;
-              }
-              setIsPaletteOpen(false);
-            }}
-            onPromptCancel={() => {
-              if (promptResolverRef.current) {
-                promptResolverRef.current(undefined);
-                promptResolverRef.current = null;
-              }
-              setIsPaletteOpen(false);
-            }}
+            promptPlaceholder={commandPalette.promptPlaceholder}
+            onPromptSubmit={commandPalette.resolvePrompt}
+            onPromptCancel={() => commandPalette.resolvePrompt(undefined)}
           />
         </ErrorBoundary>
-        <ErrorNotification error={globalError} onDismiss={() => setGlobalError(null)} />
+        <ErrorNotification error={null} onDismiss={() => {}} />
         <Toast toasts={toasts} onDismiss={dismissToast} />
         <FloatingDock
-          sidebarOpen={sidebarOpen}
-          contextPanelOpen={contextPanelOpen}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          onToggleContextPanel={() => setContextPanelOpen(!contextPanelOpen)}
-          onOpenSearch={() => {
-            setPaletteMode('command');
-            setIsPaletteOpen(true);
-          }}
+          sidebarOpen={sidebar.isOpen}
+          contextPanelOpen={contextPanel.isOpen}
+          onToggleSidebar={sidebar.toggle}
+          onToggleContextPanel={contextPanel.toggle}
+          onOpenSearch={() => commandPalette.open('command')}
         />
-        {showBacklinks && (
-          <div className={styles.backlinksOverlay} onClick={handleCloseBacklinks}>
+        {backlinks.isVisible && (
+          <div className={styles.backlinksOverlay} onClick={backlinks.hide}>
             <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
               <div className={styles.backlinksHeader}>
                 <h3>Backlinks</h3>
-                <button onClick={handleCloseBacklinks}>Close</button>
+                <button onClick={backlinks.hide}>Close</button>
               </div>
               <div className={styles.backlinksList}>
-                {backlinkResults.length === 0 ? (
+                {backlinks.results.length === 0 ? (
                   <div className={styles.backlinksEmpty}>No backlinks found</div>
                 ) : (
-                  backlinkResults.map((backlink) => (
+                  backlinks.results.map((backlink) => (
                     <div
                       key={backlink.id}
                       className={styles.backlinkItem}
@@ -612,19 +354,18 @@ function App() {
       </div>
       <ErrorBoundary name="Context Panel">
         <ContextPanel
-          isOpen={contextPanelOpen}
+          isOpen={contextPanel.isOpen}
           note={noteState.currentNote}
           onNavigate={(noteId) => {
             navigateToNote(noteId);
           }}
           onNoteUpdate={() => {
-            // Refresh the current note to get updated data (e.g., attendees changes)
             if (noteState.currentNoteId) {
               noteState.loadNote(noteState.currentNoteId);
             }
           }}
-          width={contextPanelWidth}
-          onWidthChange={setContextPanelWidth}
+          width={contextPanel.width}
+          onWidthChange={contextPanel.setWidth}
         />
       </ErrorBoundary>
     </div>

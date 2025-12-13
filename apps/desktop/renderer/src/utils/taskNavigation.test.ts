@@ -4,13 +4,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Task } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 import { navigateToTask, createTaskClickHandler } from './taskNavigation';
 import { FOCUS_NODE_COMMAND } from '../components/Editor/plugins/FocusNodePlugin';
 
 // Mock task for testing
 const createMockTask = (overrides: Partial<Task> = {}): Task => ({
   id: 'note123:node_abc:hash123456789',
-  noteId: 'note123',
+  noteId: createNoteId('note123'),
   noteTitle: 'Test Note',
   nodeKey: 'node_abc',
   lineIndex: 0,
@@ -199,8 +200,8 @@ describe('createTaskClickHandler', () => {
       editorLoadDelay: 0,
     });
 
-    const task1 = createMockTask({ id: 'note1:key1:hash1', noteId: 'note1' });
-    const task2 = createMockTask({ id: 'note2:key2:hash2', noteId: 'note2' });
+    const task1 = createMockTask({ id: 'note1:key1:hash1', noteId: createNoteId('note1') });
+    const task2 = createMockTask({ id: 'note2:key2:hash2', noteId: createNoteId('note2') });
 
     const promise1 = handleClick(task1);
     await vi.advanceTimersByTimeAsync(0);

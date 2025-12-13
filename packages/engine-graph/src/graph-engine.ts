@@ -6,6 +6,7 @@
  */
 
 import type { NoteId, Note, GraphNode } from '@scribe/shared';
+import { isMeetingNote } from '@scribe/shared';
 
 /**
  * GraphEngine class
@@ -86,7 +87,7 @@ export class GraphEngine {
 
     // Include meeting -> daily note relationship as a link
     // This ensures meetings appear in the daily note's backlinks
-    if (note.meeting?.dailyNoteId) {
+    if (isMeetingNote(note)) {
       newOutgoing.add(note.meeting.dailyNoteId);
     }
 

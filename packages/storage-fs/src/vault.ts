@@ -8,11 +8,12 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { homedir } from 'node:os';
 import type { VaultPath } from '@scribe/shared';
+import { createVaultPath } from '@scribe/shared';
 
 /**
  * Default vault location
  */
-const DEFAULT_VAULT_PATH = path.join(homedir(), 'Scribe', 'vault');
+const DEFAULT_VAULT_PATH = createVaultPath(path.join(homedir(), 'Scribe', 'vault'));
 
 /**
  * Vault subdirectories

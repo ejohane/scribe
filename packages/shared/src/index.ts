@@ -8,10 +8,25 @@ export type {
   NoteId,
   NoteType,
   VaultPath,
+  // Abstract editor types (preferred)
+  EditorContent,
+  EditorNode,
+  // Lexical compatibility aliases (deprecated)
   LexicalState,
   LexicalNode,
   NoteMetadata,
+  // Note types (discriminated union)
   Note,
+  BaseNote,
+  RegularNote,
+  PersonNote,
+  ProjectNote,
+  TemplateNote,
+  SystemNote,
+  DailyNote,
+  MeetingNote,
+  DailyNoteData,
+  MeetingNoteData,
   GraphNode,
   GraphEdge,
   SearchResult,
@@ -23,6 +38,57 @@ export type {
   TaskChangeEvent,
 } from './types.js';
 
-export { serializeTaskId, parseTaskId, SYSTEM_NOTE_IDS, isSystemNoteId } from './types.js';
+export {
+  createNoteId,
+  createVaultPath,
+  serializeTaskId,
+  parseTaskId,
+  SYSTEM_NOTE_IDS,
+  isSystemNoteId,
+  // Note type guards
+  isRegularNote,
+  isPersonNote,
+  isProjectNote,
+  isTemplateNote,
+  isSystemNote,
+  isDailyNote,
+  isMeetingNote,
+} from './types.js';
 
-export { ErrorCode, ScribeError } from './errors.js';
+export {
+  ErrorCode,
+  ScribeError,
+  FileSystemError,
+  NoteError,
+  VaultError,
+  EngineError,
+  ValidationError,
+  isScribeError,
+  isFileSystemError,
+  isNoteError,
+  isVaultError,
+  isEngineError,
+  isValidationError,
+} from './errors.js';
+export type { EngineName } from './errors.js';
+
+// IPC Contract - single source of truth for preload/renderer API surface
+export { IPC_CHANNELS } from './ipc-contract.js';
+export type {
+  SuccessResponse,
+  DateBasedNoteResult,
+  UpdateInfo,
+  UpdateError,
+  NotesAPI,
+  SearchAPI,
+  GraphAPI,
+  ShellAPI,
+  AppAPI,
+  PeopleAPI,
+  DailyAPI,
+  MeetingAPI,
+  DictionaryAPI,
+  TasksAPI,
+  UpdateAPI,
+  ScribeAPI,
+} from './ipc-contract.js';

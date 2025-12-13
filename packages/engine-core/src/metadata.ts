@@ -5,6 +5,7 @@
  */
 
 import type { LexicalState, LexicalNode, NoteMetadata, NoteId } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 /**
  * Extract metadata from Lexical content
@@ -110,17 +111,17 @@ export function extractLinks(content: LexicalState): NoteId[] {
       node.entityType === 'note' &&
       typeof node.id === 'string'
     ) {
-      links.add(node.id);
+      links.add(createNoteId(node.id));
     }
 
     // Custom note reference nodes
     if (node.type === 'note-reference' && typeof node.noteId === 'string') {
-      links.add(node.noteId);
+      links.add(createNoteId(node.noteId));
     }
 
     // Wiki-link nodes
     if (node.type === 'wiki-link' && typeof node.targetId === 'string') {
-      links.add(node.targetId);
+      links.add(createNoteId(node.targetId));
     }
   });
 
@@ -183,18 +184,18 @@ function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode) => vo
 function extractNoteIdFromUrl(url: string): NoteId | null {
   // Handle note:// protocol
   if (url.startsWith('note://')) {
-    return url.slice(7);
+    return createNoteId(url.slice(7));
   }
 
   // Handle [[note-id]] wiki-link style
   const wikiLinkMatch = url.match(/^\[\[([^\]]+)\]\]$/);
   if (wikiLinkMatch) {
-    return wikiLinkMatch[1];
+    return createNoteId(wikiLinkMatch[1]);
   }
 
   // Handle internal:// protocol
   if (url.startsWith('internal://')) {
-    return url.slice(11);
+    return createNoteId(url.slice(11));
   }
 
   return null;
@@ -219,7 +220,7 @@ export function extractMentions(content: LexicalState): NoteId[] {
   traverseNodes(content.root.children, (node) => {
     // Person mention nodes store the target person's note ID
     if (node.type === 'person-mention' && typeof node.personId === 'string') {
-      mentions.add(node.personId);
+      mentions.add(createNoteId(node.personId));
     }
   });
 

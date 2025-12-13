@@ -6,7 +6,11 @@
  * ranked search results.
  */
 
-import { Document } from 'flexsearch';
+import {
+  Document,
+  type EnrichedDocumentSearchResultSetUnit,
+  type EnrichedDocumentSearchResultSetUnitResultUnit,
+} from 'flexsearch';
 import { format, parse, isValid } from 'date-fns';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { extractTextForSearch, extractTextWithContext, generateSnippet } from './text-extraction';
@@ -82,9 +86,18 @@ export class SearchEngine {
           // Add formatted date as additional searchable text
           const formattedDate = format(date, 'MM/dd/yyyy');
           searchableTitle = `${note.title} ${formattedDate}`;
+        } else {
+          // Log warning for invalid dates that parsed but aren't valid
+          console.warn(
+            `[SearchEngine] Invalid date in daily note title: "${note.title}" (note id: ${note.id})`
+          );
         }
-      } catch {
-        // Ignore invalid dates, keep original title
+      } catch (error) {
+        // Log warning for dates that failed to parse
+        console.warn(
+          `[SearchEngine] Failed to parse date from daily note title: "${note.title}" (note id: ${note.id})`,
+          error instanceof Error ? error.message : error
+        );
       }
     }
 
@@ -128,25 +141,30 @@ export class SearchEngine {
       return [];
     }
 
+    // Type alias for the enriched search result structure
+    type EnrichedResult = EnrichedDocumentSearchResultSetUnit<SearchDocument>;
+    type EnrichedResultItem = EnrichedDocumentSearchResultSetUnitResultUnit<SearchDocument>;
+
     // Execute search across all indexed fields
-    const results = this.index.search(query, {
-      limit,
+    // FlexSearch's type inference doesn't properly handle the enrich option,
+    // so we use explicit generic parameters to get the correct enriched result type
+    const results = this.index.search<true>(query, limit, {
       enrich: true, // Get full documents
-    });
+    }) as EnrichedResult[];
 
     // FlexSearch returns results grouped by field
     // We need to merge and rank them
     const resultMap = new Map<NoteId, SearchResult>();
 
-    for (const fieldResult of results as any[]) {
+    for (const fieldResult of results) {
       if (!Array.isArray(fieldResult.result)) {
         continue;
       }
 
       const field = fieldResult.field as 'title' | 'tags' | 'content';
 
-      for (const item of fieldResult.result) {
-        const doc = (item as any).doc as SearchDocument;
+      for (const item of fieldResult.result as EnrichedResultItem[]) {
+        const doc = item.doc;
         const noteId = doc.id;
 
         if (!resultMap.has(noteId)) {

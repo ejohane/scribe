@@ -15,6 +15,9 @@ export const lightTheme = createTheme(vars, {
     dangerForeground: '#FFFFFF', // white
     warning: '#D97706', // amber-600
     info: '#2563EB', // blue-600
+    success: '#16A34A', // green-600 - tasks, completed items
+    secondary: '#059669', // emerald-600 - people, attendees
+    tertiary: '#7C3AED', // violet-600 - links, references
   },
   typography: {
     fontFamily: {

@@ -36,6 +36,7 @@ import { PersonMentionNode } from './plugins/PersonMentionNode';
 import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
 import { LinkClickPlugin } from './plugins/LinkClickPlugin';
 import { FocusNodePlugin } from './plugins/FocusNodePlugin';
+import { CheckListShortcutPlugin } from './plugins/CheckListShortcutPlugin';
 import { SelectionToolbarPlugin } from './SelectionToolbar';
 import { SlashMenuPlugin } from './SlashMenu';
 import * as styles from './EditorRoot.css';
@@ -144,6 +145,7 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <HistoryPlugin />
           <ListPlugin />
           <CheckListPlugin />
+          <CheckListShortcutPlugin />
           <TabIndentationPlugin />
           <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
           <HorizontalRulePlugin />

@@ -9,13 +9,14 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TasksScreen } from './TasksScreen';
 import type { Task, TaskChangeEvent } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 // Helper to create mock tasks
 function createMockTask(overrides: Partial<Task> = {}): Task {
   const id = overrides.id ?? `task-${Math.random().toString(36).substring(7)}`;
   return {
     id,
-    noteId: 'note-1',
+    noteId: createNoteId('note-1'),
     noteTitle: 'Test Note',
     nodeKey: 'node_1',
     lineIndex: 0,
@@ -403,7 +404,7 @@ describe('TasksScreen', () => {
   describe('navigation', () => {
     it('calls onNavigate when task is clicked', async () => {
       const onNavigate = vi.fn();
-      const tasks = [createMockTask({ noteId: 'note-456', text: 'Click me' })];
+      const tasks = [createMockTask({ noteId: createNoteId('note-456'), text: 'Click me' })];
       mockTasksAPI.list.mockResolvedValue({ tasks });
 
       render(<TasksScreen onNavigate={onNavigate} />);

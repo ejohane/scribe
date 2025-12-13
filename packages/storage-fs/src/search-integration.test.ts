@@ -10,7 +10,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { FileSystemVault } from './storage';
 import { SearchEngine } from '@scribe/engine-search';
-import type { LexicalState } from '@scribe/shared';
+import { createVaultPath, type VaultPath, type LexicalState } from '@scribe/shared';
 
 /**
  * Helper to create Lexical content
@@ -35,16 +35,18 @@ function createLexicalContent(text: string): LexicalState {
 }
 
 describe('Search Integration', () => {
-  let vaultPath: string;
+  let vaultPathStr: string;
+  let vaultPath: VaultPath;
   let vault: FileSystemVault;
   let searchEngine: SearchEngine;
 
   beforeEach(async () => {
     // Create temporary vault directory
-    vaultPath = mkdtempSync(join(tmpdir(), 'scribe-test-'));
+    vaultPathStr = mkdtempSync(join(tmpdir(), 'scribe-test-'));
+    vaultPath = createVaultPath(vaultPathStr);
 
     // Create notes subdirectory
-    mkdirSync(join(vaultPath, 'notes'), { recursive: true });
+    mkdirSync(join(vaultPathStr, 'notes'), { recursive: true });
 
     vault = new FileSystemVault(vaultPath);
     await vault.load();
@@ -55,8 +57,8 @@ describe('Search Integration', () => {
 
   afterEach(() => {
     // Clean up temporary directory
-    if (vaultPath) {
-      rmSync(vaultPath, { recursive: true, force: true });
+    if (vaultPathStr) {
+      rmSync(vaultPathStr, { recursive: true, force: true });
     }
   });
 

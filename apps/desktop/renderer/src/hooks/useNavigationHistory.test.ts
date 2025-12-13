@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useNavigationHistory } from './useNavigationHistory';
+import { createNoteId, type NoteId } from '@scribe/shared';
 
 describe('useNavigationHistory', () => {
   const mockLoadNote = vi.fn().mockResolvedValue(undefined);
@@ -11,13 +12,17 @@ describe('useNavigationHistory', () => {
 
   describe('initial state', () => {
     it('canGoBack is false initially', () => {
-      const { result } = renderHook(() => useNavigationHistory('note-1', mockLoadNote));
+      const { result } = renderHook(() =>
+        useNavigationHistory(createNoteId('note-1'), mockLoadNote)
+      );
 
       expect(result.current.canGoBack).toBe(false);
     });
 
     it('canGoForward is false initially', () => {
-      const { result } = renderHook(() => useNavigationHistory('note-1', mockLoadNote));
+      const { result } = renderHook(() =>
+        useNavigationHistory(createNoteId('note-1'), mockLoadNote)
+      );
 
       expect(result.current.canGoForward).toBe(false);
     });
@@ -32,7 +37,7 @@ describe('useNavigationHistory', () => {
     it('seeds initial note into history when currentNoteId is provided', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Initial note is seeded: [note-1] at index 0
@@ -41,9 +46,9 @@ describe('useNavigationHistory', () => {
 
       // Navigate to note-2
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       // Now we have [note-1, note-2] at index 1
       expect(result.current.canGoBack).toBe(true);
@@ -78,20 +83,24 @@ describe('useNavigationHistory', () => {
 
   describe('navigateToNote', () => {
     it('loads the target note', () => {
-      const { result } = renderHook(() => useNavigationHistory('note-1', mockLoadNote));
+      const { result } = renderHook(() =>
+        useNavigationHistory(createNoteId('note-1'), mockLoadNote)
+      );
 
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
 
       expect(mockLoadNote).toHaveBeenCalledWith('note-2');
     });
 
     it('no-op when navigating to the same note', () => {
-      const { result } = renderHook(() => useNavigationHistory('note-1', mockLoadNote));
+      const { result } = renderHook(() =>
+        useNavigationHistory(createNoteId('note-1'), mockLoadNote)
+      );
 
       act(() => {
-        result.current.navigateToNote('note-1');
+        result.current.navigateToNote(createNoteId('note-1'));
       });
 
       expect(mockLoadNote).not.toHaveBeenCalled();
@@ -101,7 +110,7 @@ describe('useNavigationHistory', () => {
     it('enables canGoBack after first navigation', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Initial note is seeded into history: [note-1] at index 0
@@ -109,9 +118,9 @@ describe('useNavigationHistory', () => {
 
       // Navigate to note-2
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       // Now we have [note-1, note-2] at index 1, so canGoBack is true
       expect(result.current.canGoBack).toBe(true);
@@ -120,24 +129,24 @@ describe('useNavigationHistory', () => {
     it('truncates forward history when navigating from middle of stack', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build up history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Go back twice (to note-2)
       act(() => {
@@ -146,15 +155,15 @@ describe('useNavigationHistory', () => {
       act(() => {
         result.current.navigateBack();
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       expect(result.current.canGoForward).toBe(true);
 
       // Navigate to note-5 - should truncate note-3 and note-4
       act(() => {
-        result.current.navigateToNote('note-5');
+        result.current.navigateToNote(createNoteId('note-5'));
       });
-      rerender({ currentNoteId: 'note-5' });
+      rerender({ currentNoteId: createNoteId('note-5') });
 
       expect(result.current.canGoForward).toBe(false);
       expect(result.current.canGoBack).toBe(true);
@@ -165,19 +174,19 @@ describe('useNavigationHistory', () => {
     it('loads the previous note', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Navigate to build history
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       mockLoadNote.mockClear();
 
@@ -193,14 +202,14 @@ describe('useNavigationHistory', () => {
       // Start with null so no initial note is seeded
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: null as string | null } }
+        { initialProps: { currentNoteId: null as NoteId | null } }
       );
 
       // Navigate once to have a single item (starting from null)
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       // Only [note-2] in history, so canGoBack is false
       expect(result.current.canGoBack).toBe(false);
@@ -217,19 +226,19 @@ describe('useNavigationHistory', () => {
     it('enables canGoForward after going back', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Navigate to build history
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       expect(result.current.canGoForward).toBe(false);
 
@@ -246,25 +255,25 @@ describe('useNavigationHistory', () => {
     it('loads the next note', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Navigate to build history
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Go back
       act(() => {
         result.current.navigateBack();
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       mockLoadNote.mockClear();
 
@@ -279,14 +288,14 @@ describe('useNavigationHistory', () => {
     it('does nothing when canGoForward is false', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Navigate once
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       expect(result.current.canGoForward).toBe(false);
 
@@ -302,19 +311,19 @@ describe('useNavigationHistory', () => {
     it('disables canGoForward when at end of history', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Navigate to build history
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Go back
       act(() => {
@@ -336,29 +345,29 @@ describe('useNavigationHistory', () => {
     it('removes a note from history', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Stack is now [note-2, note-3, note-4], index = 2
       // Remove note-3
       act(() => {
-        result.current.removeFromHistory('note-3');
+        result.current.removeFromHistory(createNoteId('note-3'));
       });
 
       // Stack should be [note-2, note-4], index should still point to note-4
@@ -374,29 +383,29 @@ describe('useNavigationHistory', () => {
     it('adjusts currentIndex when removing notes before current position', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Stack is now [note-2, note-3, note-4], index = 2
       // Remove note-2 (before current)
       act(() => {
-        result.current.removeFromHistory('note-2');
+        result.current.removeFromHistory(createNoteId('note-2'));
       });
 
       // Stack should be [note-3, note-4], index should be 1
@@ -414,19 +423,19 @@ describe('useNavigationHistory', () => {
     it('handles removing the last item in history', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       // Stack is now [note-2], index = 0
       // Remove note-2
       act(() => {
-        result.current.removeFromHistory('note-2');
+        result.current.removeFromHistory(createNoteId('note-2'));
       });
 
       // Stack should be empty
@@ -437,34 +446,34 @@ describe('useNavigationHistory', () => {
     it('removes multiple occurrences of the same note', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history with duplicate: note-2 -> note-3 -> note-2 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Stack is [note-2, note-3, note-2, note-4], index = 3
       // Remove note-2
       act(() => {
-        result.current.removeFromHistory('note-2');
+        result.current.removeFromHistory(createNoteId('note-2'));
       });
 
       // Stack should be [note-3, note-4], index should be adjusted to 1
@@ -482,23 +491,23 @@ describe('useNavigationHistory', () => {
     it('handles removing a note that does not exist in history', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2 -> note-3
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Remove a note that doesn't exist
       act(() => {
-        result.current.removeFromHistory('note-999');
+        result.current.removeFromHistory(createNoteId('note-999'));
       });
 
       // History should be unchanged
@@ -516,25 +525,25 @@ describe('useNavigationHistory', () => {
     it('handles removing notes after current position', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Initial note-1 is seeded: [note-1] at index 0
       // Build history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Stack is now [note-1, note-2, note-3, note-4], index = 3
       // Go back to note-2 (index 1)
@@ -544,14 +553,14 @@ describe('useNavigationHistory', () => {
       act(() => {
         result.current.navigateBack();
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       expect(result.current.canGoForward).toBe(true);
       expect(result.current.canGoBack).toBe(true); // Can go back to note-1
 
       // Remove note-4 (after current position)
       act(() => {
-        result.current.removeFromHistory('note-4');
+        result.current.removeFromHistory(createNoteId('note-4'));
       });
 
       // Stack is now [note-1, note-2, note-3], index = 1
@@ -570,35 +579,35 @@ describe('useNavigationHistory', () => {
     it('adjusts index when removing current position in the middle', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Go back to note-3 (index 1)
       act(() => {
         result.current.navigateBack();
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Stack is [note-2, note-3, note-4], index = 1
       // Remove note-3 (current position)
       act(() => {
-        result.current.removeFromHistory('note-3');
+        result.current.removeFromHistory(createNoteId('note-3'));
       });
 
       // Stack should be [note-2, note-4], index should clamp to 1
@@ -615,11 +624,13 @@ describe('useNavigationHistory', () => {
     });
 
     it('handles removing from empty history', () => {
-      const { result } = renderHook(() => useNavigationHistory('note-1', mockLoadNote));
+      const { result } = renderHook(() =>
+        useNavigationHistory(createNoteId('note-1'), mockLoadNote)
+      );
 
       // Try to remove from empty history - should not throw
       act(() => {
-        result.current.removeFromHistory('note-1');
+        result.current.removeFromHistory(createNoteId('note-1'));
       });
 
       expect(result.current.canGoBack).toBe(false);
@@ -629,26 +640,26 @@ describe('useNavigationHistory', () => {
     it('navigates to adjacent note when current note is deleted', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-1 -> note-2 -> note-3
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Stack is [note-1, note-2, note-3], index = 2 (viewing note-3)
       mockLoadNote.mockClear();
 
       // Remove note-3 (the current note)
       act(() => {
-        result.current.removeFromHistory('note-3');
+        result.current.removeFromHistory(createNoteId('note-3'));
       });
 
       // Stack should be [note-1, note-2], index = 1
@@ -661,19 +672,19 @@ describe('useNavigationHistory', () => {
     it('navigates to next note when first note in history is deleted while current', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-1 -> note-2 -> note-3
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Go back to note-1
       act(() => {
@@ -682,14 +693,14 @@ describe('useNavigationHistory', () => {
       act(() => {
         result.current.navigateBack();
       });
-      rerender({ currentNoteId: 'note-1' });
+      rerender({ currentNoteId: createNoteId('note-1') });
 
       // Stack is [note-1, note-2, note-3], index = 0 (viewing note-1)
       mockLoadNote.mockClear();
 
       // Remove note-1 (the current note at start of history)
       act(() => {
-        result.current.removeFromHistory('note-1');
+        result.current.removeFromHistory(createNoteId('note-1'));
       });
 
       // Stack should be [note-2, note-3], index = 0
@@ -702,26 +713,26 @@ describe('useNavigationHistory', () => {
     it('does not call loadNote when removing non-current note', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-1 -> note-2 -> note-3
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       // Stack is [note-1, note-2, note-3], index = 2 (viewing note-3)
       mockLoadNote.mockClear();
 
       // Remove note-2 (not the current note)
       act(() => {
-        result.current.removeFromHistory('note-2');
+        result.current.removeFromHistory(createNoteId('note-2'));
       });
 
       // loadNote should NOT have been called since note-2 wasn't current
@@ -736,15 +747,15 @@ describe('useNavigationHistory', () => {
     it('evicts oldest item when exceeding max history length', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-0' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-0') as NoteId | null } }
       );
 
       // Add 1001 notes to trigger FIFO eviction
       for (let i = 1; i <= 1001; i++) {
         act(() => {
-          result.current.navigateToNote(`note-${i}`);
+          result.current.navigateToNote(createNoteId(`note-${i}`));
         });
-        rerender({ currentNoteId: `note-${i}` });
+        rerender({ currentNoteId: createNoteId(`note-${i}`) });
       }
 
       // Can still go back (we should have 1000 items now after eviction)
@@ -767,7 +778,9 @@ describe('useNavigationHistory', () => {
 
   describe('return value stability', () => {
     it('returns memoized object when dependencies do not change', () => {
-      const { result, rerender } = renderHook(() => useNavigationHistory('note-1', mockLoadNote));
+      const { result, rerender } = renderHook(() =>
+        useNavigationHistory(createNoteId('note-1'), mockLoadNote)
+      );
 
       const firstReturn = result.current;
 
@@ -785,13 +798,13 @@ describe('useNavigationHistory', () => {
         // Start from null so only one item gets added
         const { result, rerender } = renderHook(
           ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-          { initialProps: { currentNoteId: null as string | null } }
+          { initialProps: { currentNoteId: null as NoteId | null } }
         );
 
         act(() => {
-          result.current.navigateToNote('note-2');
+          result.current.navigateToNote(createNoteId('note-2'));
         });
-        rerender({ currentNoteId: 'note-2' });
+        rerender({ currentNoteId: createNoteId('note-2') });
 
         // Only [note-2] in stack
         expect(result.current.canGoBack).toBe(false);
@@ -802,16 +815,16 @@ describe('useNavigationHistory', () => {
         // Start from null so only one item gets added
         const { result, rerender } = renderHook(
           ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-          { initialProps: { currentNoteId: null as string | null } }
+          { initialProps: { currentNoteId: null as NoteId | null } }
         );
 
         act(() => {
-          result.current.navigateToNote('note-2');
+          result.current.navigateToNote(createNoteId('note-2'));
         });
-        rerender({ currentNoteId: 'note-2' });
+        rerender({ currentNoteId: createNoteId('note-2') });
 
         act(() => {
-          result.current.removeFromHistory('note-2');
+          result.current.removeFromHistory(createNoteId('note-2'));
         });
 
         expect(result.current.canGoBack).toBe(false);
@@ -823,20 +836,20 @@ describe('useNavigationHistory', () => {
       it('cannot go back at start of history', () => {
         const { result, rerender } = renderHook(
           ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-          { initialProps: { currentNoteId: 'note-1' as string | null } }
+          { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
         );
 
         // Initial: [note-1] at index 0
         // Build history
         act(() => {
-          result.current.navigateToNote('note-2');
+          result.current.navigateToNote(createNoteId('note-2'));
         });
-        rerender({ currentNoteId: 'note-2' });
+        rerender({ currentNoteId: createNoteId('note-2') });
 
         act(() => {
-          result.current.navigateToNote('note-3');
+          result.current.navigateToNote(createNoteId('note-3'));
         });
-        rerender({ currentNoteId: 'note-3' });
+        rerender({ currentNoteId: createNoteId('note-3') });
 
         // Stack is [note-1, note-2, note-3] at index 2
         // Go back to start (note-1)
@@ -862,19 +875,19 @@ describe('useNavigationHistory', () => {
       it('cannot go forward at end of history', () => {
         const { result, rerender } = renderHook(
           ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-          { initialProps: { currentNoteId: 'note-1' as string | null } }
+          { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
         );
 
         // Build history
         act(() => {
-          result.current.navigateToNote('note-2');
+          result.current.navigateToNote(createNoteId('note-2'));
         });
-        rerender({ currentNoteId: 'note-2' });
+        rerender({ currentNoteId: createNoteId('note-2') });
 
         act(() => {
-          result.current.navigateToNote('note-3');
+          result.current.navigateToNote(createNoteId('note-3'));
         });
-        rerender({ currentNoteId: 'note-3' });
+        rerender({ currentNoteId: createNoteId('note-3') });
 
         expect(result.current.canGoForward).toBe(false);
 
@@ -891,16 +904,16 @@ describe('useNavigationHistory', () => {
       it('multiple back/forward navigations work correctly', () => {
         const { result, rerender } = renderHook(
           ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-          { initialProps: { currentNoteId: 'note-1' as string | null } }
+          { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
         );
 
         // Initial: [note-1] at index 0
         // Build history: note-2 -> note-3 -> note-4 -> note-5
         for (let i = 2; i <= 5; i++) {
           act(() => {
-            result.current.navigateToNote(`note-${i}`);
+            result.current.navigateToNote(createNoteId(`note-${i}`));
           });
-          rerender({ currentNoteId: `note-${i}` });
+          rerender({ currentNoteId: createNoteId(`note-${i}`) });
         }
 
         // Stack is [note-1, note-2, note-3, note-4, note-5] at index 4
@@ -937,7 +950,7 @@ describe('useNavigationHistory', () => {
         const { result } = renderHook(() => useNavigationHistory(null, mockLoadNote));
 
         act(() => {
-          result.current.navigateToNote('note-1');
+          result.current.navigateToNote(createNoteId('note-1'));
         });
 
         expect(mockLoadNote).toHaveBeenCalledWith('note-1');
@@ -946,18 +959,18 @@ describe('useNavigationHistory', () => {
       it('builds history correctly starting from null', () => {
         const { result, rerender } = renderHook(
           ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-          { initialProps: { currentNoteId: null as string | null } }
+          { initialProps: { currentNoteId: null as NoteId | null } }
         );
 
         act(() => {
-          result.current.navigateToNote('note-1');
+          result.current.navigateToNote(createNoteId('note-1'));
         });
-        rerender({ currentNoteId: 'note-1' });
+        rerender({ currentNoteId: createNoteId('note-1') });
 
         act(() => {
-          result.current.navigateToNote('note-2');
+          result.current.navigateToNote(createNoteId('note-2'));
         });
-        rerender({ currentNoteId: 'note-2' });
+        rerender({ currentNoteId: createNoteId('note-2') });
 
         expect(result.current.canGoBack).toBe(true);
         expect(result.current.canGoForward).toBe(false);
@@ -976,24 +989,24 @@ describe('useNavigationHistory', () => {
     it('clears all history items', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Verify we have history
       expect(result.current.canGoBack).toBe(true);
@@ -1011,30 +1024,30 @@ describe('useNavigationHistory', () => {
     it('clears history including forward items', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history: note-2 -> note-3 -> note-4
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Go back to have forward items
       act(() => {
         result.current.navigateBack();
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       expect(result.current.canGoBack).toBe(true);
       expect(result.current.canGoForward).toBe(true);
@@ -1052,14 +1065,14 @@ describe('useNavigationHistory', () => {
     it('allows new navigation after clearing history', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       // Clear history
       act(() => {
@@ -1070,9 +1083,9 @@ describe('useNavigationHistory', () => {
 
       // Navigate to a new note
       act(() => {
-        result.current.navigateToNote('note-3');
+        result.current.navigateToNote(createNoteId('note-3'));
       });
-      rerender({ currentNoteId: 'note-3' });
+      rerender({ currentNoteId: createNoteId('note-3') });
 
       expect(mockLoadNote).toHaveBeenCalledWith('note-3');
 
@@ -1081,9 +1094,9 @@ describe('useNavigationHistory', () => {
 
       // Navigate again
       act(() => {
-        result.current.navigateToNote('note-4');
+        result.current.navigateToNote(createNoteId('note-4'));
       });
-      rerender({ currentNoteId: 'note-4' });
+      rerender({ currentNoteId: createNoteId('note-4') });
 
       // Now we should be able to go back
       expect(result.current.canGoBack).toBe(true);
@@ -1092,14 +1105,14 @@ describe('useNavigationHistory', () => {
     it('is idempotent - calling multiple times has same effect', () => {
       const { result, rerender } = renderHook(
         ({ currentNoteId }) => useNavigationHistory(currentNoteId, mockLoadNote),
-        { initialProps: { currentNoteId: 'note-1' as string | null } }
+        { initialProps: { currentNoteId: createNoteId('note-1') as NoteId | null } }
       );
 
       // Build history
       act(() => {
-        result.current.navigateToNote('note-2');
+        result.current.navigateToNote(createNoteId('note-2'));
       });
-      rerender({ currentNoteId: 'note-2' });
+      rerender({ currentNoteId: createNoteId('note-2') });
 
       // Clear multiple times
       act(() => {

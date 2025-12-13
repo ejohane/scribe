@@ -36,12 +36,12 @@ export interface CommandContext {
   /**
    * Set the current note ID in the editor
    */
-  setCurrentNoteId: (noteId: string) => void;
+  setCurrentNoteId: (noteId: NoteId) => void;
 
   /**
    * Get the current note ID from the editor
    */
-  getCurrentNoteId: () => string | null;
+  getCurrentNoteId: () => NoteId | null;
 
   /**
    * Trigger a save of the current note

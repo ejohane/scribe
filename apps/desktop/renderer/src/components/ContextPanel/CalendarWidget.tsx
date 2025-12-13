@@ -8,58 +8,12 @@
  */
 
 import clsx from 'clsx';
+import { CalendarIcon, ClockIcon } from '@scribe/design-system';
 import * as styles from './ContextPanel.css';
 
 export interface CalendarWidgetProps {
   /** Placeholder - future: events from calendar integration */
   events?: Array<{ id: string; time: string; title: string }>;
-}
-
-/**
- * Calendar icon for the card header
- */
-function CalendarIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={styles.cardIcon}
-      style={{ color: '#a855f7' }}
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-/**
- * Clock icon for event items
- */
-function ClockIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={styles.eventIcon}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
 }
 
 /**
@@ -89,7 +43,7 @@ export function CalendarWidget({ events }: CalendarWidgetProps) {
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <CalendarIcon size={14} />
+        <CalendarIcon size={14} className={styles.cardIcon} style={{ color: '#a855f7' }} />
         <span className={styles.cardTitle}>Upcoming</span>
       </div>
 
@@ -104,7 +58,7 @@ export function CalendarWidget({ events }: CalendarWidgetProps) {
 
       {displayEvents.length === 0 ? (
         <div className={styles.eventItem}>
-          <ClockIcon size={12} />
+          <ClockIcon size={12} className={styles.eventIcon} />
           <span style={{ color: 'var(--color-foreground-muted)', fontStyle: 'italic' }}>
             No upcoming events
           </span>
@@ -112,7 +66,7 @@ export function CalendarWidget({ events }: CalendarWidgetProps) {
       ) : (
         displayEvents.map((event) => (
           <div key={event.id} className={styles.eventItem}>
-            <ClockIcon size={12} />
+            <ClockIcon size={12} className={styles.eventIcon} />
             <span>
               {event.time} - {event.title}
             </span>

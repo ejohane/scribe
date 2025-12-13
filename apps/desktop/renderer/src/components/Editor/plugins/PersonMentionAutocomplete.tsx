@@ -3,12 +3,18 @@
  *
  * Autocomplete popup component for person mentions (@username).
  * Handles search, display, and selection of people in the vault.
- * Styled to match the SlashMenu floating menu design.
+ * Uses the FloatingMenu design system primitive for consistent styling.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { NoteId } from '@scribe/shared';
-import * as autocompleteStyles from './PersonMentionAutocomplete.css';
+import {
+  FloatingMenu,
+  FloatingMenuItem,
+  FloatingMenuEmpty,
+  FloatingMenuLoading,
+  FloatingMenuAction,
+} from '@scribe/design-system';
 
 /**
  * Get initials from a person's name (up to 2 characters)
@@ -74,8 +80,6 @@ export function PersonMentionAutocomplete({
 }: PersonMentionAutocompleteProps) {
   const [results, setResults] = useState<PersonResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const selectedRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
 
   // Check if an exact match exists (case-insensitive)
   const hasExactMatch = results.some((r) => r.name.toLowerCase() === query.toLowerCase());
@@ -121,61 +125,39 @@ export function PersonMentionAutocomplete({
     onResultsChange(results, hasExactMatch);
   }, [results, hasExactMatch, onResultsChange]);
 
-  // Scroll selected item into view
-  useEffect(() => {
-    if (selectedRef.current) {
-      selectedRef.current.scrollIntoView({ block: 'nearest' });
-    }
-  }, [selectedIndex]);
-
   return (
-    <div
-      className={autocompleteStyles.autocompleteContainer}
-      style={{ top: position.top, left: position.left }}
-      role="listbox"
-      aria-label="Person suggestions"
-      ref={listRef}
-    >
+    <FloatingMenu position={position} ariaLabel="Person suggestions" width="sm">
       {isLoading ? (
-        <div className={autocompleteStyles.loadingState}>
-          <span className={autocompleteStyles.spinner} />
-          Searching...
-        </div>
+        <FloatingMenuLoading>Searching...</FloatingMenuLoading>
       ) : results.length === 0 && !showCreateOption ? (
-        <div className={autocompleteStyles.emptyState}>No matching people</div>
+        <FloatingMenuEmpty>No matching people</FloatingMenuEmpty>
       ) : (
         <>
           {results.map((person, index) => (
-            <div
+            <FloatingMenuItem
               key={person.id}
-              ref={index === selectedIndex ? selectedRef : null}
-              className={`${autocompleteStyles.autocompleteItem} ${
-                index === selectedIndex ? autocompleteStyles.autocompleteItemSelected : ''
-              }`}
+              selected={index === selectedIndex}
               onClick={() => onSelect(person)}
-              role="option"
-              aria-selected={index === selectedIndex}
+              icon={getInitials(person.name)}
+              iconShape="circle"
+              iconVariant="accent"
             >
-              <span className={autocompleteStyles.itemIcon}>{getInitials(person.name)}</span>
-              <span className={autocompleteStyles.itemText}>{person.name}</span>
-            </div>
+              {person.name}
+            </FloatingMenuItem>
           ))}
           {showCreateOption && (
-            <div
-              ref={isCreateSelected ? selectedRef : null}
-              className={`${autocompleteStyles.autocompleteItem} ${autocompleteStyles.createOption} ${
-                isCreateSelected ? autocompleteStyles.autocompleteItemSelected : ''
-              }`}
+            <FloatingMenuAction
+              selected={isCreateSelected}
               onClick={() => onCreate(query.trim())}
-              role="option"
-              aria-selected={isCreateSelected}
+              icon="+"
+              iconShape="circle"
+              iconVariant="muted"
             >
-              <span className={autocompleteStyles.createIcon}>+</span>
-              <span className={autocompleteStyles.itemText}>Create &quot;{query.trim()}&quot;</span>
-            </div>
+              Create &quot;{query.trim()}&quot;
+            </FloatingMenuAction>
           )}
         </>
       )}
-    </div>
+    </FloatingMenu>
   );
 }

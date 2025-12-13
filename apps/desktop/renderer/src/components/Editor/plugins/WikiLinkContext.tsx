@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import type { NoteId } from '@scribe/shared';
 
 interface WikiLinkContextValue {
@@ -30,9 +30,9 @@ export function WikiLinkProvider({
   onLinkClick,
   onError,
 }: WikiLinkProviderProps): JSX.Element {
-  return (
-    <WikiLinkContext.Provider value={{ currentNoteId, onLinkClick, onError }}>
-      {children}
-    </WikiLinkContext.Provider>
+  const value = useMemo(
+    () => ({ currentNoteId, onLinkClick, onError }),
+    [currentNoteId, onLinkClick, onError]
   );
+  return <WikiLinkContext.Provider value={value}>{children}</WikiLinkContext.Provider>;
 }

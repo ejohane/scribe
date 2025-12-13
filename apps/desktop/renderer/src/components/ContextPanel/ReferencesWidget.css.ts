@@ -39,6 +39,13 @@ export const cardIcon = style({
   flexShrink: 0,
 });
 
+/**
+ * Icon color for references (tertiary/links semantic)
+ */
+export const cardIconTertiary = style({
+  color: vars.color.tertiary,
+});
+
 export const cardTitle = style({
   fontSize: vars.typography.size.xs,
 });

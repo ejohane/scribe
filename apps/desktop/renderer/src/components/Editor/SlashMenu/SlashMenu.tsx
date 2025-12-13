@@ -3,12 +3,18 @@
  *
  * Floating menu that displays available slash commands.
  * Supports filtering by query and keyboard navigation.
+ * Uses the FloatingMenu design system primitive for consistent styling.
  */
 
 import { useRef, useEffect } from 'react';
 import type { SlashCommand } from './commands';
 import { SlashMenuItem } from './SlashMenuItem';
-import * as styles from './SlashMenu.css';
+import {
+  FloatingMenu,
+  FloatingMenuEmpty,
+  FloatingMenuDivider,
+  FloatingMenuSection,
+} from '@scribe/design-system';
 
 interface SlashMenuProps {
   /** Filtered commands to display */
@@ -53,26 +59,14 @@ export function SlashMenu({
 
   if (commands.length === 0) {
     return (
-      <div
-        ref={menuRef}
-        className={styles.menu}
-        style={{ top: position.top, left: position.left }}
-        role="listbox"
-        aria-label="Slash commands"
-      >
-        <div className={styles.emptyState}>No matching commands</div>
-      </div>
+      <FloatingMenu ref={menuRef} position={position} ariaLabel="Slash commands" width="lg">
+        <FloatingMenuEmpty>No matching commands</FloatingMenuEmpty>
+      </FloatingMenu>
     );
   }
 
   return (
-    <div
-      ref={menuRef}
-      className={styles.menu}
-      style={{ top: position.top, left: position.left }}
-      role="listbox"
-      aria-label="Slash commands"
-    >
+    <FloatingMenu ref={menuRef} position={position} ariaLabel="Slash commands" width="lg">
       {/* Formatting section */}
       {formattingCommands.length > 0 && (
         <>
@@ -94,8 +88,8 @@ export function SlashMenu({
       {/* Divider between sections */}
       {formattingCommands.length > 0 && aiCommands.length > 0 && (
         <>
-          <div className={styles.divider} />
-          <div className={styles.sectionLabel}>AI</div>
+          <FloatingMenuDivider />
+          <FloatingMenuSection label="AI" />
         </>
       )}
 
@@ -116,6 +110,6 @@ export function SlashMenu({
           })}
         </>
       )}
-    </div>
+    </FloatingMenu>
   );
 }

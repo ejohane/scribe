@@ -12,7 +12,10 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import clsx from 'clsx';
 import type { Note, NoteId } from '@scribe/shared';
+import { isMeetingNote } from '@scribe/shared';
+import { UsersIcon } from '@scribe/design-system';
 import * as styles from './AttendeesWidget.css';
 
 export interface AttendeesWidgetProps {
@@ -26,38 +29,13 @@ interface Person {
   name: string;
 }
 
-/**
- * People/users icon for the card header
- */
-function AttendeesIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={styles.cardIcon}
-      style={{ color: '#10b981' }}
-    >
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
 export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWidgetProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [allPeople, setAllPeople] = useState<Person[]>([]);
 
-  const attendeeIds = useMemo(() => note.meeting?.attendees ?? [], [note.meeting?.attendees]);
+  const attendeeIds = useMemo(() => (isMeetingNote(note) ? note.meeting.attendees : []), [note]);
 
   // Fetch person details for attendee IDs
   useEffect(() => {
@@ -157,7 +135,7 @@ export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWid
   return (
     <div className={styles.card} data-testid="attendees-widget">
       <div className={styles.cardHeader}>
-        <AttendeesIcon size={14} />
+        <UsersIcon size={14} className={clsx(styles.cardIcon, styles.cardIconSecondary)} />
         <span className={styles.cardTitle}>Attendees</span>
         <button
           className={styles.addButton}

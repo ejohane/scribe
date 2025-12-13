@@ -7,8 +7,10 @@
 
 import { forwardRef, useCallback } from 'react';
 import type { Task } from '@scribe/shared';
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { format } from 'date-fns';
 import clsx from 'clsx';
+import { CheckIcon, GripVerticalIcon } from '@scribe/design-system';
 import * as styles from './TaskItem.css';
 
 export interface TaskItemProps {
@@ -51,46 +53,9 @@ export interface TaskItemProps {
    * Drag handle listeners from @dnd-kit
    */
   dragHandleProps?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    attributes: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    listeners: any;
+    attributes: DraggableAttributes;
+    listeners: DraggableSyntheticListeners;
   };
-}
-
-/**
- * Checkmark SVG icon
- */
-function CheckmarkIcon() {
-  return (
-    <svg
-      className={styles.checkmark}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-/**
- * Drag handle (grip) SVG icon
- */
-function GripIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="9" cy="6" r="1.5" />
-      <circle cx="15" cy="6" r="1.5" />
-      <circle cx="9" cy="12" r="1.5" />
-      <circle cx="15" cy="12" r="1.5" />
-      <circle cx="9" cy="18" r="1.5" />
-      <circle cx="15" cy="18" r="1.5" />
-    </svg>
-  );
 }
 
 /**
@@ -159,7 +124,7 @@ export const TaskItem = forwardRef<HTMLDivElement, TaskItemProps>(function TaskI
         {...dragHandleProps?.attributes}
         {...dragHandleProps?.listeners}
       >
-        <GripIcon />
+        <GripVerticalIcon size={16} />
       </div>
 
       {/* Checkbox */}
@@ -172,7 +137,7 @@ export const TaskItem = forwardRef<HTMLDivElement, TaskItemProps>(function TaskI
           aria-label={`Mark "${task.text}" as ${task.completed ? 'incomplete' : 'complete'}`}
         />
         <span className={styles.checkboxVisual}>
-          <CheckmarkIcon />
+          <CheckIcon className={styles.checkmark} strokeWidth={3} />
         </span>
       </label>
 

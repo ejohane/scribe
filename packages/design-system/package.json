@@ -10,7 +10,9 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@vanilla-extract/css": "^1.15.0",
@@ -24,7 +26,13 @@
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/react": "^18.3.0",
-    "typescript": "^5.6.3"
+    "@vanilla-extract/vite-plugin": "^4.0.7",
+    "happy-dom": "^15.11.7",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
   }
 }

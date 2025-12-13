@@ -6,24 +6,96 @@ import { render, screen, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NoteHeader } from './NoteHeader';
-import type { Note } from '@scribe/shared';
+import type {
+  Note,
+  RegularNote,
+  DailyNote,
+  MeetingNote,
+  NoteType,
+  DailyNoteData,
+  MeetingNoteData,
+} from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 /** Debounce delay matching the component (keep in sync with NoteHeader.tsx) */
 const TITLE_DEBOUNCE_MS = 300;
 
 /**
- * Create a mock Note object with sensible defaults
+ * Input type for createMockNote overrides
  */
-const createMockNote = (overrides: Partial<Note> = {}): Note => ({
-  id: 'test-note-1',
-  title: 'Test Title',
-  createdAt: 1701388800000, // Dec 1, 2023 00:00:00 UTC
-  updatedAt: 1701388800000,
-  tags: ['tag1', 'tag2'],
-  content: { root: { type: 'root', children: [] } },
-  metadata: { title: null, tags: [], links: [], mentions: [] },
-  ...overrides,
-});
+interface MockNoteOverrides {
+  id?: string;
+  title?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  type?: NoteType;
+  tags?: string[];
+  content?: Note['content'];
+  metadata?: Partial<Note['metadata']>;
+  daily?: DailyNoteData;
+  meeting?: MeetingNoteData;
+}
+
+/**
+ * Create a mock Note object with sensible defaults
+ * Properly constructs discriminated union variants based on type
+ */
+const createMockNote = (overrides: MockNoteOverrides = {}): Note => {
+  const baseNote = {
+    id: createNoteId(overrides.id ?? 'test-note-1'),
+    title: overrides.title ?? 'Test Title',
+    createdAt: overrides.createdAt ?? 1701388800000, // Dec 1, 2023 00:00:00 UTC
+    updatedAt: overrides.updatedAt ?? 1701388800000,
+    tags: overrides.tags ?? ['tag1', 'tag2'],
+    content: overrides.content ?? { root: { type: 'root' as const, children: [] } },
+    metadata: {
+      title: overrides.metadata?.title ?? null,
+      tags: overrides.metadata?.tags ?? [],
+      links: overrides.metadata?.links ?? [],
+      mentions: overrides.metadata?.mentions ?? [],
+    },
+  };
+
+  // Build proper discriminated union variant based on type
+  if (overrides.type === 'daily') {
+    return {
+      ...baseNote,
+      type: 'daily',
+      daily: overrides.daily ?? { date: new Date().toISOString().split('T')[0] },
+    } as DailyNote;
+  }
+
+  if (overrides.type === 'meeting') {
+    return {
+      ...baseNote,
+      type: 'meeting',
+      meeting: overrides.meeting ?? {
+        date: new Date().toISOString().split('T')[0],
+        dailyNoteId: createNoteId(''),
+        attendees: [],
+      },
+    } as MeetingNote;
+  }
+
+  if (overrides.type === 'person') {
+    return { ...baseNote, type: 'person' };
+  }
+
+  if (overrides.type === 'project') {
+    return { ...baseNote, type: 'project' };
+  }
+
+  if (overrides.type === 'template') {
+    return { ...baseNote, type: 'template' };
+  }
+
+  if (overrides.type === 'system') {
+    return { ...baseNote, type: 'system' };
+  }
+
+  // Regular note (no type)
+  return baseNote as RegularNote;
+};
 
 describe('NoteHeader', () => {
   describe('Title editing', () => {
@@ -44,8 +116,8 @@ describe('NoteHeader', () => {
     });
 
     it('should sync local title when note prop changes', () => {
-      const note1 = createMockNote({ id: 'note-1', title: 'First Note' });
-      const note2 = createMockNote({ id: 'note-2', title: 'Second Note' });
+      const note1 = createMockNote({ id: createNoteId('note-1'), title: 'First Note' });
+      const note2 = createMockNote({ id: createNoteId('note-2'), title: 'Second Note' });
 
       const { rerender } = render(
         <NoteHeader note={note1} onTitleChange={vi.fn()} onTagsChange={vi.fn()} />

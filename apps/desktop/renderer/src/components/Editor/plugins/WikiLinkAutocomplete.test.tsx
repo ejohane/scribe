@@ -7,11 +7,11 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
-import type { SearchResult } from '@scribe/shared';
+import { createNoteId, type SearchResult } from '@scribe/shared';
 
 const mockResults: SearchResult[] = [
-  { id: '1', title: 'Meeting Notes', snippet: '', score: 1, matches: [] },
-  { id: '2', title: 'Project Plan', snippet: '', score: 0.8, matches: [] },
+  { id: createNoteId('1'), title: 'Meeting Notes', snippet: '', score: 1, matches: [] },
+  { id: createNoteId('2'), title: 'Project Plan', snippet: '', score: 0.8, matches: [] },
 ];
 
 const defaultProps = {
@@ -75,7 +75,7 @@ describe('WikiLinkAutocomplete', () => {
 
     it('shows "Untitled" for results with no title', () => {
       const resultsWithNoTitle: SearchResult[] = [
-        { id: '1', title: '', snippet: '', score: 1, matches: [] },
+        { id: createNoteId('1'), title: '', snippet: '', score: 1, matches: [] },
       ];
 
       render(<WikiLinkAutocomplete {...defaultProps} results={resultsWithNoTitle} />);
@@ -85,7 +85,7 @@ describe('WikiLinkAutocomplete', () => {
 
     it('shows "Untitled" for results with null title', () => {
       const resultsWithNullTitle: SearchResult[] = [
-        { id: '1', title: null, snippet: '', score: 1, matches: [] },
+        { id: createNoteId('1'), title: null, snippet: '', score: 1, matches: [] },
       ];
 
       render(<WikiLinkAutocomplete {...defaultProps} results={resultsWithNullTitle} />);

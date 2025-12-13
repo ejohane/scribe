@@ -43,6 +43,16 @@ export {
   // Utility icons
   TrashIcon,
   HistoryIcon,
+  // Context panel icons
+  UsersIcon,
+  ExternalLinkIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CalendarIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  GripVerticalIcon,
+  CheckIcon,
 } from './icons';
 
 export type { IconComponentProps } from './icons';

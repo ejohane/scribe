@@ -9,19 +9,20 @@ import {
   type NoteForExtraction,
   type ExtractedTask,
 } from './task-extraction.js';
-import type { LexicalState } from '@scribe/shared';
+import type { LexicalState, EditorNode } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 /**
  * Helper to create a minimal note for testing
  */
 function createNote(id: string, title: string, content: LexicalState): NoteForExtraction {
-  return { id, title, content };
+  return { id: createNoteId(id), title, content };
 }
 
 /**
  * Helper to create a checklist listitem node
  */
-function createChecklistItem(text: string, checked: boolean, key: string): object {
+function createChecklistItem(text: string, checked: boolean, key: string): EditorNode {
   return {
     type: 'listitem',
     __checked: checked,
@@ -38,7 +39,7 @@ function createChecklistItem(text: string, checked: boolean, key: string): objec
 /**
  * Helper to create a regular (non-checklist) listitem node
  */
-function createRegularListItem(text: string, key: string): object {
+function createRegularListItem(text: string, key: string): EditorNode {
   return {
     type: 'listitem',
     __key: key,
@@ -646,6 +647,188 @@ describe('extractTasksFromNote', () => {
 
       const tasks = extractTasksFromNote(createNote('n', 'N', content));
       expect(tasks[0].nodeKey).toBe('my_custom_key');
+    });
+
+    it('should generate deterministic fallback key when __key is missing', () => {
+      // Create a checklist item without __key to trigger fallback
+      const content: LexicalState = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'list',
+              listType: 'check',
+              children: [
+                {
+                  type: 'listitem',
+                  __checked: false,
+                  // Intentionally no __key
+                  children: [{ type: 'text', text: 'Task without key' }],
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const note = createNote('note-fallback', 'Fallback Test', content);
+
+      // Extract twice and verify keys are stable
+      const tasks1 = extractTasksFromNote(note);
+      const tasks2 = extractTasksFromNote(note);
+
+      expect(tasks1).toHaveLength(1);
+      expect(tasks2).toHaveLength(1);
+
+      // Keys should be identical across extractions (deterministic)
+      expect(tasks1[0].nodeKey).toBe(tasks2[0].nodeKey);
+
+      // Key should follow fallback format: fallback_<textHash>_<lineIndex>
+      expect(tasks1[0].nodeKey).toMatch(/^fallback_[0-9a-f]+_\d+$/);
+    });
+
+    it('should generate different fallback keys for different tasks', () => {
+      const content: LexicalState = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'list',
+              listType: 'check',
+              children: [
+                {
+                  type: 'listitem',
+                  __checked: false,
+                  children: [{ type: 'text', text: 'First task' }],
+                },
+                {
+                  type: 'listitem',
+                  __checked: true,
+                  children: [{ type: 'text', text: 'Second task' }],
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const tasks = extractTasksFromNote(createNote('n', 'N', content));
+
+      expect(tasks).toHaveLength(2);
+      // Different tasks should have different fallback keys
+      expect(tasks[0].nodeKey).not.toBe(tasks[1].nodeKey);
+    });
+
+    it('should generate same fallback key for same text at same position', () => {
+      // Two notes with identical structure but no __key
+      const createContentWithoutKey = (): LexicalState => ({
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'list',
+              listType: 'check',
+              children: [
+                {
+                  type: 'listitem',
+                  __checked: false,
+                  children: [{ type: 'text', text: 'Same task text' }],
+                },
+              ],
+            },
+          ],
+        },
+      });
+
+      const tasks1 = extractTasksFromNote(createNote('n1', 'N1', createContentWithoutKey()));
+      const tasks2 = extractTasksFromNote(createNote('n2', 'N2', createContentWithoutKey()));
+
+      // Same text at same position should produce same fallback key
+      expect(tasks1[0].nodeKey).toBe(tasks2[0].nodeKey);
+    });
+  });
+
+  describe('extraction stability (deterministic IDs)', () => {
+    it('should produce identical results on repeated extraction', () => {
+      const content: LexicalState = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'list',
+              listType: 'check',
+              children: [
+                createChecklistItem('Task A', false, 'key_a'),
+                createChecklistItem('Task B', true, 'key_b'),
+                createChecklistItem('Task C', false, 'key_c'),
+              ],
+            },
+          ],
+        },
+      };
+
+      const note = createNote('note-stable', 'Stability Test', content);
+
+      // Extract multiple times
+      const results: ExtractedTask[][] = [];
+      for (let i = 0; i < 5; i++) {
+        results.push(extractTasksFromNote(note));
+      }
+
+      // All extractions should be identical
+      for (let i = 1; i < results.length; i++) {
+        expect(results[i]).toEqual(results[0]);
+      }
+
+      // Verify specific properties are stable
+      for (const tasks of results) {
+        expect(tasks).toHaveLength(3);
+        expect(tasks[0].nodeKey).toBe('key_a');
+        expect(tasks[0].textHash).toBe(results[0][0].textHash);
+        expect(tasks[1].nodeKey).toBe('key_b');
+        expect(tasks[2].nodeKey).toBe('key_c');
+      }
+    });
+
+    it('should produce stable IDs even without __key (fallback path)', () => {
+      const content: LexicalState = {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'list',
+              listType: 'check',
+              children: [
+                {
+                  type: 'listitem',
+                  __checked: false,
+                  children: [{ type: 'text', text: 'Fallback task 1' }],
+                },
+                {
+                  type: 'listitem',
+                  __checked: true,
+                  children: [{ type: 'text', text: 'Fallback task 2' }],
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const note = createNote('note-fallback-stable', 'Fallback Stability', content);
+
+      // Extract multiple times
+      const extraction1 = extractTasksFromNote(note);
+      const extraction2 = extractTasksFromNote(note);
+      const extraction3 = extractTasksFromNote(note);
+
+      // All should be identical
+      expect(extraction1).toEqual(extraction2);
+      expect(extraction2).toEqual(extraction3);
+
+      // Verify nodeKeys are deterministic (not random)
+      expect(extraction1[0].nodeKey).toBe(extraction2[0].nodeKey);
+      expect(extraction1[1].nodeKey).toBe(extraction2[1].nodeKey);
     });
   });
 });

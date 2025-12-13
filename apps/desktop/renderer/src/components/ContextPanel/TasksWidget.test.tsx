@@ -9,13 +9,14 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TasksWidget } from './TasksWidget';
 import type { Task, TaskChangeEvent } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 // Helper to create mock tasks
 function createMockTask(overrides: Partial<Task> = {}): Task {
   const id = overrides.id ?? `task-${Math.random().toString(36).substring(7)}`;
   return {
     id,
-    noteId: 'note-1',
+    noteId: createNoteId('note-1'),
     noteTitle: 'Test Note',
     nodeKey: 'node_1',
     lineIndex: 0,
@@ -193,7 +194,9 @@ describe('TasksWidget', () => {
   describe('navigation', () => {
     it('calls onNavigate when task text is clicked', async () => {
       const onNavigate = vi.fn();
-      const tasks = [createMockTask({ id: 'task-1', noteId: 'note-123', text: 'Navigate here' })];
+      const tasks = [
+        createMockTask({ id: 'task-1', noteId: createNoteId('note-123'), text: 'Navigate here' }),
+      ];
       mockTasksAPI.list.mockResolvedValue({ tasks });
 
       render(<TasksWidget onNavigate={onNavigate} />);
@@ -209,7 +212,7 @@ describe('TasksWidget', () => {
 
     it('calls onNavigate when note title is clicked', async () => {
       const onNavigate = vi.fn();
-      const tasks = [createMockTask({ noteId: 'note-456', noteTitle: 'My Note' })];
+      const tasks = [createMockTask({ noteId: createNoteId('note-456'), noteTitle: 'My Note' })];
       mockTasksAPI.list.mockResolvedValue({ tasks });
 
       render(<TasksWidget onNavigate={onNavigate} />);

@@ -66,7 +66,7 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
 
       const text = extractTextFromNode(node);
       const textHash = computeTextHash(text);
-      const nodeKey = getNodeKey(node);
+      const nodeKey = getNodeKey(node, listItemIndex);
 
       tasks.push({
         noteId: note.id,
@@ -161,12 +161,15 @@ export function computeTextHash(text: string): string {
  * Get the node key from a Lexical node.
  * In serialized Lexical JSON, the key is stored as __key.
  */
-function getNodeKey(node: LexicalNode): string {
+function getNodeKey(node: LexicalNode, lineIndex: number): string {
   // Lexical serialized JSON stores the key as __key
   if (typeof node.__key === 'string') {
     return node.__key;
   }
-  // Fallback: generate a deterministic key from position
-  // This shouldn't happen in practice with real Lexical data
-  return `node_${Math.random().toString(36).slice(2, 10)}`;
+  // Fallback: generate a deterministic key from text content and position
+  // This shouldn't happen in practice with real Lexical data, but ensures
+  // stable IDs for task reconciliation if it does
+  const text = extractTextFromNode(node);
+  const textHash = computeTextHash(text);
+  return `fallback_${textHash}_${lineIndex}`;
 }

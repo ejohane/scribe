@@ -2,19 +2,26 @@
  * Tests for SearchEngine
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SearchEngine } from './search-engine';
-import type { Note, LexicalState } from '@scribe/shared';
+import type { Note, LexicalState, NoteType, DailyNoteData, MeetingNoteData } from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 
 /**
- * Helper to create a test note with all required fields
+ * Shorthand alias for createNoteId to keep test code concise.
+ */
+const n = createNoteId;
+
+/**
+ * Helper to create a test note with all required fields.
+ * Uses discriminated union pattern for type-specific data.
  */
 function createTestNote(
   id: string,
   title: string,
   content: string,
   tags: string[] = [],
-  options?: { type?: 'daily' | 'person' | 'meeting'; daily?: { date: string } }
+  options?: { type?: NoteType; daily?: DailyNoteData; meeting?: MeetingNoteData }
 ): Note {
   const lexicalContent: LexicalState = {
     root: {
@@ -33,12 +40,11 @@ function createTestNote(
     },
   };
 
-  return {
-    id,
+  const baseNote = {
+    id: createNoteId(id),
     title, // Top-level explicit title
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    type: options?.type,
     tags, // Top-level user-defined tags
     content: lexicalContent,
     metadata: {
@@ -47,8 +53,29 @@ function createTestNote(
       links: [],
       mentions: [],
     },
-    daily: options?.daily,
   };
+
+  // Handle discriminated union based on type
+  if (options?.type === 'daily' && options?.daily) {
+    return { ...baseNote, type: 'daily', daily: options.daily };
+  }
+  if (options?.type === 'meeting' && options?.meeting) {
+    return { ...baseNote, type: 'meeting', meeting: options.meeting };
+  }
+  if (options?.type === 'person') {
+    return { ...baseNote, type: 'person' };
+  }
+  if (options?.type === 'project') {
+    return { ...baseNote, type: 'project' };
+  }
+  if (options?.type === 'template') {
+    return { ...baseNote, type: 'template' };
+  }
+  if (options?.type === 'system') {
+    return { ...baseNote, type: 'system' };
+  }
+  // Regular note (no special type)
+  return { ...baseNote, type: undefined };
 }
 
 describe('SearchEngine', () => {
@@ -95,12 +122,12 @@ describe('SearchEngine', () => {
       searchEngine.indexNote(note);
       expect(searchEngine.size()).toBe(1);
 
-      searchEngine.removeNote('note-1');
+      searchEngine.removeNote(n('note-1'));
       expect(searchEngine.size()).toBe(0);
     });
 
     it('should handle removing non-existent note', () => {
-      expect(() => searchEngine.removeNote('non-existent')).not.toThrow();
+      expect(() => searchEngine.removeNote(n('non-existent'))).not.toThrow();
       expect(searchEngine.size()).toBe(0);
     });
   });
@@ -324,6 +351,115 @@ describe('SearchEngine', () => {
       // Should still find by the original title
       const results = searchEngine.search('not-a-date');
       expect(results.length).toBe(1);
+    });
+
+    it('should log warning for invalid date that parses but is not valid', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        // Create a daily note with a date that may parse but result in invalid date
+        // The string 'invalid-date' won't match MM-dd-yyyy format properly
+        const dailyNote = createTestNote(
+          'daily-invalid-2',
+          '99-99-9999',
+          'Daily note content',
+          ['daily'],
+          { type: 'daily', daily: { date: '99-99-9999' } }
+        );
+
+        searchEngine.indexNote(dailyNote);
+
+        // Should have logged a warning
+        expect(consoleSpy).toHaveBeenCalled();
+        expect(consoleSpy.mock.calls[0][0]).toContain('[SearchEngine]');
+        expect(consoleSpy.mock.calls[0][0]).toContain('99-99-9999');
+      } finally {
+        consoleSpy.mockRestore();
+      }
+    });
+
+    it('should log warning for completely invalid date string', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        const dailyNote = createTestNote(
+          'daily-invalid-3',
+          'not-a-valid-date-format',
+          'Daily note content',
+          ['daily'],
+          { type: 'daily', daily: { date: 'not-a-valid-date-format' } }
+        );
+
+        searchEngine.indexNote(dailyNote);
+
+        // Should have logged a warning (either parse failure or invalid date)
+        expect(consoleSpy).toHaveBeenCalled();
+        expect(consoleSpy.mock.calls[0][0]).toContain('[SearchEngine]');
+        expect(consoleSpy.mock.calls[0][0]).toContain('not-a-valid-date-format');
+      } finally {
+        consoleSpy.mockRestore();
+      }
+    });
+
+    it('should NOT log warning for valid daily note dates in MM-dd-yyyy format', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        // Note: Daily notes use MM-dd-yyyy format (US format), e.g., "12-25-2024" for Dec 25
+        const dailyNote = createTestNote(
+          'daily-valid',
+          '12-25-2024',
+          'Christmas day notes',
+          ['daily'],
+          { type: 'daily', daily: { date: '12-25-2024' } }
+        );
+
+        searchEngine.indexNote(dailyNote);
+
+        // Should NOT have logged any warning since 12-25-2024 is valid MM-dd-yyyy
+        expect(consoleSpy).not.toHaveBeenCalled();
+      } finally {
+        consoleSpy.mockRestore();
+      }
+    });
+
+    it('should still index note and allow search after date parsing warning', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        const dailyNote = createTestNote(
+          'daily-with-warning',
+          'bad-date-format',
+          'This note has important content about meetings',
+          ['daily', 'important'],
+          { type: 'daily', daily: { date: 'bad-date-format' } }
+        );
+
+        searchEngine.indexNote(dailyNote);
+
+        // Warning should have been logged
+        expect(consoleSpy).toHaveBeenCalled();
+
+        // But the note should still be indexed and searchable
+        expect(searchEngine.size()).toBe(1);
+
+        // Can find by original title
+        const titleResults = searchEngine.search('bad-date-format');
+        expect(titleResults.length).toBe(1);
+        expect(titleResults[0].id).toBe('daily-with-warning');
+
+        // Can find by content
+        const contentResults = searchEngine.search('meetings');
+        expect(contentResults.length).toBe(1);
+        expect(contentResults[0].id).toBe('daily-with-warning');
+
+        // Can find by tags
+        const tagResults = searchEngine.search('important');
+        expect(tagResults.length).toBe(1);
+        expect(tagResults[0].id).toBe('daily-with-warning');
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
   });
 });

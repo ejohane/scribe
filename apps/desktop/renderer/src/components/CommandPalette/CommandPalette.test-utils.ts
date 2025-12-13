@@ -11,7 +11,16 @@
  */
 
 import { vi } from 'vitest';
-import type { Note } from '@scribe/shared';
+import type {
+  Note,
+  RegularNote,
+  DailyNote,
+  MeetingNote,
+  NoteType,
+  DailyNoteData,
+  MeetingNoteData,
+} from '@scribe/shared';
+import { createNoteId } from '@scribe/shared';
 import type { Command } from '../../commands/types';
 import * as styles from './CommandPalette.css';
 
@@ -49,23 +58,40 @@ export const CSS = {
 export const BASE_TIME = Date.now();
 
 /**
+ * Input type for creating mock notes
+ */
+interface MockNoteInput {
+  id: string;
+  title?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  type?: NoteType;
+  tags?: string[];
+  content?: Note['content'];
+  metadata?: Partial<Note['metadata']>;
+  daily?: DailyNoteData;
+  meeting?: MeetingNoteData;
+}
+
+/**
  * Helper to create mock notes with specific properties
  * Matches production note creation pattern from storage.ts
+ * Properly constructs discriminated union variants based on type
  */
-export function createMockNote(overrides: Partial<Note> & { id: string }): Note {
+export function createMockNote(overrides: MockNoteInput): Note {
   const now = Date.now();
   // Use explicit title or fallback to 'Untitled' (matches production pattern)
   const title = overrides.title ?? overrides.metadata?.title ?? 'Untitled';
-  return {
-    id: overrides.id,
+
+  const baseNote = {
+    id: createNoteId(overrides.id),
     title,
     createdAt: overrides.createdAt ?? now,
     updatedAt: overrides.updatedAt ?? now,
-    type: overrides.type,
     tags: overrides.tags ?? [],
     content: overrides.content ?? {
       root: {
-        type: 'root',
+        type: 'root' as const,
         children: [],
       },
     },
@@ -76,6 +102,46 @@ export function createMockNote(overrides: Partial<Note> & { id: string }): Note 
       mentions: overrides.metadata?.mentions ?? [],
     },
   };
+
+  // Build proper discriminated union variant based on type
+  if (overrides.type === 'daily') {
+    return {
+      ...baseNote,
+      type: 'daily',
+      daily: overrides.daily ?? { date: new Date().toISOString().split('T')[0] },
+    } as DailyNote;
+  }
+
+  if (overrides.type === 'meeting') {
+    return {
+      ...baseNote,
+      type: 'meeting',
+      meeting: overrides.meeting ?? {
+        date: new Date().toISOString().split('T')[0],
+        dailyNoteId: createNoteId(''),
+        attendees: [],
+      },
+    } as MeetingNote;
+  }
+
+  if (overrides.type === 'person') {
+    return { ...baseNote, type: 'person' };
+  }
+
+  if (overrides.type === 'project') {
+    return { ...baseNote, type: 'project' };
+  }
+
+  if (overrides.type === 'template') {
+    return { ...baseNote, type: 'template' };
+  }
+
+  if (overrides.type === 'system') {
+    return { ...baseNote, type: 'system' };
+  }
+
+  // Regular note (no type)
+  return baseNote as RegularNote;
 }
 
 /**

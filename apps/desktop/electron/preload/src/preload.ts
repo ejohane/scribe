@@ -1,371 +1,131 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type {
-  Note,
-  NoteId,
-  SearchResult,
-  GraphNode,
-  Task,
-  TaskFilter,
-  TaskChangeEvent,
-} from '@scribe/shared';
+import type { Note, NoteId, TaskFilter, TaskChangeEvent } from '@scribe/shared';
+import { IPC_CHANNELS, type ScribeAPI } from '@scribe/shared';
 
 /**
- * Scribe API exposed to the renderer process
+ * Scribe API implementation exposed to the renderer process.
  *
- * This is the complete API surface that the renderer can use to interact
- * with the engine via IPC. All privileged operations are routed through
- * this secure boundary.
+ * This implementation uses the shared IPC contract from @scribe/shared
+ * as the single source of truth for the API surface. All types and
+ * documentation are defined in packages/shared/src/ipc-contract.ts.
  */
-const scribeAPI = {
-  // Ping test API
-  ping: (): Promise<{ message: string; timestamp: number }> => ipcRenderer.invoke('ping'),
+const scribeAPI: ScribeAPI = {
+  ping: () => ipcRenderer.invoke(IPC_CHANNELS.PING),
 
-  // Notes API
   notes: {
-    /**
-     * List all notes
-     */
-    list: (): Promise<Note[]> => ipcRenderer.invoke('notes:list'),
-
-    /**
-     * Read a single note by ID
-     */
-    read: (id: NoteId): Promise<Note> => ipcRenderer.invoke('notes:read', id),
-
-    /**
-     * Create a new note
-     */
-    create: (): Promise<Note> => ipcRenderer.invoke('notes:create'),
-
-    /**
-     * Save a note (create or update)
-     */
-    save: (note: Note): Promise<{ success: boolean }> => ipcRenderer.invoke('notes:save', note),
-
-    /**
-     * Delete a note by ID
-     */
-    delete: (id: NoteId): Promise<{ success: boolean }> => ipcRenderer.invoke('notes:delete', id),
-
-    /**
-     * Find a note by title (for wiki-link resolution)
-     * Returns exact match first, then case-insensitive match.
-     * If multiple matches, returns the most recently updated note.
-     */
-    findByTitle: (title: string): Promise<Note | null> =>
-      ipcRenderer.invoke('notes:findByTitle', title),
-
-    /**
-     * Search note titles (for wiki-link autocomplete)
-     * Returns notes whose titles contain the query string.
-     */
-    searchTitles: (query: string, limit?: number): Promise<SearchResult[]> =>
-      ipcRenderer.invoke('notes:searchTitles', query, limit ?? 10),
-
-    /**
-     * Find notes by creation/update date (for date-based linked mentions)
-     * @param date - Date string in "MM-dd-yyyy" format
-     * @param includeCreated - Include notes created on this date
-     * @param includeUpdated - Include notes updated on this date
-     * @returns Array of notes with their match reason ('created' | 'updated')
-     */
-    findByDate: (
-      date: string,
-      includeCreated: boolean,
-      includeUpdated: boolean
-    ): Promise<Array<{ note: Note; reason: 'created' | 'updated' }>> =>
-      ipcRenderer.invoke('notes:findByDate', { date, includeCreated, includeUpdated }),
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.NOTES_LIST),
+    read: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_READ, id),
+    create: () => ipcRenderer.invoke(IPC_CHANNELS.NOTES_CREATE),
+    save: (note: Note) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_SAVE, note),
+    delete: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_DELETE, id),
+    findByTitle: (title: string) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_FIND_BY_TITLE, title),
+    searchTitles: (query: string, limit?: number) =>
+      ipcRenderer.invoke(IPC_CHANNELS.NOTES_SEARCH_TITLES, query, limit ?? 10),
+    findByDate: (date: string, includeCreated: boolean, includeUpdated: boolean) =>
+      ipcRenderer.invoke(IPC_CHANNELS.NOTES_FIND_BY_DATE, { date, includeCreated, includeUpdated }),
   },
 
-  // Search API (placeholder for future implementation)
   search: {
-    /**
-     * Search notes by text query
-     */
-    query: (text: string): Promise<SearchResult[]> => ipcRenderer.invoke('search:query', text),
+    query: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.SEARCH_QUERY, text),
   },
 
-  // Graph API
   graph: {
-    /**
-     * Get graph neighbors for a note (both incoming and outgoing connections)
-     */
-    forNote: (id: NoteId): Promise<GraphNode[]> => ipcRenderer.invoke('graph:forNote', id),
-
-    /**
-     * Get backlinks for a note (notes that link to this note)
-     */
-    backlinks: (id: NoteId): Promise<GraphNode[]> => ipcRenderer.invoke('graph:backlinks', id),
-
-    /**
-     * Get all notes with a specific tag
-     */
-    notesWithTag: (tag: string): Promise<GraphNode[]> =>
-      ipcRenderer.invoke('graph:notesWithTag', tag),
+    forNote: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.GRAPH_FOR_NOTE, id),
+    backlinks: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.GRAPH_BACKLINKS, id),
+    notesWithTag: (tag: string) => ipcRenderer.invoke(IPC_CHANNELS.GRAPH_NOTES_WITH_TAG, tag),
   },
 
-  // Shell API
   shell: {
-    /**
-     * Open a URL in the default external browser
-     * Only http:// and https:// URLs are allowed
-     */
-    openExternal: (url: string): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('shell:openExternal', url),
+    openExternal: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SHELL_OPEN_EXTERNAL, url),
   },
 
-  // App API
   app: {
-    /**
-     * Open developer tools
-     */
-    openDevTools: (): Promise<{ success: boolean }> => ipcRenderer.invoke('app:openDevTools'),
-
-    /**
-     * Get the last opened note ID
-     */
-    getLastOpenedNote: (): Promise<NoteId | null> => ipcRenderer.invoke('app:getLastOpenedNote'),
-
-    /**
-     * Set the last opened note ID
-     */
-    setLastOpenedNote: (noteId: NoteId | null): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('app:setLastOpenedNote', noteId),
-
-    /**
-     * Get app configuration
-     */
-    getConfig: (): Promise<Record<string, unknown>> => ipcRenderer.invoke('app:getConfig'),
-
-    /**
-     * Set app configuration (merges with existing)
-     */
-    setConfig: (config: Record<string, unknown>): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('app:setConfig', config),
+    openDevTools: () => ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_DEV_TOOLS),
+    getLastOpenedNote: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_LAST_OPENED_NOTE),
+    setLastOpenedNote: (noteId: NoteId | null) =>
+      ipcRenderer.invoke(IPC_CHANNELS.APP_SET_LAST_OPENED_NOTE, noteId),
+    getConfig: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_CONFIG),
+    setConfig: (config: Record<string, unknown>) =>
+      ipcRenderer.invoke(IPC_CHANNELS.APP_SET_CONFIG, config),
   },
 
-  // People API
   people: {
-    /**
-     * List all people
-     */
-    list: (): Promise<Note[]> => ipcRenderer.invoke('people:list'),
-
-    /**
-     * Create a new person
-     */
-    create: (name: string): Promise<Note> => ipcRenderer.invoke('people:create', name),
-
-    /**
-     * Search people by name (for autocomplete)
-     */
-    search: (query: string, limit?: number): Promise<SearchResult[]> =>
-      ipcRenderer.invoke('people:search', query, limit ?? 10),
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.PEOPLE_LIST),
+    create: (name: string) => ipcRenderer.invoke(IPC_CHANNELS.PEOPLE_CREATE, name),
+    search: (query: string, limit?: number) =>
+      ipcRenderer.invoke(IPC_CHANNELS.PEOPLE_SEARCH, query, limit ?? 10),
   },
 
-  /**
-   * Daily note operations
-   */
   daily: {
-    /**
-     * Get or create a daily note for a specific date.
-     * If no date is provided, uses today's date.
-     * Idempotent: returns same note on repeat calls for the same date.
-     * @param date - Optional date to get/create the daily note for
-     */
-    getOrCreate: (date?: Date): Promise<Note> =>
-      ipcRenderer.invoke('daily:getOrCreate', date ? { date: date.toISOString() } : undefined),
-
-    /**
-     * Find daily note for a specific date.
-     * @param date - ISO date string "YYYY-MM-DD"
-     * @returns The daily note or null if not found
-     */
-    find: (date: string): Promise<Note | null> => ipcRenderer.invoke('daily:find', { date }),
+    getOrCreate: (date?: Date) =>
+      ipcRenderer.invoke(
+        IPC_CHANNELS.DAILY_GET_OR_CREATE,
+        date ? { date: date.toISOString() } : undefined
+      ),
+    find: (date: string) => ipcRenderer.invoke(IPC_CHANNELS.DAILY_FIND, { date }),
   },
 
-  /**
-   * Meeting note operations
-   */
   meeting: {
-    /**
-     * Create a new meeting note for today.
-     * Auto-creates daily note if needed and links the meeting to it.
-     * @param title - The meeting title (required, cannot be empty)
-     */
-    create: (title: string): Promise<Note> => ipcRenderer.invoke('meeting:create', { title }),
-
-    /**
-     * Add a person as attendee to a meeting.
-     * Idempotent: adding same person twice has no effect.
-     * @param noteId - The meeting note ID
-     * @param personId - The person note ID to add
-     */
-    addAttendee: (noteId: NoteId, personId: NoteId): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('meeting:addAttendee', { noteId, personId }),
-
-    /**
-     * Remove a person from a meeting's attendees.
-     * Idempotent: removing non-existent attendee has no effect.
-     * @param noteId - The meeting note ID
-     * @param personId - The person note ID to remove
-     */
-    removeAttendee: (noteId: NoteId, personId: NoteId): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('meeting:removeAttendee', { noteId, personId }),
+    create: (title: string) => ipcRenderer.invoke(IPC_CHANNELS.MEETING_CREATE, { title }),
+    addAttendee: (noteId: NoteId, personId: NoteId) =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEETING_ADD_ATTENDEE, { noteId, personId }),
+    removeAttendee: (noteId: NoteId, personId: NoteId) =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEETING_REMOVE_ATTENDEE, { noteId, personId }),
   },
 
-  /**
-   * Dictionary/Spellcheck API for managing custom dictionary
-   */
   dictionary: {
-    /**
-     * Add a word to the spellcheck dictionary
-     * @param word - The word to add
-     */
-    addWord: (word: string): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('dictionary:addWord', word),
-
-    /**
-     * Remove a word from the spellcheck dictionary
-     * @param word - The word to remove
-     */
-    removeWord: (word: string): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('dictionary:removeWord', word),
-
-    /**
-     * Get the currently active spellcheck languages
-     * @returns Array of language codes (e.g., ['en-US', 'en-GB'])
-     */
-    getLanguages: (): Promise<string[]> => ipcRenderer.invoke('dictionary:getLanguages'),
-
-    /**
-     * Set the active spellcheck languages
-     * @param languages - Array of language codes to enable
-     */
-    setLanguages: (languages: string[]): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('dictionary:setLanguages', languages),
-
-    /**
-     * Get all available spellcheck languages that can be enabled
-     * @returns Array of available language codes
-     */
-    getAvailableLanguages: (): Promise<string[]> =>
-      ipcRenderer.invoke('dictionary:getAvailableLanguages'),
+    addWord: (word: string) => ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_ADD_WORD, word),
+    removeWord: (word: string) => ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_REMOVE_WORD, word),
+    getLanguages: () => ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_GET_LANGUAGES),
+    setLanguages: (languages: string[]) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_SET_LANGUAGES, languages),
+    getAvailableLanguages: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_GET_AVAILABLE_LANGUAGES),
   },
 
-  /**
-   * Tasks API for task management
-   */
   tasks: {
-    /**
-     * List tasks with optional filtering and pagination
-     * @param filter - Optional filter criteria
-     * @returns Tasks and optional nextCursor for pagination
-     */
-    list: (filter?: TaskFilter): Promise<{ tasks: Task[]; nextCursor?: string }> =>
-      ipcRenderer.invoke('tasks:list', filter),
-
-    /**
-     * Toggle a task's completion state
-     * @param taskId - The task ID to toggle
-     * @returns Success status and updated task
-     */
-    toggle: (taskId: string): Promise<{ success: boolean; task?: Task; error?: string }> =>
-      ipcRenderer.invoke('tasks:toggle', { taskId }),
-
-    /**
-     * Reorder tasks by priority
-     * @param taskIds - Array of task IDs in new priority order
-     * @returns Success status
-     */
-    reorder: (taskIds: string[]): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('tasks:reorder', { taskIds }),
-
-    /**
-     * Get a single task by ID
-     * @param taskId - The task ID to retrieve
-     * @returns The task or null if not found
-     */
-    get: (taskId: string): Promise<Task | null> => ipcRenderer.invoke('tasks:get', { taskId }),
-
-    /**
-     * Subscribe to task change events
-     * @param callback - Called when tasks change
-     * @returns Unsubscribe function for cleanup
-     */
-    onChange: (callback: (events: TaskChangeEvent[]) => void): (() => void) => {
+    list: (filter?: TaskFilter) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_LIST, filter),
+    toggle: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_TOGGLE, { taskId }),
+    reorder: (taskIds: string[]) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_REORDER, { taskIds }),
+    get: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_GET, { taskId }),
+    onChange: (callback: (events: TaskChangeEvent[]) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, events: TaskChangeEvent[]) =>
         callback(events);
-      ipcRenderer.on('tasks:changed', handler);
-      return () => ipcRenderer.removeListener('tasks:changed', handler);
+      ipcRenderer.on(IPC_CHANNELS.TASKS_CHANGED, handler);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.TASKS_CHANGED, handler);
     },
   },
 
-  /**
-   * Update API for auto-update functionality
-   */
   update: {
-    /**
-     * Manually check for updates
-     */
-    check: (): Promise<void> => ipcRenderer.invoke('update:check'),
-
-    /**
-     * Quit and install the downloaded update
-     */
-    install: (): void => ipcRenderer.send('update:install'),
-
-    /**
-     * Subscribe to checking event
-     * @returns Unsubscribe function for cleanup
-     */
-    onChecking: (callback: () => void): (() => void) => {
+    check: () => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),
+    install: () => ipcRenderer.send(IPC_CHANNELS.UPDATE_INSTALL),
+    onChecking: (callback: () => void) => {
       const handler = () => callback();
-      ipcRenderer.on('update:checking', handler);
-      return () => ipcRenderer.removeListener('update:checking', handler);
+      ipcRenderer.on(IPC_CHANNELS.UPDATE_CHECKING, handler);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_CHECKING, handler);
     },
-
-    /**
-     * Subscribe to available event
-     * @returns Unsubscribe function for cleanup
-     */
-    onAvailable: (callback: (info: { version: string }) => void): (() => void) => {
+    onAvailable: (callback: (info: { version: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) =>
         callback(info);
-      ipcRenderer.on('update:available', handler);
-      return () => ipcRenderer.removeListener('update:available', handler);
+      ipcRenderer.on(IPC_CHANNELS.UPDATE_AVAILABLE, handler);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_AVAILABLE, handler);
     },
-
-    /**
-     * Subscribe to not-available event
-     * @returns Unsubscribe function for cleanup
-     */
-    onNotAvailable: (callback: () => void): (() => void) => {
+    onNotAvailable: (callback: () => void) => {
       const handler = () => callback();
-      ipcRenderer.on('update:not-available', handler);
-      return () => ipcRenderer.removeListener('update:not-available', handler);
+      ipcRenderer.on(IPC_CHANNELS.UPDATE_NOT_AVAILABLE, handler);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_NOT_AVAILABLE, handler);
     },
-
-    /**
-     * Subscribe to downloaded event
-     * @returns Unsubscribe function for cleanup
-     */
-    onDownloaded: (callback: (info: { version: string }) => void): (() => void) => {
+    onDownloaded: (callback: (info: { version: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, info: { version: string }) =>
         callback(info);
-      ipcRenderer.on('update:downloaded', handler);
-      return () => ipcRenderer.removeListener('update:downloaded', handler);
+      ipcRenderer.on(IPC_CHANNELS.UPDATE_DOWNLOADED, handler);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_DOWNLOADED, handler);
     },
-
-    /**
-     * Subscribe to error event
-     * @returns Unsubscribe function for cleanup
-     */
-    onError: (callback: (error: { message: string }) => void): (() => void) => {
+    onError: (callback: (error: { message: string }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, error: { message: string }) =>
         callback(error);
-      ipcRenderer.on('update:error', handler);
-      return () => ipcRenderer.removeListener('update:error', handler);
+      ipcRenderer.on(IPC_CHANNELS.UPDATE_ERROR, handler);
+      return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_ERROR, handler);
     },
   },
 };
@@ -373,5 +133,5 @@ const scribeAPI = {
 // Expose the API to the renderer via contextBridge
 contextBridge.exposeInMainWorld('scribe', scribeAPI);
 
-// Type declaration for TypeScript support in renderer
-export type ScribeAPI = typeof scribeAPI;
+// Re-export the type for use in renderer-side type augmentation
+export type { ScribeAPI };

@@ -1,19 +1,89 @@
 /**
- * TaskIndex: In-memory task index with JSONL persistence
+ * TaskIndex: In-memory task index with pluggable persistence
  *
  * Manages tasks extracted from notes, providing:
  * - Reconciliation rules (nodeKey first, textHash fallback)
  * - Priority assignment for new tasks
  * - completedAt handling (set when checked, clear when unchecked)
  * - Pagination support with cursor-based paging
- * - JSONL persistence (atomic temp+rename, debounced writes)
+ * - Debounced persistence through TaskPersistence interface
  */
 
-import { join } from 'path';
-import { promises as fs } from 'fs';
 import type { Note, NoteId, Task, TaskFilter, TaskChangeEvent } from '@scribe/shared';
-import { serializeTaskId } from '@scribe/shared';
-import { extractTasksFromNote, type ExtractedTask } from './task-extraction.js';
+import { type TaskPersistence, JsonlTaskPersistence } from './task-persistence.js';
+import { type TaskReconciler, DefaultTaskReconciler } from './task-reconciler.js';
+import { TaskQuery, fromTaskFilter } from './task-query.js';
+
+// ============================================================================
+// Pure Helper Functions for Task Reconciliation
+// ============================================================================
+// These functions are pure and testable, extracted from indexNote() for clarity.
+// ============================================================================
+
+/**
+ * Build a map of existing tasks for a note from the task store.
+ *
+ * @param tasks - The main task storage map
+ * @param taskIds - Set of task IDs for the note
+ * @returns Map of taskId -> Task for existing tasks
+ */
+export function buildExistingTaskMap(
+  tasks: Map<string, Task>,
+  taskIds: Set<string>
+): Map<string, Task> {
+  const existingTasks = new Map<string, Task>();
+  for (const taskId of taskIds) {
+    const task = tasks.get(taskId);
+    if (task) {
+      existingTasks.set(taskId, task);
+    }
+  }
+  return existingTasks;
+}
+
+/**
+ * Find the old task entry that matches a task being updated.
+ *
+ * When a task's ID changes (due to nodeKey or textHash change), we need to find
+ * the old entry to remove it from the index. This function searches by matching
+ * nodeKey or textHash.
+ *
+ * @param task - The updated task with potentially new ID
+ * @param existingTasks - Map of existing tasks for the note
+ * @returns The old task ID if found and different from the new ID, undefined otherwise
+ */
+export function findOldTaskId(task: Task, existingTasks: Map<string, Task>): string | undefined {
+  // If the task ID exists in existingTasks, no old ID to find
+  if (existingTasks.has(task.id)) {
+    return undefined;
+  }
+
+  // Search for a task with matching nodeKey or textHash
+  for (const [oldId, oldTask] of existingTasks.entries()) {
+    if (oldTask.nodeKey === task.nodeKey || oldTask.textHash === task.textHash) {
+      if (oldId !== task.id) {
+        return oldId;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Compute the set of orphaned task IDs (tasks that exist in the index but not in the note).
+ *
+ * This is a simple set difference operation.
+ *
+ * @param existingIds - Set of task IDs currently in the index for this note
+ * @param toRemove - Array of task IDs to remove (from reconciler)
+ * @returns Array of task IDs that should be removed
+ */
+export function findOrphanedTaskIds(existingIds: Set<string>, toRemove: string[]): string[] {
+  // The reconciler already computes toRemove, so we just return it
+  // This function exists for semantic clarity and potential future extension
+  return toRemove;
+}
 
 /** Default debounce delay for persistence in milliseconds */
 const PERSIST_DEBOUNCE_MS = 5000;
@@ -23,6 +93,9 @@ const PERSIST_DEBOUNCE_MS = 5000;
  *
  * The index is the source of truth for task metadata (priority, createdAt, completedAt)
  * while the completion state is derived from the source document's checkbox.
+ *
+ * Persistence is handled through the TaskPersistence interface, allowing different
+ * storage backends (JSONL, SQLite, etc.) to be used interchangeably.
  */
 export class TaskIndex {
   /** Main task storage by task ID */
@@ -31,8 +104,8 @@ export class TaskIndex {
   /** Secondary index: noteId -> Set of task IDs */
   private byNote: Map<NoteId, Set<string>> = new Map();
 
-  /** Path to JSONL persistence file */
-  private persistPath: string;
+  /** Persistence layer for task storage */
+  private persistence: TaskPersistence;
 
   /** Flag indicating unsaved changes */
   private dirty = false;
@@ -43,73 +116,73 @@ export class TaskIndex {
   /** Debounce delay in milliseconds */
   private debounceMs: number;
 
+  /** Task reconciler for syncing notes with index */
+  private reconciler: TaskReconciler;
+
   /**
-   * Create a new TaskIndex.
+   * Create a new TaskIndex with a TaskPersistence instance.
+   *
+   * @param persistence - TaskPersistence implementation for storage
+   * @param debounceMs - Debounce delay for persistence (default 5000ms)
+   * @param reconciler - Optional custom TaskReconciler implementation
+   */
+  constructor(persistence: TaskPersistence, debounceMs?: number, reconciler?: TaskReconciler);
+
+  /**
+   * Create a new TaskIndex with a derived path (legacy constructor).
    *
    * @param derivedPath - Path to the derived data directory
    * @param debounceMs - Debounce delay for persistence (default 5000ms)
+   * @deprecated Use the constructor with TaskPersistence instead
    */
-  constructor(derivedPath: string, debounceMs = PERSIST_DEBOUNCE_MS) {
-    this.persistPath = join(derivedPath, 'tasks.jsonl');
+  constructor(derivedPath: string, debounceMs?: number);
+
+  constructor(
+    persistenceOrPath: TaskPersistence | string,
+    debounceMs = PERSIST_DEBOUNCE_MS,
+    reconciler?: TaskReconciler
+  ) {
+    if (typeof persistenceOrPath === 'string') {
+      // Legacy constructor: create JsonlTaskPersistence from path
+      this.persistence = JsonlTaskPersistence.fromDerivedPath(persistenceOrPath);
+    } else {
+      // New constructor: use provided persistence
+      this.persistence = persistenceOrPath;
+    }
     this.debounceMs = debounceMs;
+    this.reconciler = reconciler ?? new DefaultTaskReconciler();
   }
 
   /**
-   * Load tasks from JSONL file.
+   * Load tasks from persistence layer.
    *
-   * Silently handles missing file (fresh start).
+   * Populates in-memory indexes from stored tasks.
    */
   async load(): Promise<void> {
-    try {
-      const content = await fs.readFile(this.persistPath, 'utf-8');
-      const lines = content.trim().split('\n').filter(Boolean);
+    const tasks = await this.persistence.load();
 
-      for (const line of lines) {
-        try {
-          const task = JSON.parse(line) as Task;
-          this.tasks.set(task.id, task);
+    for (const task of tasks) {
+      this.tasks.set(task.id, task);
 
-          // Update byNote index
-          let noteTaskIds = this.byNote.get(task.noteId);
-          if (!noteTaskIds) {
-            noteTaskIds = new Set();
-            this.byNote.set(task.noteId, noteTaskIds);
-          }
-          noteTaskIds.add(task.id);
-        } catch {
-          // Skip malformed lines
-          console.warn('[TaskIndex] Skipping malformed line:', line);
-        }
+      // Update byNote index
+      let noteTaskIds = this.byNote.get(task.noteId);
+      if (!noteTaskIds) {
+        noteTaskIds = new Set();
+        this.byNote.set(task.noteId, noteTaskIds);
       }
-    } catch (error) {
-      // File doesn't exist yet - fresh start
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
+      noteTaskIds.add(task.id);
     }
   }
 
   /**
-   * Persist tasks to JSONL file atomically.
+   * Persist tasks to storage.
    *
-   * Uses temp file + rename for atomic writes.
+   * Uses the TaskPersistence implementation for actual storage.
    */
   async persist(): Promise<void> {
     if (!this.dirty) return;
 
-    const tempPath = this.persistPath + '.tmp';
-    const lines = Array.from(this.tasks.values())
-      .map((task) => JSON.stringify(task))
-      .join('\n');
-
-    // Ensure directory exists
-    await fs.mkdir(join(this.persistPath, '..'), { recursive: true });
-
-    // Write to temp file
-    await fs.writeFile(tempPath, lines + '\n', 'utf-8');
-
-    // Atomic rename
-    await fs.rename(tempPath, this.persistPath);
+    await this.persistence.save(Array.from(this.tasks.values()));
 
     this.dirty = false;
   }
@@ -163,89 +236,30 @@ export class TaskIndex {
     const changes: TaskChangeEvent[] = [];
     const now = Date.now();
 
-    // Extract tasks from note content
-    const extracted = extractTasksFromNote({
-      id: note.id,
-      title: note.title,
-      content: note.content,
-    });
+    // Build map of existing tasks for this note using helper
+    const existingTaskIds = this.byNote.get(note.id) ?? new Set<string>();
+    const existingTasks = buildExistingTaskMap(this.tasks, existingTaskIds);
 
-    // Get existing tasks for this note (make a copy to avoid mutation issues during iteration)
-    const existingTaskIdsSnapshot = new Set(this.byNote.get(note.id) ?? []);
-
-    // Build lookup maps for existing tasks
-    const existingByNodeKey = new Map<string, Task>();
-    const existingByTextHash = new Map<string, Task>();
-    for (const taskId of existingTaskIdsSnapshot) {
-      const task = this.tasks.get(taskId);
-      if (task) {
-        existingByNodeKey.set(task.nodeKey, task);
-        // Only use textHash as fallback if nodeKey lookup fails
-        if (!existingByTextHash.has(task.textHash)) {
-          existingByTextHash.set(task.textHash, task);
-        }
-      }
-    }
-
-    // Track which existing tasks we've matched (by their original IDs)
-    const matchedExistingIds = new Set<string>();
-
-    // Get max priority for new task assignment
+    // Delegate reconciliation to the reconciler
     const maxPriority = this.getMaxPriority();
+    const result = this.reconciler.reconcile(note, existingTasks, maxPriority, now);
 
-    // Track how many new tasks we create (for priority assignment)
-    let newTaskCount = 0;
-
-    // Process extracted tasks
-    for (const ext of extracted) {
-      // Try to find existing task by nodeKey first
-      let existing = existingByNodeKey.get(ext.nodeKey);
-
-      // If not found by nodeKey, try textHash as fallback
-      if (!existing) {
-        existing = existingByTextHash.get(ext.textHash);
-      }
-
-      if (existing) {
-        // Found existing task - reconcile
-        matchedExistingIds.add(existing.id);
-
-        const updated = this.reconcileTask(existing, ext, now);
-        if (updated) {
-          this.tasks.set(updated.id, updated);
-          changes.push({ type: 'updated', task: updated });
-        }
-      } else {
-        // New task
-        const newTask = this.createTask(ext, maxPriority + 1 + newTaskCount, now);
-        newTaskCount++;
-
-        this.tasks.set(newTask.id, newTask);
-
-        // Update byNote index
-        let noteTaskIds = this.byNote.get(note.id);
-        if (!noteTaskIds) {
-          noteTaskIds = new Set();
-          this.byNote.set(note.id, noteTaskIds);
-        }
-        noteTaskIds.add(newTask.id);
-
-        changes.push({ type: 'added', task: newTask });
-      }
+    // Apply additions
+    for (const task of result.toAdd) {
+      this.addTaskToIndex(note.id, task);
+      changes.push({ type: 'added', task });
     }
 
-    // Remove tasks that no longer exist in the note
-    // Use the snapshot to avoid issues with byNote being modified during reconciliation
-    for (const taskId of existingTaskIdsSnapshot) {
-      if (!matchedExistingIds.has(taskId)) {
-        this.tasks.delete(taskId);
-        // Also remove from byNote
-        const noteTaskIds = this.byNote.get(note.id);
-        if (noteTaskIds) {
-          noteTaskIds.delete(taskId);
-        }
-        changes.push({ type: 'removed', taskId });
-      }
+    // Apply updates (with ID change handling)
+    for (const task of result.toUpdate) {
+      this.applyTaskUpdate(note.id, task, existingTasks);
+      changes.push({ type: 'updated', task });
+    }
+
+    // Apply removals
+    for (const taskId of findOrphanedTaskIds(existingTaskIds, result.toRemove)) {
+      this.removeTaskFromIndex(note.id, taskId);
+      changes.push({ type: 'removed', taskId });
     }
 
     // Mark dirty and schedule persist if there were changes
@@ -255,6 +269,63 @@ export class TaskIndex {
     }
 
     return changes;
+  }
+
+  /**
+   * Add a task to the main index and byNote secondary index.
+   *
+   * @param noteId - The note ID the task belongs to
+   * @param task - The task to add
+   */
+  private addTaskToIndex(noteId: NoteId, task: Task): void {
+    this.tasks.set(task.id, task);
+
+    let noteTaskIds = this.byNote.get(noteId);
+    if (!noteTaskIds) {
+      noteTaskIds = new Set();
+      this.byNote.set(noteId, noteTaskIds);
+    }
+    noteTaskIds.add(task.id);
+  }
+
+  /**
+   * Apply a task update, handling potential ID changes.
+   *
+   * When a task's nodeKey or textHash changes, its ID changes too.
+   * This method finds and removes the old entry before adding the new one.
+   *
+   * @param noteId - The note ID the task belongs to
+   * @param task - The updated task
+   * @param existingTasks - Map of existing tasks for finding old entries
+   */
+  private applyTaskUpdate(noteId: NoteId, task: Task, existingTasks: Map<string, Task>): void {
+    // Check if this is an ID change using the helper
+    const oldId = findOldTaskId(task, existingTasks);
+    if (oldId) {
+      // Remove old entry
+      this.tasks.delete(oldId);
+      const noteTaskIds = this.byNote.get(noteId);
+      if (noteTaskIds) {
+        noteTaskIds.delete(oldId);
+        noteTaskIds.add(task.id);
+      }
+    }
+
+    this.tasks.set(task.id, task);
+  }
+
+  /**
+   * Remove a task from the main index and byNote secondary index.
+   *
+   * @param noteId - The note ID the task belongs to
+   * @param taskId - The task ID to remove
+   */
+  private removeTaskFromIndex(noteId: NoteId, taskId: string): void {
+    this.tasks.delete(taskId);
+    const noteTaskIds = this.byNote.get(noteId);
+    if (noteTaskIds) {
+      noteTaskIds.delete(taskId);
+    }
   }
 
   /**
@@ -292,79 +363,29 @@ export class TaskIndex {
    * @returns Object with tasks array and optional nextCursor
    */
   list(filter?: TaskFilter): { tasks: Task[]; nextCursor?: string } {
-    let tasks = Array.from(this.tasks.values());
+    const result = fromTaskFilter(this.tasks.values(), filter).execute();
+    return { tasks: result.tasks, nextCursor: result.nextCursor };
+  }
 
-    // Apply filters
-    if (filter?.completed !== undefined) {
-      tasks = tasks.filter((t) => t.completed === filter.completed);
-    }
-
-    if (filter?.noteId) {
-      tasks = tasks.filter((t) => t.noteId === filter.noteId);
-    }
-
-    if (filter?.createdAfter !== undefined) {
-      tasks = tasks.filter((t) => t.createdAt >= filter.createdAfter!);
-    }
-
-    if (filter?.createdBefore !== undefined) {
-      tasks = tasks.filter((t) => t.createdAt <= filter.createdBefore!);
-    }
-
-    if (filter?.completedAfter !== undefined) {
-      tasks = tasks.filter(
-        (t) => t.completed && t.completedAt !== undefined && t.completedAt >= filter.completedAfter!
-      );
-    }
-
-    if (filter?.completedBefore !== undefined) {
-      tasks = tasks.filter(
-        (t) =>
-          t.completed && t.completedAt !== undefined && t.completedAt <= filter.completedBefore!
-      );
-    }
-
-    // Sort
-    const sortBy = filter?.sortBy ?? 'priority';
-    const sortOrder = filter?.sortOrder ?? 'asc';
-    const multiplier = sortOrder === 'asc' ? 1 : -1;
-
-    tasks.sort((a, b) => {
-      if (sortBy === 'priority') {
-        // Primary: completed tasks sort after incomplete
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1;
-        }
-        // Secondary: priority
-        const priorityDiff = (a.priority - b.priority) * multiplier;
-        if (priorityDiff !== 0) return priorityDiff;
-        // Tertiary: createdAt (newest first within same priority)
-        return (b.createdAt - a.createdAt) * multiplier;
-      } else {
-        // sortBy === 'createdAt'
-        return (a.createdAt - b.createdAt) * multiplier;
-      }
-    });
-
-    // Apply cursor-based pagination
-    const limit = filter?.limit ?? 100;
-    let startIndex = 0;
-
-    if (filter?.cursor) {
-      const cursorIndex = this.decodeCursor(filter.cursor);
-      if (cursorIndex !== null) {
-        startIndex = cursorIndex;
-      }
-    }
-
-    const endIndex = startIndex + limit;
-    const paginatedTasks = tasks.slice(startIndex, endIndex);
-
-    // Determine if there are more results
-    const hasMore = endIndex < tasks.length;
-    const nextCursor = hasMore ? this.encodeCursor(endIndex) : undefined;
-
-    return { tasks: paginatedTasks, nextCursor };
+  /**
+   * Create a chainable query builder for tasks.
+   *
+   * This provides a fluent API for building complex queries.
+   *
+   * @example
+   * ```typescript
+   * const result = index.query()
+   *   .byStatus('open')
+   *   .byNote(noteId)
+   *   .sortBy('priority', 'asc')
+   *   .limit(20)
+   *   .execute();
+   * ```
+   *
+   * @returns A new TaskQuery instance for this index
+   */
+  query(): TaskQuery {
+    return new TaskQuery(this.tasks.values());
   }
 
   /**
@@ -463,94 +484,6 @@ export class TaskIndex {
   // ============================================================================
 
   /**
-   * Create a new Task from extracted data.
-   */
-  private createTask(ext: ExtractedTask, priority: number, now: number): Task {
-    const id = serializeTaskId({
-      noteId: ext.noteId,
-      nodeKey: ext.nodeKey,
-      textHash: ext.textHash,
-    });
-
-    return {
-      id,
-      noteId: ext.noteId,
-      noteTitle: ext.noteTitle,
-      nodeKey: ext.nodeKey,
-      lineIndex: ext.lineIndex,
-      text: ext.text,
-      textHash: ext.textHash,
-      completed: ext.completed,
-      completedAt: ext.completed ? now : undefined,
-      priority,
-      createdAt: now,
-      updatedAt: now,
-    };
-  }
-
-  /**
-   * Reconcile an existing task with newly extracted data.
-   *
-   * Returns updated task if changes were made, null otherwise.
-   */
-  private reconcileTask(existing: Task, ext: ExtractedTask, now: number): Task | null {
-    // Determine completedAt based on state transition
-    let completedAt = existing.completedAt;
-    if (ext.completed && !existing.completed) {
-      // false → true: set completedAt
-      completedAt = now;
-    } else if (!ext.completed && existing.completed) {
-      // true → false: clear completedAt
-      completedAt = undefined;
-    }
-
-    // Generate new ID (may have changed if nodeKey or textHash changed)
-    const newId = serializeTaskId({
-      noteId: ext.noteId,
-      nodeKey: ext.nodeKey,
-      textHash: ext.textHash,
-    });
-
-    // Check if anything changed
-    const hasChanges =
-      existing.id !== newId ||
-      existing.completed !== ext.completed ||
-      existing.text !== ext.text ||
-      existing.lineIndex !== ext.lineIndex ||
-      existing.noteTitle !== ext.noteTitle ||
-      existing.textHash !== ext.textHash ||
-      existing.nodeKey !== ext.nodeKey ||
-      existing.completedAt !== completedAt;
-
-    if (!hasChanges) return null;
-
-    // If ID changed, remove old entry
-    if (existing.id !== newId) {
-      this.tasks.delete(existing.id);
-      const noteTaskIds = this.byNote.get(existing.noteId);
-      if (noteTaskIds) {
-        noteTaskIds.delete(existing.id);
-        noteTaskIds.add(newId);
-      }
-    }
-
-    return {
-      id: newId,
-      noteId: ext.noteId,
-      noteTitle: ext.noteTitle,
-      nodeKey: ext.nodeKey,
-      lineIndex: ext.lineIndex,
-      text: ext.text,
-      textHash: ext.textHash,
-      completed: ext.completed,
-      completedAt,
-      priority: existing.priority, // Preserve priority
-      createdAt: existing.createdAt, // Preserve createdAt
-      updatedAt: now,
-    };
-  }
-
-  /**
    * Get the maximum priority across all tasks.
    *
    * Returns -1 if no tasks exist (so first task gets priority 0).
@@ -563,25 +496,5 @@ export class TaskIndex {
       }
     }
     return max;
-  }
-
-  /**
-   * Encode a cursor (just the index for now).
-   */
-  private encodeCursor(index: number): string {
-    return Buffer.from(String(index)).toString('base64');
-  }
-
-  /**
-   * Decode a cursor back to an index.
-   */
-  private decodeCursor(cursor: string): number | null {
-    try {
-      const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
-      const index = parseInt(decoded, 10);
-      return isNaN(index) ? null : index;
-    } catch {
-      return null;
-    }
   }
 }
