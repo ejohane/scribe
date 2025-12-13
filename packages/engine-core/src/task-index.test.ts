@@ -1149,6 +1149,399 @@ describe('TaskIndex', () => {
     });
   });
 
+  // ============================================================================
+  // Persistence Failure Recovery Tests
+  // ============================================================================
+
+  describe('persist() - Failure scenarios', () => {
+    it('should handle fs.writeFile failure (disk full)', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // Simulate disk full error
+      const diskFullError = new Error('ENOSPC: no space left on device');
+      (diskFullError as NodeJS.ErrnoException).code = 'ENOSPC';
+      mockFs.writeFile.mockRejectedValueOnce(diskFullError);
+
+      // persist should throw the error
+      await expect(index.flush()).rejects.toThrow('ENOSPC');
+
+      // dirty flag should still be true after failure (allowing retry)
+      expect(index.isDirty).toBe(true);
+    });
+
+    it('should handle fs.writeFile failure (permission denied)', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // Simulate permission denied error
+      const permissionError = new Error('EACCES: permission denied');
+      (permissionError as NodeJS.ErrnoException).code = 'EACCES';
+      mockFs.writeFile.mockRejectedValueOnce(permissionError);
+
+      await expect(index.flush()).rejects.toThrow('EACCES');
+      expect(index.isDirty).toBe(true);
+    });
+
+    it('should handle fs.rename failure (atomic write failure)', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // writeFile succeeds, but rename fails
+      mockFs.writeFile.mockResolvedValueOnce(undefined);
+      const renameError = new Error('EXDEV: cross-device link not permitted');
+      (renameError as NodeJS.ErrnoException).code = 'EXDEV';
+      mockFs.rename.mockRejectedValueOnce(renameError);
+
+      await expect(index.flush()).rejects.toThrow('EXDEV');
+      expect(index.isDirty).toBe(true);
+    });
+
+    it('should handle fs.mkdir failure', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // mkdir fails
+      const mkdirError = new Error('EACCES: permission denied');
+      (mkdirError as NodeJS.ErrnoException).code = 'EACCES';
+      mockFs.mkdir.mockRejectedValueOnce(mkdirError);
+
+      await expect(index.flush()).rejects.toThrow('EACCES');
+      expect(index.isDirty).toBe(true);
+    });
+
+    it('should allow retry after persist failure', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // First attempt fails
+      const error = new Error('ENOSPC: no space left on device');
+      mockFs.writeFile.mockRejectedValueOnce(error);
+      await expect(index.flush()).rejects.toThrow();
+
+      // Verify still dirty
+      expect(index.isDirty).toBe(true);
+
+      // Reset mocks for successful retry
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockResolvedValueOnce(undefined);
+      mockFs.rename.mockResolvedValueOnce(undefined);
+
+      // Second attempt succeeds
+      await expect(index.flush()).resolves.not.toThrow();
+      expect(index.isDirty).toBe(false);
+    });
+  });
+
+  describe('load() - Corrupted file scenarios', () => {
+    it('should skip completely invalid JSON lines', async () => {
+      mockFs.readFile.mockResolvedValue('not json at all\n{also not valid}\ntruncated...');
+
+      await index.load();
+
+      expect(index.size).toBe(0);
+    });
+
+    it('should handle partial/truncated JSON lines', async () => {
+      const validTask: Task = {
+        id: 'note1:key1:hash1',
+        noteId: createNoteId('note1'),
+        noteTitle: 'Test Note',
+        nodeKey: 'key1',
+        lineIndex: 0,
+        text: 'Task 1',
+        textHash: 'hash1',
+        completed: false,
+        priority: 0,
+        createdAt: 1000,
+        updatedAt: 1000,
+      };
+
+      // File with valid task, then truncated JSON (simulating crash during write)
+      mockFs.readFile.mockResolvedValue(
+        `${JSON.stringify(validTask)}\n{"id":"note2:key2:hash2","noteId":"note2","noteTitle":"Test`
+      );
+
+      await index.load();
+
+      // Should load the valid task and skip the truncated one
+      expect(index.size).toBe(1);
+      expect(index.get('note1:key1:hash1')).toBeDefined();
+    });
+
+    it('should handle mixed valid and invalid lines', async () => {
+      const task1: Task = {
+        id: 'note1:key1:hash1',
+        noteId: createNoteId('note1'),
+        noteTitle: 'Test Note 1',
+        nodeKey: 'key1',
+        lineIndex: 0,
+        text: 'Task 1',
+        textHash: 'hash1',
+        completed: false,
+        priority: 0,
+        createdAt: 1000,
+        updatedAt: 1000,
+      };
+
+      const task2: Task = {
+        id: 'note2:key2:hash2',
+        noteId: createNoteId('note2'),
+        noteTitle: 'Test Note 2',
+        nodeKey: 'key2',
+        lineIndex: 0,
+        text: 'Task 2',
+        textHash: 'hash2',
+        completed: true,
+        completedAt: 2000,
+        priority: 1,
+        createdAt: 1500,
+        updatedAt: 2000,
+      };
+
+      const task3: Task = {
+        id: 'note3:key3:hash3',
+        noteId: createNoteId('note3'),
+        noteTitle: 'Test Note 3',
+        nodeKey: 'key3',
+        lineIndex: 0,
+        text: 'Task 3',
+        textHash: 'hash3',
+        completed: false,
+        priority: 2,
+        createdAt: 2500,
+        updatedAt: 2500,
+      };
+
+      mockFs.readFile.mockResolvedValue(
+        `${JSON.stringify(task1)}\n` +
+          `{invalid json}\n` +
+          `${JSON.stringify(task2)}\n` +
+          `undefined\n` + // invalid
+          `\n` + // empty line
+          `{"partial":true\n` + // truncated
+          `${JSON.stringify(task3)}\n`
+      );
+
+      await index.load();
+
+      // Should load only the 3 valid tasks and skip invalid lines
+      expect(index.size).toBe(3);
+      expect(index.get('note1:key1:hash1')).toEqual(task1);
+      expect(index.get('note2:key2:hash2')).toEqual(task2);
+      expect(index.get('note3:key3:hash3')).toEqual(task3);
+    });
+
+    it('should handle empty file gracefully', async () => {
+      mockFs.readFile.mockResolvedValue('');
+
+      await index.load();
+
+      expect(index.size).toBe(0);
+    });
+
+    it('should handle file with only whitespace/newlines', async () => {
+      mockFs.readFile.mockResolvedValue('\n\n   \n\t\n');
+
+      await index.load();
+
+      expect(index.size).toBe(0);
+    });
+
+    it('should handle read permission denied', async () => {
+      const permissionError = new Error('EACCES: permission denied');
+      (permissionError as NodeJS.ErrnoException).code = 'EACCES';
+      mockFs.readFile.mockRejectedValue(permissionError);
+
+      await expect(index.load()).rejects.toThrow('EACCES');
+    });
+  });
+
+  describe('schedulePersist() - Error handling', () => {
+    it('should log error when debounced persist fails', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // Make persist fail
+      const error = new Error('ENOSPC: no space left on device');
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockRejectedValueOnce(error);
+
+      // Advance past debounce to trigger persist
+      await vi.advanceTimersByTimeAsync(150);
+
+      // The error should be logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[TaskIndex] Persist failed:',
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should keep dirty flag true after schedulePersist failure', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      expect(index.isDirty).toBe(true);
+
+      // Make persist fail
+      const error = new Error('ENOSPC');
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockRejectedValueOnce(error);
+
+      // Advance past debounce
+      await vi.advanceTimersByTimeAsync(150);
+
+      // dirty flag should still be true allowing retry on next change
+      expect(index.isDirty).toBe(true);
+    });
+
+    it('should allow subsequent persist after schedulePersist failure', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const note1 = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note1);
+
+      // First scheduled persist fails
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockRejectedValueOnce(new Error('ENOSPC'));
+
+      await vi.advanceTimersByTimeAsync(150);
+      expect(index.isDirty).toBe(true);
+
+      // Make another change to trigger new schedulePersist
+      const note2 = createNote('note2', 'Another Note', [
+        { text: 'Task 2', checked: false, nodeKey: 'key2' },
+      ]);
+      index.indexNote(note2);
+
+      // Reset mocks for success
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockResolvedValueOnce(undefined);
+      mockFs.rename.mockResolvedValueOnce(undefined);
+
+      // Advance past debounce - this should succeed
+      await vi.advanceTimersByTimeAsync(150);
+
+      expect(index.isDirty).toBe(false);
+    });
+  });
+
+  describe('Persistence recovery behavior', () => {
+    it('should preserve in-memory state after persist failure', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        { text: 'Task 2', checked: true, nodeKey: 'key2' },
+      ]);
+      index.indexNote(note);
+
+      // Get initial task IDs
+      const { tasks: initialTasks } = index.list();
+      expect(initialTasks.length).toBe(2);
+
+      // Make persist fail
+      mockFs.mkdir.mockRejectedValueOnce(new Error('EACCES'));
+
+      await expect(index.flush()).rejects.toThrow('EACCES');
+
+      // In-memory state should be preserved
+      const { tasks: afterFailure } = index.list();
+      expect(afterFailure.length).toBe(2);
+      expect(afterFailure[0].id).toBe(initialTasks[0].id);
+      expect(afterFailure[1].id).toBe(initialTasks[1].id);
+    });
+
+    it('should allow modifications after persist failure', async () => {
+      const note = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note);
+
+      // Make persist fail
+      mockFs.mkdir.mockRejectedValueOnce(new Error('EACCES'));
+      await expect(index.flush()).rejects.toThrow();
+
+      // Should still be able to toggle task
+      const { tasks } = index.list();
+      const toggled = index.toggle(tasks[0].id);
+
+      expect(toggled?.completed).toBe(true);
+      expect(index.isDirty).toBe(true);
+
+      // Should be able to successfully persist with the modifications
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockResolvedValueOnce(undefined);
+      mockFs.rename.mockResolvedValueOnce(undefined);
+
+      await expect(index.flush()).resolves.not.toThrow();
+      expect(index.isDirty).toBe(false);
+    });
+
+    it('should include all accumulated changes in retry persist', async () => {
+      // Create first task
+      const note1 = createNote('note1', 'Test Note', [
+        { text: 'Task 1', checked: false, nodeKey: 'key1' },
+      ]);
+      index.indexNote(note1);
+
+      // First persist fails
+      mockFs.mkdir.mockRejectedValueOnce(new Error('ENOSPC'));
+      await expect(index.flush()).rejects.toThrow();
+
+      // Add more tasks while in failed state
+      const note2 = createNote('note2', 'Another Note', [
+        { text: 'Task 2', checked: false, nodeKey: 'key2' },
+      ]);
+      index.indexNote(note2);
+
+      // Toggle first task
+      const { tasks: currentTasks } = index.list();
+      index.toggle(currentTasks[0].id);
+
+      expect(index.size).toBe(2);
+
+      // Now persist successfully
+      mockFs.mkdir.mockResolvedValueOnce(undefined);
+      mockFs.writeFile.mockResolvedValueOnce(undefined);
+      mockFs.rename.mockResolvedValueOnce(undefined);
+
+      await index.flush();
+
+      // Verify writeFile was called with all tasks
+      expect(mockFs.writeFile).toHaveBeenLastCalledWith(
+        expect.stringContaining('.tmp'),
+        expect.stringContaining('"text":"Task 1"'),
+        'utf-8'
+      );
+      expect(mockFs.writeFile).toHaveBeenLastCalledWith(
+        expect.stringContaining('.tmp'),
+        expect.stringContaining('"text":"Task 2"'),
+        'utf-8'
+      );
+    });
+  });
+
   describe('Edge cases', () => {
     it('should handle empty note', () => {
       const note = createNote('note1', 'Test Note', []);
@@ -1194,6 +1587,558 @@ describe('TaskIndex', () => {
       expect(index.size).toBe(2);
       const { tasks } = index.list();
       expect(tasks[0].nodeKey).not.toBe(tasks[1].nodeKey);
+    });
+  });
+
+  // ============================================================================
+  // Concurrent Modification Tests (scribe-15q)
+  // Tests for timing/concurrency edge cases
+  // ============================================================================
+
+  describe('Concurrent modification scenarios', () => {
+    describe('Multiple rapid indexNote() calls on same note', () => {
+      it('should handle rapid sequential indexNote() calls without data loss', () => {
+        const note1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+
+        // Rapid sequential indexing
+        index.indexNote(note1);
+        index.indexNote(note1);
+        index.indexNote(note1);
+
+        // Should still have exactly 1 task
+        expect(index.size).toBe(1);
+
+        // Task data should be intact
+        const { tasks } = index.list();
+        expect(tasks[0].text).toBe('Task 1');
+      });
+
+      it('should correctly reconcile rapidly changing task states', () => {
+        vi.setSystemTime(1000);
+
+        // First version: unchecked
+        const noteV1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(noteV1);
+
+        vi.setSystemTime(1001);
+
+        // Second version: checked
+        const noteV2 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: true, nodeKey: 'key1' },
+        ]);
+        index.indexNote(noteV2);
+
+        vi.setSystemTime(1002);
+
+        // Third version: back to unchecked
+        const noteV3 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(noteV3);
+
+        // Final state should be unchecked
+        const { tasks } = index.list();
+        expect(tasks[0].completed).toBe(false);
+        expect(tasks[0].completedAt).toBeUndefined();
+      });
+
+      it('should handle rapid task additions and removals', () => {
+        // Add task
+        const noteV1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(noteV1);
+        expect(index.size).toBe(1);
+
+        // Add second task
+        const noteV2 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+          { text: 'Task 2', checked: false, nodeKey: 'key2' },
+        ]);
+        index.indexNote(noteV2);
+        expect(index.size).toBe(2);
+
+        // Remove first task
+        const noteV3 = createNote('note1', 'Test Note', [
+          { text: 'Task 2', checked: false, nodeKey: 'key2' },
+        ]);
+        index.indexNote(noteV3);
+        expect(index.size).toBe(1);
+
+        // Verify correct task remains
+        const { tasks } = index.list();
+        expect(tasks[0].text).toBe('Task 2');
+        expect(tasks[0].nodeKey).toBe('key2');
+      });
+    });
+
+    describe('Concurrent toggle() calls on same task', () => {
+      it('should handle multiple toggle() calls in rapid succession', () => {
+        vi.setSystemTime(1000);
+
+        const note = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note);
+
+        const { tasks } = index.list();
+        const taskId = tasks[0].id;
+
+        // Rapid toggles
+        vi.setSystemTime(1001);
+        index.toggle(taskId); // -> completed
+        vi.setSystemTime(1002);
+        index.toggle(taskId); // -> uncompleted
+        vi.setSystemTime(1003);
+        index.toggle(taskId); // -> completed
+
+        // Final state should be completed
+        const task = index.get(taskId);
+        expect(task?.completed).toBe(true);
+        expect(task?.completedAt).toBe(1003);
+      });
+
+      it('should maintain data integrity across interleaved toggle and indexNote', () => {
+        vi.setSystemTime(1000);
+
+        const noteV1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(noteV1);
+
+        const { tasks } = index.list();
+        const taskId = tasks[0].id;
+        const originalPriority = tasks[0].priority;
+
+        // Toggle the task
+        vi.setSystemTime(2000);
+        index.toggle(taskId);
+        expect(index.get(taskId)?.completed).toBe(true);
+
+        // Re-index with the same unchecked state (simulating document not yet synced)
+        vi.setSystemTime(3000);
+        index.indexNote(noteV1);
+
+        // The indexed state should take precedence (unchecked from document)
+        const task = index.get(taskId);
+        expect(task?.completed).toBe(false);
+        // Priority should be preserved
+        expect(task?.priority).toBe(originalPriority);
+      });
+    });
+
+    describe('indexNote() during scheduled persist (debounce timer running)', () => {
+      it('should coalesce multiple changes into single persist', async () => {
+        const note1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note1);
+
+        // Should have scheduled persist but not yet executed
+        expect(mockFs.writeFile).not.toHaveBeenCalled();
+
+        // Make more changes before debounce fires
+        const note2 = createNote('note2', 'Note 2', [
+          { text: 'Task 2', checked: false, nodeKey: 'key2' },
+        ]);
+        index.indexNote(note2);
+
+        const note3 = createNote('note3', 'Note 3', [
+          { text: 'Task 3', checked: false, nodeKey: 'key3' },
+        ]);
+        index.indexNote(note3);
+
+        // Still shouldn't have persisted
+        expect(mockFs.writeFile).not.toHaveBeenCalled();
+
+        // Advance past debounce
+        await vi.advanceTimersByTimeAsync(150);
+
+        // Should have persisted exactly once with all 3 tasks
+        expect(mockFs.writeFile).toHaveBeenCalledTimes(1);
+        const writtenContent = mockFs.writeFile.mock.calls[0][1];
+        expect(writtenContent).toContain('Task 1');
+        expect(writtenContent).toContain('Task 2');
+        expect(writtenContent).toContain('Task 3');
+      });
+
+      it('should handle indexNote() after persist starts but before completion', async () => {
+        // Create a slow persist that we can control
+        let persistResolve: () => void;
+        const persistPromise = new Promise<void>((resolve) => {
+          persistResolve = resolve;
+        });
+
+        mockFs.writeFile.mockImplementationOnce(() => persistPromise);
+
+        const note1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note1);
+
+        // Advance to trigger persist
+        await vi.advanceTimersByTimeAsync(150);
+
+        // Persist has started but not completed
+        expect(mockFs.writeFile).toHaveBeenCalledTimes(1);
+
+        // Add another task while persist is in progress
+        mockFs.writeFile.mockResolvedValueOnce(undefined);
+        const note2 = createNote('note2', 'Note 2', [
+          { text: 'Task 2', checked: false, nodeKey: 'key2' },
+        ]);
+        index.indexNote(note2);
+
+        // Index should have 2 tasks even if first persist hasn't completed
+        expect(index.size).toBe(2);
+
+        // Complete the first persist
+        persistResolve!();
+        await persistPromise;
+
+        // Wait for second persist to be scheduled and complete
+        await vi.advanceTimersByTimeAsync(150);
+
+        // Both tasks should be intact
+        expect(index.size).toBe(2);
+      });
+    });
+
+    describe('Multiple notes being indexed simultaneously', () => {
+      it('should handle indexing many notes rapidly', () => {
+        // Index 10 notes rapidly
+        for (let i = 0; i < 10; i++) {
+          const note = createNote(`note${i}`, `Note ${i}`, [
+            { text: `Task ${i}`, checked: i % 2 === 0, nodeKey: `key${i}` },
+          ]);
+          index.indexNote(note);
+        }
+
+        expect(index.size).toBe(10);
+
+        // Verify all tasks are distinct and have correct data
+        const { tasks } = index.list();
+        const texts = tasks.map((t) => t.text);
+        const uniqueTexts = new Set(texts);
+        expect(uniqueTexts.size).toBe(10);
+
+        // Check completion states
+        const completedCount = tasks.filter((t) => t.completed).length;
+        expect(completedCount).toBe(5); // Even numbered tasks
+      });
+
+      it('should maintain correct byNote index under rapid updates', () => {
+        // Create notes with multiple tasks
+        const note1 = createNote('note1', 'Note 1', [
+          { text: 'Task 1A', checked: false, nodeKey: 'key1a' },
+          { text: 'Task 1B', checked: false, nodeKey: 'key1b' },
+        ]);
+        const note2 = createNote('note2', 'Note 2', [
+          { text: 'Task 2A', checked: false, nodeKey: 'key2a' },
+        ]);
+
+        index.indexNote(note1);
+        index.indexNote(note2);
+
+        // Update note1 while keeping note2 unchanged
+        const note1Updated = createNote('note1', 'Note 1', [
+          { text: 'Task 1A Updated', checked: true, nodeKey: 'key1a' },
+          { text: 'Task 1C', checked: false, nodeKey: 'key1c' }, // New task, removed 1B
+        ]);
+        index.indexNote(note1Updated);
+
+        // Note1 should have 2 tasks
+        const note1TaskIds = index.getTaskIdsForNote(createNoteId('note1'));
+        expect(note1TaskIds.size).toBe(2);
+
+        // Note2 should still have 1 task
+        const note2TaskIds = index.getTaskIdsForNote(createNoteId('note2'));
+        expect(note2TaskIds.size).toBe(1);
+
+        // Total should be 3
+        expect(index.size).toBe(3);
+      });
+
+      it('should isolate changes between notes', () => {
+        vi.setSystemTime(1000);
+
+        // Index note1
+        const note1 = createNote('note1', 'Note 1', [
+          { text: 'Shared text', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note1);
+        const note1Task = index.list().tasks[0];
+        const note1TaskId = note1Task.id;
+
+        vi.setSystemTime(2000);
+
+        // Index note2 with same text (different note)
+        const note2 = createNote('note2', 'Note 2', [
+          { text: 'Shared text', checked: true, nodeKey: 'key2' },
+        ]);
+        index.indexNote(note2);
+
+        // Should have 2 distinct tasks
+        expect(index.size).toBe(2);
+
+        // Original task should be unchanged
+        const note1TaskAfter = index.get(note1TaskId);
+        expect(note1TaskAfter?.completed).toBe(false);
+        expect(note1TaskAfter?.createdAt).toBe(1000);
+      });
+    });
+
+    describe('reorder() during indexNote() on overlapping tasks', () => {
+      it('should handle reorder then immediate indexNote', () => {
+        vi.setSystemTime(1000);
+
+        const note = createNote('note1', 'Test Note', [
+          { text: 'Task A', checked: false, nodeKey: 'keyA' },
+          { text: 'Task B', checked: false, nodeKey: 'keyB' },
+          { text: 'Task C', checked: false, nodeKey: 'keyC' },
+        ]);
+        index.indexNote(note);
+
+        const { tasks: initialTasks } = index.list();
+        const ids = initialTasks.map((t) => t.id);
+
+        // Reorder to: C, A, B
+        index.reorder([ids[2], ids[0], ids[1]]);
+
+        vi.setSystemTime(2000);
+
+        // Re-index the same note (simulating document refresh)
+        index.indexNote(note);
+
+        // Priorities from reorder should be preserved
+        const taskA = index.list().tasks.find((t) => t.text === 'Task A');
+        const taskB = index.list().tasks.find((t) => t.text === 'Task B');
+        const taskC = index.list().tasks.find((t) => t.text === 'Task C');
+
+        expect(taskC?.priority).toBe(0);
+        expect(taskA?.priority).toBe(1);
+        expect(taskB?.priority).toBe(2);
+      });
+
+      it('should handle indexNote with removed task during reorder', () => {
+        vi.setSystemTime(1000);
+
+        // Create tasks
+        const note1 = createNote('note1', 'Test Note', [
+          { text: 'Task A', checked: false, nodeKey: 'keyA' },
+          { text: 'Task B', checked: false, nodeKey: 'keyB' },
+          { text: 'Task C', checked: false, nodeKey: 'keyC' },
+        ]);
+        index.indexNote(note1);
+
+        const { tasks: initialTasks } = index.list();
+        const allIds = initialTasks.map((t) => t.id);
+
+        // Reorder all tasks
+        index.reorder([allIds[2], allIds[1], allIds[0]]);
+
+        vi.setSystemTime(2000);
+
+        // Index note with Task B removed
+        const note2 = createNote('note1', 'Test Note', [
+          { text: 'Task A', checked: false, nodeKey: 'keyA' },
+          { text: 'Task C', checked: false, nodeKey: 'keyC' },
+        ]);
+        const changes = index.indexNote(note2);
+
+        // Should have removed Task B
+        expect(changes.some((c) => c.type === 'removed')).toBe(true);
+        expect(index.size).toBe(2);
+
+        // Remaining tasks should have their priorities from the reorder
+        const { tasks } = index.list();
+        expect(tasks.length).toBe(2);
+      });
+
+      it('should handle concurrent reorder and indexNote on different notes', () => {
+        vi.setSystemTime(1000);
+
+        // Create two notes with tasks
+        const note1 = createNote('note1', 'Note 1', [
+          { text: 'Task 1A', checked: false, nodeKey: 'key1a' },
+          { text: 'Task 1B', checked: false, nodeKey: 'key1b' },
+        ]);
+        const note2 = createNote('note2', 'Note 2', [
+          { text: 'Task 2A', checked: false, nodeKey: 'key2a' },
+          { text: 'Task 2B', checked: false, nodeKey: 'key2b' },
+        ]);
+
+        index.indexNote(note1);
+        index.indexNote(note2);
+
+        // Get all task IDs
+        const { tasks } = index.list();
+        const task1A = tasks.find((t) => t.text === 'Task 1A')!;
+        const task1B = tasks.find((t) => t.text === 'Task 1B')!;
+        const task2A = tasks.find((t) => t.text === 'Task 2A')!;
+        const task2B = tasks.find((t) => t.text === 'Task 2B')!;
+
+        // Reorder all tasks globally
+        index.reorder([task2B.id, task1A.id, task2A.id, task1B.id]);
+
+        vi.setSystemTime(2000);
+
+        // Update note1 while keeping note2 unchanged
+        const note1Updated = createNote('note1', 'Note 1', [
+          { text: 'Task 1A Updated', checked: true, nodeKey: 'key1a' },
+          { text: 'Task 1B', checked: false, nodeKey: 'key1b' },
+        ]);
+        index.indexNote(note1Updated);
+
+        // Note2 tasks should be unaffected
+        const task2AAfter = index.get(task2A.id);
+        const task2BAfter = index.get(task2B.id);
+        expect(task2AAfter?.priority).toBe(2);
+        expect(task2BAfter?.priority).toBe(0);
+
+        // Note1 tasks should have preserved their priorities
+        const { tasks: tasksAfter } = index.list();
+        const task1AAfter = tasksAfter.find((t) => t.text === 'Task 1A Updated');
+        expect(task1AAfter?.priority).toBe(1);
+      });
+    });
+
+    describe('Debounce coalescing under rapid operations', () => {
+      it('should only persist once after many rapid operations', async () => {
+        const note = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note);
+
+        const { tasks } = index.list();
+        const taskId = tasks[0].id;
+
+        // Perform many operations rapidly
+        for (let i = 0; i < 10; i++) {
+          index.toggle(taskId);
+        }
+
+        // Should not have persisted yet
+        expect(mockFs.writeFile).not.toHaveBeenCalled();
+
+        // Advance past debounce
+        await vi.advanceTimersByTimeAsync(150);
+
+        // Should have persisted only once
+        expect(mockFs.writeFile).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle flush() interrupting debounced persist', async () => {
+        const note = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note);
+
+        // Advance partway through debounce
+        await vi.advanceTimersByTimeAsync(50);
+        expect(mockFs.writeFile).not.toHaveBeenCalled();
+
+        // Flush immediately
+        await index.flush();
+
+        // Should have persisted
+        expect(mockFs.writeFile).toHaveBeenCalledTimes(1);
+
+        // Advance past original debounce time - should NOT persist again
+        await vi.advanceTimersByTimeAsync(100);
+        expect(mockFs.writeFile).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('Race condition edge cases', () => {
+      it('should handle toggle() on task being removed by indexNote()', () => {
+        vi.setSystemTime(1000);
+
+        const note1 = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note1);
+
+        const { tasks } = index.list();
+        const taskId = tasks[0].id;
+
+        // Remove the task via indexNote
+        const note2 = createNote('note1', 'Test Note', []);
+        index.indexNote(note2);
+
+        // Try to toggle the removed task
+        const result = index.toggle(taskId);
+
+        // Should return null for non-existent task
+        expect(result).toBeNull();
+        expect(index.size).toBe(0);
+      });
+
+      it('should handle indexNote() with stale data after toggle()', () => {
+        vi.setSystemTime(1000);
+
+        const note = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note);
+
+        const { tasks } = index.list();
+        const taskId = tasks[0].id;
+
+        vi.setSystemTime(2000);
+
+        // Toggle to complete
+        index.toggle(taskId);
+        expect(index.get(taskId)?.completed).toBe(true);
+        expect(index.get(taskId)?.completedAt).toBe(2000);
+
+        vi.setSystemTime(3000);
+
+        // Re-index with stale (unchecked) data
+        // This simulates document not being updated after toggle
+        index.indexNote(note);
+
+        // Document state should take precedence
+        const task = index.get(taskId);
+        expect(task?.completed).toBe(false);
+        expect(task?.completedAt).toBeUndefined();
+        // But updatedAt should reflect the re-indexing
+        expect(task?.updatedAt).toBe(3000);
+      });
+
+      it('should preserve createdAt across all concurrent operations', () => {
+        const createTime = 1000;
+        vi.setSystemTime(createTime);
+
+        const note = createNote('note1', 'Test Note', [
+          { text: 'Task 1', checked: false, nodeKey: 'key1' },
+        ]);
+        index.indexNote(note);
+
+        const { tasks } = index.list();
+        const taskId = tasks[0].id;
+
+        // Perform various operations at different times
+        vi.setSystemTime(2000);
+        index.toggle(taskId);
+
+        vi.setSystemTime(3000);
+        index.toggle(taskId);
+
+        vi.setSystemTime(4000);
+        index.reorder([taskId]);
+
+        vi.setSystemTime(5000);
+        index.indexNote(note);
+
+        // createdAt should always be the original time
+        const task = index.get(taskId);
+        expect(task?.createdAt).toBe(createTime);
+      });
     });
   });
 });
