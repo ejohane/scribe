@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.19.0](https://github.com/ejohane/scribe/compare/v1.18.0...v1.19.0) (2025-12-13)
+
+### Features
+
+* **tables:** add select-all and improved keyboard handling ([ff3cf4f](https://github.com/ejohane/scribe/commit/ff3cf4fc488765ab46e1d619f526d45fd0f89eb2))
+
 ## [1.18.0](https://github.com/ejohane/scribe/compare/v1.17.0...v1.18.0) (2025-12-12)
 
 ### Features
