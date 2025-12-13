@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   extends: ['@commitlint/config-conventional'],
 
   rules: {
@@ -38,6 +38,7 @@ export default {
         'deps',
         'ci',
         'release',
+        'design-system',
       ],
     ],
 
