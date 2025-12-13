@@ -60,18 +60,95 @@ export interface CreateNoteOptions {
 }
 
 /**
- * In-memory note storage
+ * File system-backed vault for note storage with atomic operations.
+ *
+ * `FileSystemVault` provides a reliable, crash-safe storage layer for notes using the local
+ * filesystem. It maintains an in-memory cache of all notes synchronized with on-disk JSON files,
+ * ensuring fast reads while guaranteeing data durability through atomic write operations.
+ *
+ * ## Thread Safety and Concurrent Access
+ *
+ * This class is designed for safe concurrent access within a single Node.js process:
+ *
+ * - **Per-note mutex locks**: Operations on the same note (save, delete) are serialized using
+ *   promise-chaining. This prevents race conditions like simultaneous saves overwriting each other.
+ * - **Cross-note parallelism**: Operations on different notes can execute concurrently, maximizing
+ *   throughput during bulk operations like initial vault loading.
+ * - **Memory-first consistency**: Reads always return from the in-memory cache, which is updated
+ *   atomically with disk operations to prevent stale reads.
+ *
+ * **Important**: This class does NOT provide cross-process safety. If multiple Electron instances
+ * or Node processes access the same vault directory, external coordination (file locks, IPC) is
+ * required to prevent data corruption.
+ *
+ * ## Architecture
+ *
+ * The vault delegates specialized operations to focused modules:
+ * - {@link AtomicFileWriter} - Crash-safe file writes (temp → fsync → rename pattern)
+ * - {@link QuarantineManager} - Corrupt file isolation and recovery
+ * - {@link NoteMigrator} - Legacy note format upgrades
+ * - {@link NoteValidator} - Note structure validation
+ *
+ * ## Error Handling
+ *
+ * All I/O operations throw {@link ScribeError} with appropriate error codes:
+ * - `FILE_READ_ERROR` - Failed to read notes directory or file
+ * - `FILE_WRITE_ERROR` - Failed to save note (disk full, permissions, etc.)
+ * - `FILE_DELETE_ERROR` - Failed to delete note file
+ * - `NOTE_NOT_FOUND` - Requested note ID does not exist
+ *
+ * @example
+ * ```typescript
+ * // Initialize vault with path to vault directory
+ * const vault = new FileSystemVault('/Users/me/.scribe/vaults/personal');
+ *
+ * // Load existing notes from disk
+ * const count = await vault.load();
+ * console.log(`Loaded ${count} notes`);
+ *
+ * // Create a new note
+ * const note = await vault.create({ title: 'Meeting Notes' });
+ *
+ * // Read and update
+ * const existing = vault.read(note.id);
+ * await vault.save({ ...existing, title: 'Updated Title' });
+ *
+ * // List all notes
+ * const allNotes = vault.list();
+ * ```
+ *
+ * @see {@link AtomicFileWriter} for details on crash-safe write operations
+ * @see {@link QuarantineManager} for corrupt file handling
  */
 export class FileSystemVault {
   private notes: Map<NoteId, Note> = new Map();
   private quarantineManager: QuarantineManager;
   /**
    * Per-note locks for serializing concurrent operations.
-   * Uses promise-chaining pattern: each operation chains onto the previous
-   * operation's promise, ensuring sequential execution per note.
+   *
+   * Uses a promise-chaining pattern: each operation chains onto the previous
+   * operation's promise, ensuring sequential execution per note while allowing
+   * parallel operations on different notes.
+   *
+   * @internal
    */
   private noteLocks: Map<NoteId, Promise<void>> = new Map();
 
+  /**
+   * Creates a new FileSystemVault instance.
+   *
+   * @param vaultPath - Absolute path to the vault directory. This directory should contain
+   *   (or will contain) a `notes/` subdirectory where note JSON files are stored. The path
+   *   must be accessible with read/write permissions. Relative paths are not supported and
+   *   will cause undefined behavior.
+   *
+   * @example
+   * ```typescript
+   * // Typical vault paths
+   * const vault = new FileSystemVault('/Users/me/.scribe/vaults/work');
+   * const vault = new FileSystemVault(path.join(app.getPath('userData'), 'vault'));
+   * ```
+   */
   constructor(private vaultPath: VaultPath) {
     this.quarantineManager = createQuarantineManager(vaultPath);
   }
@@ -133,13 +210,53 @@ export class FileSystemVault {
   }
 
   /**
-   * Load all notes from disk into memory
+   * Load all notes from disk into memory.
    *
-   * Scans the notes directory, parses all JSON files, validates structure,
-   * and builds the in-memory notes map.
+   * Scans the vault's `notes/` directory, parses all JSON files, validates their structure,
+   * applies any necessary migrations, and builds the in-memory notes map.
    *
-   * @returns Number of notes loaded
-   * @throws ScribeError if notes directory cannot be read
+   * ## Loading Process
+   *
+   * For each `.json` file in the notes directory:
+   * 1. **Parse**: Read and parse as JSON
+   * 2. **Validate**: Check structure via {@link NoteValidator} (required fields, types)
+   * 3. **Migrate**: Apply legacy format upgrades via {@link NoteMigrator} if needed
+   * 4. **Index**: Add to in-memory map for fast access
+   *
+   * ## Error Handling
+   *
+   * - **Parse errors** (invalid JSON): File is quarantined, loading continues
+   * - **Validation errors** (missing required fields): File is quarantined, loading continues
+   * - **Directory read errors** (permissions, missing): Throws `ScribeError`
+   *
+   * Quarantined files are moved to the `quarantine/` directory with a timestamp prefix.
+   * Use {@link getQuarantineManager} to inspect, restore, or permanently delete them.
+   *
+   * ## Performance
+   *
+   * Files are loaded in parallel using `Promise.all()` for maximum throughput on SSDs.
+   * On network filesystems or HDDs with high latency, this parallelism significantly
+   * reduces total load time compared to sequential reads.
+   *
+   * @returns Number of notes successfully loaded (excludes quarantined files)
+   * @throws ScribeError with `FILE_READ_ERROR` if notes directory cannot be read
+   *
+   * @example
+   * ```typescript
+   * const vault = new FileSystemVault('/path/to/vault');
+   * try {
+   *   const count = await vault.load();
+   *   console.log(`Loaded ${count} notes`);
+   *
+   *   // Check for any files that couldn't be loaded
+   *   const quarantined = vault.getQuarantineManager().listQuarantined();
+   *   if (quarantined.length > 0) {
+   *     console.warn(`${quarantined.length} corrupt files quarantined`);
+   *   }
+   * } catch (err) {
+   *   console.error('Failed to load vault:', err);
+   * }
+   * ```
    */
   async load(): Promise<number> {
     const notesDir = getNotesDir(this.vaultPath);
@@ -255,14 +372,59 @@ export class FileSystemVault {
   }
 
   /**
-   * Save a note (create or update)
+   * Save a note to disk (create or update).
    *
-   * Uses atomic write: temp file → fsync → rename
-   * Metadata is automatically extracted from content before saving
-   * Concurrent saves to the same note are serialized via per-note mutex.
+   * Persists a note using crash-safe atomic writes and updates the in-memory cache.
+   * This method handles both new note creation and updates to existing notes.
    *
-   * @param note - Note to save
-   * @throws ScribeError if save fails
+   * ## Atomic Write Pattern
+   *
+   * Uses the temp file → fsync → rename pattern via {@link AtomicFileWriter}:
+   * 1. Write JSON to temporary file (`.{id}.json.tmp`)
+   * 2. Call `fsync()` to ensure data is physically written to disk
+   * 3. Atomic rename from temp to final path
+   *
+   * This guarantees that on crash or power loss, you either have the complete
+   * previous version or the complete new version—never a partial write.
+   *
+   * ## Performance Characteristics
+   *
+   * - **SSD**: ~1-5ms per save (fsync is fast on modern NVMe)
+   * - **HDD**: ~10-50ms per save (fsync waits for physical write)
+   * - **Network filesystems (NFS, SMB)**: Variable, potentially 100ms+ per save.
+   *   The fsync behavior depends on mount options; some configurations may not
+   *   provide true durability guarantees.
+   *
+   * ## Disk Space Requirements
+   *
+   * Temporarily requires ~2x the note size during save (original + temp file).
+   * On low disk space, the operation may fail with `FILE_WRITE_ERROR`.
+   *
+   * ## Concurrent Access
+   *
+   * Multiple saves to the same note are serialized via per-note mutex locks.
+   * Concurrent saves to different notes execute in parallel.
+   *
+   * ## Field Preservation
+   *
+   * When updating a note, fields not present in the incoming note are preserved
+   * from the existing version:
+   * - `type` - Preserved if not specified (editor may not send this)
+   * - `tags` - Preserved if not specified
+   * - `daily`/`meeting` - Type-specific data preserved if not specified
+   *
+   * @param note - Note to save. Must have at least `id`, `createdAt`, `content`.
+   * @throws ScribeError with `FILE_WRITE_ERROR` if save fails (disk full, permissions, etc.)
+   *
+   * @example
+   * ```typescript
+   * // Update just the title, preserving other fields
+   * const note = vault.read(noteId);
+   * await vault.save({ ...note, title: 'New Title' });
+   *
+   * // Note: metadata is auto-extracted from content
+   * await vault.save({ ...note, content: newLexicalState });
+   * ```
    */
   async save(note: Note): Promise<void> {
     return this.withNoteLock(note.id, async () => {
@@ -353,12 +515,46 @@ export class FileSystemVault {
   }
 
   /**
-   * Validate note structure
+   * Validate that an object conforms to the Note structure.
    *
-   * Delegates to NoteValidator for validation logic.
+   * Delegates to {@link NoteValidator} for the actual validation logic. This method
+   * is used during {@link load} to filter out corrupt or malformed note files.
    *
-   * @param note - Object to validate
-   * @returns true if valid note structure
+   * ## Validation Rules
+   *
+   * **Required fields** (must be present and correctly typed):
+   * - `id` - String (UUID-based note identifier)
+   * - `createdAt` - Number (Unix timestamp in milliseconds)
+   * - `updatedAt` - Number (Unix timestamp in milliseconds)
+   * - `content` - Object (Lexical editor state)
+   * - `metadata` - Object (extracted note metadata: links, tags, mentions, etc.)
+   *
+   * **Optional fields** (validated if present, but not required):
+   * - `title` - String. Optional because legacy notes derived title from the first
+   *   heading in content. Modern notes store it explicitly.
+   * - `type` - String enum ('daily', 'meeting', 'person', 'project', 'template', 'system').
+   *   Optional because regular notes have no special type.
+   * - `tags` - Array of strings. Optional because not all notes have user-defined tags
+   *   (distinct from inline #hashtags which are in metadata).
+   * - `daily` - Object with `date` string. Required only when `type === 'daily'`.
+   * - `meeting` - Object with `date`, `dailyNoteId`, `attendees[]`. Required only when
+   *   `type === 'meeting'`.
+   *
+   * ## Why Fields Are Optional
+   *
+   * The flexible validation allows for:
+   * 1. **Backward compatibility**: Legacy notes from v1 format may lack explicit title/tags
+   * 2. **Forward compatibility**: New fields can be added without breaking existing notes
+   * 3. **Discriminated union support**: Type-specific fields only required for their type
+   *
+   * Invalid notes are quarantined rather than causing load failures, allowing users
+   * to manually inspect and recover data if needed.
+   *
+   * @param note - Object to validate (typically parsed from JSON file)
+   * @returns `true` if the object is a valid Note structure, `false` otherwise
+   *
+   * @internal Used by {@link load} for validation during vault initialization
+   * @see {@link NoteValidator} for detailed validation implementation
    */
   private isValidNote(note: unknown): note is Note {
     return noteValidator.validate(note);
@@ -382,11 +578,49 @@ export class FileSystemVault {
   }
 
   /**
-   * Build a properly typed Note from raw data.
-   * Handles the discriminated union based on the type field.
+   * Build a properly typed Note from raw data using TypeScript discriminated unions.
    *
-   * @param data - Raw note data with optional type-specific fields
-   * @returns Properly typed Note
+   * This method is the central point for constructing Note objects, handling the
+   * complexity of TypeScript's discriminated union pattern where the `type` field
+   * determines which additional fields are present.
+   *
+   * ## Migration Scenarios
+   *
+   * This method is used in several contexts where field precedence matters:
+   *
+   * 1. **New note creation** ({@link create}): All fields come from options, defaults applied
+   * 2. **Save/update** ({@link save}): Incoming fields take precedence, missing fields
+   *    preserved from existing note
+   * 3. **Post-migration** ({@link NoteMigrator}): Migrator derives missing fields from
+   *    metadata, then buildNote creates the final typed object
+   *
+   * ## Field Precedence (during save)
+   *
+   * When updating an existing note, this precedence is applied before calling buildNote:
+   * - `title`: incoming ?? existing ?? 'Untitled'
+   * - `type`: incoming ?? existing ?? undefined
+   * - `tags`: incoming ?? existing ?? []
+   * - `daily`: incoming ?? existing (for daily notes)
+   * - `meeting`: incoming ?? existing (for meeting notes)
+   *
+   * This allows partial updates where only changed fields are sent.
+   *
+   * ## Discriminated Union Handling
+   *
+   * The return type is narrowed based on the `type` field:
+   * - `type: 'daily'` + `daily` data → DailyNote
+   * - `type: 'meeting'` + `meeting` data → MeetingNote
+   * - `type: 'person'` → PersonNote
+   * - `type: 'project'` → ProjectNote
+   * - `type: 'template'` → TemplateNote
+   * - `type: 'system'` → SystemNote
+   * - `type: undefined` → RegularNote
+   *
+   * @param data - Raw note data with optional type-specific fields. The `type` field
+   *   determines which type-specific fields (`daily`, `meeting`) are included in output.
+   * @returns Properly typed Note conforming to the discriminated union
+   *
+   * @internal Used by {@link create}, {@link save}, and {@link NoteMigrator}
    */
   private buildNote(data: {
     id: NoteId;
