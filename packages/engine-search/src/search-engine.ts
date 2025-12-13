@@ -15,6 +15,24 @@ import { format, parse, isValid } from 'date-fns';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { extractTextForSearch, extractTextWithContext, generateSnippet } from './text-extraction';
 
+// Search indexing constants
+/** Maximum content length to index for performance (characters) */
+const MAX_INDEXED_CONTENT_LENGTH = 1000;
+
+// Snippet generation constants
+/** Maximum length for search result snippets (characters) */
+const SNIPPET_MAX_LENGTH = 160;
+/** Context radius around match position for snippet generation (characters) */
+const SNIPPET_CONTEXT_RADIUS = 80;
+
+// Search scoring weights
+/** Weight for matches in title field (highest priority) */
+const SEARCH_WEIGHT_TITLE = 10;
+/** Weight for matches in tags field (medium priority) */
+const SEARCH_WEIGHT_TAGS = 5;
+/** Weight for matches in content field (lowest priority) */
+const SEARCH_WEIGHT_CONTENT = 1;
+
 /**
  * Internal document structure for indexing
  */
@@ -106,7 +124,7 @@ export class SearchEngine {
       id: note.id,
       title: searchableTitle,
       tags: allTags.join(' '),
-      content: fullText.slice(0, 1000), // Index first 1000 chars for performance
+      content: fullText.slice(0, MAX_INDEXED_CONTENT_LENGTH), // Index first N chars for performance
       fullText: contextText, // Store more for snippets
     };
 
@@ -237,9 +255,9 @@ export class SearchEngine {
    */
   private getFieldWeight(field: 'title' | 'tags' | 'content'): number {
     const weights = {
-      title: 10, // Matches in title are most important
-      tags: 5, // Tags are moderately important
-      content: 1, // Content matches are least important
+      title: SEARCH_WEIGHT_TITLE,
+      tags: SEARCH_WEIGHT_TAGS,
+      content: SEARCH_WEIGHT_CONTENT,
     };
     return weights[field];
   }
@@ -254,7 +272,7 @@ export class SearchEngine {
   ): string {
     // If match is in title or tags, use beginning of content
     if (matchField === 'title' || matchField === 'tags') {
-      return doc.fullText.slice(0, 160) || '';
+      return doc.fullText.slice(0, SNIPPET_MAX_LENGTH) || '';
     }
 
     // For content matches, try to find the query in the text
@@ -263,10 +281,10 @@ export class SearchEngine {
     const matchPos = lowerText.indexOf(lowerQuery);
 
     if (matchPos >= 0) {
-      return generateSnippet(doc.fullText, matchPos, 80);
+      return generateSnippet(doc.fullText, matchPos, SNIPPET_CONTEXT_RADIUS);
     }
 
     // Fallback to beginning of content
-    return doc.fullText.slice(0, 160) || '';
+    return doc.fullText.slice(0, SNIPPET_MAX_LENGTH) || '';
   }
 }

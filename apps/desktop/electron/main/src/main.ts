@@ -18,6 +18,7 @@ import {
   type HandlerDependencies,
 } from './handlers';
 import { mainLogger } from './logger';
+import { DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, TRAFFIC_LIGHT_POSITION } from './constants';
 
 // __filename and __dirname are provided by the build script banner
 
@@ -105,10 +106,10 @@ function createWindow() {
     process.platform === 'win32' ? path.join(__dirname, '../../../build/icon.ico') : undefined;
 
   deps.mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: DEFAULT_WINDOW_WIDTH,
+    height: DEFAULT_WINDOW_HEIGHT,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
+    trafficLightPosition: TRAFFIC_LIGHT_POSITION,
     icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
