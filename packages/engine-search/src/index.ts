@@ -8,4 +8,3 @@
  */
 
 export { SearchEngine } from './search-engine';
-export { extractTextForSearch, extractTextWithContext, generateSnippet } from './text-extraction';

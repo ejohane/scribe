@@ -8,14 +8,7 @@
 
 import { style, keyframes, styleVariants } from '@vanilla-extract/css';
 import { vars } from '../../tokens/contract.css';
-
-/**
- * Fade-in animation for menu appearance
- */
-export const fadeIn = keyframes({
-  from: { opacity: 0, transform: 'translateY(-4px)' },
-  to: { opacity: 1, transform: 'translateY(0)' },
-});
+import { slideDown } from '../../tokens';
 
 /**
  * Spinner animation for loading states
@@ -42,7 +35,7 @@ export const container = style({
   boxShadow: vars.shadow.lg,
   border: `1px solid ${vars.color.border}`,
 
-  animation: `${fadeIn} ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
+  animation: `${slideDown} ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
 });
 
 /**

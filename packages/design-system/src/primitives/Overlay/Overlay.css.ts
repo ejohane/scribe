@@ -1,10 +1,6 @@
-import { style, styleVariants, keyframes } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 import { vars } from '../../tokens/contract.css';
-
-const fadeIn = keyframes({
-  from: { opacity: 0 },
-  to: { opacity: 1 },
-});
+import { fadeIn } from '../../tokens';
 
 export const overlay = style({
   position: 'fixed',
