@@ -3,11 +3,11 @@
  *
  * Unit tests verifying content restrictions inside table cells.
  * TableContentPlugin blocks insertion of:
- * - Bullet lists (INSERT_UNORDERED_LIST_COMMAND)
- * - Checklists (INSERT_CHECK_LIST_COMMAND)
  * - Nested tables (INSERT_TABLE_COMMAND)
  *
  * While allowing:
+ * - Bullet lists (INSERT_UNORDERED_LIST_COMMAND)
+ * - Checklists (INSERT_CHECK_LIST_COMMAND)
  * - Bold, italic, and other inline formatting
  * - Wiki-links and person mentions
  * - Line breaks within cells
@@ -148,171 +148,6 @@ describe('TableContentPlugin - Blocked Content', () => {
   beforeEach(() => {
     editorRef = { current: null };
     vi.clearAllMocks();
-  });
-
-  describe('INSERT_UNORDERED_LIST_COMMAND', () => {
-    it('blocks bullet list command when selection is inside table cell', async () => {
-      render(<TestEditor editorRef={editorRef} />);
-
-      await waitFor(() => expect(editorRef.current).not.toBeNull());
-
-      const editor = editorRef.current!;
-
-      // Create a table and position cursor inside
-      await act(async () => {
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const table = $createTable2x2();
-          root.append(table);
-          $selectCellContent(table);
-        });
-      });
-
-      // Try to dispatch INSERT_UNORDERED_LIST_COMMAND
-      let commandResult: boolean | undefined;
-      await act(async () => {
-        commandResult = editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
-      });
-
-      // Verify no list was created
-      editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const table = root.getFirstChild();
-        expect($isTableNode(table)).toBe(true);
-
-        if ($isTableNode(table)) {
-          const rows = table.getChildren();
-          const row = rows[0];
-          if ($isTableRowNode(row)) {
-            const cell = row.getFirstChild();
-            if ($isTableCellNode(cell)) {
-              // Cell should still contain paragraph, not list
-              const children = cell.getChildren();
-              expect(children.length).toBe(1);
-              expect($isListNode(children[0])).toBe(false);
-            }
-          }
-        }
-      });
-    });
-
-    it('allows bullet list command when selection is outside table', async () => {
-      render(<TestEditor editorRef={editorRef} />);
-
-      await waitFor(() => expect(editorRef.current).not.toBeNull());
-
-      const editor = editorRef.current!;
-
-      // Create content outside table
-      await act(async () => {
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const paragraph = $createParagraphNode();
-          const textNode = $createTextNode('Outside text');
-          paragraph.append(textNode);
-          root.append(paragraph);
-          textNode.select(0, textNode.getTextContentSize());
-        });
-      });
-
-      // Dispatch INSERT_UNORDERED_LIST_COMMAND
-      await act(async () => {
-        editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
-      });
-
-      // Verify list was created
-      editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const children = root.getChildren();
-        // Should have a list node now
-        const hasListNode = children.some((child) => $isListNode(child));
-        expect(hasListNode).toBe(true);
-      });
-    });
-  });
-
-  describe('INSERT_CHECK_LIST_COMMAND', () => {
-    it('blocks checklist command when selection is inside table cell', async () => {
-      render(<TestEditor editorRef={editorRef} />);
-
-      await waitFor(() => expect(editorRef.current).not.toBeNull());
-
-      const editor = editorRef.current!;
-
-      // Create a table and position cursor inside
-      await act(async () => {
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const table = $createTable2x2();
-          root.append(table);
-          $selectCellContent(table);
-        });
-      });
-
-      // Try to dispatch INSERT_CHECK_LIST_COMMAND
-      await act(async () => {
-        editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
-      });
-
-      // Verify no checklist was created
-      editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const table = root.getFirstChild();
-        expect($isTableNode(table)).toBe(true);
-
-        if ($isTableNode(table)) {
-          const rows = table.getChildren();
-          const row = rows[0];
-          if ($isTableRowNode(row)) {
-            const cell = row.getFirstChild();
-            if ($isTableCellNode(cell)) {
-              // Cell should still contain paragraph, not list
-              const children = cell.getChildren();
-              expect(children.length).toBe(1);
-              expect($isListNode(children[0])).toBe(false);
-            }
-          }
-        }
-      });
-    });
-
-    it('allows checklist command when selection is outside table', async () => {
-      render(<TestEditor editorRef={editorRef} />);
-
-      await waitFor(() => expect(editorRef.current).not.toBeNull());
-
-      const editor = editorRef.current!;
-
-      // Create content outside table
-      await act(async () => {
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const paragraph = $createParagraphNode();
-          const textNode = $createTextNode('Task item');
-          paragraph.append(textNode);
-          root.append(paragraph);
-          textNode.select(0, textNode.getTextContentSize());
-        });
-      });
-
-      // Dispatch INSERT_CHECK_LIST_COMMAND
-      await act(async () => {
-        editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
-      });
-
-      // Verify checklist was created
-      editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const children = root.getChildren();
-        // Should have a list node now
-        const hasListNode = children.some((child) => $isListNode(child));
-        expect(hasListNode).toBe(true);
-      });
-    });
   });
 
   describe('INSERT_TABLE_COMMAND (nested tables)', () => {
@@ -736,7 +571,7 @@ describe('TableContentPlugin - Allowed Content', () => {
   });
 });
 
-describe('TableContentPlugin - Edge Cases', () => {
+describe('TableContentPlugin - Lists in Tables (Allowed)', () => {
   let editorRef: React.MutableRefObject<LexicalEditor | null>;
 
   beforeEach(() => {
@@ -744,7 +579,7 @@ describe('TableContentPlugin - Edge Cases', () => {
     vi.clearAllMocks();
   });
 
-  it('handles empty table cell selection', async () => {
+  it('allows bullet list in empty table cell', async () => {
     render(<TestEditor editorRef={editorRef} />);
 
     await waitFor(() => expect(editorRef.current).not.toBeNull());
@@ -770,12 +605,12 @@ describe('TableContentPlugin - Edge Cases', () => {
       });
     });
 
-    // Try to dispatch INSERT_UNORDERED_LIST_COMMAND
+    // Dispatch INSERT_UNORDERED_LIST_COMMAND
     await act(async () => {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     });
 
-    // Verify list was blocked
+    // Verify list was created inside the table cell
     editor.getEditorState().read(() => {
       const root = $getRoot();
       const table = root.getFirstChild();
@@ -788,14 +623,14 @@ describe('TableContentPlugin - Edge Cases', () => {
           const cell = row.getFirstChild();
           if ($isTableCellNode(cell)) {
             const children = cell.getChildren();
-            expect($isListNode(children[0])).toBe(false);
+            expect($isListNode(children[0])).toBe(true);
           }
         }
       }
     });
   });
 
-  it('handles selection spanning multiple cells', async () => {
+  it('allows bullet list with existing content in table cell', async () => {
     render(<TestEditor editorRef={editorRef} />);
 
     await waitFor(() => expect(editorRef.current).not.toBeNull());
@@ -815,12 +650,12 @@ describe('TableContentPlugin - Edge Cases', () => {
       });
     });
 
-    // Commands should still be blocked when selection starts in table
+    // Dispatch INSERT_UNORDERED_LIST_COMMAND
     await act(async () => {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     });
 
-    // Verify list was blocked
+    // Verify list was created inside the table cell
     editor.getEditorState().read(() => {
       const root = $getRoot();
       const table = root.getFirstChild();
@@ -831,21 +666,72 @@ describe('TableContentPlugin - Edge Cases', () => {
           const cell = row.getFirstChild();
           if ($isTableCellNode(cell)) {
             const children = cell.getChildren();
-            expect($isListNode(children[0])).toBe(false);
+            expect($isListNode(children[0])).toBe(true);
           }
         }
       }
     });
   });
 
-  it('allows commands when no selection exists', async () => {
+  it('allows checklist in table cell', async () => {
     render(<TestEditor editorRef={editorRef} />);
 
     await waitFor(() => expect(editorRef.current).not.toBeNull());
 
     const editor = editorRef.current!;
 
-    // Create a table and then a paragraph outside, but don't select anything
+    // Create a table with empty cell
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const table = $createTableNode();
+        const row = $createTableRowNode();
+        const cell = $createTableCellNode(TableCellHeaderStates.NO_STATUS);
+        const paragraph = $createParagraphNode();
+        cell.append(paragraph);
+        row.append(cell);
+        table.append(row);
+        root.append(table);
+
+        // Select empty paragraph
+        paragraph.select(0, 0);
+      });
+    });
+
+    // Dispatch INSERT_CHECK_LIST_COMMAND
+    await act(async () => {
+      editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
+    });
+
+    // Verify checklist was created inside the table cell
+    editor.getEditorState().read(() => {
+      const root = $getRoot();
+      const table = root.getFirstChild();
+      expect($isTableNode(table)).toBe(true);
+
+      if ($isTableNode(table)) {
+        const rows = table.getChildren();
+        const row = rows[0];
+        if ($isTableRowNode(row)) {
+          const cell = row.getFirstChild();
+          if ($isTableCellNode(cell)) {
+            const children = cell.getChildren();
+            expect($isListNode(children[0])).toBe(true);
+          }
+        }
+      }
+    });
+  });
+
+  it('allows list command outside table', async () => {
+    render(<TestEditor editorRef={editorRef} />);
+
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+    const editor = editorRef.current!;
+
+    // Create a table and then a paragraph outside
     await act(async () => {
       editor.update(() => {
         const root = $getRoot();
@@ -875,69 +761,6 @@ describe('TableContentPlugin - Edge Cases', () => {
       expect(children.length).toBe(2);
       expect($isTableNode(children[0])).toBe(true);
       expect($isListNode(children[1])).toBe(true);
-    });
-  });
-
-  it('blocks commands in deeply nested table cell content', async () => {
-    render(<TestEditor editorRef={editorRef} />);
-
-    await waitFor(() => expect(editorRef.current).not.toBeNull());
-
-    const editor = editorRef.current!;
-
-    // Create a table with formatted text in cell
-    await act(async () => {
-      editor.update(() => {
-        const root = $getRoot();
-        root.clear();
-        const table = $createTableNode();
-        const row = $createTableRowNode();
-        const cell = $createTableCellNode(TableCellHeaderStates.NO_STATUS);
-        const paragraph = $createParagraphNode();
-        const textNode = $createTextNode('Formatted text');
-        textNode.toggleFormat('bold');
-        paragraph.append(textNode);
-        cell.append(paragraph);
-        row.append(cell);
-        table.append(row);
-        root.append(table);
-
-        // Select the formatted text
-        textNode.select(0, textNode.getTextContentSize());
-      });
-    });
-
-    // Try to dispatch INSERT_UNORDERED_LIST_COMMAND
-    await act(async () => {
-      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
-    });
-
-    // Verify list was blocked
-    editor.getEditorState().read(() => {
-      const root = $getRoot();
-      const table = root.getFirstChild();
-      expect($isTableNode(table)).toBe(true);
-
-      if ($isTableNode(table)) {
-        const rows = table.getChildren();
-        const row = rows[0];
-        if ($isTableRowNode(row)) {
-          const cell = row.getFirstChild();
-          if ($isTableCellNode(cell)) {
-            const children = cell.getChildren();
-            expect($isListNode(children[0])).toBe(false);
-            // Text should still be there with formatting
-            const paragraph = children[0];
-            if ($isParagraphNode(paragraph)) {
-              const textNode = paragraph.getFirstChild();
-              if ($isTextNode(textNode)) {
-                expect(textNode.hasFormat('bold')).toBe(true);
-                expect(textNode.getTextContent()).toBe('Formatted text');
-              }
-            }
-          }
-        }
-      }
     });
   });
 });

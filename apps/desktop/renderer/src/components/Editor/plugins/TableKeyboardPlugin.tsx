@@ -2,10 +2,11 @@
  * TableKeyboardPlugin
  *
  * Handles table-specific keyboard behaviors:
- * - Tab/Shift+Tab navigation between cells
- * - Enter behavior (line break vs exit table)
+ * - Tab/Shift+Tab navigation between cells (Tab at last cell adds new row)
+ * - Enter behavior (always inserts line break in cells, allows list continuation)
  * - Escape to exit table
- * - Backspace/Delete to auto-delete empty tables
+ * - Cmd/Ctrl+A to select entire table when cursor is in a table
+ * - Backspace/Delete to delete table when entire table is selected or when empty
  * - Suppresses TabIndentationPlugin inside tables
  */
 
@@ -14,6 +15,8 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   $getSelection,
   $isRangeSelection,
+  $setSelection,
+  $getNodeByKey,
   $createParagraphNode,
   $createLineBreakNode,
   KEY_TAB_COMMAND,
@@ -21,8 +24,10 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
+  KEY_DOWN_COMMAND,
   COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_CRITICAL,
+  LexicalNode,
 } from 'lexical';
 import {
   $isTableRowNode,
@@ -30,9 +35,13 @@ import {
   $isTableCellNode,
   $getTableCellNodeFromLexicalNode,
   $insertTableRow__EXPERIMENTAL,
+  $createTableSelectionFrom,
+  $isTableSelection,
   TableCellNode,
   TableNode,
+  TableSelection,
 } from '@lexical/table';
+import { $isListItemNode } from '@lexical/list';
 
 /**
  * Check if the current selection is inside a table cell
@@ -44,6 +53,23 @@ function $isSelectionInTable(): boolean {
   const anchorNode = selection.anchor.getNode();
   const tableCell = $getTableCellNodeFromLexicalNode(anchorNode);
   return tableCell !== null;
+}
+
+/**
+ * Check if the current selection is inside a list item
+ */
+function $isSelectionInList(): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) return false;
+
+  let node: LexicalNode | null = selection.anchor.getNode();
+  while (node !== null) {
+    if ($isListItemNode(node)) {
+      return true;
+    }
+    node = node.getParent();
+  }
+  return false;
 }
 
 /**
@@ -129,6 +155,81 @@ function $isTableEmpty(table: TableNode): boolean {
 }
 
 /**
+ * Get the first cell in a table (first cell of first row)
+ */
+function $getFirstCell(table: TableNode): TableCellNode | null {
+  const rows = table.getChildren();
+  if (rows.length === 0) return null;
+
+  const firstRow = rows[0];
+  if (!$isTableRowNode(firstRow)) return null;
+
+  const cells = firstRow.getChildren();
+  if (cells.length === 0) return null;
+
+  const firstCell = cells[0];
+  return $isTableCellNode(firstCell) ? firstCell : null;
+}
+
+/**
+ * Get the last cell in a table (last cell of last row)
+ */
+function $getLastCell(table: TableNode): TableCellNode | null {
+  const rows = table.getChildren();
+  if (rows.length === 0) return null;
+
+  const lastRow = rows[rows.length - 1];
+  if (!$isTableRowNode(lastRow)) return null;
+
+  const cells = lastRow.getChildren();
+  if (cells.length === 0) return null;
+
+  const lastCell = cells[cells.length - 1];
+  return $isTableCellNode(lastCell) ? lastCell : null;
+}
+
+/**
+ * Select the entire table by creating a TableSelection from first to last cell
+ */
+function $selectEntireTable(table: TableNode): boolean {
+  const firstCell = $getFirstCell(table);
+  const lastCell = $getLastCell(table);
+
+  if (!firstCell || !lastCell) return false;
+
+  const tableSelection = $createTableSelectionFrom(table, firstCell, lastCell);
+  $setSelection(tableSelection);
+  return true;
+}
+
+/**
+ * Get the table node from a TableSelection
+ */
+function $getTableFromTableSelection(selection: TableSelection): TableNode | null {
+  const tableNode = $getNodeByKey(selection.tableKey);
+  return $isTableNode(tableNode) ? tableNode : null;
+}
+
+/**
+ * Check if the entire table is selected (all cells selected)
+ */
+function $isEntireTableSelected(table: TableNode, selection: TableSelection): boolean {
+  const shape = selection.getShape();
+  const rowCount = table.getChildrenSize();
+  const firstRow = table.getChildAtIndex(0);
+  if (!$isTableRowNode(firstRow)) return false;
+  const colCount = firstRow.getChildrenSize();
+
+  // Check if selection spans from (0,0) to (maxRow, maxCol)
+  return (
+    shape.fromX === 0 &&
+    shape.fromY === 0 &&
+    shape.toX === colCount - 1 &&
+    shape.toY === rowCount - 1
+  );
+}
+
+/**
  * Move selection to before the table
  */
 function $exitTableBefore(table: TableNode): void {
@@ -198,7 +299,7 @@ export function TableKeyboardPlugin(): null {
         if (!event.shiftKey && $isLastCellInTable(cell)) {
           event.preventDefault();
           // Insert a new row at the end
-          $insertTableRow__EXPERIMENTAL(false); // false = after current row
+          $insertTableRow__EXPERIMENTAL(true); // true = insert after current row
           return true;
         }
 
@@ -225,11 +326,17 @@ export function TableKeyboardPlugin(): null {
       COMMAND_PRIORITY_CRITICAL
     );
 
-    // Handle Enter - exit table at last cell of last row, line break elsewhere
+    // Handle Enter - always insert line break in cells
+    // But allow list continuation when inside a list
     const removeEnterCommand = editor.registerCommand(
       KEY_ENTER_COMMAND,
       (event: KeyboardEvent | null) => {
         if (!$isSelectionInTable()) {
+          return false;
+        }
+
+        // If we're inside a list, let the list plugin handle Enter for list continuation
+        if ($isSelectionInList()) {
           return false;
         }
 
@@ -239,24 +346,7 @@ export function TableKeyboardPlugin(): null {
         const table = $getTableFromCell(cell);
         if (!table) return false;
 
-        // Shift+Enter always creates line break
-        if (event?.shiftKey) {
-          if (event) event.preventDefault();
-          const selection = $getSelection();
-          if ($isRangeSelection(selection)) {
-            selection.insertNodes([$createLineBreakNode()]);
-          }
-          return true;
-        }
-
-        // Enter at last cell of last row - exit table
-        if ($isLastCellInTable(cell)) {
-          if (event) event.preventDefault();
-          $exitTableAfter(table);
-          return true;
-        }
-
-        // Enter in other cells - insert line break (not paragraph)
+        // Enter in any cell - insert line break (not paragraph)
         if (event) event.preventDefault();
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
@@ -287,10 +377,62 @@ export function TableKeyboardPlugin(): null {
       COMMAND_PRIORITY_HIGH
     );
 
-    // Handle Backspace - auto-delete empty tables
+    // Handle Cmd/Ctrl+A - select entire table when cursor is in a table
+    const removeSelectAllCommand = editor.registerCommand<KeyboardEvent>(
+      KEY_DOWN_COMMAND,
+      (event: KeyboardEvent) => {
+        // Check for Cmd+A (Mac) or Ctrl+A (Windows/Linux)
+        const isSelectAll = event.key === 'a' && (event.metaKey || event.ctrlKey);
+        if (!isSelectAll) {
+          return false;
+        }
+
+        const selection = $getSelection();
+
+        // If already a table selection, let the default behavior extend or handle it
+        if ($isTableSelection(selection)) {
+          return false;
+        }
+
+        // Only handle if in a table with a range selection
+        if (!$isSelectionInTable()) {
+          return false;
+        }
+
+        const cell = $getTableCellFromSelection();
+        if (!cell) return false;
+
+        const table = $getTableFromCell(cell);
+        if (!table) return false;
+
+        // Select the entire table
+        event.preventDefault();
+        $selectEntireTable(table);
+        return true;
+      },
+      COMMAND_PRIORITY_HIGH
+    );
+
+    // Handle Backspace - delete table when entire table selected or when empty
     const removeBackspaceCommand = editor.registerCommand(
       KEY_BACKSPACE_COMMAND,
       (event: KeyboardEvent) => {
+        const selection = $getSelection();
+
+        // Handle TableSelection - delete entire table if all cells selected
+        if ($isTableSelection(selection)) {
+          const table = $getTableFromTableSelection(selection);
+          if (table && $isEntireTableSelected(table, selection)) {
+            event.preventDefault();
+            $exitTableBefore(table);
+            table.remove();
+            return true;
+          }
+          // Let Lexical handle partial table selection (clears cell contents)
+          return false;
+        }
+
+        // Handle RangeSelection inside a table cell
         if (!$isSelectionInTable()) {
           return false;
         }
@@ -315,10 +457,26 @@ export function TableKeyboardPlugin(): null {
       COMMAND_PRIORITY_HIGH
     );
 
-    // Handle Delete - auto-delete empty tables
+    // Handle Delete - delete table when entire table selected or when empty
     const removeDeleteCommand = editor.registerCommand(
       KEY_DELETE_COMMAND,
       (event: KeyboardEvent) => {
+        const selection = $getSelection();
+
+        // Handle TableSelection - delete entire table if all cells selected
+        if ($isTableSelection(selection)) {
+          const table = $getTableFromTableSelection(selection);
+          if (table && $isEntireTableSelected(table, selection)) {
+            event.preventDefault();
+            $exitTableAfter(table);
+            table.remove();
+            return true;
+          }
+          // Let Lexical handle partial table selection (clears cell contents)
+          return false;
+        }
+
+        // Handle RangeSelection inside a table cell
         if (!$isSelectionInTable()) {
           return false;
         }
@@ -347,6 +505,7 @@ export function TableKeyboardPlugin(): null {
       removeTabCommand();
       removeEnterCommand();
       removeEscapeCommand();
+      removeSelectAllCommand();
       removeBackspaceCommand();
       removeDeleteCommand();
     };

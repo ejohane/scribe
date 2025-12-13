@@ -2,8 +2,8 @@
  * TableKeyboardPlugin Tests
  *
  * Unit tests for table keyboard navigation behaviors:
- * - Tab/Shift+Tab navigation between cells
- * - Enter behavior (line break vs exit table)
+ * - Tab/Shift+Tab navigation between cells (Tab at last cell adds new row)
+ * - Enter behavior (always inserts line break in cells, allows list continuation)
  * - Escape to exit table
  * - Backspace/Delete to auto-delete empty tables
  * - TabIndentation suppression inside tables
@@ -39,11 +39,20 @@ import {
   $isTableCellNode,
   TableCellHeaderStates,
 } from '@lexical/table';
+import {
+  ListNode,
+  ListItemNode,
+  $createListNode,
+  $createListItemNode,
+  $isListNode,
+  $isListItemNode,
+} from '@lexical/list';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { TablePlugin } from './TablePlugin';
 import { TableKeyboardPlugin } from './TableKeyboardPlugin';
 import type { ReactNode } from 'react';
@@ -70,7 +79,7 @@ function TestEditor({
     <LexicalComposer
       initialConfig={{
         namespace: 'test',
-        nodes: [TableNode, TableRowNode, TableCellNode],
+        nodes: [TableNode, TableRowNode, TableCellNode, ListNode, ListItemNode],
         onError: (error) => {
           throw error;
         },
@@ -84,6 +93,7 @@ function TestEditor({
       <EditorCapture editorRef={editorRef} />
       <TablePlugin />
       <TableKeyboardPlugin />
+      <ListPlugin />
       {children}
     </LexicalComposer>
   );
@@ -358,7 +368,7 @@ describe('TableKeyboardPlugin - Enter Behavior', () => {
     });
   });
 
-  it('Enter at last cell of last row exits table and creates paragraph', async () => {
+  it('Enter at last cell of last row creates line break (same as other cells)', async () => {
     render(<TestEditor editorRef={editorRef} />);
     await waitFor(() => expect(editorRef.current).not.toBeNull());
 
@@ -377,10 +387,13 @@ describe('TableKeyboardPlugin - Enter Behavior', () => {
       });
     });
 
-    // Verify initial state - only table in root
+    // Verify initial state - 2 rows
     editor.getEditorState().read(() => {
       const root = $getRoot();
-      expect(root.getChildren().length).toBe(1);
+      const table = root.getChildren()[0];
+      if ($isTableNode(table)) {
+        expect(table.getChildren().length).toBe(2);
+      }
     });
 
     // Dispatch Enter key command
@@ -388,31 +401,111 @@ describe('TableKeyboardPlugin - Enter Behavior', () => {
       editor.dispatchCommand(KEY_ENTER_COMMAND, createKeyboardEvent('Enter'));
     });
 
-    // Verify paragraph was created after table and selection moved there
+    // Verify line break was inserted (table still has 2 rows, not exited)
     editor.getEditorState().read(() => {
       const root = $getRoot();
-      const children = root.getChildren();
-      expect(children.length).toBe(2);
-      expect($isTableNode(children[0])).toBe(true);
-      expect($isParagraphNode(children[1])).toBe(true);
+      // Should still have only the table (no paragraph created after)
+      expect(root.getChildren().length).toBe(1);
 
-      // Selection should be in the new paragraph
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        const anchorNode = selection.anchor.getNode();
-        const parent = anchorNode.getParent();
-        // Selection should be in or at the paragraph after the table
-        expect(
-          $isParagraphNode(anchorNode) ||
-            $isParagraphNode(parent) ||
-            anchorNode === children[1] ||
-            parent === children[1]
-        ).toBe(true);
+      const table = root.getChildren()[0];
+      if ($isTableNode(table)) {
+        // Still 2 rows (no new row added)
+        expect(table.getChildren().length).toBe(2);
+
+        // Check that line break was inserted in the last cell
+        const lastRow = table.getChildren()[1];
+        if ($isTableRowNode(lastRow)) {
+          const lastCell = lastRow.getChildren()[1];
+          if ($isTableCellNode(lastCell)) {
+            const paragraph = lastCell.getFirstChild();
+            if ($isParagraphNode(paragraph)) {
+              const hasLineBreak = paragraph.getChildren().some((child) => $isLineBreakNode(child));
+              expect(hasLineBreak).toBe(true);
+            }
+          }
+        }
       }
     });
   });
 
-  it('Shift+Enter always creates line break (even in last cell)', async () => {
+  it('Enter inside a list within a table allows list continuation (not intercepted)', async () => {
+    render(<TestEditor editorRef={editorRef} />);
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+    const editor = editorRef.current!;
+
+    // Create table with a list inside a cell
+    await act(async () => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const table = $createTableNode();
+        const row = $createTableRowNode();
+        const cell = $createTableCellNode(TableCellHeaderStates.NO_STATUS);
+
+        // Create a bullet list inside the cell
+        const list = $createListNode('bullet');
+        const listItem = $createListItemNode();
+        listItem.append($createTextNode('List item 1'));
+        list.append(listItem);
+        cell.append(list);
+        row.append(cell);
+        table.append(row);
+        root.append(table);
+
+        // Select end of list item text
+        listItem.selectEnd();
+      });
+    });
+
+    // Verify initial state - one list item
+    editor.getEditorState().read(() => {
+      const root = $getRoot();
+      const table = root.getChildren()[0];
+      if ($isTableNode(table)) {
+        const row = table.getChildren()[0];
+        if ($isTableRowNode(row)) {
+          const cell = row.getChildren()[0];
+          if ($isTableCellNode(cell)) {
+            const list = cell.getFirstChild();
+            if ($isListNode(list)) {
+              expect(list.getChildren().length).toBe(1);
+            }
+          }
+        }
+      }
+    });
+
+    // Dispatch Enter key command - should allow list plugin to handle it
+    await act(async () => {
+      editor.dispatchCommand(KEY_ENTER_COMMAND, createKeyboardEvent('Enter'));
+    });
+
+    // Verify a new list item was created (list plugin handled Enter)
+    editor.getEditorState().read(() => {
+      const root = $getRoot();
+      const table = root.getChildren()[0];
+      if ($isTableNode(table)) {
+        const row = table.getChildren()[0];
+        if ($isTableRowNode(row)) {
+          const cell = row.getChildren()[0];
+          if ($isTableCellNode(cell)) {
+            const list = cell.getFirstChild();
+            if ($isListNode(list)) {
+              // List should now have 2 items (Enter created a new list item)
+              expect(list.getChildren().length).toBe(2);
+              // Both should be list items
+              list.getChildren().forEach((child) => {
+                expect($isListItemNode(child)).toBe(true);
+              });
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('Shift+Enter creates line break (same as Enter)', async () => {
     render(<TestEditor editorRef={editorRef} />);
     await waitFor(() => expect(editorRef.current).not.toBeNull());
 
