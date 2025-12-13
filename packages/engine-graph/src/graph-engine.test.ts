@@ -1129,4 +1129,725 @@ describe('GraphEngine', () => {
       expect(graph.backlinks(n('project-1'))).toHaveLength(1);
     });
   });
+
+  describe('circular references', () => {
+    it('should handle simple bidirectional cycle (A <-> B)', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+
+      // Each note should have exactly 1 neighbor (no duplicates)
+      const neighborsA = graph.neighbors(n('note-a'));
+      expect(neighborsA).toHaveLength(1);
+      expect(neighborsA[0].id).toBe('note-b');
+
+      const neighborsB = graph.neighbors(n('note-b'));
+      expect(neighborsB).toHaveLength(1);
+      expect(neighborsB[0].id).toBe('note-a');
+
+      // Each note should have 1 backlink
+      const backlinksA = graph.backlinks(n('note-a'));
+      expect(backlinksA).toHaveLength(1);
+      expect(backlinksA[0].id).toBe('note-b');
+
+      const backlinksB = graph.backlinks(n('note-b'));
+      expect(backlinksB).toHaveLength(1);
+      expect(backlinksB[0].id).toBe('note-a');
+
+      // 2 edges total: A->B and B->A
+      expect(graph.getStats().edges).toBe(2);
+    });
+
+    it('should handle cycle of 3 (A -> B -> C -> A)', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      // Verify edges: exactly 3 edges (one per link)
+      expect(graph.getStats().edges).toBe(3);
+      expect(graph.getStats().nodes).toBe(3);
+
+      // Each node should have exactly 2 neighbors (incoming + outgoing)
+      const neighborsA = graph.neighbors(n('note-a'));
+      expect(neighborsA).toHaveLength(2);
+      const neighborAIds = neighborsA.map((n) => n.id).sort();
+      expect(neighborAIds).toEqual(['note-b', 'note-c']);
+
+      const neighborsB = graph.neighbors(n('note-b'));
+      expect(neighborsB).toHaveLength(2);
+      const neighborBIds = neighborsB.map((n) => n.id).sort();
+      expect(neighborBIds).toEqual(['note-a', 'note-c']);
+
+      const neighborsC = graph.neighbors(n('note-c'));
+      expect(neighborsC).toHaveLength(2);
+      const neighborCIds = neighborsC.map((n) => n.id).sort();
+      expect(neighborCIds).toEqual(['note-a', 'note-b']);
+
+      // Each node should have exactly 1 backlink
+      expect(graph.backlinks(n('note-a'))).toHaveLength(1);
+      expect(graph.backlinks(n('note-a'))[0].id).toBe('note-c');
+
+      expect(graph.backlinks(n('note-b'))).toHaveLength(1);
+      expect(graph.backlinks(n('note-b'))[0].id).toBe('note-a');
+
+      expect(graph.backlinks(n('note-c'))).toHaveLength(1);
+      expect(graph.backlinks(n('note-c'))[0].id).toBe('note-b');
+    });
+
+    it('should handle longer cycle (A -> B -> C -> D -> A)', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-d'],
+        mentions: [],
+      });
+
+      const noteD = createTestNote('note-d', {
+        title: 'Note D',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+      graph.addNote(noteD);
+
+      // Verify edges: exactly 4 edges
+      expect(graph.getStats().edges).toBe(4);
+      expect(graph.getStats().nodes).toBe(4);
+
+      // Each node should have exactly 2 neighbors (incoming + outgoing)
+      expect(graph.neighbors(n('note-a'))).toHaveLength(2);
+      expect(graph.neighbors(n('note-b'))).toHaveLength(2);
+      expect(graph.neighbors(n('note-c'))).toHaveLength(2);
+      expect(graph.neighbors(n('note-d'))).toHaveLength(2);
+
+      // No duplicate neighbors
+      const neighborsA = graph.neighbors(n('note-a'));
+      const uniqueNeighborAIds = new Set(neighborsA.map((n) => n.id));
+      expect(uniqueNeighborAIds.size).toBe(2);
+
+      // Backlinks are correct
+      expect(graph.backlinks(n('note-a'))[0].id).toBe('note-d');
+      expect(graph.backlinks(n('note-b'))[0].id).toBe('note-a');
+      expect(graph.backlinks(n('note-c'))[0].id).toBe('note-b');
+      expect(graph.backlinks(n('note-d'))[0].id).toBe('note-c');
+    });
+
+    it('should handle complex cycle with multiple connections', () => {
+      // A -> B, A -> C
+      // B -> C
+      // C -> A (closes cycle A -> C -> A and A -> B -> C -> A)
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b', 'note-c'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      // 4 edges: A->B, A->C, B->C, C->A
+      expect(graph.getStats().edges).toBe(4);
+
+      // Note C has 2 backlinks (from A and B)
+      const backlinksC = graph.backlinks(n('note-c'));
+      expect(backlinksC).toHaveLength(2);
+      const backlinkCIds = backlinksC.map((n) => n.id).sort();
+      expect(backlinkCIds).toEqual(['note-a', 'note-b']);
+
+      // Note A has 1 backlink (from C only)
+      const backlinksA = graph.backlinks(n('note-a'));
+      expect(backlinksA).toHaveLength(1);
+      expect(backlinksA[0].id).toBe('note-c');
+
+      // Note B has 1 backlink (from A only)
+      const backlinksB = graph.backlinks(n('note-b'));
+      expect(backlinksB).toHaveLength(1);
+      expect(backlinksB[0].id).toBe('note-a');
+
+      // Neighbors should have no duplicates
+      const neighborsA = graph.neighbors(n('note-a'));
+      expect(neighborsA).toHaveLength(2); // B (outgoing) and C (both directions)
+      const neighborAIds = neighborsA.map((n) => n.id).sort();
+      expect(neighborAIds).toEqual(['note-b', 'note-c']);
+    });
+
+    it('should properly clean up when removing a note from a cycle of 3', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      expect(graph.getStats().nodes).toBe(3);
+      expect(graph.getStats().edges).toBe(3);
+
+      // Remove B (middle of chain A -> B -> C)
+      graph.removeNote(n('note-b'));
+
+      // Should have 2 nodes and 1 edge (C -> A)
+      expect(graph.getStats().nodes).toBe(2);
+      expect(graph.getStats().edges).toBe(1);
+
+      // A should no longer have any outgoing edges to B
+      const neighborsA = graph.neighbors(n('note-a'));
+      expect(neighborsA).toHaveLength(1);
+      expect(neighborsA[0].id).toBe('note-c');
+
+      // C's outgoing edge to A should still work
+      const backlinksA = graph.backlinks(n('note-a'));
+      expect(backlinksA).toHaveLength(1);
+      expect(backlinksA[0].id).toBe('note-c');
+
+      // B should not appear in any neighbors
+      expect(graph.neighbors(n('note-b'))).toHaveLength(0);
+    });
+
+    it('should properly clean up when removing a note from a bidirectional cycle', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+
+      expect(graph.getStats().edges).toBe(2);
+
+      // Remove B
+      graph.removeNote(n('note-b'));
+
+      expect(graph.getStats().nodes).toBe(1);
+      expect(graph.getStats().edges).toBe(0);
+
+      // A should have no neighbors or backlinks
+      expect(graph.neighbors(n('note-a'))).toHaveLength(0);
+      expect(graph.backlinks(n('note-a'))).toHaveLength(0);
+    });
+
+    it('should update circular references when note links change', () => {
+      // Initial: A -> B -> C -> A
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      expect(graph.getStats().edges).toBe(3);
+
+      // Update C to break the cycle (C no longer links to A)
+      const noteCUpdated = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: [], // No more link to A
+        mentions: [],
+      });
+
+      graph.addNote(noteCUpdated);
+
+      // Should now be a chain: A -> B -> C (2 edges)
+      expect(graph.getStats().edges).toBe(2);
+
+      // A should have no backlinks
+      expect(graph.backlinks(n('note-a'))).toHaveLength(0);
+
+      // C should have 1 backlink from B
+      expect(graph.backlinks(n('note-c'))).toHaveLength(1);
+      expect(graph.backlinks(n('note-c'))[0].id).toBe('note-b');
+
+      // A's neighbors: only B (outgoing)
+      const neighborsA = graph.neighbors(n('note-a'));
+      expect(neighborsA).toHaveLength(1);
+      expect(neighborsA[0].id).toBe('note-b');
+    });
+
+    it('should handle circular references with tags correctly', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: ['cycle', 'start'],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: ['cycle'],
+        links: ['note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: ['cycle', 'end'],
+        links: ['note-a'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      // All 3 notes should have the 'cycle' tag
+      const cycleNotes = graph.notesWithTag('cycle');
+      expect(cycleNotes).toHaveLength(3);
+
+      // Only A should have 'start' tag
+      const startNotes = graph.notesWithTag('start');
+      expect(startNotes).toHaveLength(1);
+      expect(startNotes[0].id).toBe('note-a');
+
+      // Only C should have 'end' tag
+      const endNotes = graph.notesWithTag('end');
+      expect(endNotes).toHaveLength(1);
+      expect(endNotes[0].id).toBe('note-c');
+
+      // Removing a note should clean up tags
+      graph.removeNote(n('note-b'));
+      expect(graph.notesWithTag('cycle')).toHaveLength(2);
+    });
+
+    it('should handle fully connected graph (all nodes link to all others)', () => {
+      // Each note links to the other two
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b', 'note-c'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-a', 'note-c'],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-a', 'note-b'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      // 6 edges total (2 from each note)
+      expect(graph.getStats().edges).toBe(6);
+
+      // Each note should have 2 neighbors (no duplicates despite bidirectional links)
+      expect(graph.neighbors(n('note-a'))).toHaveLength(2);
+      expect(graph.neighbors(n('note-b'))).toHaveLength(2);
+      expect(graph.neighbors(n('note-c'))).toHaveLength(2);
+
+      // Each note should have 2 backlinks
+      expect(graph.backlinks(n('note-a'))).toHaveLength(2);
+      expect(graph.backlinks(n('note-b'))).toHaveLength(2);
+      expect(graph.backlinks(n('note-c'))).toHaveLength(2);
+    });
+
+    it('should handle cycle with person mentions', () => {
+      // Cycle of notes where each mentions the same person
+      const person = createTestNote(
+        'person-1',
+        { title: 'John Smith', tags: [], links: [], mentions: [], type: 'person' },
+        { type: 'person' }
+      );
+
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: ['person-1'],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: ['note-c'],
+        mentions: ['person-1'],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: ['note-a'],
+        mentions: ['person-1'],
+      });
+
+      graph.addNote(person);
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      // Cycle should work correctly
+      expect(graph.getStats().edges).toBe(3);
+
+      // All notes should mention the person
+      const mentioningNotes = graph.notesMentioning(n('person-1'));
+      expect(mentioningNotes).toHaveLength(3);
+      expect(mentioningNotes.sort()).toEqual(['note-a', 'note-b', 'note-c']);
+
+      // Removing a note from the cycle should clean up mentions
+      graph.removeNote(n('note-b'));
+      expect(graph.notesMentioning(n('person-1'))).toHaveLength(2);
+      expect(graph.notesMentioning(n('person-1')).sort()).toEqual(['note-a', 'note-c']);
+    });
+  });
+
+  describe('self-referencing notes', () => {
+    it('should handle note that links to itself', () => {
+      // A recursive topic note that references itself (e.g., "Recursion" note)
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: ['concept'],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+
+      const stats = graph.getStats();
+      expect(stats.nodes).toBe(1);
+      expect(stats.edges).toBe(1); // Self-link counts as one edge
+    });
+
+    it('should include self in backlinks for self-referencing note', () => {
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+
+      const backlinks = graph.backlinks(n('note-self'));
+      expect(backlinks).toHaveLength(1);
+      expect(backlinks[0].id).toBe('note-self');
+      expect(backlinks[0].title).toBe('Recursion');
+    });
+
+    it('should include self in neighbors for self-referencing note (deduplicated)', () => {
+      // A note that links to itself should appear exactly once in neighbors
+      // since it's both an outgoing and incoming neighbor
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+
+      const neighbors = graph.neighbors(n('note-self'));
+      expect(neighbors).toHaveLength(1);
+      expect(neighbors[0].id).toBe('note-self');
+    });
+
+    it('should handle self-referencing note with other links', () => {
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: ['note-self', 'note-other'],
+        mentions: [],
+      });
+
+      const otherNote = createTestNote('note-other', {
+        title: 'Other Topic',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+      graph.addNote(otherNote);
+
+      const stats = graph.getStats();
+      expect(stats.nodes).toBe(2);
+      expect(stats.edges).toBe(2); // Self-link + link to other
+
+      // Self should be in its own backlinks
+      const selfBacklinks = graph.backlinks(n('note-self'));
+      expect(selfBacklinks).toHaveLength(1);
+      expect(selfBacklinks[0].id).toBe('note-self');
+
+      // Other note should have self-ref note as backlink
+      const otherBacklinks = graph.backlinks(n('note-other'));
+      expect(otherBacklinks).toHaveLength(1);
+      expect(otherBacklinks[0].id).toBe('note-self');
+
+      // Self-ref note neighbors should include both self and other
+      const neighbors = graph.neighbors(n('note-self'));
+      expect(neighbors).toHaveLength(2);
+      const neighborIds = neighbors.map((n) => n.id).sort();
+      expect(neighborIds).toEqual(['note-other', 'note-self']);
+    });
+
+    it('should clean up self-reference edge when updating note', () => {
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+
+      expect(graph.backlinks(n('note-self'))).toHaveLength(1);
+      expect(graph.getStats().edges).toBe(1);
+
+      // Update to remove self-reference
+      const updatedNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      graph.addNote(updatedNote);
+
+      expect(graph.backlinks(n('note-self'))).toHaveLength(0);
+      expect(graph.getStats().edges).toBe(0);
+    });
+
+    it('should add self-reference edge when updating note', () => {
+      const regularNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      graph.addNote(regularNote);
+
+      expect(graph.backlinks(n('note-self'))).toHaveLength(0);
+      expect(graph.getStats().edges).toBe(0);
+
+      // Update to add self-reference
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+
+      expect(graph.backlinks(n('note-self'))).toHaveLength(1);
+      expect(graph.getStats().edges).toBe(1);
+    });
+
+    it('should properly remove self-referencing note', () => {
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: ['concept'],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+
+      expect(graph.getStats().nodes).toBe(1);
+      expect(graph.getStats().edges).toBe(1);
+      expect(graph.notesWithTag('concept')).toHaveLength(1);
+
+      graph.removeNote(n('note-self'));
+
+      expect(graph.getStats().nodes).toBe(0);
+      expect(graph.getStats().edges).toBe(0);
+      expect(graph.notesWithTag('concept')).toHaveLength(0);
+      expect(graph.backlinks(n('note-self'))).toHaveLength(0);
+      expect(graph.neighbors(n('note-self'))).toHaveLength(0);
+    });
+
+    it('should handle removing self-referencing note with other connections', () => {
+      const selfRefNote = createTestNote('note-self', {
+        title: 'Recursion',
+        tags: [],
+        links: ['note-self', 'note-linked'],
+        mentions: [],
+      });
+
+      const linkedNote = createTestNote('note-linked', {
+        title: 'Linked Note',
+        tags: [],
+        links: ['note-self'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRefNote);
+      graph.addNote(linkedNote);
+
+      expect(graph.getStats().nodes).toBe(2);
+      expect(graph.getStats().edges).toBe(3); // Self-link + link to linked + link from linked
+
+      // Verify bidirectional connection plus self-reference
+      expect(graph.backlinks(n('note-self'))).toHaveLength(2); // From self and from linked
+      expect(graph.backlinks(n('note-linked'))).toHaveLength(1); // From self
+
+      graph.removeNote(n('note-self'));
+
+      expect(graph.getStats().nodes).toBe(1);
+      expect(graph.getStats().edges).toBe(0); // Linked note's link to removed note is cleaned up
+      expect(graph.backlinks(n('note-self'))).toHaveLength(0);
+      expect(graph.backlinks(n('note-linked'))).toHaveLength(0);
+    });
+
+    it('should handle multiple notes with self-references', () => {
+      const selfRef1 = createTestNote('note-1', {
+        title: 'Note 1',
+        tags: [],
+        links: ['note-1', 'note-2'],
+        mentions: [],
+      });
+
+      const selfRef2 = createTestNote('note-2', {
+        title: 'Note 2',
+        tags: [],
+        links: ['note-2', 'note-1'],
+        mentions: [],
+      });
+
+      graph.addNote(selfRef1);
+      graph.addNote(selfRef2);
+
+      const stats = graph.getStats();
+      expect(stats.nodes).toBe(2);
+      expect(stats.edges).toBe(4); // 2 self-links + 2 cross-links
+
+      // Each note should have 2 backlinks: self and the other
+      const backlinks1 = graph.backlinks(n('note-1'));
+      expect(backlinks1).toHaveLength(2);
+      const backlink1Ids = backlinks1.map((n) => n.id).sort();
+      expect(backlink1Ids).toEqual(['note-1', 'note-2']);
+
+      const backlinks2 = graph.backlinks(n('note-2'));
+      expect(backlinks2).toHaveLength(2);
+      const backlink2Ids = backlinks2.map((n) => n.id).sort();
+      expect(backlink2Ids).toEqual(['note-1', 'note-2']);
+
+      // Each note should have 2 neighbors (deduplicated)
+      const neighbors1 = graph.neighbors(n('note-1'));
+      expect(neighbors1).toHaveLength(2);
+
+      const neighbors2 = graph.neighbors(n('note-2'));
+      expect(neighbors2).toHaveLength(2);
+    });
+  });
 });
