@@ -34,11 +34,12 @@ import {
 
 /**
  * Creates a checklist listitem node for Lexical content.
+ * Note: Lexical exports 'checked' (not '__checked') in JSON serialization.
  */
 function createChecklistItem(text: string, checked: boolean, key: string): object {
   return {
     type: 'listitem',
-    __checked: checked,
+    checked: checked,
     __key: key,
     children: [
       {
@@ -167,10 +168,11 @@ function toggleTaskInContent(content: LexicalState, nodeKey: string): LexicalSta
   const newContent = JSON.parse(JSON.stringify(content)) as LexicalState;
 
   // Find and toggle the task
+  // Note: Lexical exports 'checked' (not '__checked') in JSON serialization.
   function findAndToggle(node: object): boolean {
     if ((node as { type?: string }).type === 'listitem' && '__key' in node) {
-      if ((node as { __key: string }).__key === nodeKey && '__checked' in node) {
-        (node as { __checked: boolean }).__checked = !(node as { __checked: boolean }).__checked;
+      if ((node as { __key: string }).__key === nodeKey && 'checked' in node) {
+        (node as { checked: boolean }).checked = !(node as { checked: boolean }).checked;
         return true;
       }
     }
@@ -193,12 +195,13 @@ function toggleTaskInContent(content: LexicalState, nodeKey: string): LexicalSta
 
 /**
  * Check if a task is checked in the content.
+ * Note: Lexical exports 'checked' (not '__checked') in JSON serialization.
  */
 function isTaskCheckedInContent(content: LexicalState, nodeKey: string): boolean | undefined {
   function findChecked(node: object): boolean | undefined {
     if ((node as { type?: string }).type === 'listitem' && '__key' in node) {
-      if ((node as { __key: string }).__key === nodeKey && '__checked' in node) {
-        return (node as { __checked: boolean }).__checked;
+      if ((node as { __key: string }).__key === nodeKey && 'checked' in node) {
+        return (node as { checked: boolean }).checked;
       }
     }
     if ('children' in node && Array.isArray((node as { children: object[] }).children)) {

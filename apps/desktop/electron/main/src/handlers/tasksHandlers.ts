@@ -57,9 +57,12 @@ interface ChecklistNodeLocator {
 }
 
 /**
- * Toggle the __checked property on a checklist listitem node.
+ * Toggle the 'checked' property on a checklist listitem node.
  *
  * Uses fallback chain: nodeKey -> textHash -> lineIndex
+ *
+ * Note: Lexical serializes the checked state as 'checked' in JSON (not '__checked').
+ * The '__checked' form is only used for in-memory Lexical nodes.
  *
  * @param content - The Lexical state to modify (mutates in place)
  * @param locator - Locator to find the target node
@@ -82,8 +85,9 @@ function toggleChecklistNode(content: LexicalState, locator: ChecklistNodeLocato
   }
 
   // Second pass: collect fallback candidates
+  // Only match checklist items (checked is a boolean, not undefined)
   traverseNodes(content.root.children, (node) => {
-    if (node.type === 'listitem' && '__checked' in node) {
+    if (node.type === 'listitem' && typeof node.checked === 'boolean') {
       // Check textHash match
       const text = extractTextFromNode(node);
       const hash = computeTextHash(text);
@@ -117,14 +121,17 @@ function toggleChecklistNode(content: LexicalState, locator: ChecklistNodeLocato
 }
 
 /**
- * Toggle the __checked property on a checklist node.
+ * Toggle the 'checked' property on a checklist node.
+ *
+ * Note: Lexical serializes the checked state as 'checked' in JSON (not '__checked').
+ * Regular bullet list items have checked: undefined, so we check for boolean type.
  *
  * @param node - The listitem node to toggle
  * @returns true if toggle succeeded, false if node is not a checklist item
  */
 function toggleNode(node: LexicalNode): boolean {
-  if (node.type === 'listitem' && '__checked' in node) {
-    node.__checked = !node.__checked;
+  if (node.type === 'listitem' && typeof node.checked === 'boolean') {
+    node.checked = !node.checked;
     return true;
   }
   return false;

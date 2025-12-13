@@ -55,7 +55,7 @@ function createContentWithTasks(
           children: tasks.map((t, index) => ({
             type: 'listitem',
             __key: t.nodeKey,
-            __checked: t.checked,
+            checked: t.checked,
             children: [
               {
                 type: 'text',
@@ -1041,7 +1041,7 @@ describe('TaskIndex', () => {
                 children: [
                   {
                     type: 'listitem',
-                    __checked: false,
+                    checked: false,
                     // No __key - will trigger fallback path
                     children: [{ type: 'text', text: 'Task without key' }],
                   },
@@ -1103,12 +1103,12 @@ describe('TaskIndex', () => {
                 children: [
                   {
                     type: 'listitem',
-                    __checked: false,
+                    checked: false,
                     children: [{ type: 'text', text: 'First task' }],
                   },
                   {
                     type: 'listitem',
-                    __checked: true,
+                    checked: true,
                     children: [{ type: 'text', text: 'Second task' }],
                   },
                 ],

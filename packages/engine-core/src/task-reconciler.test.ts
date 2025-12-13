@@ -25,7 +25,7 @@ function createContentWithTasks(
           children: tasks.map((t) => ({
             type: 'listitem',
             __key: t.nodeKey,
-            __checked: t.checked,
+            checked: t.checked,
             children: [
               {
                 type: 'text',

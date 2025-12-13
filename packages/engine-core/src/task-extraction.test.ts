@@ -21,11 +21,12 @@ function createNote(id: string, title: string, content: LexicalState): NoteForEx
 
 /**
  * Helper to create a checklist listitem node
+ * Note: Lexical exports 'checked' (not '__checked') in JSON serialization
  */
 function createChecklistItem(text: string, checked: boolean, key: string): EditorNode {
   return {
     type: 'listitem',
-    __checked: checked,
+    checked: checked,
     __key: key,
     children: [
       {
@@ -133,7 +134,7 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   __key: 'node_multi',
                   children: [
                     { type: 'text', text: 'Send email to ' },
@@ -315,7 +316,7 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   __key: 'node_parent',
                   children: [
                     { type: 'text', text: 'Parent task' },
@@ -354,7 +355,7 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   __key: 'level_1',
                   children: [
                     { type: 'text', text: 'Level 1' },
@@ -364,7 +365,7 @@ describe('extractTasksFromNote', () => {
                       children: [
                         {
                           type: 'listitem',
-                          __checked: false,
+                          checked: false,
                           __key: 'level_2',
                           children: [
                             { type: 'text', text: 'Level 2' },
@@ -661,7 +662,7 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   // Intentionally no __key
                   children: [{ type: 'text', text: 'Task without key' }],
                 },
@@ -698,12 +699,12 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   children: [{ type: 'text', text: 'First task' }],
                 },
                 {
                   type: 'listitem',
-                  __checked: true,
+                  checked: true,
                   children: [{ type: 'text', text: 'Second task' }],
                 },
               ],
@@ -731,7 +732,7 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   children: [{ type: 'text', text: 'Same task text' }],
                 },
               ],
@@ -801,12 +802,12 @@ describe('extractTasksFromNote', () => {
               children: [
                 {
                   type: 'listitem',
-                  __checked: false,
+                  checked: false,
                   children: [{ type: 'text', text: 'Fallback task 1' }],
                 },
                 {
                   type: 'listitem',
-                  __checked: true,
+                  checked: true,
                   children: [{ type: 'text', text: 'Fallback task 2' }],
                 },
               ],

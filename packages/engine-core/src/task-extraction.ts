@@ -66,8 +66,10 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
 
   // Traverse content looking for checklist items
   traverseNodesWithAncestors(note.content.root.children, (node, ancestors) => {
-    // Check if this is a checklist listitem (has __checked property)
-    if (node.type === 'listitem' && '__checked' in node) {
+    // Check if this is a checklist listitem (has 'checked' property set to a boolean)
+    // Note: Lexical exports this as 'checked' in JSON, not '__checked'
+    // Regular bullet list items have checked: undefined, so we check for boolean type
+    if (node.type === 'listitem' && typeof node.checked === 'boolean') {
       // Skip if inside a code block
       if (isInsideCodeBlock(ancestors)) {
         return;
@@ -84,7 +86,7 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
         lineIndex: listItemIndex,
         text,
         textHash,
-        completed: node.__checked === true,
+        completed: node.checked === true,
       });
     }
 

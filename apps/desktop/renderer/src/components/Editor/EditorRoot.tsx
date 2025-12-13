@@ -80,6 +80,8 @@ const editorConfig = {
       ol: styles.listOl,
       ul: styles.listUl,
       listitem: styles.listItem,
+      listitemChecked: styles.listItemChecked,
+      listitemUnchecked: styles.listItemUnchecked,
     },
     hr: styles.hr,
     hrSelected: styles.hrSelected,

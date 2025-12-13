@@ -113,6 +113,82 @@ export const nestedListItem = style({
   },
 });
 
+// Checklist item styles - base styling for both checked and unchecked
+const checklistItemBase = {
+  position: 'relative' as const,
+  marginLeft: '0.5em',
+  marginRight: '0.5em',
+  paddingLeft: '1.5em',
+  paddingRight: '1.5em',
+  listStyleType: 'none' as const,
+  outline: 'none',
+  display: 'block' as const,
+  minHeight: '1.5em',
+};
+
+export const listItemUnchecked = style({
+  ...checklistItemBase,
+  selectors: {
+    '&:before': {
+      content: '""',
+      width: '0.9em',
+      height: '0.9em',
+      top: '50%',
+      left: '0',
+      cursor: 'pointer',
+      display: 'block',
+      backgroundSize: 'cover',
+      position: 'absolute',
+      transform: 'translateY(-50%)',
+      border: `1px solid ${vars.color.foregroundMuted}`,
+      borderRadius: vars.radius.sm,
+    },
+    '&:focus:before': {
+      boxShadow: `0 0 0 2px ${vars.color.accent}`,
+    },
+  },
+});
+
+export const listItemChecked = style({
+  ...checklistItemBase,
+  textDecoration: 'line-through',
+  color: vars.color.foregroundMuted,
+  selectors: {
+    '&:before': {
+      content: '""',
+      width: '0.9em',
+      height: '0.9em',
+      top: '50%',
+      left: '0',
+      cursor: 'pointer',
+      display: 'block',
+      backgroundSize: 'cover',
+      position: 'absolute',
+      transform: 'translateY(-50%)',
+      border: `1px solid ${vars.color.accent}`,
+      borderRadius: vars.radius.sm,
+      backgroundColor: vars.color.accent,
+    },
+    '&:after': {
+      content: '""',
+      cursor: 'pointer',
+      borderColor: '#fff',
+      borderStyle: 'solid',
+      position: 'absolute',
+      display: 'block',
+      top: '45%',
+      width: '0.2em',
+      left: '0.35em',
+      height: '0.4em',
+      transform: 'translateY(-50%) rotate(45deg)',
+      borderWidth: '0 0.1em 0.1em 0',
+    },
+    '&:focus:before': {
+      boxShadow: `0 0 0 2px ${vars.color.accent}`,
+    },
+  },
+});
+
 // Horizontal rule styles
 export const hr = style({
   border: 'none',

@@ -56,7 +56,7 @@ function getNodeTextContent(node: LexicalNode): string {
 
 /**
  * Find a checklist item node by textHash.
- * Traverses all nodes looking for listitem with __checked that matches the hash.
+ * Traverses all nodes looking for checklist listitems that match the hash.
  */
 function findNodeByTextHash(root: ElementNode, textHash: string): ListItemNode | null {
   const nodes = root.getChildren();
