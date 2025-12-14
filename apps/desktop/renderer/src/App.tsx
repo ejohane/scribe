@@ -6,6 +6,7 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast/Toast';
+import { UpdateToast } from './components/Toast/UpdateToast';
 import { TopToolbar } from './components/TopToolbar';
 import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
@@ -329,6 +330,7 @@ function App() {
         </ErrorBoundary>
         <ErrorNotification error={null} onDismiss={() => {}} />
         <Toast toasts={toasts} onDismiss={dismissToast} />
+        <UpdateToast />
 
         {backlinks.isVisible && (
           <div className={styles.backlinksOverlay} onClick={backlinks.hide}>

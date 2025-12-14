@@ -26,8 +26,7 @@ const slideOut = keyframes({
 export const container = style({
   position: 'fixed',
   bottom: vars.spacing['6'],
-  left: '50%',
-  transform: 'translateX(-50%)',
+  right: vars.spacing['6'],
   zIndex: vars.zIndex.tooltip,
   display: 'flex',
   flexDirection: 'column',
