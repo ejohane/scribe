@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.1](https://github.com/ejohane/scribe/compare/v1.20.0...v1.20.1) (2025-12-14)
+
+### Code Refactoring
+
+* **ui:** update context panel and task widget styling ([77bad0a](https://github.com/ejohane/scribe/commit/77bad0a03660f793437000d843b39fa970e68b9c))
+
 ## [1.20.0](https://github.com/ejohane/scribe/compare/v1.19.1...v1.20.0) (2025-12-13)
 
 ### Features
