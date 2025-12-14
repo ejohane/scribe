@@ -335,3 +335,32 @@ export const expandButton = style({
     color: vars.color.foreground,
   },
 });
+
+/**
+ * Scrollable task list container for expanded state
+ * Max height allows for ~10 task items with scroll
+ */
+export const taskListScrollable = style({
+  maxHeight: '320px',
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  marginRight: `calc(-1 * ${vars.spacing['2']})`,
+  paddingRight: vars.spacing['2'],
+
+  // Custom scrollbar styling
+  '::-webkit-scrollbar': {
+    width: '4px',
+  },
+  '::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '::-webkit-scrollbar-thumb': {
+    backgroundColor: vars.color.border,
+    borderRadius: vars.radius.full,
+  },
+  selectors: {
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: vars.color.foregroundMuted,
+    },
+  },
+});

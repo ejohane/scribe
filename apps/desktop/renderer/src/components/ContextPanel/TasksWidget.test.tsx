@@ -126,8 +126,8 @@ describe('TasksWidget', () => {
       await waitFor(() => {
         expect(mockTasksAPI.list).toHaveBeenCalledWith({
           completed: false,
-          sortBy: 'priority',
-          sortOrder: 'asc',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
           limit: 20,
         });
       });

@@ -198,11 +198,13 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
         }
 
         // Find and toggle the checklist node in Lexical content
+        tasksLogger.debug('Toggling task:', { taskId, noteId: task.noteId, nodeKey: task.nodeKey });
         const toggled = toggleChecklistNode(note.content, {
           nodeKey: task.nodeKey,
           textHash: task.textHash,
           lineIndex: task.lineIndex,
         });
+        tasksLogger.debug('Toggle result:', { toggled, taskId });
 
         if (!toggled) {
           // Task no longer exists in note - remove from index and re-index
@@ -222,7 +224,20 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
 
         // Re-index to update completedAt
         const changes = engines.taskIndex.indexNote(note);
-        deps.mainWindow?.webContents.send('tasks:changed', changes);
+        tasksLogger.debug('Task toggle changes:', {
+          taskId,
+          changesCount: changes.length,
+          changes,
+        });
+
+        if (changes.length > 0 && deps.mainWindow) {
+          deps.mainWindow.webContents.send('tasks:changed', changes);
+          tasksLogger.debug('Sent tasks:changed event');
+        } else if (changes.length === 0) {
+          tasksLogger.warn('No changes detected after task toggle', { taskId });
+        } else if (!deps.mainWindow) {
+          tasksLogger.warn('mainWindow not available for task toggle event');
+        }
 
         const updatedTask = engines.taskIndex.get(taskId);
         return { success: true, task: updatedTask };

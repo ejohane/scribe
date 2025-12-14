@@ -7,7 +7,7 @@
  * Uses CommandPaletteContext for shared state (query, selection, callbacks).
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import clsx from 'clsx';
 import type { SearchResult } from '@scribe/shared';
 import type { Command } from '../../../commands/types';
@@ -134,6 +134,43 @@ export function CommandModePanel({
       onClose,
     ]
   );
+
+  // Refs to avoid stale closures in keyboard handler
+  const handleSelectItemRef = useRef(handleSelectItem);
+  const selectedIndexRef = useRef(selectedIndex);
+  const totalItemsRef = useRef(0);
+
+  // Keep refs in sync
+  handleSelectItemRef.current = handleSelectItem;
+  selectedIndexRef.current = selectedIndex;
+  totalItemsRef.current =
+    filteredCommands.length + searchResults.length + (showCreateDailyOption ? 1 : 0);
+
+  // Keyboard navigation for command mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const total = totalItemsRef.current;
+      if (total === 0) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.min(prev + 1, total - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          handleSelectItemRef.current(selectedIndexRef.current);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setSelectedIndex]);
 
   // Calculate the index for the "Create daily note" option
   const createDailyIndex = filteredCommands.length + searchResults.length;

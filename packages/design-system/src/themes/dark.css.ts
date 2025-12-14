@@ -9,8 +9,8 @@ export const darkTheme = createTheme(vars, {
     border: 'rgba(255, 255, 255, 0.06)', // very subtle white overlay for borders
     foreground: '#F4F4F5', // zinc-100 - primary text, near-white
     foregroundMuted: '#A1A1AA', // zinc-400 - secondary text
-    accent: '#FFFFFF', // white - primary actions (inverted)
-    accentForeground: '#09090B', // zinc-950 - text on accent
+    accent: '#3B82F6', // blue-500 - primary actions (better visibility in dark mode)
+    accentForeground: '#FFFFFF', // white - text on accent
     danger: '#EF4444', // red-500 - brighter for dark mode
     dangerForeground: '#FFFFFF', // white
     warning: '#F59E0B', // amber-500

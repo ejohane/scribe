@@ -124,6 +124,12 @@ const checklistItemBase = {
   outline: 'none',
   display: 'block' as const,
   minHeight: '1.5em',
+  ':focus': {
+    outline: 'none',
+  },
+  ':focus-visible': {
+    outline: 'none',
+  },
 };
 
 export const listItemUnchecked = style({

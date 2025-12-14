@@ -179,6 +179,8 @@ export function ContextPanel({
             key={`section-${index}`}
             onNavigateToTasks={() => onNavigate(createNoteId(SYSTEM_NOTE_IDS.TASKS))}
             onNavigate={onNavigate}
+            currentNoteId={note?.id ?? null}
+            onNoteUpdate={onNoteUpdate}
           />
         );
       case 'references':
