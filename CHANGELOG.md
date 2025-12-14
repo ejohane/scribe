@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.21.0](https://github.com/ejohane/scribe/compare/v1.20.2...v1.21.0) (2025-12-14)
+
+### Features
+
+* **ui:** add dismissable update notification toast in bottom-right ([1dfe101](https://github.com/ejohane/scribe/commit/1dfe1016ebec270e9c621884a51360b8b4617d56))
+
 ## [1.20.2](https://github.com/ejohane/scribe/compare/v1.20.1...v1.20.2) (2025-12-14)
 
 ### Code Refactoring
