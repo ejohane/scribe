@@ -37,6 +37,12 @@ function createSidebarProps(overrides?: Partial<SidebarProps>): SidebarProps {
     onClearHistory: vi.fn(),
     onThemeToggle: vi.fn(),
     currentTheme: 'light',
+    onClose: vi.fn(),
+    onOpenSearch: vi.fn(),
+    canGoBack: false,
+    canGoForward: false,
+    onBack: vi.fn(),
+    onForward: vi.fn(),
     ...overrides,
   };
 }

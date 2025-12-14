@@ -3,7 +3,6 @@ import {
   vars,
   emptyStateInline,
   panelBase,
-  panelTransition,
   panelBorderLeft,
   panelOpenRight,
   panelClosedRight,
@@ -27,7 +26,6 @@ export const panelWidth = createVar();
  */
 export const contextPanel = style([
   panelBase,
-  panelTransition,
   panelBorderLeft,
   { vars: { [panelWidth]: '280px' } },
 ]);
@@ -45,11 +43,36 @@ export const panelInner = style([
   {
     width: panelWidth,
     padding: vars.spacing['4'],
-    paddingTop: vars.spacing['8'],
+    paddingTop: 0,
     overflowX: 'hidden', // Hide horizontal content during collapse animation
     overflowY: 'auto', // Allow vertical scrolling
   },
 ]);
+
+/**
+ * Header toolbar container - matches Sidebar.headerToolbar positioning
+ * paddingTop of 48px matches the TopToolbar position (below titlebar drag region)
+ */
+export const headerToolbar = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: vars.spacing['1'],
+  padding: `0 ${vars.spacing['4']}`,
+  paddingTop: '48px',
+  height: '88px', // 48px padding + 40px toolbar height to match Sidebar/TopToolbar
+  boxSizing: 'border-box',
+});
+
+/**
+ * Section header with label and optional toolbar button
+ */
+export const sectionHeader = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: vars.spacing['3'],
+});
 
 /**
  * Section label (CONTEXT, CALENDAR, etc.)
@@ -60,7 +83,6 @@ export const sectionLabel = style({
   color: vars.color.foregroundMuted,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  marginBottom: vars.spacing['3'],
   marginTop: vars.spacing['6'],
   opacity: 0.4,
 
@@ -68,6 +90,45 @@ export const sectionLabel = style({
     '&:first-child': {
       marginTop: 0,
     },
+    [`${sectionHeader} &`]: {
+      marginBottom: 0,
+      marginTop: 0,
+    },
+    [`${headerToolbar} &`]: {
+      marginBottom: 0,
+      marginTop: 0,
+    },
+  },
+});
+
+/**
+ * Toolbar button - flat design, no animations
+ */
+export const toolbarButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  padding: 0,
+  borderRadius: vars.radius.md,
+  border: 'none',
+  background: 'transparent',
+  color: vars.color.foregroundMuted,
+  cursor: 'pointer',
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+    color: vars.color.foreground,
+  },
+
+  ':focus': {
+    outline: 'none',
+  },
+
+  ':focus-visible': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '2px',
   },
 });
 

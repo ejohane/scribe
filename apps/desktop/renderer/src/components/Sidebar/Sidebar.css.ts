@@ -3,7 +3,6 @@ import {
   vars,
   emptyStateCentered,
   panelBase,
-  panelTransition,
   panelBorderRight,
   panelOpenLeft,
   panelClosedLeft,
@@ -23,12 +22,7 @@ export const sidebarWidth = createVar();
  * Uses CollapsiblePanel primitive for collapse/expand animation
  * Width is controlled via CSS custom property (--sidebar-width) set at runtime
  */
-export const sidebar = style([
-  panelBase,
-  panelTransition,
-  panelBorderRight,
-  { vars: { [sidebarWidth]: '280px' } },
-]);
+export const sidebar = style([panelBase, panelBorderRight, { vars: { [sidebarWidth]: '280px' } }]);
 
 export const sidebarOpen = style([panelOpenLeft, { width: sidebarWidth }]);
 
@@ -42,11 +36,10 @@ export const sidebarInner = style([panelInnerBase, { width: sidebarWidth }]);
 
 /**
  * Header section with branding
- * paddingTop accounts for macOS titlebar drag region (traffic lights are ~28px tall)
  */
 export const header = style({
   padding: vars.spacing['6'],
-  paddingTop: '40px',
+  paddingTop: vars.spacing['4'],
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -69,6 +62,74 @@ export const brandLabel = style({
   fontWeight: vars.typography.weight.medium,
   letterSpacing: '0.1em',
   textTransform: 'uppercase',
+});
+
+/**
+ * Header toolbar container for navigation buttons - at top, same level as TopToolbar
+ * paddingTop of 48px matches the TopToolbar position (below titlebar drag region)
+ */
+export const headerToolbar = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.spacing['1'],
+  padding: `0 ${vars.spacing['4']}`,
+  paddingTop: '48px',
+  height: '88px', // 48px padding + 40px toolbar height to match TopToolbar
+  boxSizing: 'border-box',
+});
+
+/**
+ * Toolbar button - flat design, no animations
+ */
+export const toolbarButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  padding: 0,
+  borderRadius: vars.radius.md,
+  border: 'none',
+  background: 'transparent',
+  color: vars.color.foregroundMuted,
+  cursor: 'pointer',
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+    color: vars.color.foreground,
+  },
+
+  ':focus': {
+    outline: 'none',
+  },
+
+  ':focus-visible': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '2px',
+  },
+
+  ':disabled': {
+    opacity: 0.3,
+    cursor: 'not-allowed',
+  },
+
+  selectors: {
+    '&:disabled:hover': {
+      backgroundColor: 'transparent',
+      color: vars.color.foregroundMuted,
+    },
+  },
+});
+
+/**
+ * Vertical divider between button groups
+ */
+export const toolbarDivider = style({
+  width: '1px',
+  height: '20px',
+  backgroundColor: vars.color.border,
+  margin: `0 ${vars.spacing['1']}`,
+  flexShrink: 0,
 });
 
 /**

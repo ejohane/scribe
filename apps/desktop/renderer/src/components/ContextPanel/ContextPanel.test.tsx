@@ -153,7 +153,7 @@ describe('ContextPanel', () => {
   describe('rendering', () => {
     it('renders when open', () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       expect(screen.getByText('Context')).toBeInTheDocument();
     });
@@ -161,7 +161,7 @@ describe('ContextPanel', () => {
     it('renders closed state when isOpen is false', () => {
       const note = createMockNote();
       const { container } = render(
-        <ContextPanel isOpen={false} note={note} onNavigate={vi.fn()} />
+        <ContextPanel isOpen={false} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />
       );
 
       // Panel should still be in DOM but with closed styling
@@ -171,7 +171,7 @@ describe('ContextPanel', () => {
 
     it('renders the "Context" section header', () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       expect(screen.getByRole('heading', { level: 2, name: 'Context' })).toBeInTheDocument();
     });
@@ -179,7 +179,13 @@ describe('ContextPanel', () => {
     it('renders resize handle when open and onWidthChange is provided', () => {
       const note = createMockNote();
       const { container } = render(
-        <ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onWidthChange={vi.fn()} />
+        <ContextPanel
+          isOpen={true}
+          note={note}
+          onNavigate={vi.fn()}
+          onWidthChange={vi.fn()}
+          onClose={vi.fn()}
+        />
       );
 
       // Panel should be present
@@ -188,7 +194,7 @@ describe('ContextPanel', () => {
 
     it('does not render resize handle when onWidthChange is not provided', () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       // Panel renders without resize functionality
       expect(screen.getByText('Context')).toBeInTheDocument();
@@ -198,7 +204,9 @@ describe('ContextPanel', () => {
   describe('width handling', () => {
     it('uses default width when not specified', () => {
       const note = createMockNote();
-      const { container } = render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      const { container } = render(
+        <ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />
+      );
 
       // The panel should be rendered - width is controlled via CSS custom properties
       expect(container.querySelector('aside')).toBeInTheDocument();
@@ -207,7 +215,13 @@ describe('ContextPanel', () => {
     it('accepts custom width prop', () => {
       const note = createMockNote();
       const { container } = render(
-        <ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} width={350} />
+        <ContextPanel
+          isOpen={true}
+          note={note}
+          onNavigate={vi.fn()}
+          width={350}
+          onClose={vi.fn()}
+        />
       );
 
       expect(container.querySelector('aside')).toBeInTheDocument();
@@ -226,7 +240,7 @@ describe('ContextPanel', () => {
       const backlinks = createMockBacklinks();
       mockScribeAPI.graph.backlinks.mockResolvedValue(backlinks);
 
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(mockScribeAPI.graph.backlinks).toHaveBeenCalledWith(note.id);
@@ -236,7 +250,7 @@ describe('ContextPanel', () => {
     it('does not fetch backlinks when panel is closed', async () => {
       const note = createMockNote();
 
-      render(<ContextPanel isOpen={false} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={false} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       // Give time for any potential async calls
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -247,7 +261,7 @@ describe('ContextPanel', () => {
     it('clears backlinks when note is null', async () => {
       mockScribeAPI.graph.backlinks.mockResolvedValue([]);
 
-      render(<ContextPanel isOpen={true} note={null} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={null} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       // Should still render but with empty state
       await waitFor(() => {
@@ -260,7 +274,7 @@ describe('ContextPanel', () => {
       const note = createMockNote();
       mockScribeAPI.graph.backlinks.mockRejectedValue(new Error('Network error'));
 
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalled();
@@ -276,7 +290,7 @@ describe('ContextPanel', () => {
   describe('section rendering based on note type', () => {
     it('renders LinkedMentions section for regular notes', async () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByText('Linked Mentions')).toBeInTheDocument();
@@ -285,7 +299,7 @@ describe('ContextPanel', () => {
 
     it('renders Tasks section', async () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByText('Tasks')).toBeInTheDocument();
@@ -294,7 +308,7 @@ describe('ContextPanel', () => {
 
     it('renders References section when note is provided', async () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByText('References')).toBeInTheDocument();
@@ -303,7 +317,7 @@ describe('ContextPanel', () => {
 
     it('renders Attendees section for meeting notes', async () => {
       const note = createMockMeetingNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByText('Attendees')).toBeInTheDocument();
@@ -312,7 +326,7 @@ describe('ContextPanel', () => {
 
     it('does not render Attendees section for non-meeting notes', async () => {
       const note = createMockNote();
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         // Give time for rendering
@@ -326,7 +340,7 @@ describe('ContextPanel', () => {
       const note = createMockDailyNote('12-12-2025');
       mockScribeAPI.notes.findByDate.mockResolvedValue([]);
 
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(mockScribeAPI.notes.findByDate).toHaveBeenCalled();
@@ -338,7 +352,7 @@ describe('ContextPanel', () => {
       const note = createMockDailyNote();
       mockScribeAPI.notes.findByDate.mockRejectedValue(new Error('Fetch error'));
 
-      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalled();
@@ -355,7 +369,7 @@ describe('ContextPanel', () => {
       const backlinks = createMockBacklinks();
       mockScribeAPI.graph.backlinks.mockResolvedValue(backlinks);
 
-      render(<ContextPanel isOpen={true} note={note} onNavigate={onNavigate} />);
+      render(<ContextPanel isOpen={true} note={note} onNavigate={onNavigate} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByText('Referencing Note 1')).toBeInTheDocument();
@@ -373,7 +387,13 @@ describe('ContextPanel', () => {
       const note = createMockMeetingNote();
 
       render(
-        <ContextPanel isOpen={true} note={note} onNavigate={vi.fn()} onNoteUpdate={onNoteUpdate} />
+        <ContextPanel
+          isOpen={true}
+          note={note}
+          onNavigate={vi.fn()}
+          onNoteUpdate={onNoteUpdate}
+          onClose={vi.fn()}
+        />
       );
 
       await waitFor(() => {
@@ -384,7 +404,7 @@ describe('ContextPanel', () => {
 
   describe('panel with null note', () => {
     it('handles null note gracefully', async () => {
-      render(<ContextPanel isOpen={true} note={null} onNavigate={vi.fn()} />);
+      render(<ContextPanel isOpen={true} note={null} onNavigate={vi.fn()} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(screen.getByText('Context')).toBeInTheDocument();

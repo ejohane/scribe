@@ -6,8 +6,7 @@ import { CommandPalette } from './components/CommandPalette/CommandPalette';
 import { ErrorNotification } from './components/ErrorNotification/ErrorNotification';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toast } from './components/Toast/Toast';
-import { NavigationButtons } from './components/NavigationButtons';
-import { FloatingDock } from './components/FloatingDock/FloatingDock';
+import { TopToolbar } from './components/TopToolbar';
 import { NoteHeader } from './components/NoteHeader';
 import { Sidebar, SIDEBAR_DEFAULT_WIDTH } from './components/Sidebar';
 import { ContextPanel, CONTEXT_PANEL_DEFAULT_WIDTH } from './components/ContextPanel';
@@ -23,6 +22,7 @@ import { useScrollHeader } from './hooks/useScrollHeader';
 import { useCommandPalette } from './hooks/useCommandPalette';
 import { useBacklinks } from './hooks/useBacklinks';
 import { usePanelState } from './hooks/usePanelState';
+import { useMouseActivity } from './hooks/useMouseActivity';
 import { useHistoryEntries } from './hooks/useHistoryEntries';
 import { useAppCommands } from './hooks/useAppCommands';
 import { useAppKeyboardShortcuts } from './hooks/useAppKeyboardShortcuts';
@@ -67,6 +67,13 @@ function App() {
   // Side panel states
   const sidebar = usePanelState(SIDEBAR_DEFAULT_WIDTH);
   const contextPanel = usePanelState(CONTEXT_PANEL_DEFAULT_WIDTH);
+
+  // Track mouse activity for UI auto-hide when panels are closed
+  const bothPanelsClosed = !sidebar.isOpen && !contextPanel.isOpen;
+  const { isActive: isMouseActive } = useMouseActivity({
+    timeout: 2000,
+    enabled: bothPanelsClosed,
+  });
 
   // History entries with titles for sidebar display
   const historyEntries = useHistoryEntries(historyStack, sidebar.isOpen);
@@ -230,14 +237,26 @@ function App() {
           currentTheme={resolvedTheme as 'light' | 'dark'}
           width={sidebar.width}
           onWidthChange={sidebar.setWidth}
-        />
-      </ErrorBoundary>
-      <div className={styles.mainContent}>
-        <NavigationButtons
+          onClose={sidebar.toggle}
+          onOpenSearch={() => commandPalette.open('command')}
           canGoBack={canGoBack}
           canGoForward={canGoForward}
           onBack={navigateBack}
           onForward={navigateForward}
+        />
+      </ErrorBoundary>
+      <div className={styles.mainContent}>
+        <TopToolbar
+          sidebarOpen={sidebar.isOpen}
+          contextPanelOpen={contextPanel.isOpen}
+          onToggleSidebar={sidebar.toggle}
+          onToggleContextPanel={contextPanel.toggle}
+          onOpenSearch={() => commandPalette.open('command')}
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
+          onBack={navigateBack}
+          onForward={navigateForward}
+          isMouseActive={isMouseActive}
         />
         <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
           {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
@@ -310,13 +329,7 @@ function App() {
         </ErrorBoundary>
         <ErrorNotification error={null} onDismiss={() => {}} />
         <Toast toasts={toasts} onDismiss={dismissToast} />
-        <FloatingDock
-          sidebarOpen={sidebar.isOpen}
-          contextPanelOpen={contextPanel.isOpen}
-          onToggleSidebar={sidebar.toggle}
-          onToggleContextPanel={contextPanel.toggle}
-          onOpenSearch={() => commandPalette.open('command')}
-        />
+
         {backlinks.isVisible && (
           <div className={styles.backlinksOverlay} onClick={backlinks.hide}>
             <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
@@ -366,6 +379,7 @@ function App() {
           }}
           width={contextPanel.width}
           onWidthChange={contextPanel.setWidth}
+          onClose={contextPanel.toggle}
         />
       </ErrorBoundary>
     </div>

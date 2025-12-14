@@ -2,7 +2,7 @@
  * Sidebar component
  *
  * Left panel showing navigation history with:
- * - App branding ("Scribe" / "HISTORY")
+ * - App branding ("Scribe" / "HISTORY") with toolbar buttons when open
  * - Scrollable history list showing visited notes
  * - Clear history button
  * - Footer with user placeholder and theme toggle
@@ -12,7 +12,15 @@
 import { useCallback, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { NoteId } from '@scribe/shared';
-import { MoonIcon, SunIcon, TrashIcon } from '@scribe/design-system';
+import {
+  MoonIcon,
+  SunIcon,
+  TrashIcon,
+  MenuIcon,
+  SearchIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+} from '@scribe/design-system';
 import { HistoryListItem } from './HistoryListItem';
 import { ResizeHandle } from '../ResizeHandle';
 import { VersionIndicator } from './VersionIndicator';
@@ -51,6 +59,18 @@ export interface SidebarProps {
   width?: number;
   /** Callback when width changes via resize handle */
   onWidthChange?: (width: number) => void;
+  /** Callback to close sidebar */
+  onClose: () => void;
+  /** Callback to open search */
+  onOpenSearch: () => void;
+  /** Whether back navigation is available */
+  canGoBack: boolean;
+  /** Whether forward navigation is available */
+  canGoForward: boolean;
+  /** Callback for back navigation */
+  onBack: () => void;
+  /** Callback for forward navigation */
+  onForward: () => void;
 }
 
 export function Sidebar({
@@ -63,6 +83,12 @@ export function Sidebar({
   currentTheme,
   width = SIDEBAR_DEFAULT_WIDTH,
   onWidthChange,
+  onClose,
+  onOpenSearch,
+  canGoBack,
+  canGoForward,
+  onBack,
+  onForward,
 }: SidebarProps) {
   // Handle resize from the drag handle
   const handleResize = useCallback(
@@ -87,7 +113,50 @@ export function Sidebar({
       style={sidebarStyles}
     >
       <div className={styles.sidebarInner}>
-        {/* Header */}
+        {/* Toolbar buttons at top - same level as TopToolbar */}
+        <div className={styles.headerToolbar}>
+          <button
+            className={styles.toolbarButton}
+            onClick={onClose}
+            aria-label="Close sidebar"
+            title="Close sidebar"
+            type="button"
+          >
+            <MenuIcon size={18} />
+          </button>
+          <button
+            className={styles.toolbarButton}
+            onClick={onOpenSearch}
+            aria-label="Search notes (Cmd+K)"
+            title="Search notes (Cmd+K)"
+            type="button"
+          >
+            <SearchIcon size={18} />
+          </button>
+          <div className={styles.toolbarDivider} />
+          <button
+            className={styles.toolbarButton}
+            onClick={onBack}
+            disabled={!canGoBack}
+            aria-label="Go back to previous note"
+            title="Go back (Cmd+[)"
+            type="button"
+          >
+            <ArrowLeftIcon size={18} />
+          </button>
+          <button
+            className={styles.toolbarButton}
+            onClick={onForward}
+            disabled={!canGoForward}
+            aria-label="Go forward to next note"
+            title="Go forward (Cmd+])"
+            type="button"
+          >
+            <ArrowRightIcon size={18} />
+          </button>
+        </div>
+
+        {/* Header with branding */}
         <div className={styles.header}>
           <div className={styles.branding}>
             <h2 className={styles.brandTitle}>Scribe</h2>

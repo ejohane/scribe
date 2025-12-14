@@ -16,6 +16,7 @@ import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'r
 import clsx from 'clsx';
 import type { GraphNode, NoteId, Note } from '@scribe/shared';
 import { SYSTEM_NOTE_IDS, createNoteId } from '@scribe/shared';
+import { PanelRightIcon } from '@scribe/design-system';
 import { getTemplate, defaultContextPanelSections } from '../../templates';
 import type { ContextPanelSection } from '../../templates';
 import { LinkedMentions, type LinkedMention } from './LinkedMentions';
@@ -53,6 +54,8 @@ export interface ContextPanelProps {
   width?: number;
   /** Callback when width changes via resize handle */
   onWidthChange?: (width: number) => void;
+  /** Callback to close the panel */
+  onClose: () => void;
 }
 
 export function ContextPanel({
@@ -62,6 +65,7 @@ export function ContextPanel({
   onNoteUpdate,
   width = CONTEXT_PANEL_DEFAULT_WIDTH,
   onWidthChange,
+  onClose,
 }: ContextPanelProps) {
   const [backlinks, setBacklinks] = useState<GraphNode[]>([]);
   const [dateBasedNotes, setDateBasedNotes] = useState<LinkedMention[]>([]);
@@ -207,8 +211,19 @@ export function ContextPanel({
       {isOpen && onWidthChange && <ResizeHandle position="left" onResize={handleResize} />}
 
       <div className={styles.panelInner}>
-        {/* Context Section */}
-        <h2 className={styles.sectionLabel}>Context</h2>
+        {/* Header toolbar at top - same level as Sidebar toolbar */}
+        <div className={styles.headerToolbar}>
+          <h2 className={styles.sectionLabel}>Context</h2>
+          <button
+            className={styles.toolbarButton}
+            onClick={onClose}
+            aria-label="Close context panel"
+            title="Close context panel"
+            type="button"
+          >
+            <PanelRightIcon size={18} />
+          </button>
+        </div>
 
         {/* Render sections dynamically based on template configuration */}
         {sections.map((section, index) => renderSection(section, index))}
