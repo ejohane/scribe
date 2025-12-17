@@ -17,6 +17,7 @@
  * | {@link setupDailyHandlers} | `daily:*` | Daily note get-or-create |
  * | {@link setupMeetingHandlers} | `meeting:*` | Meeting note creation and attendees |
  * | {@link setupTasksHandlers} | `tasks:*` | Task toggle, list, reorder |
+ * | {@link setupCLIHandlers} | `cli:*` | CLI installation and management |
  *
  * ## IPC Channel Naming Convention
  *
@@ -41,6 +42,7 @@ export { setupDictionaryHandlers } from './dictionaryHandlers';
 export { setupDailyHandlers } from './dailyHandlers';
 export { setupMeetingHandlers } from './meetingHandlers';
 export { setupTasksHandlers } from './tasksHandlers';
+export { setupCLIHandlers } from './cliHandlers';
 
 export type { HandlerDependencies, AppConfig, Engines } from './types';
 export { withEngines } from './types';

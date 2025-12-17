@@ -15,6 +15,7 @@ import {
   setupDailyHandlers,
   setupMeetingHandlers,
   setupTasksHandlers,
+  setupCLIHandlers,
   type HandlerDependencies,
 } from './handlers';
 import { mainLogger } from './logger';
@@ -98,6 +99,7 @@ function setupIPCHandlers() {
   setupDailyHandlers(deps);
   setupMeetingHandlers(deps);
   setupTasksHandlers(deps);
+  setupCLIHandlers(deps);
 }
 
 function createWindow() {

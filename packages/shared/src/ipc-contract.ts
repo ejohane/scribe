@@ -99,6 +99,12 @@ export const IPC_CHANNELS = {
   UPDATE_NOT_AVAILABLE: 'update:not-available',
   UPDATE_DOWNLOADED: 'update:downloaded',
   UPDATE_ERROR: 'update:error',
+
+  // CLI
+  CLI_INSTALL: 'cli:install',
+  CLI_IS_INSTALLED: 'cli:is-installed',
+  CLI_UNINSTALL: 'cli:uninstall',
+  CLI_GET_STATUS: 'cli:get-status',
 } as const;
 
 // ============================================================================
@@ -377,6 +383,63 @@ export interface UpdateAPI {
   onError(callback: (error: UpdateError) => void): () => void;
 }
 
+/**
+ * Result of a CLI installation operation.
+ */
+export interface CLIInstallResult {
+  /** Whether the operation succeeded */
+  success: boolean;
+  /** Human-readable message describing the result */
+  message: string;
+  /** Whether the user needs to add ~/.local/bin to their PATH */
+  needsPathSetup?: boolean;
+}
+
+/**
+ * Status of the CLI installation.
+ */
+export interface CLIStatus {
+  /** Whether the CLI is installed (symlink exists) */
+  installed: boolean;
+  /** Whether the installed CLI is linked to this app's binary */
+  linkedToThisApp: boolean;
+  /** Whether the CLI binary exists in the app bundle */
+  binaryExists: boolean;
+  /** Whether ~/.local/bin is in the user's PATH */
+  pathConfigured: boolean;
+  /** Path to the CLI binary in the app bundle */
+  binaryPath: string;
+  /** Target path where the CLI is/will be installed */
+  targetPath: string;
+}
+
+/**
+ * CLI API for managing the Scribe command-line interface
+ */
+export interface CLIAPI {
+  /**
+   * Install the CLI by creating a symlink to ~/.local/bin/scribe.
+   * The symlink points to the CLI binary in the app bundle.
+   */
+  install(): Promise<CLIInstallResult>;
+
+  /**
+   * Check if the CLI is currently installed.
+   */
+  isInstalled(): Promise<boolean>;
+
+  /**
+   * Uninstall the CLI by removing the symlink.
+   * Only removes if the symlink points to this app's binary.
+   */
+  uninstall(): Promise<CLIInstallResult>;
+
+  /**
+   * Get detailed status of the CLI installation.
+   */
+  getStatus(): Promise<CLIStatus>;
+}
+
 // ============================================================================
 // Complete Scribe API Interface
 // ============================================================================
@@ -424,4 +487,7 @@ export interface ScribeAPI {
 
   /** Auto-update functionality */
   update: UpdateAPI;
+
+  /** CLI installation management */
+  cli: CLIAPI;
 }

@@ -419,6 +419,36 @@ export class TaskIndex {
   }
 
   /**
+   * Set a task's priority level.
+   *
+   * Priority is stored only in the task index, not in the Lexical content.
+   * This allows priority to be a metadata property separate from the document.
+   *
+   * @param taskId - The task ID to update
+   * @param priority - The new priority level (0-3, where 0 is highest)
+   * @returns Object with updated task and previous priority, or null if not found
+   */
+  setPriority(taskId: string, priority: number): { task: Task; previousPriority: number } | null {
+    const task = this.tasks.get(taskId);
+    if (!task) return null;
+
+    const previousPriority = task.priority ?? 2; // Default to medium (2) if not set
+    const now = Date.now();
+
+    const updated: Task = {
+      ...task,
+      priority,
+      updatedAt: now,
+    };
+
+    this.tasks.set(taskId, updated);
+    this.dirty = true;
+    this.schedulePersist();
+
+    return { task: updated, previousPriority };
+  }
+
+  /**
    * Update task priorities based on new order.
    *
    * @param taskIds - Array of task IDs in desired order

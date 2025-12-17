@@ -217,6 +217,20 @@ export class GraphEngine {
   }
 
   /**
+   * Get all notes that the given note links to (outlinks)
+   */
+  outlinks(noteId: NoteId): GraphNode[] {
+    const outgoingIds = this.outgoing.get(noteId);
+    if (!outgoingIds) {
+      return [];
+    }
+
+    return Array.from(outgoingIds)
+      .map((id) => this.nodes.get(id))
+      .filter((node): node is GraphNode => node !== undefined);
+  }
+
+  /**
    * Get all connected notes (both incoming and outgoing)
    */
   neighbors(noteId: NoteId): GraphNode[] {

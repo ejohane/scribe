@@ -9,6 +9,9 @@ build/
 # Beads issue tracker
 .beads/
 
+# Test coverage
+coverage/
+
 # Markdown files
 *.md
 

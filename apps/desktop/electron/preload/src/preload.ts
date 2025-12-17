@@ -128,6 +128,13 @@ const scribeAPI: ScribeAPI = {
       return () => ipcRenderer.removeListener(IPC_CHANNELS.UPDATE_ERROR, handler);
     },
   },
+
+  cli: {
+    install: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_INSTALL),
+    isInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_IS_INSTALLED),
+    uninstall: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_UNINSTALL),
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_GET_STATUS),
+  },
 };
 
 // Expose the API to the renderer via contextBridge

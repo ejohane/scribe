@@ -11,7 +11,8 @@
     "dev:renderer": "cd renderer && bun run dev",
     "dev:main": "cd electron/main && bun run dev",
     "dev:preload": "cd electron/preload && bun run dev",
-    "build": "bun run build:renderer && bun run build:main && bun run build:preload",
+    "build": "bun run build:renderer && bun run build:main && bun run build:preload && bun run build:cli",
+    "build:cli": "cd ../cli && bun run build:binary && mkdir -p ../desktop/resources/bin && cp dist/scribe ../desktop/resources/bin/",
     "build:renderer": "cd renderer && bun run build",
     "build:main": "cd electron/main && bun run build",
     "build:preload": "cd electron/preload && bun run build",
@@ -41,7 +42,17 @@
       "electron/main/dist/**/*",
       "electron/preload/dist/**/*",
       "renderer/dist/**/*",
+      "resources/bin/**/*",
       "!**/node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "mac": {
       "category": "public.app-category.productivity",

@@ -1,0 +1,5 @@
+# Bun configuration for CLI app
+
+[test]
+# Preload test setup
+preload = ["../../test/setup.ts"]

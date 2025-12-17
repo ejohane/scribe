@@ -344,6 +344,72 @@ describe('GraphEngine', () => {
     });
   });
 
+  describe('outlinks', () => {
+    it('returns notes that the given note links to', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b', 'note-c'],
+        mentions: [],
+      });
+
+      const noteB = createTestNote('note-b', {
+        title: 'Note B',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      const noteC = createTestNote('note-c', {
+        title: 'Note C',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      graph.addNote(noteB);
+      graph.addNote(noteC);
+
+      const outlinks = graph.outlinks(n('note-a'));
+      expect(outlinks).toHaveLength(2);
+      expect(outlinks.map((node) => node.id)).toContain('note-b');
+      expect(outlinks.map((node) => node.id)).toContain('note-c');
+    });
+
+    it('returns empty array for note with no outlinks', () => {
+      const note = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: [],
+        mentions: [],
+      });
+
+      graph.addNote(note);
+
+      expect(graph.outlinks(n('note-a'))).toEqual([]);
+    });
+
+    it('returns empty array for unknown note', () => {
+      expect(graph.outlinks(n('unknown'))).toEqual([]);
+    });
+
+    it('filters out broken links to deleted notes', () => {
+      const noteA = createTestNote('note-a', {
+        title: 'Note A',
+        tags: [],
+        links: ['note-b'],
+        mentions: [],
+      });
+
+      graph.addNote(noteA);
+      // Note 'note-b' is never added, so it's a broken link
+
+      const outlinks = graph.outlinks(n('note-a'));
+      expect(outlinks).toEqual([]); // Broken links are filtered
+    });
+  });
+
   describe('neighbors', () => {
     it('should return empty array for isolated note', () => {
       const note = createTestNote('note-1', {

@@ -36,6 +36,7 @@ yarn-error.log*
 
 # Electron
 apps/desktop/out/
+apps/desktop/resources/bin/
 !apps/desktop/build/
 
 # AI planning documents (ephemeral)

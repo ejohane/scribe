@@ -45,11 +45,16 @@
  * - **Cache**: Enabled for repeated queries with identical terms
  */
 
-import {
-  Document,
+import FlexSearch, {
+  type Document as FlexSearchDocumentClass,
   type EnrichedDocumentSearchResultSetUnit,
   type EnrichedDocumentSearchResultSetUnitResultUnit,
 } from 'flexsearch';
+
+// FlexSearch's ESM bundle exports Document as a property of the default export,
+// not as a named export. This works around Bun's bundler requiring named exports.
+const Document = FlexSearch.Document as typeof FlexSearchDocumentClass;
+type Document<T, S extends string[] = string[]> = FlexSearchDocumentClass<T, S>;
 import { format, parse, isValid } from 'date-fns';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { extractTextForSearch, extractTextWithContext, generateSnippet } from './text-extraction';
