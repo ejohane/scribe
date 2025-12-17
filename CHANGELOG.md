@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.22.0](https://github.com/ejohane/scribe/compare/v1.21.0...v1.22.0) (2025-12-17)
+
+### Features
+
+* add Scribe CLI - LLM-optimized command-line interface for vault access ([29b9b33](https://github.com/ejohane/scribe/commit/29b9b33b12b4f19ca9fdd6ce5b62f8997be61868))
+
 ## [1.21.0](https://github.com/ejohane/scribe/compare/v1.20.2...v1.21.0) (2025-12-14)
 
 ### Features
