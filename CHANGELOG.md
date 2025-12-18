@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.24.0](https://github.com/ejohane/scribe/compare/v1.23.0...v1.24.0) (2025-12-18)
+
+### Features
+
+* complete technical debt reduction initiative (epic scribe-g9r) ([0da5a9d](https://github.com/ejohane/scribe/commit/0da5a9da0525b185c040ac75a9a341f1f3ee3325))
+
 ## [1.23.0](https://github.com/ejohane/scribe/compare/v1.22.0...v1.23.0) (2025-12-18)
 
 ### Features
