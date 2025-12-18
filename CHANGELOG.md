@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.23.0](https://github.com/ejohane/scribe/compare/v1.22.0...v1.23.0) (2025-12-18)
+
+### Features
+
+* add markdown export for notes via CLI and desktop UI ([0db9ffe](https://github.com/ejohane/scribe/commit/0db9ffee342c29ed9e6eac2e8ea971d7fa7071e4))
+
 ## [1.22.0](https://github.com/ejohane/scribe/compare/v1.21.0...v1.22.0) (2025-12-17)
 
 ### Features
