@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.25.0](https://github.com/ejohane/scribe/compare/v1.24.0...v1.25.0) (2025-12-18)
+
+### Features
+
+* complete 14 beads tasks - testing, code consolidation, and documentation ([14e6734](https://github.com/ejohane/scribe/commit/14e673405bc25d1c2078cd8d98d22cef8fba2be4))
+
 ## [1.24.0](https://github.com/ejohane/scribe/compare/v1.23.0...v1.24.0) (2025-12-18)
 
 ### Features
