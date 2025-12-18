@@ -16,7 +16,9 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
 } from '@scribe/design-system';
+import type { NoteId } from '@scribe/shared';
 import * as styles from './TopToolbar.css';
+import { ShareMenu } from '../ShareMenu';
 
 export interface TopToolbarProps {
   /** Whether the sidebar is currently open */
@@ -39,6 +41,16 @@ export interface TopToolbarProps {
   onForward: () => void;
   /** Whether the user is actively using the mouse (for fade effect when panels closed) */
   isMouseActive?: boolean;
+  /** Current note ID for share menu */
+  currentNoteId?: NoteId;
+  /** Callback when export completes successfully */
+  onExportSuccess?: (filename: string) => void;
+  /** Callback when export fails */
+  onExportError?: (error: string) => void;
+  /** Controlled open state for ShareMenu */
+  shareMenuOpen?: boolean;
+  /** Callback when ShareMenu open state changes */
+  onShareMenuOpenChange?: (isOpen: boolean) => void;
 }
 
 export function TopToolbar({
@@ -52,6 +64,11 @@ export function TopToolbar({
   onBack,
   onForward,
   isMouseActive = true,
+  currentNoteId,
+  onExportSuccess,
+  onExportError,
+  shareMenuOpen,
+  onShareMenuOpenChange,
 }: TopToolbarProps) {
   // When sidebar is open, left buttons move into sidebar header
   const showLeftButtons = !sidebarOpen;
@@ -131,9 +148,20 @@ export function TopToolbar({
       {/* Spacer when left section is hidden */}
       {!showLeftButtons && <div />}
 
-      {/* Right section: Context panel toggle - hidden when context panel open */}
+      {/* Right section: Share menu and Context panel toggle - hidden when context panel open */}
       {showRightButton && (
         <div className={`${styles.rightSection} ${visibilityClass}`}>
+          {currentNoteId && (
+            <div className={styles.shareMenuContainer}>
+              <ShareMenu
+                noteId={currentNoteId}
+                onExportSuccess={onExportSuccess}
+                onExportError={onExportError}
+                isOpen={shareMenuOpen}
+                onOpenChange={onShareMenuOpenChange}
+              />
+            </div>
+          )}
           <button
             className={styles.toolbarButton}
             onClick={onToggleContextPanel}

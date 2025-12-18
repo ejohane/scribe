@@ -23,6 +23,7 @@ export const toolbar = style({
   padding: `0 ${vars.spacing['4']}`,
   zIndex: vars.zIndex.overlay,
   height: '40px',
+  overflow: 'visible', // Allow dropdown to extend beyond toolbar
 });
 
 /**
@@ -35,11 +36,27 @@ export const leftSection = style({
 });
 
 /**
- * Right section - context panel toggle
+ * Right section - share menu and context panel toggle
  */
 export const rightSection = style({
   display: 'flex',
   alignItems: 'center',
+  gap: vars.spacing['1'],
+});
+
+/**
+ * Container for share menu - hidden at narrow widths
+ * At narrow viewports, only show the panel toggle button to avoid crowding
+ */
+export const shareMenuContainer = style({
+  display: 'flex',
+  alignItems: 'center',
+
+  '@media': {
+    '(max-width: 640px)': {
+      display: 'none',
+    },
+  },
 });
 
 /**

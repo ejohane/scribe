@@ -25,6 +25,7 @@ import { CalendarWidget } from './CalendarWidget';
 import { AttendeesWidget } from './AttendeesWidget';
 import { ReferencesWidget } from './ReferencesWidget';
 import { ResizeHandle } from '../ResizeHandle';
+import { ShareMenu } from '../ShareMenu';
 import * as styles from './ContextPanel.css';
 import { panelWidth } from './ContextPanel.css';
 
@@ -56,6 +57,14 @@ export interface ContextPanelProps {
   onWidthChange?: (width: number) => void;
   /** Callback to close the panel */
   onClose: () => void;
+  /** Callback when export completes successfully */
+  onExportSuccess?: (filename: string) => void;
+  /** Callback when export fails */
+  onExportError?: (error: string) => void;
+  /** Controlled open state for ShareMenu */
+  shareMenuOpen?: boolean;
+  /** Callback when ShareMenu open state changes */
+  onShareMenuOpenChange?: (isOpen: boolean) => void;
 }
 
 export function ContextPanel({
@@ -66,6 +75,10 @@ export function ContextPanel({
   width = CONTEXT_PANEL_DEFAULT_WIDTH,
   onWidthChange,
   onClose,
+  onExportSuccess,
+  onExportError,
+  shareMenuOpen,
+  onShareMenuOpenChange,
 }: ContextPanelProps) {
   const [backlinks, setBacklinks] = useState<GraphNode[]>([]);
   const [dateBasedNotes, setDateBasedNotes] = useState<LinkedMention[]>([]);
@@ -214,15 +227,26 @@ export function ContextPanel({
         {/* Header toolbar at top - same level as Sidebar toolbar */}
         <div className={styles.headerToolbar}>
           <h2 className={styles.sectionLabel}>Context</h2>
-          <button
-            className={styles.toolbarButton}
-            onClick={onClose}
-            aria-label="Close context panel"
-            title="Close context panel"
-            type="button"
-          >
-            <PanelRightIcon size={18} />
-          </button>
+          <div className={styles.headerButtons}>
+            {note && (
+              <ShareMenu
+                noteId={note.id}
+                onExportSuccess={onExportSuccess}
+                onExportError={onExportError}
+                isOpen={shareMenuOpen}
+                onOpenChange={onShareMenuOpenChange}
+              />
+            )}
+            <button
+              className={styles.toolbarButton}
+              onClick={onClose}
+              aria-label="Close context panel"
+              title="Close context panel"
+              type="button"
+            >
+              <PanelRightIcon size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Render sections dynamically based on template configuration */}

@@ -83,6 +83,10 @@ export {
   extractTextFromNode,
 } from './ast-utils.js';
 
+// Content Extractor - Markdown export functionality
+export { extractMarkdown } from './content-extractor.js';
+export type { MarkdownExportOptions } from './content-extractor.js';
+
 // IPC Contract - single source of truth for preload/renderer API surface
 export { IPC_CHANNELS } from './ipc-contract.js';
 export type {
@@ -90,6 +94,7 @@ export type {
   DateBasedNoteResult,
   UpdateInfo,
   UpdateError,
+  ExportResult,
   NotesAPI,
   SearchAPI,
   GraphAPI,
@@ -101,5 +106,6 @@ export type {
   DictionaryAPI,
   TasksAPI,
   UpdateAPI,
+  ExportAPI,
   ScribeAPI,
 } from './ipc-contract.js';

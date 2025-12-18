@@ -102,6 +102,15 @@ export const sectionLabel = style({
 });
 
 /**
+ * Header buttons container - groups share and close buttons
+ */
+export const headerButtons = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.spacing['1'],
+});
+
+/**
  * Toolbar button - flat design, no animations
  */
 export const toolbarButton = style({

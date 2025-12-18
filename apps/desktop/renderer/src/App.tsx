@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import * as styles from './App.css';
 import { useTheme } from '@scribe/design-system';
 import { EditorRoot } from './components/Editor/EditorRoot';
@@ -79,6 +79,9 @@ function App() {
   // History entries with titles for sidebar display
   const historyEntries = useHistoryEntries(historyStack, sidebar.isOpen);
 
+  // ShareMenu controlled state (for keyboard shortcut)
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
   // Global error state (kept local since it's simple display logic)
   const showError = useCallback(
     (error: string) => {
@@ -96,6 +99,11 @@ function App() {
     showBacklinks: backlinks.fetchForNote,
   });
 
+  // Handle opening the share menu via keyboard shortcut
+  const openShareMenu = useCallback(() => {
+    setShareMenuOpen(true);
+  }, []);
+
   // Handle keyboard shortcuts
   useAppKeyboardShortcuts({
     isPaletteOpen: commandPalette.isOpen,
@@ -109,6 +117,8 @@ function App() {
     navigateForward,
     toggleSidebar: sidebar.toggle,
     toggleContextPanel: contextPanel.toggle,
+    hasCurrentNote: !!noteState.currentNote,
+    openShareMenu,
   });
 
   // Display errors from noteState
@@ -165,6 +175,22 @@ function App() {
       navigateToNote(note.id);
     },
     [navigateToNote]
+  );
+
+  // Handle export success - show toast notification
+  const handleExportSuccess = useCallback(
+    (filename: string) => {
+      showToast(`Exported to ${filename}`, 'success');
+    },
+    [showToast]
+  );
+
+  // Handle export error - show error toast notification
+  const handleExportError = useCallback(
+    (error: string) => {
+      showToast(`Export failed: ${error}`, 'error');
+    },
+    [showToast]
   );
 
   // Handle command selection
@@ -258,6 +284,11 @@ function App() {
           onBack={navigateBack}
           onForward={navigateForward}
           isMouseActive={isMouseActive}
+          currentNoteId={noteState.currentNoteId ?? undefined}
+          onExportSuccess={handleExportSuccess}
+          onExportError={handleExportError}
+          shareMenuOpen={!contextPanel.isOpen ? shareMenuOpen : undefined}
+          onShareMenuOpenChange={!contextPanel.isOpen ? setShareMenuOpen : undefined}
         />
         <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
           {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
@@ -382,6 +413,10 @@ function App() {
           width={contextPanel.width}
           onWidthChange={contextPanel.setWidth}
           onClose={contextPanel.toggle}
+          onExportSuccess={handleExportSuccess}
+          onExportError={handleExportError}
+          shareMenuOpen={contextPanel.isOpen ? shareMenuOpen : undefined}
+          onShareMenuOpenChange={contextPanel.isOpen ? setShareMenuOpen : undefined}
         />
       </ErrorBoundary>
     </div>

@@ -105,6 +105,9 @@ export const IPC_CHANNELS = {
   CLI_IS_INSTALLED: 'cli:is-installed',
   CLI_UNINSTALL: 'cli:uninstall',
   CLI_GET_STATUS: 'cli:get-status',
+
+  // Export
+  EXPORT_TO_MARKDOWN: 'export:toMarkdown',
 } as const;
 
 // ============================================================================
@@ -130,6 +133,20 @@ export interface UpdateInfo {
 /** Update error payload */
 export interface UpdateError {
   message: string;
+}
+
+/**
+ * Result of an export operation
+ */
+export interface ExportResult {
+  /** Whether the export succeeded */
+  success: boolean;
+  /** Path where file was saved (if successful and not cancelled) */
+  filePath?: string;
+  /** Whether the user cancelled the save dialog */
+  cancelled?: boolean;
+  /** Error message if export failed */
+  error?: string;
 }
 
 // ============================================================================
@@ -440,6 +457,20 @@ export interface CLIAPI {
   getStatus(): Promise<CLIStatus>;
 }
 
+/**
+ * Export API for saving notes to external formats
+ */
+export interface ExportAPI {
+  /**
+   * Export a note to Markdown format.
+   * Opens a native file save dialog for the user to choose the destination.
+   *
+   * @param noteId - ID of the note to export
+   * @returns Export result with file path or cancellation status
+   */
+  toMarkdown(noteId: NoteId): Promise<ExportResult>;
+}
+
 // ============================================================================
 // Complete Scribe API Interface
 // ============================================================================
@@ -490,4 +521,7 @@ export interface ScribeAPI {
 
   /** CLI installation management */
   cli: CLIAPI;
+
+  /** Export notes to external formats */
+  export: ExportAPI;
 }

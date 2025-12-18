@@ -135,6 +135,10 @@ const scribeAPI: ScribeAPI = {
     uninstall: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_UNINSTALL),
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_GET_STATUS),
   },
+
+  export: {
+    toMarkdown: (noteId: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.EXPORT_TO_MARKDOWN, noteId),
+  },
 };
 
 // Expose the API to the renderer via contextBridge

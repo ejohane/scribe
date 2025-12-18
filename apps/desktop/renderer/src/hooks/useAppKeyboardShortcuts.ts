@@ -24,6 +24,10 @@ interface UseAppKeyboardShortcutsConfig {
   toggleSidebar: () => void;
   /** Toggle context panel visibility */
   toggleContextPanel: () => void;
+  /** Whether a note is currently visible (for share menu shortcut) */
+  hasCurrentNote: boolean;
+  /** Open the share menu */
+  openShareMenu: () => void;
 }
 
 /**
@@ -37,6 +41,7 @@ interface UseAppKeyboardShortcutsConfig {
  * - Cmd+]: Navigate forward
  * - Cmd+J: Toggle left sidebar
  * - Cmd+L: Toggle right context panel
+ * - Cmd+Shift+E: Open share menu (when note is visible)
  *
  * @param config - Configuration for keyboard shortcut behavior
  */
@@ -53,6 +58,8 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
     navigateForward,
     toggleSidebar,
     toggleContextPanel,
+    hasCurrentNote,
+    openShareMenu,
   } = config;
 
   useEffect(() => {
@@ -111,6 +118,13 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
         e.preventDefault();
         toggleContextPanel();
       }
+      // Cmd+Shift+E / Ctrl+Shift+E: Open share menu (when note is visible)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        if (hasCurrentNote) {
+          openShareMenu();
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -127,5 +141,7 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
     navigateForward,
     toggleSidebar,
     toggleContextPanel,
+    hasCurrentNote,
+    openShareMenu,
   ]);
 }
