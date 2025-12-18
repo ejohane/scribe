@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, EditorContent } from '@scribe/shared';
 import Fuse from 'fuse.js';
 
 /**
@@ -151,7 +151,7 @@ export function createWikiLinkNode(
  *
  * @param title - The title text (first paragraph)
  * @param bodyText - Optional body text (second paragraph)
- * @returns LexicalState object ready for note creation
+ * @returns EditorContent object ready for note creation
  *
  * @example
  * ```ts
@@ -159,7 +159,7 @@ export function createWikiLinkNode(
  * const note = await vault.create(content);
  * ```
  */
-export function createNoteContent(title: string, bodyText?: string): LexicalState {
+export function createNoteContent(title: string, bodyText?: string): EditorContent {
   const children: Array<{ type: string; children: Array<{ type: string; text: string }> }> = [
     {
       type: 'paragraph',
@@ -185,9 +185,9 @@ export function createNoteContent(title: string, bodyText?: string): LexicalStat
 /**
  * Creates an empty Lexical content structure (for untitled notes)
  *
- * @returns Empty LexicalState object
+ * @returns Empty EditorContent object
  */
-export function createEmptyContent(): LexicalState {
+export function createEmptyContent(): EditorContent {
   return {
     root: {
       type: 'root',
@@ -239,7 +239,7 @@ export function createPersonMentionNode(
  * Creates Lexical content for a person note with H1 heading.
  *
  * @param name - The person's name (used as H1 heading)
- * @returns LexicalState with type='person'
+ * @returns EditorContent with type='person'
  *
  * @example
  * ```ts
@@ -247,7 +247,7 @@ export function createPersonMentionNode(
  * const person = await vault.create({ content, type: 'person' });
  * ```
  */
-export function createPersonContent(name: string): LexicalState & { type: 'person' } {
+export function createPersonContent(name: string): EditorContent & { type: 'person' } {
   return {
     root: {
       type: 'root',
@@ -273,7 +273,7 @@ export function createPersonContent(name: string): LexicalState & { type: 'perso
  * @param title - The note's title
  * @param personId - The ID of the person being mentioned
  * @param personName - The display name of the person
- * @returns LexicalState with person-mention node
+ * @returns EditorContent with person-mention node
  *
  * @example
  * ```ts
@@ -285,7 +285,7 @@ export function createNoteWithMention(
   title: string,
   personId: NoteId,
   personName: string
-): LexicalState {
+): EditorContent {
   return {
     root: {
       type: 'root',
@@ -311,7 +311,7 @@ export function createNoteWithMention(
  *
  * @param title - The note's title
  * @param mentions - Array of person mentions with id and name
- * @returns LexicalState with multiple person-mention nodes
+ * @returns EditorContent with multiple person-mention nodes
  *
  * @example
  * ```ts
@@ -324,7 +324,7 @@ export function createNoteWithMention(
 export function createNoteWithMultipleMentions(
   title: string,
   mentions: Array<{ personId: NoteId; personName: string }>
-): LexicalState {
+): EditorContent {
   const mentionNodes = mentions.flatMap((m, i) => {
     const nodes: (PersonMentionNodeData | { type: string; text: string })[] = [
       createPersonMentionNode(m.personId, m.personName),

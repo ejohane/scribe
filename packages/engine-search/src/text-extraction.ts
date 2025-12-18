@@ -4,7 +4,7 @@
  * Extracts plain text from Lexical JSON content for search indexing
  */
 
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 import { traverseNodes } from '@scribe/shared';
 
 /**
@@ -16,7 +16,7 @@ import { traverseNodes } from '@scribe/shared';
  * @param content - Lexical editor state
  * @returns Plain text content suitable for indexing
  */
-export function extractTextForSearch(content: LexicalState): string {
+export function extractTextForSearch(content: EditorContent): string {
   if (!content.root || !content.root.children) {
     return '';
   }
@@ -41,7 +41,7 @@ export function extractTextForSearch(content: LexicalState): string {
  * @param maxLength - Maximum length of extracted text (default: 5000 chars)
  * @returns Plain text with preserved structure
  */
-export function extractTextWithContext(content: LexicalState, maxLength: number = 5000): string {
+export function extractTextWithContext(content: EditorContent, maxLength: number = 5000): string {
   const text = extractTextForSearch(content);
   return text.slice(0, maxLength);
 }

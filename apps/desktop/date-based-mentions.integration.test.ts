@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -34,7 +34,7 @@ import {
 /**
  * Creates Lexical content for a daily note (empty bullet list, no H1)
  */
-function createDailyContent(): LexicalState & { type: 'daily' } {
+function createDailyContent(): EditorContent & { type: 'daily' } {
   return {
     root: {
       type: 'root',
@@ -243,7 +243,7 @@ function createNoteWithWikiLink(
   title: string,
   linkTitle: string,
   linkTargetId: NoteId
-): LexicalState {
+): EditorContent {
   return {
     root: {
       type: 'root',

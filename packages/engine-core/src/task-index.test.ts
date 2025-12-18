@@ -19,7 +19,7 @@ import {
   findOldTaskId,
   findOrphanedTaskIds,
 } from './task-index.js';
-import type { Note, LexicalState, Task } from '@scribe/shared';
+import type { Note, EditorContent, Task } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 
 // Mock fs module
@@ -44,7 +44,7 @@ const mockFs = {
  */
 function createContentWithTasks(
   tasks: Array<{ text: string; checked: boolean; nodeKey: string }>
-): LexicalState {
+): EditorContent {
   return {
     root: {
       type: 'root',

@@ -25,7 +25,7 @@
  */
 
 import { ipcMain } from 'electron';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 import { ScribeError, ErrorCode } from '@scribe/shared';
 import {
   HandlerDependencies,
@@ -53,14 +53,14 @@ function wrapError(error: unknown): never {
  * Create the initial Lexical content for a new person note.
  *
  * @param name - The person's name
- * @returns LexicalState with H1 heading (name) and empty paragraph
+ * @returns EditorContent with H1 heading (name) and empty paragraph
  *
  * @remarks
  * Sets up the initial structure for person notes:
  * - H1 heading with the person's name
  * - Empty paragraph for additional content
  */
-function createPersonContent(name: string): LexicalState {
+function createPersonContent(name: string): EditorContent {
   return {
     root: {
       children: [

@@ -8,7 +8,7 @@
 
 import { useMemo, useCallback } from 'react';
 import clsx from 'clsx';
-import type { Note, NoteId, LexicalState } from '@scribe/shared';
+import type { Note, NoteId, EditorContent } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 import { ExternalLinkIcon, LinkIcon } from '@scribe/design-system';
 import * as styles from './ReferencesWidget.css';
@@ -31,7 +31,7 @@ export interface ReferencesWidgetProps {
  * - URLs: link nodes with http/https URLs
  * - Person mentions (@person) are NOT included
  */
-export function extractReferences(content: LexicalState): Reference[] {
+export function extractReferences(content: EditorContent): Reference[] {
   const refs: Reference[] = [];
   const seen = new Set<string>(); // Dedupe by targetId or URL
 

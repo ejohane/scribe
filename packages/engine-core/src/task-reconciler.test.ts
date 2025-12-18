@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultTaskReconciler, type TaskReconciler } from './task-reconciler.js';
-import type { Note, LexicalState, Task } from '@scribe/shared';
+import type { Note, EditorContent, Task } from '@scribe/shared';
 import { createNoteId, serializeTaskId } from '@scribe/shared';
 
 /**
@@ -14,7 +14,7 @@ import { createNoteId, serializeTaskId } from '@scribe/shared';
  */
 function createContentWithTasks(
   tasks: Array<{ text: string; checked: boolean; nodeKey: string }>
-): LexicalState {
+): EditorContent {
   return {
     root: {
       type: 'root',

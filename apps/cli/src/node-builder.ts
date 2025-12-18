@@ -3,30 +3,36 @@
  * Used by CLI write operations to generate valid note content.
  */
 
-interface LexicalNode {
+interface EditorNode {
   type: string;
   format?: string | number;
   indent?: number;
   direction?: 'ltr' | 'rtl' | null;
-  children?: LexicalNode[];
+  children?: EditorNode[];
   [key: string]: unknown;
 }
 
-interface LexicalState {
+interface EditorContent {
   root: {
     type: 'root';
     format?: string | number;
     indent?: number;
     direction?: 'ltr' | 'rtl' | null;
-    children: LexicalNode[];
+    children: EditorNode[];
   };
 }
+
+// Deprecated aliases for backward compatibility
+/** @deprecated Use EditorContent instead */
+type LexicalState = EditorContent;
+/** @deprecated Use EditorNode instead */
+type LexicalNode = EditorNode;
 
 /**
  * Create a text node with the given content.
  * Text nodes are leaf nodes that contain actual text content.
  */
-function createTextNode(text: string): LexicalNode {
+function createTextNode(text: string): EditorNode {
   return {
     type: 'text',
     format: 0,
@@ -41,7 +47,7 @@ function createTextNode(text: string): LexicalNode {
  * Create a paragraph node with text content.
  * Paragraphs are the basic block-level element in Lexical.
  */
-export function createParagraphNode(text: string): LexicalNode {
+export function createParagraphNode(text: string): EditorNode {
   return {
     type: 'paragraph',
     format: '',
@@ -55,7 +61,7 @@ export function createParagraphNode(text: string): LexicalNode {
  * Create a checklist item (task) node.
  * Checklist items are list items with a checkbox.
  */
-export function createChecklistItemNode(text: string, checked = false): LexicalNode {
+export function createChecklistItemNode(text: string, checked = false): EditorNode {
   return {
     type: 'listitem',
     format: '',
@@ -71,7 +77,7 @@ export function createChecklistItemNode(text: string, checked = false): LexicalN
 /**
  * Create a heading node with the given level (1-6).
  */
-export function createHeadingNode(text: string, level: 1 | 2 | 3 | 4 | 5 | 6 = 1): LexicalNode {
+export function createHeadingNode(text: string, level: 1 | 2 | 3 | 4 | 5 | 6 = 1): EditorNode {
   return {
     type: 'heading',
     format: '',
@@ -87,9 +93,9 @@ export function createHeadingNode(text: string, level: 1 | 2 | 3 | 4 | 5 | 6 = 1
  * @param listType - 'bullet', 'number', or 'check'
  */
 export function createListNode(
-  items: LexicalNode[],
+  items: EditorNode[],
   listType: 'bullet' | 'number' | 'check' = 'bullet'
-): LexicalNode {
+): EditorNode {
   return {
     type: 'list',
     format: '',
@@ -106,11 +112,11 @@ export function createListNode(
  * Append a paragraph to existing content.
  * Deep clones the content to avoid mutating the original.
  */
-export function appendParagraphToContent(content: LexicalState, text: string): LexicalState {
+export function appendParagraphToContent(content: EditorContent, text: string): EditorContent {
   const newNode = createParagraphNode(text);
 
   // Deep clone to avoid mutating original
-  const updated = JSON.parse(JSON.stringify(content)) as LexicalState;
+  const updated = JSON.parse(JSON.stringify(content)) as EditorContent;
 
   if (!updated.root.children) {
     updated.root.children = [];
@@ -124,10 +130,10 @@ export function appendParagraphToContent(content: LexicalState, text: string): L
  * Append a task (checklist item) to existing content.
  * Deep clones the content to avoid mutating the original.
  */
-export function appendTaskToContent(content: LexicalState, text: string): LexicalState {
+export function appendTaskToContent(content: EditorContent, text: string): EditorContent {
   const newNode = createChecklistItemNode(text, false);
 
-  const updated = JSON.parse(JSON.stringify(content)) as LexicalState;
+  const updated = JSON.parse(JSON.stringify(content)) as EditorContent;
 
   if (!updated.root.children) {
     updated.root.children = [];
@@ -142,13 +148,13 @@ export function appendTaskToContent(content: LexicalState, text: string): Lexica
  * Deep clones the content to avoid mutating the original.
  */
 export function appendHeadingToContent(
-  content: LexicalState,
+  content: EditorContent,
   text: string,
   level: 1 | 2 | 3 | 4 | 5 | 6 = 1
-): LexicalState {
+): EditorContent {
   const newNode = createHeadingNode(text, level);
 
-  const updated = JSON.parse(JSON.stringify(content)) as LexicalState;
+  const updated = JSON.parse(JSON.stringify(content)) as EditorContent;
 
   if (!updated.root.children) {
     updated.root.children = [];
@@ -162,7 +168,7 @@ export function appendHeadingToContent(
  * Create empty note content.
  * Returns a valid Lexical state with an empty root.
  */
-export function createEmptyContent(): LexicalState {
+export function createEmptyContent(): EditorContent {
   return {
     root: {
       type: 'root',
@@ -178,7 +184,7 @@ export function createEmptyContent(): LexicalState {
  * Create initial content with a single paragraph.
  * Use this when creating a new note with initial text.
  */
-export function createInitialContent(text: string): LexicalState {
+export function createInitialContent(text: string): EditorContent {
   return {
     root: {
       type: 'root',
@@ -198,8 +204,8 @@ export function createContentWithHeading(
   heading: string,
   bodyText?: string,
   headingLevel: 1 | 2 | 3 | 4 | 5 | 6 = 1
-): LexicalState {
-  const children: LexicalNode[] = [createHeadingNode(heading, headingLevel)];
+): EditorContent {
+  const children: EditorNode[] = [createHeadingNode(heading, headingLevel)];
 
   if (bodyText && bodyText.length > 0) {
     children.push(createParagraphNode(bodyText));

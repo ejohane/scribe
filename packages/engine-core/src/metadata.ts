@@ -4,7 +4,7 @@
  * Extracts tags, links, and mentions from Lexical editor state
  */
 
-import type { LexicalState, LexicalNode, NoteMetadata, NoteId } from '@scribe/shared';
+import type { EditorContent, EditorNode, NoteMetadata, NoteId } from '@scribe/shared';
 import { createNoteId, traverseNodes } from '@scribe/shared';
 
 /**
@@ -13,7 +13,7 @@ import { createNoteId, traverseNodes } from '@scribe/shared';
  * @param content - Lexical editor state
  * @returns Extracted metadata
  */
-export function extractMetadata(content: LexicalState): NoteMetadata {
+export function extractMetadata(content: EditorContent): NoteMetadata {
   return {
     title: null, // Title is now stored explicitly on Note.title
     tags: extractTags(content),
@@ -32,7 +32,7 @@ export function extractMetadata(content: LexicalState): NoteMetadata {
  * @param content - Lexical editor state
  * @returns Array of unique tags (without # prefix)
  */
-export function extractTags(content: LexicalState): string[] {
+export function extractTags(content: EditorContent): string[] {
   if (!content.root || !content.root.children) {
     return [];
   }
@@ -60,7 +60,7 @@ export function extractTags(content: LexicalState): string[] {
  * @param content - Lexical editor state
  * @returns Array of unique note IDs
  */
-export function extractLinks(content: LexicalState): NoteId[] {
+export function extractLinks(content: EditorContent): NoteId[] {
   if (!content.root || !content.root.children) {
     return [];
   }
@@ -104,7 +104,7 @@ export function extractLinks(content: LexicalState): NoteId[] {
 /**
  * Extract all text content from node tree
  */
-function extractAllText(nodes: LexicalNode[]): string {
+function extractAllText(nodes: EditorNode[]): string {
   const textParts: string[] = [];
 
   traverseNodes(nodes, (node) => {
@@ -148,7 +148,7 @@ function extractNoteIdFromUrl(url: string): NoteId | null {
  * @param content - Lexical editor state
  * @returns Array of unique person note IDs
  */
-export function extractMentions(content: LexicalState): NoteId[] {
+export function extractMentions(content: EditorContent): NoteId[] {
   if (!content.root || !content.root.children) {
     return [];
   }

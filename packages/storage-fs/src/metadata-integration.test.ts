@@ -7,7 +7,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { FileSystemVault } from './storage.js';
-import { createVaultPath, type VaultPath, type LexicalState } from '@scribe/shared';
+import { createVaultPath, type VaultPath, type EditorContent } from '@scribe/shared';
 
 describe('Metadata Integration', () => {
   let tempDirStr: string;
@@ -29,7 +29,7 @@ describe('Metadata Integration', () => {
 
   describe('Save Pipeline', () => {
     it('should extract and save metadata on note creation', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -61,7 +61,7 @@ describe('Metadata Integration', () => {
 
     it('should update metadata when content changes', async () => {
       // Create note with initial content and title
-      const initialContent: LexicalState = {
+      const initialContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -82,7 +82,7 @@ describe('Metadata Integration', () => {
       expect(note.metadata.tags).toEqual(['initial']);
 
       // Update note with new content and title
-      const updatedContent: LexicalState = {
+      const updatedContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -113,7 +113,7 @@ describe('Metadata Integration', () => {
     });
 
     it('should extract links from content', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -151,7 +151,7 @@ describe('Metadata Integration', () => {
     });
 
     it('should handle multiple tags in content', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -186,7 +186,7 @@ describe('Metadata Integration', () => {
   describe('Load Pipeline', () => {
     it('should re-extract metadata when loading notes', async () => {
       // Create a note with explicit title
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -217,7 +217,7 @@ describe('Metadata Integration', () => {
     });
 
     it('should handle notes with empty content on load', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [],
@@ -241,7 +241,7 @@ describe('Metadata Integration', () => {
 
     it('should persist complete metadata across app restart', async () => {
       // Create a note with comprehensive metadata: title, tags, and links
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Note, NoteId, LexicalState, NoteType } from '@scribe/shared';
+import type { Note, NoteId, EditorContent, NoteType } from '@scribe/shared';
 import { isSystemNoteId } from '@scribe/shared';
 
 /**
@@ -31,7 +31,7 @@ interface UseNoteStateReturn {
   loadNote: (id: NoteId) => Promise<void>;
 
   /** Save the current note with updated content */
-  saveNote: (content: LexicalState) => Promise<void>;
+  saveNote: (content: EditorContent) => Promise<void>;
 
   /** Update note metadata (title, type, tags) */
   updateMetadata: (updates: NoteMetadataUpdate) => Promise<void>;
@@ -110,7 +110,7 @@ export function useNoteState(): UseNoteStateReturn {
    * Save the current note with updated content
    */
   const saveNote = useCallback(
-    async (content: LexicalState) => {
+    async (content: EditorContent) => {
       if (!currentNote) {
         setError('No note loaded to save');
         return;

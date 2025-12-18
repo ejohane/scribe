@@ -7,7 +7,7 @@
  * @module ast-utils
  */
 
-import type { LexicalNode } from './types.js';
+import type { EditorNode } from './types.js';
 
 /**
  * Traverse all nodes in a Lexical tree (depth-first).
@@ -30,12 +30,12 @@ import type { LexicalNode } from './types.js';
  *
  * @since 1.0.0
  */
-export function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode) => void): void {
+export function traverseNodes(nodes: EditorNode[], callback: (node: EditorNode) => void): void {
   for (const node of nodes) {
     callback(node);
 
     if (Array.isArray(node.children)) {
-      traverseNodes(node.children as LexicalNode[], callback);
+      traverseNodes(node.children as EditorNode[], callback);
     }
   }
 }
@@ -64,15 +64,15 @@ export function traverseNodes(nodes: LexicalNode[], callback: (node: LexicalNode
  * @since 1.0.0
  */
 export function traverseNodesWithAncestors(
-  nodes: LexicalNode[],
-  callback: (node: LexicalNode, ancestors: LexicalNode[]) => void,
-  ancestors: LexicalNode[] = []
+  nodes: EditorNode[],
+  callback: (node: EditorNode, ancestors: EditorNode[]) => void,
+  ancestors: EditorNode[] = []
 ): void {
   for (const node of nodes) {
     callback(node, ancestors);
 
     if (Array.isArray(node.children)) {
-      traverseNodesWithAncestors(node.children as LexicalNode[], callback, [...ancestors, node]);
+      traverseNodesWithAncestors(node.children as EditorNode[], callback, [...ancestors, node]);
     }
   }
 }
@@ -97,13 +97,13 @@ export function traverseNodesWithAncestors(
  *
  * @since 1.0.0
  */
-export function findNodeByKey(nodes: LexicalNode[], nodeKey: string): LexicalNode | null {
+export function findNodeByKey(nodes: EditorNode[], nodeKey: string): EditorNode | null {
   for (const node of nodes) {
     if (node.__key === nodeKey) {
       return node;
     }
     if (Array.isArray(node.children)) {
-      const found = findNodeByKey(node.children as LexicalNode[], nodeKey);
+      const found = findNodeByKey(node.children as EditorNode[], nodeKey);
       if (found) return found;
     }
   }
@@ -127,7 +127,7 @@ export function findNodeByKey(nodes: LexicalNode[], nodeKey: string): LexicalNod
  *
  * @since 1.0.0
  */
-export function extractTextFromNodes(nodes: LexicalNode[]): string {
+export function extractTextFromNodes(nodes: EditorNode[]): string {
   const textParts: string[] = [];
 
   traverseNodes(nodes, (node) => {
@@ -158,7 +158,7 @@ export function extractTextFromNodes(nodes: LexicalNode[]): string {
  *
  * @since 1.0.0
  */
-export function extractTextFromNode(node: LexicalNode): string {
+export function extractTextFromNode(node: EditorNode): string {
   const textParts: string[] = [];
 
   traverseNodes([node], (n) => {

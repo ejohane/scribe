@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, LexicalState } from '@scribe/shared';
+import type { Note, EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -405,7 +405,7 @@ describe('Delete Note E2E Integration Tests', () => {
       const noteA = await vault.create({ content: createNoteContent('Note A') });
 
       // Create note B that links to note A
-      const noteBContent: LexicalState = {
+      const noteBContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -456,7 +456,7 @@ describe('Delete Note E2E Integration Tests', () => {
       const targetNote = await vault.create({ content: createNoteContent('Target Note') });
 
       // Create source note that links to target
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [

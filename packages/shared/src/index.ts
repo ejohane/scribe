@@ -109,3 +109,24 @@ export type {
   ExportAPI,
   ScribeAPI,
 } from './ipc-contract.js';
+
+// Date Utilities - consolidated date formatting, parsing, and comparison
+export {
+  formatDate,
+  formatDateYMD,
+  formatDateMMDDYYYY,
+  formatDateTitle,
+  getRelativeDateString,
+  parseDate,
+  parseDateToTimestamp,
+  parseDateMMDDYYYY,
+  isToday,
+  isYesterday,
+  isSameDay,
+  getDaysBetween,
+  startOfDay,
+  endOfDay,
+  toDate,
+  isValidDate,
+} from './date-utils.js';
+export type { DateFormatStyle } from './date-utils.js';

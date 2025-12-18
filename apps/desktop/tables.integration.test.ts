@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -56,14 +56,14 @@ interface TableContent {
  * @param rows - Number of rows
  * @param cols - Number of columns
  * @param cellContents - Optional 2D array of cell contents
- * @returns LexicalState with table
+ * @returns EditorContent with table
  */
 function createNoteWithTable(
   title: string,
   rows: number,
   cols: number,
   cellContents?: string[][]
-): LexicalState {
+): EditorContent {
   const tableRows: TableRowContent[] = [];
 
   for (let rowIdx = 0; rowIdx < rows; rowIdx++) {
@@ -112,9 +112,9 @@ function createNoteWithTable(
  * @param title - The note title
  * @param rows - Number of rows
  * @param cols - Number of columns
- * @returns LexicalState with empty table
+ * @returns EditorContent with empty table
  */
-function createNoteWithEmptyTable(title: string, rows: number, cols: number): LexicalState {
+function createNoteWithEmptyTable(title: string, rows: number, cols: number): EditorContent {
   const emptyCells: string[][] = [];
   for (let r = 0; r < rows; r++) {
     const row: string[] = [];
@@ -132,13 +132,13 @@ function createNoteWithEmptyTable(title: string, rows: number, cols: number): Le
  * @param title - The note title
  * @param headers - Array of header text
  * @param dataRows - 2D array of data cell contents
- * @returns LexicalState with header table
+ * @returns EditorContent with header table
  */
 function createNoteWithHeaderTable(
   title: string,
   headers: string[],
   dataRows: string[][]
-): LexicalState {
+): EditorContent {
   const tableRows: TableRowContent[] = [];
 
   // Header row
@@ -197,7 +197,7 @@ function createNoteWithHeaderTable(
 /**
  * Check if content contains a table node
  */
-function hasTable(content: LexicalState): boolean {
+function hasTable(content: EditorContent): boolean {
   if (!content.root?.children) return false;
   return content.root.children.some((child) => (child as { type: string }).type === 'table');
 }
@@ -205,7 +205,7 @@ function hasTable(content: LexicalState): boolean {
 /**
  * Get table from content
  */
-function getTable(content: LexicalState): TableContent | null {
+function getTable(content: EditorContent): TableContent | null {
   if (!content.root?.children) return null;
   const tableNode = content.root.children.find(
     (child) => (child as { type: string }).type === 'table'
@@ -775,7 +775,7 @@ describe('Tables E2E Integration Tests', () => {
 
     it('should track cursor position correctly for empty table scenarios', async () => {
       // Create a note with content before and after where a table would be
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -808,7 +808,7 @@ describe('Tables E2E Integration Tests', () => {
   describe('Flow 6: Exit Behaviors', () => {
     it('should save note with table and paragraph after it', async () => {
       // Simulates the state after pressing Enter at last cell to exit table
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -840,7 +840,7 @@ describe('Tables E2E Integration Tests', () => {
     });
 
     it('should preserve table when paragraph exists after', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -1144,7 +1144,7 @@ describe('Tables E2E Integration Tests', () => {
         ['T2-C', 'T2-D'],
       ]).root.children[1] as unknown as { type: string; children: unknown[] };
 
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -1328,7 +1328,7 @@ describe('Tables E2E Integration Tests', () => {
         children: Array<{ type: string; text: string }>;
       };
 
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [tableNode],
@@ -1346,7 +1346,7 @@ describe('Tables E2E Integration Tests', () => {
 
     it('should handle table deletion leaving note with other content', async () => {
       // Simulate a note that had a table deleted
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [

@@ -15,7 +15,7 @@ import { format, parse, isValid, isToday } from 'date-fns';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, LexicalState, DailyNote, MeetingNote } from '@scribe/shared';
+import type { Note, NoteId, EditorContent, DailyNote, MeetingNote } from '@scribe/shared';
 import { isDailyNote, isMeetingNote } from '@scribe/shared';
 import {
   type TestContext,
@@ -34,7 +34,7 @@ import {
  * Creates Lexical content for a daily note (empty bullet list, no H1)
  * Matches the structure defined in spec.md
  */
-function createDailyContent(): LexicalState & { type: 'daily' } {
+function createDailyContent(): EditorContent & { type: 'daily' } {
   return {
     root: {
       type: 'root',
@@ -70,7 +70,7 @@ function createDailyContent(): LexicalState & { type: 'daily' } {
  * Creates Lexical content for a meeting note (H3 sections with bullet lists, no H1)
  * Matches the structure defined in spec.md
  */
-function createMeetingContent(): LexicalState & { type: 'meeting' } {
+function createMeetingContent(): EditorContent & { type: 'meeting' } {
   const createH3 = (text: string) => ({
     type: 'heading',
     tag: 'h3',

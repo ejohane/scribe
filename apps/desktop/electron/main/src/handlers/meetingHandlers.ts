@@ -32,7 +32,7 @@
 
 import { ipcMain } from 'electron';
 import { format } from 'date-fns';
-import type { NoteId, LexicalState, MeetingNote } from '@scribe/shared';
+import type { NoteId, EditorContent, MeetingNote } from '@scribe/shared';
 import { ScribeError, ErrorCode, isMeetingNote } from '@scribe/shared';
 import {
   HandlerDependencies,
@@ -45,13 +45,13 @@ import { createDailyContent } from './dailyHandlers';
 /**
  * Create initial content for meeting notes.
  *
- * @returns LexicalState with Pre-Read, Notes, and Action Items sections
+ * @returns EditorContent with Pre-Read, Notes, and Action Items sections
  *
  * @remarks
  * Matches the structure in renderer/src/templates/meeting.ts
  * Each section has an H3 heading followed by an empty bullet list.
  */
-function createMeetingContent(): LexicalState {
+function createMeetingContent(): EditorContent {
   const createH3 = (text: string) => ({
     type: 'heading',
     tag: 'h3',
@@ -100,7 +100,7 @@ function createMeetingContent(): LexicalState {
       version: 1,
     },
     type: 'meeting',
-  } as LexicalState;
+  } as EditorContent;
 }
 
 /**

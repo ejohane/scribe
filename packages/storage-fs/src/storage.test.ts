@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
-import type { LexicalState, VaultPath, MeetingNote, DailyNote } from '@scribe/shared';
+import type { EditorContent, VaultPath, MeetingNote, DailyNote } from '@scribe/shared';
 import { createVaultPath, createNoteId, isDailyNote, isMeetingNote } from '@scribe/shared';
 import { FileSystemVault } from './storage.js';
 import { initializeVault } from './vault.js';
@@ -173,7 +173,7 @@ describe('FileSystemVault', () => {
     expect(note.title).toBe('Original Name');
 
     // Simulate editor sending content without type field (as happens in real app)
-    const updatedContent: LexicalState = {
+    const updatedContent: EditorContent = {
       root: {
         type: 'root',
         children: [

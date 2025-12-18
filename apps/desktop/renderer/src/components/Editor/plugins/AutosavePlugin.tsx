@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 
 interface AutosavePluginProps {
   /** Callback to save editor content */
-  onSave: (content: LexicalState) => Promise<void>;
+  onSave: (content: EditorContent) => Promise<void>;
 
   /** Debounce delay in milliseconds (default: 1000ms) */
   debounceMs?: number;
@@ -47,7 +47,7 @@ export function AutosavePlugin({ onSave, debounceMs = 1000 }: AutosavePluginProp
           try {
             // Serialize the editor state to JSON
             const json = editorState.toJSON();
-            await onSave(json as LexicalState);
+            await onSave(json as EditorContent);
           } catch (error) {
             console.error('Autosave failed:', error);
           } finally {

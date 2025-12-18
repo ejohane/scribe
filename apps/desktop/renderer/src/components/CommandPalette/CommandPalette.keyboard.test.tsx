@@ -7,7 +7,7 @@
  * - Navigation boundary behavior (no wrapping)
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandPalette } from './CommandPalette';
 import {
@@ -19,11 +19,7 @@ import {
   styles,
 } from './CommandPalette.test-utils';
 
-// FIXME: These tests are flaky in CI due to timing issues with keyboard event handling
-// The state updates from fireEvent.keyDown don't always complete before assertions run
-// in GitHub Actions. The tests pass locally but fail intermittently in CI.
-// See: CommandPalette.command-mode.test.tsx for similar issues with keyboard tests.
-describe.skip('CommandPalette - Keyboard Navigation', () => {
+describe('CommandPalette - Keyboard Navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupScribeMock();

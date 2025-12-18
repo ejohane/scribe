@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
-import type { NoteId, LexicalState } from '@scribe/shared';
+import type { NoteId, EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -214,7 +214,7 @@ describe('Navigation History E2E Integration Tests', () => {
     title: string,
     linkTitle: string,
     linkTargetId: NoteId | null
-  ): LexicalState {
+  ): EditorContent {
     return {
       root: {
         type: 'root',

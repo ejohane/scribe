@@ -164,8 +164,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
     });
 
-    // TODO: Fix this test - flaky due to dialog transition timing
-    it.skip('has correct accessibility attributes', async () => {
+    it('has correct accessibility attributes', async () => {
       const mockNotes = createTestNotes();
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
 
@@ -185,10 +184,19 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       });
       fireEvent.click(screen.getByText('Meeting Notes'));
 
-      // Check accessibility attributes
-      const dialog = screen.getByRole('dialog');
-      expect(dialog).toHaveAttribute('aria-modal', 'true');
-      expect(dialog).toHaveAttribute('aria-labelledby', 'delete-confirm-title');
+      // Wait for delete-confirm mode to be fully rendered
+      await waitFor(() => {
+        expect(screen.getByText('Delete "Meeting Notes"?')).toBeInTheDocument();
+      });
+
+      // Check accessibility attributes on the inner delete confirmation dialog
+      // (There are two elements with role="dialog" - the overlay and the inner confirmation)
+      const dialogs = screen.getAllByRole('dialog');
+      const deleteConfirmDialog = dialogs.find((d) =>
+        d.classList.contains(CSS.deleteConfirmation.replace('.', ''))
+      );
+      expect(deleteConfirmDialog).toHaveAttribute('aria-modal', 'true');
+      expect(deleteConfirmDialog).toHaveAttribute('aria-labelledby', 'delete-confirm-title');
     });
   });
 
@@ -538,8 +546,7 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       });
     });
 
-    // TODO: Fix this test - flaky due to async state updates
-    it.skip('shows error toast on deletion failure and stays in delete-browse mode', async () => {
+    it('shows error toast on deletion failure and stays in delete-browse mode', async () => {
       const mockNotes = createTestNotes();
       (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
 
@@ -569,25 +576,35 @@ describe('CommandPalette - Delete Confirm Mode', () => {
       });
       fireEvent.click(screen.getByText('Meeting Notes'));
 
+      // Wait for delete-confirm mode to be fully rendered
+      await waitFor(() => {
+        expect(screen.getByText('Delete "Meeting Notes"?')).toBeInTheDocument();
+      });
+
       // Clear mode change mock (it was called when entering delete-confirm)
       onModeChange.mockClear();
 
       // Click Delete
       fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-      // Should show error toast
+      // Should show error toast - wait for async deletion failure to complete
+      // Note: useErrorHandler shows the default user-friendly message for generic Error objects
       await waitFor(() => {
-        expect(showToast).toHaveBeenCalledWith('Failed to delete note', 'error');
+        expect(showToast).toHaveBeenCalledWith('An unexpected error occurred', 'error');
       });
 
       // Should return to delete-browse mode
-      expect(onModeChange).toHaveBeenCalledWith('delete-browse');
+      await waitFor(() => {
+        expect(onModeChange).toHaveBeenCalledWith('delete-browse');
+      });
 
       // Should NOT close the palette
       expect(onClose).not.toHaveBeenCalled();
 
-      // Should show delete-browse UI
-      expect(screen.getByPlaceholderText('Select note to delete...')).toBeInTheDocument();
+      // Should show delete-browse UI after mode change
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Select note to delete...')).toBeInTheDocument();
+      });
     });
 
     it('does nothing if noteState is not provided', async () => {

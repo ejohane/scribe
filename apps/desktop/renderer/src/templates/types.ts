@@ -1,4 +1,4 @@
-import type { Note, NoteType, LexicalState } from '@scribe/shared';
+import type { Note, NoteType, EditorContent } from '@scribe/shared';
 
 /**
  * Context passed to template functions for content/title generation
@@ -25,7 +25,7 @@ export interface TemplateConfig {
   /** Render the display title (may differ from stored title) */
   renderTitle: (note: Note, context: TemplateContext) => string;
   /** Generate initial content for a new note */
-  generateContent: (context: TemplateContext) => LexicalState;
+  generateContent: (context: TemplateContext) => EditorContent;
   /** Right panel configuration for this template */
   contextPanelConfig: ContextPanelConfig;
   /** Whether this type should be searchable by date format */

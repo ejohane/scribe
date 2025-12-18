@@ -7,7 +7,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { FileSystemVault } from './storage.js';
-import { createVaultPath, type VaultPath, type LexicalState } from '@scribe/shared';
+import { createVaultPath, type VaultPath, type EditorContent } from '@scribe/shared';
 
 describe('Performance Benchmarks', () => {
   let tempDirStr: string;
@@ -15,7 +15,7 @@ describe('Performance Benchmarks', () => {
   let vault: FileSystemVault;
 
   // Create a simple note content template
-  const createNoteContent = (index: number): LexicalState => ({
+  const createNoteContent = (index: number): EditorContent => ({
     root: {
       type: 'root',
       children: [

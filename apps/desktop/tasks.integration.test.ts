@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { LexicalState, Note } from '@scribe/shared';
+import type { EditorContent, Note } from '@scribe/shared';
 import { extractTasksFromNote } from '@scribe/engine-core';
 import {
   type TestContext,
@@ -57,14 +57,14 @@ function createChecklistItem(text: string, checked: boolean, key: string): objec
  * @param taskText - The task text
  * @param checked - Whether the task is completed
  * @param nodeKey - The node key for the task
- * @returns LexicalState with a task
+ * @returns EditorContent with a task
  */
 function createNoteWithTask(
   title: string,
   taskText: string,
   checked: boolean = false,
   nodeKey: string = 'task_1'
-): LexicalState {
+): EditorContent {
   return {
     root: {
       type: 'root',
@@ -88,12 +88,12 @@ function createNoteWithTask(
  *
  * @param title - The note title
  * @param tasks - Array of {text, checked, key} for each task
- * @returns LexicalState with multiple tasks
+ * @returns EditorContent with multiple tasks
  */
 function createNoteWithTasks(
   title: string,
   tasks: Array<{ text: string; checked: boolean; key: string }>
-): LexicalState {
+): EditorContent {
   const taskItems = tasks.map((t) => createChecklistItem(t.text, t.checked, t.key));
 
   return {
@@ -121,14 +121,14 @@ function createNoteWithTasks(
  * @param taskText - The task text
  * @param precedingParagraphs - Number of paragraphs before the task
  * @param nodeKey - The node key for the task
- * @returns LexicalState with task at specified position
+ * @returns EditorContent with task at specified position
  */
 function createNoteWithTaskAtLine(
   title: string,
   taskText: string,
   precedingParagraphs: number,
   nodeKey: string = 'task_positioned'
-): LexicalState {
+): EditorContent {
   const children: Array<{ type: string; children: unknown[]; listType?: string }> = [
     {
       type: 'paragraph',
@@ -154,7 +154,7 @@ function createNoteWithTaskAtLine(
   return {
     root: {
       type: 'root',
-      children: children as LexicalState['root']['children'],
+      children: children as EditorContent['root']['children'],
     },
   };
 }
@@ -163,9 +163,9 @@ function createNoteWithTaskAtLine(
  * Toggle a task's checked state in note content.
  * Returns new content with the task toggled.
  */
-function toggleTaskInContent(content: LexicalState, nodeKey: string): LexicalState {
+function toggleTaskInContent(content: EditorContent, nodeKey: string): EditorContent {
   // Deep clone the content
-  const newContent = JSON.parse(JSON.stringify(content)) as LexicalState;
+  const newContent = JSON.parse(JSON.stringify(content)) as EditorContent;
 
   // Find and toggle the task
   // Note: Lexical exports 'checked' (not '__checked') in JSON serialization.
@@ -197,7 +197,7 @@ function toggleTaskInContent(content: LexicalState, nodeKey: string): LexicalSta
  * Check if a task is checked in the content.
  * Note: Lexical exports 'checked' (not '__checked') in JSON serialization.
  */
-function isTaskCheckedInContent(content: LexicalState, nodeKey: string): boolean | undefined {
+function isTaskCheckedInContent(content: EditorContent, nodeKey: string): boolean | undefined {
   function findChecked(node: object): boolean | undefined {
     if ((node as { type?: string }).type === 'listitem' && '__key' in node) {
       if ((node as { __key: string }).__key === nodeKey && 'checked' in node) {
@@ -1112,7 +1112,7 @@ describe('Tasks E2E Integration Tests', () => {
 
   describe('Edge cases', () => {
     it('should handle note with no tasks', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [

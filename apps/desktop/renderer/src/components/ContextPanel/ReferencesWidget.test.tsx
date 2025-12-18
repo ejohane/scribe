@@ -7,7 +7,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ReferencesWidget, extractReferences, truncateUrl } from './ReferencesWidget';
-import type { Note, LexicalState } from '@scribe/shared';
+import type { Note, EditorContent } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 
 // Helper to create mock note with specific content
@@ -27,7 +27,7 @@ function mockNote(contentChildren: unknown[]): Note {
         indent: 0,
         version: 1,
       },
-    } as LexicalState,
+    } as EditorContent,
     metadata: { title: null, tags: [], links: [], mentions: [] },
   };
 }
@@ -324,7 +324,7 @@ describe('ReferencesWidget', () => {
 
   describe('extractReferences function', () => {
     it('returns empty array for empty content', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [],
@@ -334,7 +334,7 @@ describe('ReferencesWidget', () => {
     });
 
     it('returns references with correct structure', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [

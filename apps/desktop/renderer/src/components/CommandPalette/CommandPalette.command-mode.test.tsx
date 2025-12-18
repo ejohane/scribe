@@ -468,8 +468,7 @@ describe('CommandPalette - Mode Switching', () => {
       });
     });
 
-    // TODO: Fix this test - flaky due to timing issues with selection state reset
-    it.skip('selection index resets when palette reopens', async () => {
+    it('selection index resets when palette reopens', async () => {
       const commands = [
         { id: 'cmd-1', title: 'Command One', run: vi.fn() },
         { id: 'cmd-2', title: 'Command Two', run: vi.fn() },
@@ -494,6 +493,13 @@ describe('CommandPalette - Mode Switching', () => {
 
       // Navigate down twice
       fireEvent.keyDown(window, { key: 'ArrowDown' });
+
+      // Wait for state update after first arrow
+      await waitFor(() => {
+        const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items[1]).toHaveClass(styles.paletteItemSelected);
+      });
+
       fireEvent.keyDown(window, { key: 'ArrowDown' });
 
       // Third item should now be selected
@@ -502,7 +508,7 @@ describe('CommandPalette - Mode Switching', () => {
         expect(items[2]).toHaveClass(styles.paletteItemSelected);
       });
 
-      // Close and reopen
+      // Close the palette
       rerender(
         <CommandPalette
           isOpen={false}
@@ -513,6 +519,7 @@ describe('CommandPalette - Mode Switching', () => {
         />
       );
 
+      // Reopen the palette
       rerender(
         <CommandPalette
           isOpen={true}
@@ -523,9 +530,10 @@ describe('CommandPalette - Mode Switching', () => {
         />
       );
 
-      // First item should be selected again
+      // First item should be selected again after reopening
       await waitFor(() => {
         const items = document.querySelectorAll(CSS.paletteItem);
+        expect(items.length).toBeGreaterThan(0);
         expect(items[0]).toHaveClass(styles.paletteItemSelected);
       });
     });

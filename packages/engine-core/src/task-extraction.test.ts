@@ -9,13 +9,13 @@ import {
   type NoteForExtraction,
   type ExtractedTask,
 } from './task-extraction.js';
-import type { LexicalState, EditorNode } from '@scribe/shared';
+import type { EditorContent, EditorNode } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 
 /**
  * Helper to create a minimal note for testing
  */
-function createNote(id: string, title: string, content: LexicalState): NoteForExtraction {
+function createNote(id: string, title: string, content: EditorContent): NoteForExtraction {
   return { id: createNoteId(id), title, content };
 }
 
@@ -56,7 +56,7 @@ function createRegularListItem(text: string, key: string): EditorNode {
 describe('extractTasksFromNote', () => {
   describe('basic extraction', () => {
     it('should extract unchecked task (completed: false)', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -81,7 +81,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should extract checked task (completed: true)', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -103,7 +103,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should extract task text correctly', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -124,7 +124,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should handle task with multiple text nodes', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -158,7 +158,7 @@ describe('extractTasksFromNote', () => {
 
   describe('multiple tasks', () => {
     it('should extract multiple tasks from note', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -191,7 +191,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should extract tasks from multiple lists', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -228,7 +228,7 @@ describe('extractTasksFromNote', () => {
 
   describe('empty and edge cases', () => {
     it('should return empty array when no tasks in note', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -247,7 +247,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should return empty array for empty content', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [],
@@ -276,7 +276,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should ignore regular (non-checklist) list items', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -306,7 +306,7 @@ describe('extractTasksFromNote', () => {
 
   describe('nested lists', () => {
     it('should extract tasks from nested list', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -345,7 +345,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should extract deeply nested task', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -399,7 +399,7 @@ describe('extractTasksFromNote', () => {
 
   describe('code blocks', () => {
     it('should NOT extract tasks inside code blocks', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -431,7 +431,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should NOT extract tasks inside code-block nodes', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -457,7 +457,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should handle mixed content with code blocks and real tasks', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -501,7 +501,7 @@ describe('extractTasksFromNote', () => {
 
   describe('textHash computation', () => {
     it('should generate consistent textHash for same text', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -524,7 +524,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should generate different textHash for different text', () => {
-      const content1: LexicalState = {
+      const content1: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -537,7 +537,7 @@ describe('extractTasksFromNote', () => {
         },
       };
 
-      const content2: LexicalState = {
+      const content2: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -557,7 +557,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should generate textHash of 16 characters', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -577,7 +577,7 @@ describe('extractTasksFromNote', () => {
 
   describe('lineIndex tracking', () => {
     it('should track lineIndex as block ordinal', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -602,7 +602,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should count regular list items in lineIndex', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -633,7 +633,7 @@ describe('extractTasksFromNote', () => {
 
   describe('nodeKey extraction', () => {
     it('should extract __key from node', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -652,7 +652,7 @@ describe('extractTasksFromNote', () => {
 
     it('should generate deterministic fallback key when __key is missing', () => {
       // Create a checklist item without __key to trigger fallback
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -689,7 +689,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should generate different fallback keys for different tasks', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -722,7 +722,7 @@ describe('extractTasksFromNote', () => {
 
     it('should generate same fallback key for same text at same position', () => {
       // Two notes with identical structure but no __key
-      const createContentWithoutKey = (): LexicalState => ({
+      const createContentWithoutKey = (): EditorContent => ({
         root: {
           type: 'root',
           children: [
@@ -751,7 +751,7 @@ describe('extractTasksFromNote', () => {
 
   describe('extraction stability (deterministic IDs)', () => {
     it('should produce identical results on repeated extraction', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -792,7 +792,7 @@ describe('extractTasksFromNote', () => {
     });
 
     it('should produce stable IDs even without __key (fallback path)', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [

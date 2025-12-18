@@ -31,7 +31,7 @@
 
 import { ipcMain } from 'electron';
 import { format } from 'date-fns';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 import {
   HandlerDependencies,
   requireVault,
@@ -42,13 +42,13 @@ import {
 /**
  * Create initial content for daily notes.
  *
- * @returns LexicalState with a bullet list containing one empty item
+ * @returns EditorContent with a bullet list containing one empty item
  *
  * @remarks
  * Matches the structure in renderer/src/templates/daily.ts
  * Daily notes start with a bullet list for quick capture.
  */
-function createDailyContent(): LexicalState {
+function createDailyContent(): EditorContent {
   return {
     root: {
       children: [
@@ -77,7 +77,7 @@ function createDailyContent(): LexicalState {
       version: 1,
     },
     type: 'daily',
-  } as LexicalState;
+  } as EditorContent;
 }
 
 /**

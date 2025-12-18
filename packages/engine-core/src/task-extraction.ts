@@ -5,7 +5,7 @@
  * nodeKey, lineIndex, and completed flag.
  */
 
-import type { LexicalState, LexicalNode, NoteId } from '@scribe/shared';
+import type { EditorContent, EditorNode, NoteId } from '@scribe/shared';
 import { traverseNodesWithAncestors, extractTextFromNode } from '@scribe/shared';
 
 // DJB2 hash algorithm constants
@@ -43,7 +43,7 @@ export interface ExtractedTask {
 export interface NoteForExtraction {
   id: NoteId;
   title: string;
-  content: LexicalState;
+  content: EditorContent;
 }
 
 /**
@@ -103,7 +103,7 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
 /**
  * Check if any ancestor is a code block.
  */
-function isInsideCodeBlock(ancestors: LexicalNode[]): boolean {
+function isInsideCodeBlock(ancestors: EditorNode[]): boolean {
   return ancestors.some((node) => node.type === 'code' || node.type === 'code-block');
 }
 
@@ -245,7 +245,7 @@ export function computeTextHash(text: string): string {
  *
  * @see computeTextHash for the hash algorithm used in fallback keys
  */
-function getNodeKey(node: LexicalNode, lineIndex: number): string {
+function getNodeKey(node: EditorNode, lineIndex: number): string {
   // Lexical serialized JSON stores the key as __key
   if (typeof node.__key === 'string') {
     return node.__key;

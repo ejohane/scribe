@@ -1,10 +1,10 @@
 import type { Note } from '@scribe/shared';
 
-interface LexicalNode {
+interface EditorNode {
   type: string;
   text?: string;
   tag?: string;
-  children?: LexicalNode[];
+  children?: EditorNode[];
   checked?: boolean;
   listType?: string;
   format?: number;
@@ -29,7 +29,7 @@ export function extractPlainText(note: Note): string {
   return lines.join('\n\n');
 }
 
-function extractBlock(node: LexicalNode): string | null {
+function extractBlock(node: EditorNode): string | null {
   switch (node.type) {
     case 'heading': {
       const level = node.tag ? parseInt(node.tag[1]) : 1;
@@ -79,7 +79,7 @@ function extractBlock(node: LexicalNode): string | null {
   }
 }
 
-function extractInline(node: LexicalNode): string {
+function extractInline(node: EditorNode): string {
   if (!node.children) {
     return node.text || '';
   }

@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { NoteId, LexicalState } from '@scribe/shared';
+import type { NoteId, EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -97,7 +97,7 @@ describe('Linked Notes E2E Integration Tests', () => {
     title: string,
     linkTitle: string,
     linkTargetId: NoteId | null
-  ): LexicalState {
+  ): EditorContent {
     return {
       root: {
         type: 'root',
@@ -307,7 +307,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const targetNote = await createAndIndexNote(ctx, 'Target Note');
 
       // Simulate selecting from autocomplete - this creates a wiki-link with targetId set
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -455,7 +455,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const targetNote = await createAndIndexNote(ctx, 'Target Note');
 
       // Create note with wiki-link that has a resolved targetId
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -480,7 +480,7 @@ describe('Linked Notes E2E Integration Tests', () => {
 
     it('should not extract links when wiki-link targetId is null', async () => {
       // Create note with unresolved wiki-link (no targetId)
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -507,7 +507,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const target1 = await createAndIndexNote(ctx, 'Target One');
       const target2 = await createAndIndexNote(ctx, 'Target Two');
 
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -545,7 +545,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const targetNote = await createAndIndexNote(ctx, 'Target Note');
 
       // Create source note with wiki-link to target
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -575,7 +575,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const targetNote = await createAndIndexNote(ctx, 'Target Note');
 
       // Create source with link
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -624,7 +624,7 @@ describe('Linked Notes E2E Integration Tests', () => {
    */
   describe('Wiki-link alias syntax', () => {
     it('should support alias display text', async () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -660,7 +660,7 @@ describe('Linked Notes E2E Integration Tests', () => {
     it('should persist wiki-links across vault reload', async () => {
       const targetNote = await createAndIndexNote(ctx, 'Target Note');
 
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -697,7 +697,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const targetNote = await createNoteWithTitle(vault, 'Target Note');
       indexNoteInEngines(ctx, targetNote);
 
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -756,7 +756,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       const targetId = targetNote.id;
 
       // Create source with wiki-link
-      const sourceContent: LexicalState = {
+      const sourceContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -834,7 +834,7 @@ describe('Linked Notes E2E Integration Tests', () => {
 
       // Create note with explicit title and empty/minimal content
       // (as App.tsx now does for wiki-link creation)
-      const emptyContent: LexicalState = {
+      const emptyContent: EditorContent = {
         root: {
           type: 'root',
           children: [

@@ -1,5 +1,5 @@
 import { format, parse, isSameDay, startOfDay, isValid } from 'date-fns';
-import type { Note, LexicalState } from '@scribe/shared';
+import type { Note, EditorContent } from '@scribe/shared';
 import type { TemplateConfig, TemplateContext } from './types';
 import { registerTemplate } from './registry';
 
@@ -7,7 +7,7 @@ import { registerTemplate } from './registry';
  * Create initial content for daily notes: a single empty bullet list.
  * No H1 heading - title is displayed in the header only.
  */
-export function createDailyContent(): LexicalState {
+export function createDailyContent(): EditorContent {
   return {
     root: {
       children: [
@@ -36,7 +36,7 @@ export function createDailyContent(): LexicalState {
       version: 1,
     },
     type: 'daily',
-  } as LexicalState;
+  } as EditorContent;
 }
 
 /**

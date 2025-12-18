@@ -32,7 +32,7 @@
 
 import { ipcMain } from 'electron';
 import { computeTextHash } from '@scribe/engine-core';
-import type { Note, LexicalState, LexicalNode, TaskFilter } from '@scribe/shared';
+import type { Note, EditorContent, EditorNode, TaskFilter } from '@scribe/shared';
 import { traverseNodes, findNodeByKey, extractTextFromNode } from '@scribe/shared';
 import { HandlerDependencies, requireTaskIndex, withEngines } from './types';
 import { tasksLogger } from '../logger';
@@ -68,14 +68,14 @@ interface ChecklistNodeLocator {
  * @param locator - Locator to find the target node
  * @returns true if toggle succeeded, false if node not found
  */
-function toggleChecklistNode(content: LexicalState, locator: ChecklistNodeLocator): boolean {
+function toggleChecklistNode(content: EditorContent, locator: ChecklistNodeLocator): boolean {
   if (!content?.root?.children) {
     return false;
   }
 
   // Track candidates for fallback matching
-  let textHashMatch: LexicalNode | null = null;
-  let lineIndexMatch: LexicalNode | null = null;
+  let textHashMatch: EditorNode | null = null;
+  let lineIndexMatch: EditorNode | null = null;
   let currentLineIndex = 0;
 
   // First pass: try to find by nodeKey (most reliable)
@@ -129,7 +129,7 @@ function toggleChecklistNode(content: LexicalState, locator: ChecklistNodeLocato
  * @param node - The listitem node to toggle
  * @returns true if toggle succeeded, false if node is not a checklist item
  */
-function toggleNode(node: LexicalNode): boolean {
+function toggleNode(node: EditorNode): boolean {
   if (node.type === 'listitem' && typeof node.checked === 'boolean') {
     node.checked = !node.checked;
     return true;

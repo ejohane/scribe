@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SearchEngine } from './search-engine';
-import type { Note, LexicalState, NoteType, DailyNoteData, MeetingNoteData } from '@scribe/shared';
+import type { Note, EditorContent, NoteType, DailyNoteData, MeetingNoteData } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 
 /**
@@ -23,7 +23,7 @@ function createTestNote(
   tags: string[] = [],
   options?: { type?: NoteType; daily?: DailyNoteData; meeting?: MeetingNoteData }
 ): Note {
-  const lexicalContent: LexicalState = {
+  const lexicalContent: EditorContent = {
     root: {
       type: 'root',
       children: [

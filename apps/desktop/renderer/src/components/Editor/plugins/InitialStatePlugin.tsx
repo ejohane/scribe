@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 import type { SerializedEditorState } from 'lexical';
 
 interface InitialStatePluginProps {
   /** Initial editor state to load */
-  initialState: LexicalState | null;
+  initialState: EditorContent | null;
   /** Note ID to track when we should reload */
   noteId: string | null;
 }

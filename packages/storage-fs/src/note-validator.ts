@@ -107,7 +107,7 @@ export class NoteValidator implements INoteValidator {
     }
 
     if (typeof n.content !== 'object' || n.content === null) {
-      errors.push('Field "content" must be a non-null object (LexicalState)');
+      errors.push('Field "content" must be a non-null object (EditorContent)');
     }
 
     if (typeof n.metadata !== 'object' || n.metadata === null) {

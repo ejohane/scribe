@@ -16,8 +16,8 @@ import {
   createEmptyContent,
   createInitialContent,
   createContentWithHeading,
-  type LexicalState,
-  type LexicalNode,
+  type EditorContent,
+  type EditorNode,
 } from '../../src/node-builder';
 
 describe('node-builder', () => {
@@ -173,13 +173,13 @@ describe('node-builder', () => {
     });
 
     it('should handle content with no children array', () => {
-      const content: LexicalState = {
+      const content: EditorContent = {
         root: {
           type: 'root',
           format: '',
           indent: 0,
           direction: null,
-          children: undefined as unknown as LexicalNode[],
+          children: undefined as unknown as EditorNode[],
         },
       };
       const updated = appendParagraphToContent(content, 'New');

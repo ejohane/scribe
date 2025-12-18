@@ -1,4 +1,4 @@
-import type { Note, LexicalState } from '@scribe/shared';
+import type { Note, EditorContent } from '@scribe/shared';
 import type { TemplateConfig, TemplateContext } from './types';
 import { registerTemplate } from './registry';
 
@@ -49,7 +49,7 @@ function emptyBulletList(): Record<string, unknown> {
  * Structure: Pre-Read (H3 + bullets), Notes (H3 + bullets), Action Items (H3 + bullets)
  * No H1 heading - title is displayed in the header only.
  */
-export function createMeetingContent(): LexicalState {
+export function createMeetingContent(): EditorContent {
   return {
     root: {
       children: [
@@ -66,7 +66,7 @@ export function createMeetingContent(): LexicalState {
       version: 1,
     },
     type: 'meeting',
-  } as LexicalState;
+  } as EditorContent;
 }
 
 export const meetingTemplate: TemplateConfig = {

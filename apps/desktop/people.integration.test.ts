@@ -17,7 +17,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -555,7 +555,7 @@ describe('People Feature Integration Tests', () => {
       });
 
       // Create note that mentions Alice twice
-      const noteContent: LexicalState = {
+      const noteContent: EditorContent = {
         root: {
           type: 'root',
           children: [
@@ -761,7 +761,7 @@ describe('People Feature Integration Tests', () => {
       });
 
       // Create note with both link and mention
-      const combinedContent: LexicalState = {
+      const combinedContent: EditorContent = {
         root: {
           type: 'root',
           children: [

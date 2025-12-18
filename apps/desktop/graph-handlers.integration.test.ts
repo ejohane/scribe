@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
-import type { LexicalState, NoteId } from '@scribe/shared';
+import type { EditorContent, NoteId } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
@@ -31,7 +31,7 @@ function createNoteWithWikiLink(
   title: string,
   targetTitle: string,
   targetId: NoteId
-): LexicalState {
+): EditorContent {
   return {
     root: {
       type: 'root',
@@ -77,7 +77,11 @@ describe('Graph Handler Integration Tests', () => {
       const target = await vault.create({ title: 'Target Note' });
 
       // Create a note that links to target
-      const content: LexicalState = createNoteWithWikiLink('Linking Note', target.title, target.id);
+      const content: EditorContent = createNoteWithWikiLink(
+        'Linking Note',
+        target.title,
+        target.id
+      );
       const linking = await vault.create({ title: 'Linking Note', content });
 
       // Index both in graph

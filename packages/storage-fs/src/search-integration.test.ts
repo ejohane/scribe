@@ -10,12 +10,12 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { FileSystemVault } from './storage';
 import { SearchEngine } from '@scribe/engine-search';
-import { createVaultPath, type VaultPath, type LexicalState } from '@scribe/shared';
+import { createVaultPath, type VaultPath, type EditorContent } from '@scribe/shared';
 
 /**
  * Helper to create Lexical content
  */
-function createLexicalContent(text: string): LexicalState {
+function createLexicalContent(text: string): EditorContent {
   return {
     root: {
       type: 'root',

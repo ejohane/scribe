@@ -4,11 +4,11 @@
 
 import { describe, it, expect } from 'vitest';
 import { extractMetadata, extractTags, extractLinks, extractMentions } from './metadata.js';
-import type { LexicalState } from '@scribe/shared';
+import type { EditorContent } from '@scribe/shared';
 
 describe('extractTags', () => {
   it('should extract tags from text', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -30,7 +30,7 @@ describe('extractTags', () => {
   });
 
   it('should return empty array for content with no tags', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -51,7 +51,7 @@ describe('extractTags', () => {
   });
 
   it('should deduplicate tags', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -72,7 +72,7 @@ describe('extractTags', () => {
   });
 
   it('should extract tags from multiple paragraphs', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -102,7 +102,7 @@ describe('extractTags', () => {
   });
 
   it('should support tags with hyphens and underscores', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -125,7 +125,7 @@ describe('extractTags', () => {
 
 describe('extractLinks', () => {
   it('should extract links from link nodes with note:// protocol', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -152,7 +152,7 @@ describe('extractLinks', () => {
   });
 
   it('should extract links from wiki-link style URLs', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -174,7 +174,7 @@ describe('extractLinks', () => {
   });
 
   it('should extract links from entity-reference nodes', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -196,7 +196,7 @@ describe('extractLinks', () => {
   });
 
   it('should extract links from note-reference nodes', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -217,7 +217,7 @@ describe('extractLinks', () => {
   });
 
   it('should return empty array for content with no links', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -238,7 +238,7 @@ describe('extractLinks', () => {
   });
 
   it('should deduplicate links', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -270,7 +270,7 @@ describe('extractLinks', () => {
   });
 
   it('should extract wiki-link nodes with resolved targetId', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -293,7 +293,7 @@ describe('extractLinks', () => {
   });
 
   it('should ignore wiki-link nodes with null targetId', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -318,7 +318,7 @@ describe('extractLinks', () => {
 
 describe('extractMentions', () => {
   it('should extract mentions from person-mention nodes', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -344,7 +344,7 @@ describe('extractMentions', () => {
   });
 
   it('should return empty array for content with no mentions', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -365,7 +365,7 @@ describe('extractMentions', () => {
   });
 
   it('should deduplicate mentions', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -396,7 +396,7 @@ describe('extractMentions', () => {
   });
 
   it('should extract mentions from multiple paragraphs', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -428,7 +428,7 @@ describe('extractMentions', () => {
   });
 
   it('should extract mentions from nested structures', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -455,7 +455,7 @@ describe('extractMentions', () => {
   });
 
   it('should handle person-mention nodes with missing personId gracefully', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -483,7 +483,7 @@ describe('extractMentions', () => {
   });
 
   it('should return empty array for empty content', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [],
@@ -508,7 +508,7 @@ describe('extractMentions', () => {
 
 describe('extractMetadata', () => {
   it('should extract all metadata from content with title always null', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -543,7 +543,7 @@ describe('extractMetadata', () => {
   });
 
   it('should extract mentions in metadata', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [
@@ -571,7 +571,7 @@ describe('extractMetadata', () => {
   });
 
   it('should always return null for title field', () => {
-    const content: LexicalState = {
+    const content: EditorContent = {
       root: {
         type: 'root',
         children: [

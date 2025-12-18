@@ -79,11 +79,11 @@ Beads provides a lightweight, dependency-aware issue database and a CLI (`bd`) f
 
 ### Mapping cheat-sheet
 
-| Mail concept | Beads concept |
-|--------------|---------------|
-| `thread_id` | `bd-###` |
-| Subject prefix | `[bd-###] …` |
-| Reservation `reason` | `bd-###` |
+| Mail concept               | Beads concept                     |
+| -------------------------- | --------------------------------- |
+| `thread_id`                | `bd-###`                          |
+| Subject prefix             | `[bd-###] …`                      |
+| Reservation `reason`       | `bd-###`                          |
 | Commit messages (optional) | Include `bd-###` for traceability |
 
 ### Event mirroring (optional automation)
@@ -173,7 +173,7 @@ bd automatically syncs with git:
 
 bv is a fast terminal UI for Beads projects (.beads/beads.jsonl). It renders lists/details and precomputes dependency metrics (PageRank, critical path, cycles, etc.) so you instantly see blockers and execution order. For agents, it's a graph sidecar: instead of parsing JSONL or risking hallucinated traversal, call the robot flags to get deterministic, dependency-aware outputs.
 
-*IMPORTANT: As an agent, you must ONLY use bv with the robot flags, otherwise you'll get stuck in the interactive TUI that's intended for human usage only!*
+_IMPORTANT: As an agent, you must ONLY use bv with the robot flags, otherwise you'll get stuck in the interactive TUI that's intended for human usage only!_
 
 - `bv --robot-help` — shows all AI-facing commands.
 - `bv --robot-insights` — JSON graph metrics (PageRank, betweenness, HITS, critical path, cycles) with top-N summaries for quick triage.
@@ -334,4 +334,3 @@ bd config list --json             # Show configuration
 - Full documentation: https://github.com/steveyegge/beads
 - Quick start guide: `bd quickstart`
 - Help: `bd help` or `bd help <command>`
-
