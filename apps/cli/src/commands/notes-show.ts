@@ -5,10 +5,9 @@
  */
 
 import { Command } from 'commander';
-import { createNoteId } from '@scribe/shared';
+import { createNoteId, extractMarkdown } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
-import { extractPlainText } from '../content-extractor.js';
 import { noteNotFound } from '../errors.js';
 
 /**
@@ -31,8 +30,8 @@ export function registerNotesShowCommand(notes: Command, program: Command): void
         throw noteNotFound(id);
       }
 
-      // Extract plain text content
-      const contentText = extractPlainText(note);
+      // Extract content as markdown (without frontmatter for plain display)
+      const contentText = extractMarkdown(note, { includeFrontmatter: false });
 
       // Get backlinks
       const backlinks = ctx.graphEngine.backlinks(createNoteId(id));

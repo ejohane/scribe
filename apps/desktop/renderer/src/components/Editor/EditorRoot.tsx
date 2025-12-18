@@ -26,7 +26,7 @@ import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
 import { HorizontalRulePlugin } from './plugins/HorizontalRulePlugin';
 import { TablePlugin } from './plugins/TablePlugin';
-import { TableKeyboardPlugin } from './plugins/TableKeyboardPlugin';
+import { TableKeyboardPlugin } from './plugins/table';
 import { TableUIPlugin } from './plugins/TableUIPlugin';
 import { TableContentPlugin } from './plugins/TableContentPlugin';
 import { HR_PATTERN } from './plugins/constants';

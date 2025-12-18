@@ -54,7 +54,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { TablePlugin } from './TablePlugin';
-import { TableKeyboardPlugin } from './TableKeyboardPlugin';
+import { TableKeyboardPlugin } from './table';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 

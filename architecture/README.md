@@ -2,10 +2,6 @@
 
 This guide provides a structured entrypoint to understanding Scribe's architecture. The architecture is defined through a series of **architectural decisions** that build upon each other, forming a complete mental model of how Scribe works.
 
-## Current Status
-
-**Note:** The `scribe_architecture_spec.md` file is currently in draft status and being redefined. The canonical architecture is defined through Decisions 1-8, which represent the current architectural foundation.
-
 ---
 
 ## How to Read These Documents
@@ -220,8 +216,8 @@ Read all decisions in order (1-8)
 - `/apps/desktop/renderer/src/` - React UI
 - `/packages/engine-core/` - Core note operations
 - `/packages/storage-fs/` - Filesystem persistence
-- `/packages/graph/` - Knowledge graph
-- `/packages/search/` - Full-text search
+- `/packages/engine-graph/` - Knowledge graph
+- `/packages/engine-search/` - Full-text search
 - `/vault/notes/{id}.json` - Note storage format
 
 ---
@@ -272,7 +268,6 @@ After reading these documents:
 ## Document Status
 
 - **Decisions 1-8**: ✅ Canonical architectural foundation
-- **scribe_architecture_spec.md**: ⚠️ Draft - being redefined
 
 ---
 

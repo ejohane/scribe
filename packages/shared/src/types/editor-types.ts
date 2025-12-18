@@ -74,6 +74,7 @@ export interface EditorContent {
     children: EditorNode[];
     format?: string | number;
     indent?: number;
+    direction?: 'ltr' | 'rtl' | null;
     version?: number;
   };
   /**

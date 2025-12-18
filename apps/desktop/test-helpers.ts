@@ -12,6 +12,7 @@ import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import type { Note, NoteId, EditorContent } from '@scribe/shared';
+export { createEmptyContent } from '@scribe/shared';
 import Fuse from 'fuse.js';
 
 /**
@@ -178,20 +179,6 @@ export function createNoteContent(title: string, bodyText?: string): EditorConte
     root: {
       type: 'root',
       children,
-    },
-  };
-}
-
-/**
- * Creates an empty Lexical content structure (for untitled notes)
- *
- * @returns Empty EditorContent object
- */
-export function createEmptyContent(): EditorContent {
-  return {
-    root: {
-      type: 'root',
-      children: [],
     },
   };
 }

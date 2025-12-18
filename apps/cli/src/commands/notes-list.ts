@@ -5,6 +5,7 @@
  */
 
 import { Command } from 'commander';
+import { validatePaginationOptions } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import {
@@ -95,12 +96,7 @@ export function registerNotesListCommand(notes: Command, program: Command): void
       const limit = parseInt(options.limit, 10);
       const offset = parseInt(options.offset, 10);
 
-      if (isNaN(limit) || limit < 0) {
-        throw new Error('--limit must be a non-negative integer');
-      }
-      if (isNaN(offset) || offset < 0) {
-        throw new Error('--offset must be a non-negative integer');
-      }
+      validatePaginationOptions({ limit, offset });
 
       notesList = notesList.slice(offset, offset + limit);
 

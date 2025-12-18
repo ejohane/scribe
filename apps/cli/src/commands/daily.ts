@@ -6,10 +6,9 @@
 
 import { Command } from 'commander';
 import type { Note, NoteId, TaskFilter } from '@scribe/shared';
-import { createNoteId, isDailyNote } from '@scribe/shared';
+import { createNoteId, isDailyNote, extractMarkdown } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
-import { extractPlainText } from '../content-extractor.js';
 import { createEmptyContent } from '../node-builder.js';
 
 /**
@@ -84,8 +83,8 @@ export function registerDailyCommands(program: Command): void {
         return;
       }
 
-      // Extract content
-      const contentText = extractPlainText(dailyNote);
+      // Extract content as markdown (without frontmatter for plain display)
+      const contentText = extractMarkdown(dailyNote, { includeFrontmatter: false });
 
       // Ensure task index is loaded for task queries
       await ctx.ensureTaskIndexLoaded();

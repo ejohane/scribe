@@ -16,7 +16,7 @@ import type {
   DailyNoteData,
   MeetingNoteData,
 } from '@scribe/shared';
-import { createNoteId, isDailyNote, isMeetingNote } from '@scribe/shared';
+import { createNoteId, isDailyNote, isMeetingNote, createEmptyContent } from '@scribe/shared';
 import { ErrorCode, ScribeError } from '@scribe/shared';
 import { extractMetadata } from '@scribe/engine-core';
 import { getNotesDir, getNoteFilePath } from './vault.js';
@@ -343,7 +343,7 @@ export class FileSystemVault {
     const createdAt = options?.createdAt ?? now;
 
     // Build content with optional type
-    const noteContent: LexicalState = options?.content ?? this.createEmptyContent();
+    const noteContent: LexicalState = options?.content ?? createEmptyContent();
 
     // Set type on the content if provided (for backward compat with metadata extraction)
     if (options?.type) {
@@ -558,23 +558,6 @@ export class FileSystemVault {
    */
   private isValidNote(note: unknown): note is Note {
     return noteValidator.validate(note);
-  }
-
-  /**
-   * Create empty Lexical content
-   *
-   * @returns Empty Lexical state
-   */
-  private createEmptyContent(): LexicalState {
-    return {
-      root: {
-        type: 'root',
-        children: [],
-        format: '',
-        indent: 0,
-        version: 1,
-      },
-    };
   }
 
   /**

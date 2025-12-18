@@ -63,12 +63,18 @@ export {
   VaultError,
   EngineError,
   ValidationError,
+  TaskNotFoundError,
+  SyncConflictError,
+  MigrationError,
   isScribeError,
   isFileSystemError,
   isNoteError,
   isVaultError,
   isEngineError,
   isValidationError,
+  isTaskNotFoundError,
+  isSyncConflictError,
+  isMigrationError,
 } from './errors.js';
 export type { EngineName } from './errors.js';
 
@@ -130,3 +136,19 @@ export {
   isValidDate,
 } from './date-utils.js';
 export type { DateFormatStyle } from './date-utils.js';
+
+// Content Utilities - Lexical editor structure helpers
+export { createEmptyContent } from './content.js';
+
+// Validation Utilities - shared validation for CLI and other consumers
+export {
+  validatePaginationOptions,
+  validateDateString,
+  validatePositiveInteger,
+  validateNonNegativeInteger,
+  validateInRange,
+} from './validation.js';
+export type { PaginationOptions } from './validation.js';
+
+// General Utilities
+export { deepClone } from './utils.js';

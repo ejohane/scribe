@@ -18,6 +18,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
+import { deepClone } from '@scribe/shared';
 import type { EditorContent, Note } from '@scribe/shared';
 import { extractTasksFromNote } from '@scribe/engine-core';
 import {
@@ -165,7 +166,7 @@ function createNoteWithTaskAtLine(
  */
 function toggleTaskInContent(content: EditorContent, nodeKey: string): EditorContent {
   // Deep clone the content
-  const newContent = JSON.parse(JSON.stringify(content)) as EditorContent;
+  const newContent = deepClone(content);
 
   // Find and toggle the task
   // Note: Lexical exports 'checked' (not '__checked') in JSON serialization.

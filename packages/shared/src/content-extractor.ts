@@ -8,7 +8,7 @@
  * @module content-extractor
  */
 
-import type { Note } from './types.js';
+import type { EditorNode, Note } from './types.js';
 
 /**
  * Options for Markdown export
@@ -402,12 +402,12 @@ function escapeMarkdownText(text: string, context: EscapeContext): string {
 }
 
 /**
- * Internal interface for Lexical node structure.
- * This mirrors the EditorNode type but with known properties typed.
+ * Internal interface extending EditorNode with known content-extractor properties.
+ * This provides type-safe access to Lexical-specific properties while maintaining
+ * compatibility with the base EditorNode type.
  * @internal
  */
-interface LexicalNode {
-  type: string;
+interface LexicalNode extends EditorNode {
   text?: string;
   tag?: string;
   children?: LexicalNode[];
@@ -416,7 +416,6 @@ interface LexicalNode {
   value?: number;
   format?: number;
   url?: string;
-  [key: string]: unknown;
 }
 
 /**

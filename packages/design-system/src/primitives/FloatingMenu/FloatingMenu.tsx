@@ -2,16 +2,51 @@
  * FloatingMenu Component
  *
  * A floating menu primitive for autocomplete dropdowns, command palettes,
- * and context menus. Renders via Portal for proper stacking context.
+ * and context menus. Renders via Portal for proper stacking context and
+ * includes built-in keyboard navigation support via ARIA listbox pattern.
+ *
+ * Uses design tokens: `color.surface`, `shadow.lg`, `radius.md`, `spacing.*`
+ *
+ * @param position - Absolute position for the menu (typically cursor/trigger position)
+ * @param open - Whether the menu is visible (defaults to true)
+ * @param width - Width variant: 'sm' | 'md' | 'lg' (defaults to 'md')
+ * @param ariaLabel - Accessible label for the menu listbox
+ * @param children - Menu items (FloatingMenuItem, FloatingMenuSection, etc.)
  *
  * @example
- * ```tsx
+ * // Basic autocomplete menu
  * <FloatingMenu position={{ top: 100, left: 200 }} open={isOpen}>
  *   <FloatingMenuItem selected={index === 0} onClick={handleClick}>
  *     Option 1
  *   </FloatingMenuItem>
+ *   <FloatingMenuItem selected={index === 1} onClick={handleClick}>
+ *     Option 2
+ *   </FloatingMenuItem>
  * </FloatingMenu>
- * ```
+ *
+ * @example
+ * // Command palette with sections
+ * <FloatingMenu position={cursorPos} open={showPalette} width="lg">
+ *   <FloatingMenuSection label="Actions" />
+ *   <FloatingMenuItem icon={<PlusIcon />} selected={idx === 0}>
+ *     Create Note
+ *   </FloatingMenuItem>
+ *   <FloatingMenuDivider />
+ *   <FloatingMenuSection label="Recent" />
+ *   <FloatingMenuItem>Meeting Notes</FloatingMenuItem>
+ * </FloatingMenu>
+ *
+ * @example
+ * // With loading and empty states
+ * <FloatingMenu position={pos} open={true}>
+ *   {loading && <FloatingMenuLoading />}
+ *   {!loading && items.length === 0 && <FloatingMenuEmpty />}
+ *   {items.map((item, i) => (
+ *     <FloatingMenuItem key={item.id} selected={i === selectedIndex}>
+ *       {item.label}
+ *     </FloatingMenuItem>
+ *   ))}
+ * </FloatingMenu>
  */
 
 import { forwardRef, HTMLAttributes, ReactNode, useEffect, useRef } from 'react';

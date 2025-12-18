@@ -3,30 +3,8 @@
  * Used by CLI write operations to generate valid note content.
  */
 
-interface EditorNode {
-  type: string;
-  format?: string | number;
-  indent?: number;
-  direction?: 'ltr' | 'rtl' | null;
-  children?: EditorNode[];
-  [key: string]: unknown;
-}
-
-interface EditorContent {
-  root: {
-    type: 'root';
-    format?: string | number;
-    indent?: number;
-    direction?: 'ltr' | 'rtl' | null;
-    children: EditorNode[];
-  };
-}
-
-// Deprecated aliases for backward compatibility
-/** @deprecated Use EditorContent instead */
-type LexicalState = EditorContent;
-/** @deprecated Use EditorNode instead */
-type LexicalNode = EditorNode;
+import { deepClone } from '@scribe/shared';
+import type { EditorContent, EditorNode, LexicalNode, LexicalState } from '@scribe/shared';
 
 /**
  * Create a text node with the given content.
@@ -116,7 +94,7 @@ export function appendParagraphToContent(content: EditorContent, text: string): 
   const newNode = createParagraphNode(text);
 
   // Deep clone to avoid mutating original
-  const updated = JSON.parse(JSON.stringify(content)) as EditorContent;
+  const updated = deepClone(content);
 
   if (!updated.root.children) {
     updated.root.children = [];
@@ -133,7 +111,7 @@ export function appendParagraphToContent(content: EditorContent, text: string): 
 export function appendTaskToContent(content: EditorContent, text: string): EditorContent {
   const newNode = createChecklistItemNode(text, false);
 
-  const updated = JSON.parse(JSON.stringify(content)) as EditorContent;
+  const updated = deepClone(content);
 
   if (!updated.root.children) {
     updated.root.children = [];
@@ -154,7 +132,7 @@ export function appendHeadingToContent(
 ): EditorContent {
   const newNode = createHeadingNode(text, level);
 
-  const updated = JSON.parse(JSON.stringify(content)) as EditorContent;
+  const updated = deepClone(content);
 
   if (!updated.root.children) {
     updated.root.children = [];
@@ -223,4 +201,4 @@ export function createContentWithHeading(
 }
 
 // Re-export types for consumers
-export type { LexicalNode, LexicalState };
+export type { EditorContent, EditorNode, LexicalNode, LexicalState };

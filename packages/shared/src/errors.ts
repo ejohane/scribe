@@ -56,6 +56,22 @@ export enum ErrorCode {
   // Validation errors
   VALIDATION_ERROR = 'VALIDATION_ERROR',
 
+  // Task-related codes
+  TASK_NOT_FOUND = 'TASK_NOT_FOUND',
+  TASK_INVALID = 'TASK_INVALID',
+
+  // Sync-related codes (for future multi-device scenarios)
+  SYNC_CONFLICT = 'SYNC_CONFLICT',
+  SYNC_FAILED = 'SYNC_FAILED',
+
+  // Migration codes
+  MIGRATION_FAILED = 'MIGRATION_FAILED',
+  MIGRATION_REQUIRED = 'MIGRATION_REQUIRED',
+
+  // CLI-specific codes
+  CLI_INVALID_ARGUMENT = 'CLI_INVALID_ARGUMENT',
+  CLI_MISSING_VAULT = 'CLI_MISSING_VAULT',
+
   // Generic errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
 }
@@ -128,6 +144,22 @@ export class ScribeError extends Error {
         return 'An engine error occurred. Please restart the application.';
       case ErrorCode.VALIDATION_ERROR:
         return this.message || 'Invalid input provided.';
+      case ErrorCode.TASK_NOT_FOUND:
+        return 'The requested task could not be found.';
+      case ErrorCode.TASK_INVALID:
+        return 'The task data is invalid.';
+      case ErrorCode.SYNC_CONFLICT:
+        return 'A sync conflict was detected. Please resolve the conflict manually.';
+      case ErrorCode.SYNC_FAILED:
+        return 'Failed to sync. Please check your connection and try again.';
+      case ErrorCode.MIGRATION_FAILED:
+        return 'Failed to migrate data. Please contact support.';
+      case ErrorCode.MIGRATION_REQUIRED:
+        return 'A data migration is required. Please update the application.';
+      case ErrorCode.CLI_INVALID_ARGUMENT:
+        return 'Invalid command line argument provided.';
+      case ErrorCode.CLI_MISSING_VAULT:
+        return 'No vault specified. Please provide a vault path.';
       default:
         return 'An unexpected error occurred. Please try again.';
     }
@@ -315,6 +347,42 @@ export class ValidationError extends ScribeError {
 }
 
 /**
+ * Error thrown when a task is not found.
+ */
+export class TaskNotFoundError extends ScribeError {
+  constructor(taskId: string) {
+    super(ErrorCode.TASK_NOT_FOUND, `Task not found: ${taskId}`);
+    this.name = 'TaskNotFoundError';
+  }
+}
+
+/**
+ * Error thrown when sync encounters a conflict.
+ */
+export class SyncConflictError extends ScribeError {
+  constructor(noteId: string, details?: string) {
+    super(
+      ErrorCode.SYNC_CONFLICT,
+      `Sync conflict for note ${noteId}${details ? `: ${details}` : ''}`
+    );
+    this.name = 'SyncConflictError';
+  }
+}
+
+/**
+ * Error thrown when note migration fails.
+ */
+export class MigrationError extends ScribeError {
+  constructor(noteId: string, fromVersion: number, toVersion: number, reason: string) {
+    super(
+      ErrorCode.MIGRATION_FAILED,
+      `Failed to migrate note ${noteId} from v${fromVersion} to v${toVersion}: ${reason}`
+    );
+    this.name = 'MigrationError';
+  }
+}
+
+/**
  * Type guard to check if an error is a ScribeError
  */
 export function isScribeError(error: unknown): error is ScribeError {
@@ -354,4 +422,25 @@ export function isEngineError(error: unknown): error is EngineError {
  */
 export function isValidationError(error: unknown): error is ValidationError {
   return error instanceof ValidationError;
+}
+
+/**
+ * Type guard to check if an error is a TaskNotFoundError
+ */
+export function isTaskNotFoundError(error: unknown): error is TaskNotFoundError {
+  return error instanceof TaskNotFoundError;
+}
+
+/**
+ * Type guard to check if an error is a SyncConflictError
+ */
+export function isSyncConflictError(error: unknown): error is SyncConflictError {
+  return error instanceof SyncConflictError;
+}
+
+/**
+ * Type guard to check if an error is a MigrationError
+ */
+export function isMigrationError(error: unknown): error is MigrationError {
+  return error instanceof MigrationError;
 }

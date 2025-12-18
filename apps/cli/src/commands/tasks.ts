@@ -6,7 +6,7 @@
 
 import { Command } from 'commander';
 import type { NoteId, Task, TaskFilter } from '@scribe/shared';
-import { createNoteId } from '@scribe/shared';
+import { createNoteId, validatePaginationOptions } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { CLIError, ErrorCode } from '../errors.js';
@@ -150,12 +150,7 @@ export function registerTasksCommands(program: Command): void {
       const limit = parseInt(options.limit, 10);
       const offset = parseInt(options.offset, 10);
 
-      if (isNaN(limit) || limit < 0) {
-        throw new Error('--limit must be a non-negative integer');
-      }
-      if (isNaN(offset) || offset < 0) {
-        throw new Error('--offset must be a non-negative integer');
-      }
+      validatePaginationOptions({ limit, offset });
 
       // Paginate
       taskList = taskList.slice(offset, offset + limit);

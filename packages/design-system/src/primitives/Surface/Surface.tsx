@@ -3,13 +3,22 @@ import * as styles from './Surface.css';
 import { vars } from '../../tokens/contract.css';
 import clsx from 'clsx';
 
+/** Available spacing token keys for padding */
 type SpacingKey = keyof typeof vars.spacing;
 
+/**
+ * Core props specific to the Surface component (excluding polymorphic props).
+ */
 interface SurfaceOwnProps {
+  /** Background color variant */
   variant?: 'surface' | 'background' | 'backgroundAlt';
+  /** Box shadow elevation level */
   elevation?: 'none' | 'sm' | 'md' | 'lg';
+  /** Padding using spacing tokens */
   padding?: SpacingKey;
+  /** Border radius size */
   radius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
+  /** Whether to show a border */
   bordered?: boolean;
 }
 
@@ -33,7 +42,61 @@ export type SurfaceProps<E extends ElementType = 'div'> = SurfaceOwnProps & {
 // Polymorphic component type
 type SurfaceComponent = <E extends ElementType = 'div'>(props: SurfaceProps<E>) => ReactElement;
 
-// Internal implementation
+/**
+ * Surface component for creating container elements with consistent styling.
+ *
+ * A polymorphic component that provides background colors, elevation (shadows),
+ * padding, borders, and border radius from the design system tokens.
+ * Ideal for cards, panels, modals, and other container elements.
+ *
+ * Uses design tokens: `color.surface`, `color.background`, `color.backgroundAlt`,
+ * `color.border`, `shadow.*`, `radius.*`, `spacing.*`
+ *
+ * @param variant - Background color variant
+ *   - `'surface'` - Elevated surface color (default, for cards/panels)
+ *   - `'background'` - Base background color
+ *   - `'backgroundAlt'` - Alternative/muted background
+ * @param elevation - Box shadow depth
+ *   - `'none'` - No shadow (default)
+ *   - `'sm'` - Subtle shadow
+ *   - `'md'` - Medium shadow (cards)
+ *   - `'lg'` - Large shadow (modals, dropdowns)
+ * @param padding - Inner padding using spacing tokens (e.g., '4', '8', '16')
+ * @param radius - Border radius
+ *   - `'none'` - No rounding
+ *   - `'sm'` - Small radius
+ *   - `'md'` - Medium radius
+ *   - `'lg'` - Large radius
+ *   - `'full'` - Fully rounded (pill shape)
+ * @param bordered - Whether to render a 1px border
+ * @param as - HTML element to render (defaults to 'div')
+ * @param children - Surface content
+ *
+ * @example
+ * // Basic card with elevation and padding
+ * <Surface variant="surface" elevation="md" padding="4" radius="md">
+ *   <Text>Card content</Text>
+ * </Surface>
+ *
+ * @example
+ * // Bordered panel with alt background
+ * <Surface variant="backgroundAlt" bordered radius="sm" padding="3">
+ *   <Text color="foregroundMuted">Info panel</Text>
+ * </Surface>
+ *
+ * @example
+ * // Modal/dialog container
+ * <Surface elevation="lg" radius="lg" padding="6">
+ *   <Text as="h2" size="lg" weight="bold">Dialog Title</Text>
+ *   <Text>Dialog content goes here.</Text>
+ * </Surface>
+ *
+ * @example
+ * // As a semantic element
+ * <Surface as="section" padding="4" radius="md">
+ *   <Text as="h3">Section Title</Text>
+ * </Surface>
+ */
 const SurfaceImpl = <E extends ElementType = 'div'>({
   variant = 'surface',
   elevation = 'none',

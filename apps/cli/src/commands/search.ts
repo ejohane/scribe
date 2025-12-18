@@ -1,7 +1,7 @@
 import { Command } from 'commander';
+import { extractMarkdown } from '@scribe/shared';
 import { initializeContext, GlobalOptions } from '../context.js';
 import { output } from '../output.js';
-import { extractPlainText } from '../content-extractor.js';
 
 export function registerSearchCommand(program: Command): void {
   program
@@ -30,7 +30,7 @@ export function registerSearchCommand(program: Command): void {
       // Format results with snippets
       const formattedResults = paginatedResults.map((result) => {
         const note = ctx.vault.read(result.id);
-        const plainText = extractPlainText(note);
+        const plainText = extractMarkdown(note, { includeFrontmatter: false });
         const snippet = generateSnippet(plainText, query);
 
         return {

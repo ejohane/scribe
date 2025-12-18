@@ -5,7 +5,7 @@
  */
 
 import { Command } from 'commander';
-import { createNoteId } from '@scribe/shared';
+import { createNoteId, validatePaginationOptions } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
@@ -47,9 +47,7 @@ export function registerPeopleCommands(program: Command): void {
 
       // Apply limit
       const limit = parseInt(options.limit, 10);
-      if (isNaN(limit) || limit < 0) {
-        throw new Error('--limit must be a non-negative integer');
-      }
+      validatePaginationOptions({ limit });
       personNotes = personNotes.slice(0, limit);
 
       output(

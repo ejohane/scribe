@@ -3,6 +3,11 @@ import * as styles from './Overlay.css';
 import { Portal } from './Portal';
 import clsx from 'clsx';
 
+/**
+ * Props for the Overlay component.
+ *
+ * Extends native div attributes with overlay-specific behavior options.
+ */
 export interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
   backdrop?: 'none' | 'transparent' | 'blur';
   open?: boolean;
@@ -26,6 +31,61 @@ export interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
+/**
+ * Overlay component for modal dialogs, drawers, and full-screen overlays.
+ *
+ * Renders content in a Portal with backdrop support, scroll locking, and
+ * automatic keyboard handling. Implements the ARIA dialog pattern with
+ * proper focus management considerations.
+ *
+ * Uses design tokens: `color.background` (backdrop), CSS blur filter
+ *
+ * @param backdrop - Visual style of the backdrop
+ *   - `'none'` - No backdrop (default)
+ *   - `'transparent'` - Invisible backdrop (catches clicks)
+ *   - `'blur'` - Blurred backdrop effect
+ * @param open - Whether the overlay is visible (defaults to true)
+ * @param onClose - Callback when overlay should close (backdrop click or Escape)
+ * @param closeOnEscape - Whether Escape key triggers onClose (defaults to true)
+ * @param ariaLabelledby - ID of the element labeling the dialog (for accessibility)
+ * @param ariaDescribedby - ID of the element describing the dialog (for accessibility)
+ * @param children - Overlay content (typically a Surface with dialog content)
+ *
+ * @example
+ * // Basic modal dialog
+ * <Overlay open={isOpen} onClose={() => setIsOpen(false)} backdrop="blur">
+ *   <Surface elevation="lg" padding="6" radius="lg">
+ *     <Text as="h2" id="dialog-title" size="lg" weight="bold">
+ *       Confirm Action
+ *     </Text>
+ *     <Text id="dialog-desc">Are you sure you want to proceed?</Text>
+ *     <Button onClick={() => setIsOpen(false)}>Cancel</Button>
+ *     <Button tone="accent" onClick={handleConfirm}>Confirm</Button>
+ *   </Surface>
+ * </Overlay>
+ *
+ * @example
+ * // Accessible dialog with proper ARIA
+ * <Overlay
+ *   open={showDialog}
+ *   onClose={handleClose}
+ *   backdrop="blur"
+ *   ariaLabelledby="modal-title"
+ *   ariaDescribedby="modal-description"
+ * >
+ *   <Surface elevation="lg" padding="6" radius="lg">
+ *     <Text as="h2" id="modal-title">Edit Profile</Text>
+ *     <Text id="modal-description">Update your profile information.</Text>
+ *     {/* form content *\/}
+ *   </Surface>
+ * </Overlay>
+ *
+ * @example
+ * // Overlay with custom Escape handling (e.g., for multi-step flows)
+ * <Overlay open={true} closeOnEscape={false} onClose={handleClose}>
+ *   <WizardComponent onEscape={handleStepBack} />
+ * </Overlay>
+ */
 export const Overlay = forwardRef<HTMLDivElement, OverlayProps>(function Overlay(
   {
     backdrop = 'none',

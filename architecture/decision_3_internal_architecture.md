@@ -29,27 +29,48 @@ The foundations layer provides the type system and core interfaces used across a
 ### Core Types:
 
 ```ts
-interface Note {
-  id: string;
-  createdAt: number;
-  updatedAt: number;
-  content: LexicalState; // serialized Lexical JSON
-  metadata: NoteMetadata; // derived: title, tags, links
+// Branded type for type-safe identifiers
+type NoteId = string & { readonly __brand: 'NoteId' };
+
+// Base structure common to all note types
+interface BaseNote {
+  id: NoteId;                    // Branded unique identifier
+  title: string;                 // User-editable title
+  createdAt: number;             // Creation timestamp (ms)
+  updatedAt: number;             // Last update timestamp (ms)
+  tags: string[];                // User-defined tags
+  content: EditorContent;        // Rich text content (Lexical JSON)
+  metadata: NoteMetadata;        // Derived metadata from content
 }
 
+// Note is a discriminated union of different note types
+type Note = RegularNote | PersonNote | ProjectNote | TemplateNote 
+          | SystemNote | DailyNote | MeetingNote;
+
 interface NoteMetadata {
-  title: string | null;
-  tags: string[];
-  links: string[]; // outbound references to other notes
+  title: string | null;          // @deprecated - use Note.title
+  tags: string[];                // Tags extracted from #tag patterns in content
+  links: NoteId[];               // Outbound references to other notes
+  mentions: NoteId[];            // People mentioned via @name syntax
+  type?: NoteType;               // Note type discriminator
+}
+
+// Editor content is an abstraction over Lexical JSON
+interface EditorContent {
+  root: {
+    type: 'root';
+    children: EditorNode[];
+  };
 }
 ```
 
 ### Additional foundational types include:
 
-- `NoteId`
-- `SearchResult`
-- `GraphNode` / `GraphEdge`
-- `VaultPath`
+- `NoteId` / `VaultPath` — Branded types for type-safe identifiers
+- `NoteType` — Discriminator: `'person' | 'project' | 'meeting' | 'daily' | 'template' | 'system'`
+- `SearchResult` — Full-text search results
+- `GraphNode` / `GraphEdge` — Knowledge graph types
+- Type guards: `isPersonNote()`, `isDailyNote()`, `isMeetingNote()`, etc.
 
 This layer contains **no application logic**—only shared definitions.
 
