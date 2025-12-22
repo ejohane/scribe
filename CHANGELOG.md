@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.27.0](https://github.com/ejohane/scribe/compare/v1.26.0...v1.27.0) (2025-12-22)
+
+### Features
+
+* complete technical debt cleanup - 6 epics, 80 beads ([15d599a](https://github.com/ejohane/scribe/commit/15d599a93ddde54e5501a31d687326ecca614bf5))
+
+### Bug Fixes
+
+* add lockfile sync check to pre-commit hook ([f363a03](https://github.com/ejohane/scribe/commit/f363a0373a5c8d8afffbc231b70971faa16d78f2))
+* update lockfile to sync with dependencies ([cc42519](https://github.com/ejohane/scribe/commit/cc42519da68bf7b783d356f94ed0b3431dbdea57))
+
 ## [1.26.0](https://github.com/ejohane/scribe/compare/v1.25.0...v1.26.0) (2025-12-22)
 
 ### Features
