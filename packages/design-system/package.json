@@ -18,7 +18,7 @@
     "@vanilla-extract/css": "^1.15.0",
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^0.562.0",
     "react-day-picker": "^9"
   },
   "peerDependencies": {
