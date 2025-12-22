@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.26.0](https://github.com/ejohane/scribe/compare/v1.25.0...v1.26.0) (2025-12-22)
+
+### Features
+
+* **daily-notes:** add DateNavigator with prev/next day navigation and ordinal date display ([b6770e7](https://github.com/ejohane/scribe/commit/b6770e7bf8b96cc81722bf29f087f3cfb5608777))
+
+### Documentation
+
+* streamline AGENTS.md for concise tooling guidance ([183fb15](https://github.com/ejohane/scribe/commit/183fb15da74e1347f6023f5735f316e29448d5c7))
+
 ## [1.25.0](https://github.com/ejohane/scribe/compare/v1.24.0...v1.25.0) (2025-12-18)
 
 ### Features
