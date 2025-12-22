@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import { parse } from 'date-fns';
 import type { Note } from '@scribe/shared';
-import { isMeetingNote } from '@scribe/shared';
+import { isMeetingNote, isDailyNote } from '@scribe/shared';
 import { getTemplate } from '../../templates';
 // Import templates to auto-register them
 import '../../templates/daily';
 import * as styles from './NoteHeader.css';
+import { DateNavigator } from './DateNavigator';
 
 /** Debounce delay for title changes (ms) */
 const TITLE_DEBOUNCE_MS = 300;
@@ -14,8 +15,8 @@ interface NoteHeaderProps {
   note: Note;
   onTitleChange: (title: string) => void;
   onTagsChange: (tags: string[]) => void;
-  /** Called when the date is clicked. Opens/creates the daily note for that date. */
-  onDateClick?: (date: Date) => void;
+  /** Called when navigating to a daily note for a date */
+  onNavigateToDaily?: (date: Date) => void;
   /** Transform Y value for parallax scroll effect */
   translateY?: number;
 }
@@ -98,7 +99,7 @@ export function NoteHeader({
   note,
   onTitleChange,
   onTagsChange,
-  onDateClick,
+  onNavigateToDaily,
   translateY = 0,
 }: NoteHeaderProps) {
   const [isAddingTag, setIsAddingTag] = useState(false);
@@ -222,20 +223,17 @@ export function NoteHeader({
 
       {/* Metadata row: date, tags */}
       <div className={styles.metadataRow}>
-        {/* Date - clickable to open the daily note for that date */}
-        {/* For meeting notes, shows the meeting date; for others, shows creation date */}
+        {/* Date navigator - shows date with optional navigation for daily notes */}
         <div className={styles.metadataItem}>
           {(() => {
             const displayDate = getDisplayDate(note);
+            const isDaily = isDailyNote(note);
             return (
-              <button
-                className={styles.dateButton}
-                onClick={() => onDateClick?.(displayDate.date)}
-                title="Open daily note for this date"
-                aria-label="Open daily note for this date"
-              >
-                {displayDate.formatted}
-              </button>
+              <DateNavigator
+                date={displayDate.date}
+                onNavigate={(date) => onNavigateToDaily?.(date)}
+                showNavigation={isDaily}
+              />
             );
           })()}
         </div>

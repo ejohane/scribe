@@ -168,13 +168,18 @@ function App() {
     [showToast]
   );
 
-  // Handle date click - open or create the daily note for the given date
-  const handleDateClick = useCallback(
+  // Handle navigation to daily note - open or create the daily note for the given date
+  const handleNavigateToDaily = useCallback(
     async (date: Date) => {
-      const note = await window.scribe.daily.getOrCreate(date);
-      navigateToNote(note.id);
+      try {
+        const dailyNote = await window.scribe.daily.getOrCreate(date);
+        navigateToNote(dailyNote.id);
+      } catch (error) {
+        showToast('Failed to open daily note', 'error');
+        console.error('Failed to navigate to daily note:', error);
+      }
     },
-    [navigateToNote]
+    [navigateToNote, showToast]
   );
 
   // Handle export success - show toast notification
@@ -306,7 +311,7 @@ function App() {
                     note={noteState.currentNote}
                     onTitleChange={(title: string) => noteState.updateMetadata({ title })}
                     onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
-                    onDateClick={handleDateClick}
+                    onNavigateToDaily={handleNavigateToDaily}
                     translateY={translateY}
                   />
                 </ErrorBoundary>

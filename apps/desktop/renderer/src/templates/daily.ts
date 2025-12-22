@@ -1,4 +1,4 @@
-import { format, parse, isSameDay, startOfDay, isValid } from 'date-fns';
+import { format, parse, isValid, isToday, isYesterday, isTomorrow } from 'date-fns';
 import type { Note, EditorContent } from '@scribe/shared';
 import type { TemplateConfig, TemplateContext } from './types';
 import { registerTemplate } from './registry';
@@ -42,7 +42,21 @@ export function createDailyContent(): EditorContent {
 /**
  * Get display title for a daily note.
  * - Returns "Today" for today's date
- * - Returns "MM/dd/yyyy" for other dates
+ * - Returns "Yesterday" for yesterday's date
+ * - Returns "Tomorrow" for tomorrow's date
+ * - Returns ordinal format (e.g., "Dec 21st, 2024") for other dates
+ *
+ * TIMEZONE BEHAVIOR:
+ * Today/Yesterday/Tomorrow comparisons use user's local timezone (date-fns default).
+ * This means:
+ * - At 11:59 PM, today's note still shows "Today" (doesn't auto-update at midnight)
+ * - Cross-timezone travel may cause unexpected behavior (note created at 1 AM EST
+ *   may show as "Yesterday" when viewed in PST if it's still the prior calendar day)
+ * - Daily notes store dates as `MM-dd-yyyy` with no timezone info; they're parsed
+ *   as local midnight for comparison
+ *
+ * This matches user expectation for a personal note-taking app where "today" means
+ * the current calendar day in the user's local timezone.
  *
  * @param note - The daily note (title is stored as MM-dd-yyyy date)
  */
@@ -54,12 +68,16 @@ export function getDailyDisplayTitle(note: Note): string {
     return note.title;
   }
 
-  const today = startOfDay(new Date());
-
-  if (isSameDay(noteDate, today)) {
+  if (isToday(noteDate)) {
     return 'Today';
   }
-  return format(noteDate, 'MM/dd/yyyy');
+  if (isYesterday(noteDate)) {
+    return 'Yesterday';
+  }
+  if (isTomorrow(noteDate)) {
+    return 'Tomorrow';
+  }
+  return format(noteDate, 'MMM do, yyyy');
 }
 
 export const dailyTemplate: TemplateConfig = {

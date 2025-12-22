@@ -77,30 +77,6 @@ export const metadataValue = style({
   color: vars.color.foreground,
 });
 
-export const dateButton = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: 0,
-  border: 'none',
-  backgroundColor: 'transparent',
-  color: vars.color.foreground,
-  fontSize: 'inherit',
-  fontFamily: 'inherit',
-  cursor: 'pointer',
-  borderRadius: vars.radius.sm,
-  transition: `all ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
-  ':hover': {
-    color: vars.color.accent,
-  },
-  ':focus': {
-    outline: 'none',
-  },
-  ':focus-visible': {
-    outline: `2px solid ${vars.color.accent}`,
-    outlineOffset: '2px',
-  },
-});
-
 export const divider = style({
   width: '1px',
   height: '14px',
