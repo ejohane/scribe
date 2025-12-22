@@ -280,14 +280,15 @@ describe('FocusNodePlugin', () => {
         });
       });
 
-      // Should warn because node wasn't found (regular list items don't have checked value)
-      expect(console.warn).toHaveBeenCalledWith(
-        'FocusNodePlugin: Could not find node',
-        expect.objectContaining({
-          nodeKey: 'nonexistent-key',
-          textHashFallback: textHash,
-        })
+      // Should warn because node wasn't found (logger outputs structured format)
+      const warnCalls = (console.warn as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+      const logCall = warnCalls.find(
+        (call) =>
+          typeof call[0] === 'string' &&
+          call[0].includes('[FocusNodePlugin]') &&
+          call[0].includes('Could not find node')
       );
+      expect(logCall).toBeDefined();
     });
   });
 
@@ -392,8 +393,15 @@ describe('FocusNodePlugin', () => {
         });
       });
 
-      // Should warn that node wasn't found
-      expect(console.warn).toHaveBeenCalled();
+      // Should warn that node wasn't found (logger outputs structured format)
+      const warnCalls = (console.warn as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+      const logCall = warnCalls.find(
+        (call) =>
+          typeof call[0] === 'string' &&
+          call[0].includes('[FocusNodePlugin]') &&
+          call[0].includes('Could not find node')
+      );
+      expect(logCall).toBeDefined();
     });
   });
 
@@ -630,11 +638,16 @@ describe('FocusNodePlugin', () => {
         });
       });
 
-      expect(console.warn).toHaveBeenCalledWith('FocusNodePlugin: Could not find node', {
-        nodeKey: 'completely-fake-key',
-        textHashFallback: 'invalid-hash',
-        lineIndexFallback: 9999,
-      });
+      // Logger outputs structured format
+      const warnCalls = (console.warn as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+      const logCall = warnCalls.find(
+        (call) =>
+          typeof call[0] === 'string' &&
+          call[0].includes('[FocusNodePlugin]') &&
+          call[0].includes('Could not find node') &&
+          call[0].includes('completely-fake-key')
+      );
+      expect(logCall).toBeDefined();
     });
 
     it('does not scroll when node is not found', async () => {

@@ -10,9 +10,13 @@
  */
 
 import type { Note, NoteId, Task, TaskFilter, TaskChangeEvent } from '@scribe/shared';
+import { logger as rootLogger } from '@scribe/shared';
 import { type TaskPersistence, JsonlTaskPersistence } from './task-persistence.js';
 import { type TaskReconciler, DefaultTaskReconciler } from './task-reconciler.js';
 import { TaskQuery, fromTaskFilter } from './task-query.js';
+
+/** Module-level logger for TaskIndex */
+const logger = rootLogger.child('TaskIndex');
 
 // ============================================================================
 // Pure Helper Functions for Task Reconciliation
@@ -200,7 +204,7 @@ export class TaskIndex {
 
     this.persistTimeout = setTimeout(() => {
       this.persist().catch((err) => {
-        console.error('[TaskIndex] Persist failed:', err);
+        logger.error('Persist failed', { error: err });
       });
       this.persistTimeout = null;
     }, this.debounceMs);

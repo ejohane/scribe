@@ -8,7 +8,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { NoteId } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import { FloatingMenu, FloatingMenuItem, FloatingMenuAction } from '@scribe/design-system';
+
+const log = createLogger({ prefix: 'PersonMentionAutocomplete' });
 import { AutocompleteList } from './AutocompleteList';
 
 /**
@@ -99,7 +102,7 @@ export function PersonMentionAutocomplete({
         }));
       setResults(personResults);
     } catch (error) {
-      console.error('Failed to search people:', error);
+      log.error('Failed to search people', { query, error });
       setResults([]);
     } finally {
       setIsLoading(false);

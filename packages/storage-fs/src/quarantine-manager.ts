@@ -11,7 +11,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import type { VaultPath } from '@scribe/shared';
-import { ErrorCode, ScribeError } from '@scribe/shared';
+import { ErrorCode, ScribeError, logger } from '@scribe/shared';
 import { getNotesDir, getQuarantineDir } from './vault.js';
 
 /**
@@ -109,15 +109,19 @@ export class QuarantineManager implements IQuarantineManager {
         quarantinedAt: new Date(),
         reason,
       });
-      console.warn(
-        `Quarantined corrupt file: ${fileName} -> ${path.basename(quarantinePath)} (${reason})`
-      );
+      const log = logger.child('QuarantineManager');
+      log.warn('Quarantined corrupt file', {
+        fileName,
+        quarantinePath: path.basename(quarantinePath),
+        reason,
+      });
       return;
     } catch (moveError) {
-      console.warn(
-        `Failed to move ${fileName} to quarantine directory, trying fallback:`,
-        moveError
-      );
+      const log = logger.child('QuarantineManager');
+      log.warn('Failed to move to quarantine directory, trying fallback', {
+        fileName,
+        error: String(moveError),
+      });
     }
 
     // Strategy 2: Rename in place with .corrupt extension
@@ -130,12 +134,16 @@ export class QuarantineManager implements IQuarantineManager {
         quarantinedAt: new Date(),
         reason,
       });
-      console.warn(
-        `Renamed corrupt file in place: ${fileName} -> ${path.basename(corruptPath)} (${reason})`
-      );
+      const log = logger.child('QuarantineManager');
+      log.warn('Renamed corrupt file in place', {
+        fileName,
+        corruptPath: path.basename(corruptPath),
+        reason,
+      });
       return;
     } catch (renameError) {
-      console.error(`Failed to rename ${fileName} in place:`, renameError);
+      const log = logger.child('QuarantineManager');
+      log.error('Failed to rename file in place', { fileName, error: String(renameError) });
     }
 
     // Both strategies failed - this is a critical error
@@ -186,7 +194,8 @@ export class QuarantineManager implements IQuarantineManager {
 
       await fs.rename(info.quarantinePath, restorePath);
       this.quarantinedFiles.delete(fileName);
-      console.info(`Restored file from quarantine: ${fileName}`);
+      const log = logger.child('QuarantineManager');
+      log.info('Restored file from quarantine', { fileName });
     } catch (error) {
       if (error instanceof ScribeError) {
         throw error;
@@ -216,7 +225,8 @@ export class QuarantineManager implements IQuarantineManager {
     try {
       await fs.unlink(info.quarantinePath);
       this.quarantinedFiles.delete(fileName);
-      console.info(`Permanently deleted quarantined file: ${fileName}`);
+      const log = logger.child('QuarantineManager');
+      log.info('Permanently deleted quarantined file', { fileName });
     } catch (error) {
       const err = error as Error & { code?: string };
       const code = ScribeError.fromSystemError(err, ErrorCode.FILE_DELETE_ERROR);
@@ -289,7 +299,8 @@ export class QuarantineManager implements IQuarantineManager {
       // Quarantine directory might not exist yet, which is fine
       const err = error as Error & { code?: string };
       if (err.code !== 'ENOENT') {
-        console.warn('Failed to scan quarantine directory:', error);
+        const log = logger.child('QuarantineManager');
+        log.warn('Failed to scan quarantine directory', { error: String(error) });
       }
     }
   }

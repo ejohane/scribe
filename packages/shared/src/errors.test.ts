@@ -351,3 +351,93 @@ describe('instanceof pattern matching', () => {
     }
   });
 });
+
+// Import the new error extraction utilities for testing
+import { getErrorMessage, getErrorMessageWithContext } from './errors.js';
+
+describe('getErrorMessage', () => {
+  it('should extract message from Error instances', () => {
+    const error = new Error('Something went wrong');
+    expect(getErrorMessage(error)).toBe('Something went wrong');
+  });
+
+  it('should extract message from ScribeError instances', () => {
+    const error = new ScribeError(ErrorCode.FILE_NOT_FOUND, 'File not found');
+    expect(getErrorMessage(error)).toBe('File not found');
+  });
+
+  it('should return string errors directly', () => {
+    const error = 'Something went wrong';
+    expect(getErrorMessage(error)).toBe('Something went wrong');
+  });
+
+  it('should return fallback for null', () => {
+    expect(getErrorMessage(null)).toBe('An error occurred');
+  });
+
+  it('should return fallback for undefined', () => {
+    expect(getErrorMessage(undefined)).toBe('An error occurred');
+  });
+
+  it('should return fallback for objects without message', () => {
+    expect(getErrorMessage({ foo: 'bar' })).toBe('An error occurred');
+  });
+
+  it('should return fallback for numbers', () => {
+    expect(getErrorMessage(42)).toBe('An error occurred');
+  });
+
+  it('should return fallback for booleans', () => {
+    expect(getErrorMessage(true)).toBe('An error occurred');
+  });
+
+  it('should use custom fallback when provided', () => {
+    expect(getErrorMessage(null, 'Custom fallback')).toBe('Custom fallback');
+  });
+
+  it('should use custom fallback for non-Error objects', () => {
+    expect(getErrorMessage({}, 'Failed to load')).toBe('Failed to load');
+  });
+});
+
+describe('getErrorMessageWithContext', () => {
+  it('should combine context with Error message', () => {
+    const error = new Error('Network timeout');
+    expect(getErrorMessageWithContext(error, 'Failed to save note')).toBe(
+      'Failed to save note: Network timeout'
+    );
+  });
+
+  it('should combine context with string error', () => {
+    expect(getErrorMessageWithContext('Connection refused', 'Failed to connect')).toBe(
+      'Failed to connect: Connection refused'
+    );
+  });
+
+  it('should return only context for null', () => {
+    expect(getErrorMessageWithContext(null, 'Failed to save note')).toBe('Failed to save note');
+  });
+
+  it('should return only context for undefined', () => {
+    expect(getErrorMessageWithContext(undefined, 'Failed to save note')).toBe(
+      'Failed to save note'
+    );
+  });
+
+  it('should return only context for objects without message', () => {
+    expect(getErrorMessageWithContext({ code: 500 }, 'Server error')).toBe('Server error');
+  });
+
+  it('should work with ScribeError instances', () => {
+    const error = new FileSystemError(ErrorCode.FILE_NOT_FOUND, 'File not found', '/path/to/file');
+    expect(getErrorMessageWithContext(error, 'Failed to load')).toBe(
+      'Failed to load: File not found'
+    );
+  });
+
+  it('should preserve empty string message', () => {
+    const error = new Error('');
+    // Empty string is falsy, so it should return just the context
+    expect(getErrorMessageWithContext(error, 'Operation failed')).toBe('Operation failed');
+  });
+});

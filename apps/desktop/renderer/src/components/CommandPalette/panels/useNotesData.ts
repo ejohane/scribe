@@ -6,6 +6,9 @@
 
 import { useState, useEffect } from 'react';
 import type { Note } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'useNotesData' });
 
 export interface UseNotesDataOptions {
   /** Whether notes fetching is enabled */
@@ -38,7 +41,7 @@ export function useNotesData({ enabled }: UseNotesDataOptions): UseNotesDataResu
         if (!cancelled) setAllNotes(notes);
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to fetch notes:', error);
+          log.error('Failed to fetch notes', { error });
           setAllNotes([]);
         }
       } finally {
@@ -74,7 +77,7 @@ export function usePeopleData({ enabled }: UseNotesDataOptions): UseNotesDataRes
         if (!cancelled) setAllPeople(people);
       } catch (error) {
         if (!cancelled) {
-          console.error('Failed to fetch people:', error);
+          log.error('Failed to fetch people', { error });
           setAllPeople([]);
         }
       } finally {

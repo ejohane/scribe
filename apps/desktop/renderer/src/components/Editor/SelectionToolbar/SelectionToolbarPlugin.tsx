@@ -271,9 +271,6 @@ export function SelectionToolbarPlugin() {
         case 'h2':
           formatHeading('h2');
           break;
-        // TODO: Re-enable link formatting when implemented
-        // case 'link':
-        //   break;
       }
 
       // Update active formats after applying
@@ -314,17 +311,7 @@ export function SelectionToolbarPlugin() {
     [editor]
   );
 
-  // TODO: Re-enable Ask AI functionality when implemented
-  // const handleAskAi = useCallback(() => {
-  //   // Future: Open AI assistant modal with selected text
-  // }, []);
-
   return (
-    <SelectionToolbar
-      position={position}
-      activeFormats={activeFormats}
-      onFormat={handleFormat}
-      // onAskAi prop removed until AI functionality is implemented
-    />
+    <SelectionToolbar position={position} activeFormats={activeFormats} onFormat={handleFormat} />
   );
 }

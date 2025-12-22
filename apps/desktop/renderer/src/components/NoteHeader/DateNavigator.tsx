@@ -22,6 +22,7 @@ import {
 } from '@floating-ui/react';
 import clsx from 'clsx';
 import * as styles from './DateNavigator.css';
+import { SCREEN_READER_ANNOUNCEMENT_TIMEOUT_MS } from '../../constants';
 
 /**
  * Props for the DateNavigator component.
@@ -96,10 +97,10 @@ export function DateNavigator({ date, onNavigate, showNavigation = true }: DateN
     };
   }, []);
 
-  // Clear announcement after it's been read
+  // Clear announcement after it's been read by screen readers
   useEffect(() => {
     if (announcement) {
-      const timer = setTimeout(() => setAnnouncement(''), 1000);
+      const timer = setTimeout(() => setAnnouncement(''), SCREEN_READER_ANNOUNCEMENT_TIMEOUT_MS);
       return () => clearTimeout(timer);
     }
   }, [announcement]);

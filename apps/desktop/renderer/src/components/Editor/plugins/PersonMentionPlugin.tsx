@@ -27,7 +27,10 @@ import {
   createCommand,
   type LexicalCommand,
 } from 'lexical';
+import { createLogger } from '@scribe/shared';
 import { $createPersonMentionNode } from './PersonMentionNode';
+
+const log = createLogger({ prefix: 'PersonMentionPlugin' });
 import { usePersonMentionContext } from './PersonMentionContext';
 import { PersonMentionAutocomplete } from './PersonMentionAutocomplete';
 import type { PersonResult } from './PersonMentionAutocomplete';
@@ -176,7 +179,7 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
         // Insert the mention with the new person's ID (using explicit title field)
         insertPersonMention(newPerson.title || name, newPerson.id);
       } catch (error) {
-        console.error('Failed to create person:', error);
+        log.error('Failed to create person', { name, error });
         // Show error to user via context
         onError(`Failed to create "${name}"`);
         // Close autocomplete on error

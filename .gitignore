@@ -43,3 +43,6 @@ apps/desktop/resources/bin/
 
 # AI planning documents (ephemeral)
 history/
+
+# bv (beads viewer) local config and caches
+.bv/

@@ -26,7 +26,10 @@ import {
   createCommand,
   type LexicalCommand,
 } from 'lexical';
+import { createLogger } from '@scribe/shared';
 import { $createWikiLinkNode } from './WikiLinkNode';
+
+const log = createLogger({ prefix: 'WikiLinkPlugin' });
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
 import {
   useTriggerableAutocomplete,
@@ -90,7 +93,7 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
         setResults(filtered);
         setLoading(false);
       } catch (error) {
-        console.error('Search failed:', error);
+        log.error('Search failed', { query, error });
         setResults([]);
         setLoading(false);
       }

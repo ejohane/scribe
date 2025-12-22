@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
-import type { Note } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
+import { createMockNote } from '@scribe/test-utils';
 
 // Mock the context module
 vi.mock('../../../src/context.js', () => ({
@@ -87,41 +87,19 @@ describe('graph commands', () => {
     vi.restoreAllMocks();
   });
 
-  /**
-   * Helper to create a mock note with all required fields
-   */
-  function createMockNote(
-    id: string,
-    title: string,
-    options?: { type?: string; tags?: string[] }
-  ): Note {
-    return {
-      id: createNoteId(id),
-      title,
-      type: options?.type,
-      tags: options?.tags || [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      content: {
-        root: {
-          type: 'root',
-          children: [],
-        },
-      },
-      metadata: {
-        title: null,
-        tags: [],
-        links: [],
-        mentions: [],
-      },
-    } as unknown as Note;
-  }
-
   describe('backlinks', () => {
     it('finds incoming links to a note', async () => {
-      const targetNote = createMockNote('target-note', 'Target Note');
-      const linkingNote1 = createMockNote('linking-1', 'Linking Note 1', { tags: ['#work'] });
-      const linkingNote2 = createMockNote('linking-2', 'Linking Note 2', { type: 'project' });
+      const targetNote = createMockNote({ id: 'target-note', title: 'Target Note' });
+      const linkingNote1 = createMockNote({
+        id: 'linking-1',
+        title: 'Linking Note 1',
+        tags: ['#work'],
+      });
+      const linkingNote2 = createMockNote({
+        id: 'linking-2',
+        title: 'Linking Note 2',
+        type: 'project',
+      });
 
       mockVault.read.mockReturnValue(targetNote);
       mockGraphEngine.backlinks.mockReturnValue([linkingNote1, linkingNote2]);
@@ -151,7 +129,7 @@ describe('graph commands', () => {
     });
 
     it('returns empty array for no backlinks', async () => {
-      const targetNote = createMockNote('isolated-note', 'Isolated Note');
+      const targetNote = createMockNote({ id: 'isolated-note', title: 'Isolated Note' });
 
       mockVault.read.mockReturnValue(targetNote);
       mockGraphEngine.backlinks.mockReturnValue([]);
@@ -179,9 +157,13 @@ describe('graph commands', () => {
     });
 
     it('includes note type in backlink results', async () => {
-      const targetNote = createMockNote('target', 'Target');
-      const personNote = createMockNote('person-1', 'John Doe', { type: 'person' });
-      const dailyNote = createMockNote('daily-2025-01-15', 'January 15, 2025', { type: 'daily' });
+      const targetNote = createMockNote({ id: 'target', title: 'Target' });
+      const personNote = createMockNote({ id: 'person-1', title: 'John Doe', type: 'person' });
+      const dailyNote = createMockNote({
+        id: 'daily-2025-01-15',
+        title: 'January 15, 2025',
+        type: 'daily',
+      });
 
       mockVault.read.mockReturnValue(targetNote);
       mockGraphEngine.backlinks.mockReturnValue([personNote, dailyNote]);
@@ -202,9 +184,9 @@ describe('graph commands', () => {
 
   describe('outlinks', () => {
     it('finds outgoing links from a note', async () => {
-      const sourceNote = createMockNote('source-note', 'Source Note');
-      const linkedNote1 = createMockNote('linked-1', 'Linked Note 1');
-      const linkedNote2 = createMockNote('linked-2', 'Linked Note 2');
+      const sourceNote = createMockNote({ id: 'source-note', title: 'Source Note' });
+      const linkedNote1 = createMockNote({ id: 'linked-1', title: 'Linked Note 1' });
+      const linkedNote2 = createMockNote({ id: 'linked-2', title: 'Linked Note 2' });
 
       mockVault.read.mockReturnValue(sourceNote);
       mockGraphEngine.outlinks.mockReturnValue([linkedNote1, linkedNote2]);
@@ -226,7 +208,7 @@ describe('graph commands', () => {
     });
 
     it('returns empty array when no outlinks', async () => {
-      const note = createMockNote('no-links', 'Note Without Links');
+      const note = createMockNote({ id: 'no-links', title: 'Note Without Links' });
 
       mockVault.read.mockReturnValue(note);
       mockGraphEngine.outlinks.mockReturnValue([]);
@@ -255,9 +237,9 @@ describe('graph commands', () => {
 
   describe('neighbors', () => {
     it('finds directly connected notes', async () => {
-      const centerNote = createMockNote('center', 'Center Note');
-      const neighborNote1 = createMockNote('neighbor-1', 'Neighbor 1');
-      const neighborNote2 = createMockNote('neighbor-2', 'Neighbor 2');
+      const centerNote = createMockNote({ id: 'center', title: 'Center Note' });
+      const neighborNote1 = createMockNote({ id: 'neighbor-1', title: 'Neighbor 1' });
+      const neighborNote2 = createMockNote({ id: 'neighbor-2', title: 'Neighbor 2' });
 
       mockVault.read.mockReturnValue(centerNote);
       mockGraphEngine.neighbors.mockReturnValue([neighborNote1, neighborNote2]);
@@ -281,7 +263,7 @@ describe('graph commands', () => {
     });
 
     it('handles empty graph (no neighbors)', async () => {
-      const isolatedNote = createMockNote('isolated', 'Isolated Note');
+      const isolatedNote = createMockNote({ id: 'isolated', title: 'Isolated Note' });
 
       mockVault.read.mockReturnValue(isolatedNote);
       mockGraphEngine.neighbors.mockReturnValue([]);
@@ -300,8 +282,11 @@ describe('graph commands', () => {
     });
 
     it('marks bidirectional connections as "both"', async () => {
-      const centerNote = createMockNote('center', 'Center Note');
-      const bidirectionalNote = createMockNote('bidirectional', 'Bidirectional Note');
+      const centerNote = createMockNote({ id: 'center', title: 'Center Note' });
+      const bidirectionalNote = createMockNote({
+        id: 'bidirectional',
+        title: 'Bidirectional Note',
+      });
 
       mockVault.read.mockReturnValue(centerNote);
       mockGraphEngine.neighbors.mockReturnValue([bidirectionalNote]);
@@ -338,9 +323,9 @@ describe('graph commands', () => {
   describe('stats', () => {
     it('returns vault-wide graph statistics', async () => {
       const notes = [
-        createMockNote('note-1', 'Note 1'),
-        createMockNote('note-2', 'Note 2'),
-        createMockNote('note-3', 'Note 3'),
+        createMockNote({ id: 'note-1', title: 'Note 1' }),
+        createMockNote({ id: 'note-2', title: 'Note 2' }),
+        createMockNote({ id: 'note-3', title: 'Note 3' }),
       ];
 
       mockVault.list.mockReturnValue(notes);
@@ -370,7 +355,10 @@ describe('graph commands', () => {
     });
 
     it('calculates average links per note', async () => {
-      const notes = [createMockNote('note-1', 'Note 1'), createMockNote('note-2', 'Note 2')];
+      const notes = [
+        createMockNote({ id: 'note-1', title: 'Note 1' }),
+        createMockNote({ id: 'note-2', title: 'Note 2' }),
+      ];
 
       mockVault.list.mockReturnValue(notes);
       mockVault.read.mockImplementation((id: string) => {
@@ -397,9 +385,9 @@ describe('graph commands', () => {
     });
 
     it('identifies most linked notes', async () => {
-      const popularNote = createMockNote('popular', 'Popular Note');
-      const note1 = createMockNote('note-1', 'Note 1');
-      const note2 = createMockNote('note-2', 'Note 2');
+      const popularNote = createMockNote({ id: 'popular', title: 'Popular Note' });
+      const note1 = createMockNote({ id: 'note-1', title: 'Note 1' });
+      const note2 = createMockNote({ id: 'note-2', title: 'Note 2' });
 
       mockVault.list.mockReturnValue([popularNote, note1, note2]);
       mockVault.read.mockImplementation((id: string) => {
@@ -435,8 +423,8 @@ describe('graph commands', () => {
     });
 
     it('counts orphan notes (no links in or out)', async () => {
-      const orphanNote = createMockNote('orphan', 'Orphan Note');
-      const connectedNote = createMockNote('connected', 'Connected Note');
+      const orphanNote = createMockNote({ id: 'orphan', title: 'Orphan Note' });
+      const connectedNote = createMockNote({ id: 'connected', title: 'Connected Note' });
 
       mockVault.list.mockReturnValue([orphanNote, connectedNote]);
       mockVault.read.mockImplementation((id: string) => {

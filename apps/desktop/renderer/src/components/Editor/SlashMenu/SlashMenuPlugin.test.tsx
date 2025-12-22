@@ -460,9 +460,6 @@ describe('SlashMenuPlugin', () => {
         expect(screen.getByText('Add Task')).toBeInTheDocument();
         expect(screen.getByText('Quote')).toBeInTheDocument();
         expect(screen.getByText('Table')).toBeInTheDocument();
-
-        // Note: AI commands removed - see TODO in commands.ts
-        // Tests will be re-added when AI functionality is implemented
       });
     });
 

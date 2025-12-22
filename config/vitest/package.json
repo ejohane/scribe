@@ -1,0 +1,12 @@
+{
+  "name": "@scribe/vitest-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./base.ts"
+  },
+  "peerDependencies": {
+    "vitest": "^2.0.0"
+  }
+}

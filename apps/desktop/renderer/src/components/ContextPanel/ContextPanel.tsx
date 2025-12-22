@@ -15,7 +15,9 @@
 import { useEffect, useState, useCallback, useMemo, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { GraphNode, NoteId, Note } from '@scribe/shared';
-import { SYSTEM_NOTE_IDS, createNoteId } from '@scribe/shared';
+import { SYSTEM_NOTE_IDS, createNoteId, createLogger } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'ContextPanel' });
 import { PanelRightIcon } from '@scribe/design-system';
 import { getTemplate, defaultContextPanelSections } from '../../templates';
 import type { ContextPanelSection } from '../../templates';
@@ -61,6 +63,8 @@ export interface ContextPanelProps {
   onExportSuccess?: (filename: string) => void;
   /** Callback when export fails */
   onExportError?: (error: string) => void;
+  /** Callback when a widget operation fails (for showing toast notifications) */
+  onError?: (message: string) => void;
   /** Controlled open state for ShareMenu */
   shareMenuOpen?: boolean;
   /** Callback when ShareMenu open state changes */
@@ -77,6 +81,7 @@ export function ContextPanel({
   onClose,
   onExportSuccess,
   onExportError,
+  onError,
   shareMenuOpen,
   onShareMenuOpenChange,
 }: ContextPanelProps) {
@@ -106,7 +111,7 @@ export function ContextPanel({
       const links = await window.scribe.graph.backlinks(note.id);
       setBacklinks(links);
     } catch (error) {
-      console.error('Failed to fetch backlinks:', error);
+      log.error('Failed to fetch backlinks', { noteId: note?.id, error });
       setBacklinks([]);
     }
   }, [note?.id]);
@@ -135,7 +140,11 @@ export function ContextPanel({
 
       setDateBasedNotes(mentions);
     } catch (error) {
-      console.error('Failed to fetch date-based notes:', error);
+      log.error('Failed to fetch date-based notes', {
+        noteId: note?.id,
+        noteTitle: note?.title,
+        error,
+      });
       setDateBasedNotes([]);
     }
   }, [note?.id, note?.type, note?.title, includeByDate]);
@@ -198,6 +207,7 @@ export function ContextPanel({
             onNavigate={onNavigate}
             currentNoteId={note?.id ?? null}
             onNoteUpdate={onNoteUpdate}
+            onError={onError}
           />
         );
       case 'references':

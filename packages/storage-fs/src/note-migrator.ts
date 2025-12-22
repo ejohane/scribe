@@ -9,7 +9,7 @@ import type {
   Note,
   NoteId,
   NoteType,
-  LexicalState,
+  EditorContent,
   NoteMetadata,
   DailyNoteData,
   MeetingNoteData,
@@ -59,7 +59,7 @@ interface LegacyNoteData {
   updatedAt: number;
   type?: NoteType;
   tags?: string[];
-  content: LexicalState;
+  content: EditorContent;
   metadata: NoteMetadata;
   daily?: DailyNoteData;
   meeting?: MeetingNoteData;
@@ -147,11 +147,6 @@ export class NoteMigrator implements INoteMigrator {
     if (noteVersion < 2) {
       migratedNote = this.migrateV1toV2(migratedNote);
     }
-
-    // Future migrations would be added here:
-    // if (migratedNote.version < 3) {
-    //   migratedNote = this.migrateV2toV3(migratedNote);
-    // }
 
     return this.buildNote(migratedNote);
   }

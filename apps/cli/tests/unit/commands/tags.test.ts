@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
-import type { Note, NoteId, BaseNote, NoteMetadata } from '@scribe/shared';
-import { createNoteId } from '@scribe/shared';
+import type { Note, NoteId, NoteMetadata } from '@scribe/shared';
+import { createMockNote } from '@scribe/test-utils';
 
 // Mock the context module
 vi.mock('../../../src/context.js', () => ({
@@ -25,29 +25,9 @@ import { initializeContext } from '../../../src/context';
 import { output } from '../../../src/output';
 
 /**
- * Create a base note structure for testing
+ * Helper to create a mock note with tags for testing
  */
-function createBaseNote(id: string, title: string): Omit<BaseNote, 'type'> {
-  return {
-    id: createNoteId(id),
-    title,
-    content: { root: { type: 'root', children: [] } },
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    tags: [],
-    metadata: {
-      title: null,
-      tags: [],
-      links: [],
-      mentions: [],
-    },
-  };
-}
-
-/**
- * Create a mock regular note for testing
- */
-function createMockNote(
+function createMockNoteWithTags(
   id: string,
   title: string,
   options?: {
@@ -56,17 +36,13 @@ function createMockNote(
     metadata?: Partial<NoteMetadata>;
   }
 ): Note {
-  const base = createBaseNote(id, title);
-  return {
-    ...base,
-    type: undefined,
-    updatedAt: options?.updatedAt ?? base.updatedAt,
-    tags: options?.tags ?? [],
-    metadata: {
-      ...base.metadata,
-      ...options?.metadata,
-    },
-  } as Note;
+  return createMockNote({
+    id,
+    title,
+    updatedAt: options?.updatedAt,
+    tags: options?.tags,
+    metadata: options?.metadata,
+  });
 }
 
 /**
@@ -138,9 +114,9 @@ describe('tags commands', () => {
 
   describe('list', () => {
     it('returns all unique tags', async () => {
-      const note1 = createMockNote('note-1', 'Note 1', { tags: ['#work', '#important'] });
-      const note2 = createMockNote('note-2', 'Note 2', { tags: ['#work', '#personal'] });
-      const note3 = createMockNote('note-3', 'Note 3', { tags: ['#personal'] });
+      const note1 = createMockNoteWithTags('note-1', 'Note 1', { tags: ['#work', '#important'] });
+      const note2 = createMockNoteWithTags('note-2', 'Note 2', { tags: ['#work', '#personal'] });
+      const note3 = createMockNoteWithTags('note-3', 'Note 3', { tags: ['#personal'] });
 
       const ctx = createMockContext([note1, note2, note3]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -162,9 +138,9 @@ describe('tags commands', () => {
     });
 
     it('includes tag count per tag', async () => {
-      const note1 = createMockNote('note-1', 'Note 1', { tags: ['#work'] });
-      const note2 = createMockNote('note-2', 'Note 2', { tags: ['#work', '#important'] });
-      const note3 = createMockNote('note-3', 'Note 3', { tags: ['#work'] });
+      const note1 = createMockNoteWithTags('note-1', 'Note 1', { tags: ['#work'] });
+      const note2 = createMockNoteWithTags('note-2', 'Note 2', { tags: ['#work', '#important'] });
+      const note3 = createMockNoteWithTags('note-3', 'Note 3', { tags: ['#work'] });
 
       const ctx = createMockContext([note1, note2, note3]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -186,7 +162,7 @@ describe('tags commands', () => {
     });
 
     it('supports JSON output', async () => {
-      const note = createMockNote('note-1', 'Note 1', { tags: ['#test'] });
+      const note = createMockNoteWithTags('note-1', 'Note 1', { tags: ['#test'] });
 
       const ctx = createMockContext([note]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -203,10 +179,10 @@ describe('tags commands', () => {
     });
 
     it('sorts by count by default (descending)', async () => {
-      const note1 = createMockNote('note-1', 'Note 1', { tags: ['#rare'] });
-      const note2 = createMockNote('note-2', 'Note 2', { tags: ['#common'] });
-      const note3 = createMockNote('note-3', 'Note 3', { tags: ['#common'] });
-      const note4 = createMockNote('note-4', 'Note 4', { tags: ['#common'] });
+      const note1 = createMockNoteWithTags('note-1', 'Note 1', { tags: ['#rare'] });
+      const note2 = createMockNoteWithTags('note-2', 'Note 2', { tags: ['#common'] });
+      const note3 = createMockNoteWithTags('note-3', 'Note 3', { tags: ['#common'] });
+      const note4 = createMockNoteWithTags('note-4', 'Note 4', { tags: ['#common'] });
 
       const ctx = createMockContext([note1, note2, note3, note4]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -220,9 +196,9 @@ describe('tags commands', () => {
     });
 
     it('sorts by name when specified', async () => {
-      const note1 = createMockNote('note-1', 'Note 1', { tags: ['#zebra'] });
-      const note2 = createMockNote('note-2', 'Note 2', { tags: ['#alpha'] });
-      const note3 = createMockNote('note-3', 'Note 3', { tags: ['#beta'] });
+      const note1 = createMockNoteWithTags('note-1', 'Note 1', { tags: ['#zebra'] });
+      const note2 = createMockNoteWithTags('note-2', 'Note 2', { tags: ['#alpha'] });
+      const note3 = createMockNoteWithTags('note-3', 'Note 3', { tags: ['#beta'] });
 
       const ctx = createMockContext([note1, note2, note3]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -238,7 +214,7 @@ describe('tags commands', () => {
 
     it('supports limit option', async () => {
       const notes = Array.from({ length: 10 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, { tags: [`#tag${i}`] })
+        createMockNoteWithTags(`note-${i}`, `Note ${i}`, { tags: [`#tag${i}`] })
       );
 
       const ctx = createMockContext(notes);
@@ -253,7 +229,7 @@ describe('tags commands', () => {
     });
 
     it('returns empty list when no tags exist', async () => {
-      const note = createMockNote('note-1', 'Note without tags');
+      const note = createMockNoteWithTags('note-1', 'Note without tags');
 
       const ctx = createMockContext([note]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -267,7 +243,7 @@ describe('tags commands', () => {
     });
 
     it('combines explicit tags and metadata tags', async () => {
-      const note = createMockNote('note-1', 'Note with both', {
+      const note = createMockNoteWithTags('note-1', 'Note with both', {
         tags: ['#explicit'],
         metadata: {
           title: null,
@@ -303,9 +279,9 @@ describe('tags commands', () => {
 
   describe('notes (show notes with specific tag)', () => {
     it('returns notes with specific tag', async () => {
-      const note1 = createMockNote('note-1', 'Work Note', { tags: ['#work'] });
-      const note2 = createMockNote('note-2', 'Personal Note', { tags: ['#personal'] });
-      const note3 = createMockNote('note-3', 'Another Work Note', { tags: ['#work'] });
+      const note1 = createMockNoteWithTags('note-1', 'Work Note', { tags: ['#work'] });
+      const note2 = createMockNoteWithTags('note-2', 'Personal Note', { tags: ['#personal'] });
+      const note3 = createMockNoteWithTags('note-3', 'Another Work Note', { tags: ['#work'] });
 
       const ctx = createMockContext([note1, note2, note3]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -322,7 +298,7 @@ describe('tags commands', () => {
     });
 
     it('handles tag without hash prefix', async () => {
-      const note = createMockNote('note-1', 'Work Note', { tags: ['#work'] });
+      const note = createMockNoteWithTags('note-1', 'Work Note', { tags: ['#work'] });
 
       const ctx = createMockContext([note]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -336,7 +312,7 @@ describe('tags commands', () => {
     });
 
     it('handles tag not found (returns empty results)', async () => {
-      const note = createMockNote('note-1', 'Note', { tags: ['#other'] });
+      const note = createMockNoteWithTags('note-1', 'Note', { tags: ['#other'] });
 
       const ctx = createMockContext([note]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -351,7 +327,7 @@ describe('tags commands', () => {
 
     it('supports pagination with limit and offset', async () => {
       const notes = Array.from({ length: 10 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, { tags: ['#common'], updatedAt: 1000 + i })
+        createMockNoteWithTags(`note-${i}`, `Note ${i}`, { tags: ['#common'], updatedAt: 1000 + i })
       );
 
       const ctx = createMockContext(notes);
@@ -378,9 +354,18 @@ describe('tags commands', () => {
     });
 
     it('sorts notes by updatedAt descending', async () => {
-      const note1 = createMockNote('note-1', 'Oldest', { tags: ['#work'], updatedAt: 1000 });
-      const note2 = createMockNote('note-2', 'Middle', { tags: ['#work'], updatedAt: 2000 });
-      const note3 = createMockNote('note-3', 'Newest', { tags: ['#work'], updatedAt: 3000 });
+      const note1 = createMockNoteWithTags('note-1', 'Oldest', {
+        tags: ['#work'],
+        updatedAt: 1000,
+      });
+      const note2 = createMockNoteWithTags('note-2', 'Middle', {
+        tags: ['#work'],
+        updatedAt: 2000,
+      });
+      const note3 = createMockNoteWithTags('note-3', 'Newest', {
+        tags: ['#work'],
+        updatedAt: 3000,
+      });
 
       const ctx = createMockContext([note1, note2, note3]);
       mockInitializeContext.mockResolvedValue(ctx);
@@ -395,7 +380,7 @@ describe('tags commands', () => {
     });
 
     it('includes correct note properties in output', async () => {
-      const note = createMockNote('note-1', 'Test Note', {
+      const note = createMockNoteWithTags('note-1', 'Test Note', {
         tags: ['#test', '#important'],
         updatedAt: 1700000000000,
       });
@@ -415,8 +400,8 @@ describe('tags commands', () => {
     });
 
     it('matches tags with or without hash prefix', async () => {
-      const note1 = createMockNote('note-1', 'With hash', { tags: ['#work'] });
-      const note2 = createMockNote('note-2', 'Without hash', {
+      const note1 = createMockNoteWithTags('note-1', 'With hash', { tags: ['#work'] });
+      const note2 = createMockNoteWithTags('note-2', 'Without hash', {
         metadata: {
           title: null,
           tags: ['work'], // Tag without hash in metadata

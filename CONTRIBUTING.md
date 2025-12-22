@@ -304,6 +304,116 @@ export function parseNote(file: RawFile): ParsedNote {
 }
 ```
 
+### Error Handling
+
+Consistent error handling is critical for user experience and debugging. Follow these patterns:
+
+#### 1. Use the shared error message extractor
+
+Always use `getErrorMessage` from `@scribe/shared` instead of inline error extraction:
+
+```typescript
+// Good - use the shared utility
+import { getErrorMessage } from '@scribe/shared';
+
+try {
+  await riskyOperation();
+} catch (error) {
+  const message = getErrorMessage(error, 'Operation failed');
+  setError(message);
+}
+
+// Bad - inline error extraction
+try {
+  await riskyOperation();
+} catch (error) {
+  const message = error instanceof Error ? error.message : 'Operation failed';
+  setError(message);
+}
+```
+
+#### 2. Always provide user feedback for user-initiated actions
+
+If the user triggered an action, they need to know if it failed:
+
+```typescript
+// Good - user gets feedback
+try {
+  await saveNote(note);
+} catch (error) {
+  const message = getErrorMessage(error, 'Failed to save note');
+  showToast(message, 'error');  // User sees the error
+  console.error('[NoteEditor] Save failed:', error);  // For debugging
+}
+
+// Bad - silent failure
+try {
+  await saveNote(note);
+} catch (error) {
+  console.error('Failed to save:', error);  // User has no idea!
+}
+```
+
+#### 3. Clear errors before async operations
+
+When using error state (e.g., React hooks), clear any previous error before starting a new operation:
+
+```typescript
+// Good - clear previous error
+const saveNote = async (content: EditorContent) => {
+  setError(null);  // Clear any stale error
+  try {
+    await window.scribe.notes.save(note);
+  } catch (error) {
+    setError(getErrorMessage(error, 'Failed to save note'));
+  }
+};
+
+// Bad - stale errors can linger
+const saveNote = async (content: EditorContent) => {
+  try {
+    await window.scribe.notes.save(note);
+  } catch (error) {
+    setError(getErrorMessage(error, 'Failed to save note'));
+  }
+};
+```
+
+#### 4. Log with context
+
+Include component/function name in console logs to make debugging easier:
+
+```typescript
+// Good - includes context
+console.error('[TasksWidget] Failed to load tasks:', error);
+
+// Bad - no context
+console.error('Error:', error);
+```
+
+#### 5. Re-throw when callers need to handle errors
+
+If the caller needs to know about the error (e.g., to show their own UI), re-throw after handling:
+
+```typescript
+const deleteNote = async (id: NoteId) => {
+  try {
+    await window.scribe.notes.delete(id);
+  } catch (error) {
+    setError(getErrorMessage(error, 'Failed to delete note'));
+    console.error('[useNoteState] Delete failed:', error);
+    throw error;  // Re-throw so caller can react (e.g., close dialog)
+  }
+};
+```
+
+#### Error utilities in `@scribe/shared`
+
+- `getErrorMessage(error, fallback)` - Safely extract error message
+- `getErrorMessageWithContext(error, context)` - Extract message with operation context
+- `ScribeError` - Base class for domain-specific errors
+- `isScribeError(error)` - Type guard for error handling
+
 ### Testing
 
 - Write tests for all new features

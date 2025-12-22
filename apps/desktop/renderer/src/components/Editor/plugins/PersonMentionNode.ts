@@ -8,8 +8,11 @@ import {
   LexicalNode,
 } from 'lexical';
 import type { NoteId } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import { createElement, MouseEvent, KeyboardEvent } from 'react';
 import { usePersonMentionContext } from './PersonMentionContext';
+
+const log = createLogger({ prefix: 'PersonMentionNode' });
 
 /**
  * Serialized form of PersonMentionNode for JSON export/import
@@ -41,7 +44,7 @@ function PersonMentionComponent({
 }: PersonMentionComponentProps): JSX.Element {
   const { currentNoteId, onMentionClick, onError } = usePersonMentionContext();
 
-  const handleClick = async (e: MouseEvent) => {
+  const handleClick = async (e: MouseEvent | KeyboardEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -53,7 +56,7 @@ function PersonMentionComponent({
     try {
       await onMentionClick(personId);
     } catch (error) {
-      console.error('Failed to navigate via person mention:', error);
+      log.error('Failed to navigate via person mention', { personId, personName, error });
       onError(`Failed to navigate to "${personName}"`);
     }
   };
@@ -61,7 +64,7 @@ function PersonMentionComponent({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      handleClick(e as unknown as MouseEvent);
+      handleClick(e);
     }
   };
 

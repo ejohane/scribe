@@ -75,6 +75,9 @@ export {
   isTaskNotFoundError,
   isSyncConflictError,
   isMigrationError,
+  // Error message extraction utilities
+  getErrorMessage,
+  getErrorMessageWithContext,
 } from './errors.js';
 export type { EngineName } from './errors.js';
 
@@ -141,14 +144,25 @@ export type { DateFormatStyle } from './date-utils.js';
 export { createEmptyContent } from './content.js';
 
 // Validation Utilities - shared validation for CLI and other consumers
-export {
-  validatePaginationOptions,
-  validateDateString,
-  validatePositiveInteger,
-  validateNonNegativeInteger,
-  validateInRange,
-} from './validation.js';
+export { validatePaginationOptions } from './validation.js';
 export type { PaginationOptions } from './validation.js';
+
+// Fuzzy Search Utilities - lightweight text similarity scoring
+export {
+  levenshteinDistance,
+  fuzzyMatchScore,
+  exactSubstringMatch,
+  fuzzySearch,
+  FUZZY_MATCH_THRESHOLD,
+  EXACT_MATCH_SCORE,
+  SUBSTRING_MATCH_BASE,
+  ALL_WORDS_MATCH_SCORE,
+} from './fuzzy-search.js';
+export type { FuzzyMatchResult } from './fuzzy-search.js';
+
+// Logger - structured logging abstraction
+export { logger, createLogger } from './logger.js';
+export type { Logger, LogLevel, LogContext } from './logger.js';
 
 // General Utilities
 export { deepClone } from './utils.js';

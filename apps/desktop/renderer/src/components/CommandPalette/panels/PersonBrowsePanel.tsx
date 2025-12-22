@@ -9,8 +9,8 @@
 
 import { useMemo } from 'react';
 import type { Note } from '@scribe/shared';
+import { getRelativeDateString } from '@scribe/shared';
 import { UserIcon } from '@scribe/design-system';
-import { formatRelativeDate } from '../../../utils/formatRelativeDate';
 import { useCommandPaletteContext } from '../CommandPaletteContext';
 import { useFuzzySearch } from './useFuzzySearch';
 import { PaletteItem, PaletteItemList } from './PaletteItem';
@@ -65,7 +65,7 @@ export function PersonBrowsePanel({ allPeople, isLoading }: PersonBrowsePanelPro
           key={person.id}
           id={person.id}
           title={person.title}
-          description={formatRelativeDate(person.updatedAt)}
+          description={getRelativeDateString(person.updatedAt)}
           icon={<UserIcon />}
           isSelected={index === selectedPersonIndex}
           index={index}

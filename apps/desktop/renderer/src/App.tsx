@@ -420,6 +420,7 @@ function App() {
           onClose={contextPanel.toggle}
           onExportSuccess={handleExportSuccess}
           onExportError={handleExportError}
+          onError={handleProviderError}
           shareMenuOpen={contextPanel.isOpen ? shareMenuOpen : undefined}
           onShareMenuOpenChange={contextPanel.isOpen ? setShareMenuOpen : undefined}
         />

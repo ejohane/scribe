@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { COMMAND_PRIORITY_NORMAL, KEY_DOWN_COMMAND } from 'lexical';
 import type { EditorContent } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'ManualSavePlugin' });
 
 interface ManualSavePluginProps {
   /** Callback to save editor content */
@@ -33,7 +36,7 @@ export function ManualSavePlugin({ onSave }: ManualSavePluginProps) {
           editor.getEditorState().read(() => {
             const json = editor.getEditorState().toJSON();
             onSave(json as EditorContent).catch((error) => {
-              console.error('Manual save failed:', error);
+              log.error('Manual save failed', { error });
             });
           });
 

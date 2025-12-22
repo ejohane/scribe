@@ -50,7 +50,7 @@ async function initializeEngine() {
     mainLogger.info(`Loaded ${noteCount} notes from vault`);
 
     // Check for quarantined files and log warning
-    const quarantinedFiles = deps.vault.getQuarantinedFiles();
+    const quarantinedFiles = deps.vault.getQuarantineManager().listQuarantined();
     if (quarantinedFiles.length > 0) {
       mainLogger.warn(
         `${quarantinedFiles.length} corrupt note(s) were quarantined: ${quarantinedFiles.join(', ')}`

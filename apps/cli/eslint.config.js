@@ -10,6 +10,10 @@ export default [
         __filename: 'readonly',
       },
     },
+    rules: {
+      // CLI uses console for user output - this is intentional
+      'no-console': 'off',
+    },
   },
   {
     ignores: ['scribe'],

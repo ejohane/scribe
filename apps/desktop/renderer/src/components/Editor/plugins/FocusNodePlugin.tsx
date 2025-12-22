@@ -25,7 +25,10 @@ import {
   $createRangeSelection,
 } from 'lexical';
 import { $isListItemNode, ListItemNode } from '@lexical/list';
+import { createLogger } from '@scribe/shared';
 import { computeTextHash } from '@scribe/engine-core';
+
+const log = createLogger({ prefix: 'FocusNodePlugin' });
 
 /**
  * Payload for the FOCUS_NODE_COMMAND.
@@ -202,7 +205,7 @@ export function FocusNodePlugin(): null {
         }
 
         // Node not found - log for debugging
-        console.warn('FocusNodePlugin: Could not find node', {
+        log.warn('Could not find node', {
           nodeKey,
           textHashFallback,
           lineIndexFallback,

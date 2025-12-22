@@ -194,7 +194,12 @@ describe('useBacklinks', () => {
         await result.current.fetchForNote(createNoteId('note-1'));
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch backlinks:', expect.any(Error));
+      // Logger outputs structured format with timestamp, level, context, and message
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      const logOutput = consoleErrorSpy.mock.calls[0][0] as string;
+      expect(logOutput).toContain('ERROR');
+      expect(logOutput).toContain('[useBacklinks]');
+      expect(logOutput).toContain('Failed to fetch backlinks');
 
       // Results should remain empty on error
       expect(result.current.results).toEqual([]);

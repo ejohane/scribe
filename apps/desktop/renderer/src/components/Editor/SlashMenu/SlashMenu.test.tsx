@@ -108,9 +108,6 @@ describe('SlashMenuItem', () => {
     });
   });
 
-  // Note: AI commands removed - see TODO in commands.ts
-  // Tests will be re-added when AI functionality is implemented
-
   describe('different command types', () => {
     const commandTypes = [
       { id: 'text', label: 'Text' },
@@ -178,9 +175,6 @@ describe('SlashMenu', () => {
       expect(screen.getByText('Bullet List')).toBeInTheDocument();
       expect(screen.getByText('Quote')).toBeInTheDocument();
     });
-
-    // Note: AI commands removed - see TODO in commands.ts
-    // Tests will be re-added when AI functionality is implemented
 
     it('renders with position styles', () => {
       render(<SlashMenu {...defaultProps} position={{ top: 150, left: 250 }} />);
@@ -250,10 +244,8 @@ describe('SlashMenu', () => {
       expect(screen.getByText('Text')).toBeInTheDocument();
       expect(screen.getByText('Heading 1')).toBeInTheDocument();
       expect(screen.queryByText('Continue writing')).not.toBeInTheDocument();
-      expect(screen.queryByText('AI')).not.toBeInTheDocument(); // No AI section header
+      expect(screen.queryByText('AI')).not.toBeInTheDocument();
     });
-
-    // Note: AI commands removed - this test will be re-added when AI functionality is implemented
 
     it('shows single command when filtered to one result', () => {
       const singleCommand = slashCommands.filter((c) => c.id === 'heading1');
@@ -272,7 +264,5 @@ describe('SlashMenu', () => {
       expect(menu.textContent).toContain('Text');
       expect(menu.textContent).toContain('Heading 1');
     });
-
-    // Note: AI section tests removed - will be re-added when AI functionality is implemented
   });
 });

@@ -13,7 +13,7 @@ import {
   createVaultPath,
   createNoteId,
   type VaultPath,
-  type LexicalState,
+  type EditorContent,
 } from '@scribe/shared';
 
 describe('Error Handling', () => {
@@ -56,7 +56,7 @@ describe('Error Handling', () => {
       expect(count).toBe(1);
 
       // Verify the corrupt file was quarantined
-      const quarantined = vault.getQuarantinedFiles();
+      const quarantined = vault.getQuarantineManager().listQuarantined();
       expect(quarantined).toHaveLength(1);
       expect(quarantined[0]).toBe('corrupted.json');
 
@@ -85,7 +85,7 @@ describe('Error Handling', () => {
       expect(count).toBe(0);
 
       // Verify quarantine
-      const quarantined = vault.getQuarantinedFiles();
+      const quarantined = vault.getQuarantineManager().listQuarantined();
       expect(quarantined).toHaveLength(1);
       expect(quarantined[0]).toBe('invalid.json');
     });
@@ -127,7 +127,7 @@ describe('Error Handling', () => {
               },
             ],
           },
-        } as LexicalState,
+        } as EditorContent,
       };
 
       await expect(vault.save(updatedNote)).rejects.toThrow(ScribeError);
@@ -216,7 +216,7 @@ describe('Error Handling', () => {
         expect(count).toBe(0);
 
         // Verify the corrupt file was handled
-        const quarantined = vault.getQuarantinedFiles();
+        const quarantined = vault.getQuarantineManager().listQuarantined();
         expect(quarantined).toHaveLength(1);
         expect(quarantined[0]).toBe('corrupted.json');
 

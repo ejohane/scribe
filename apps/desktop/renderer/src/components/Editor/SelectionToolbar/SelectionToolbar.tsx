@@ -5,8 +5,6 @@
  * Organized into two sections:
  * 1. Text formatting: Bold, Italic, Underline, Strikethrough
  * 2. Block formatting: H1, H2, Highlight
- *
- * TODO: Re-enable Actions section (Link, Ask AI) when implemented
  */
 
 import { type MouseEvent } from 'react';
@@ -19,9 +17,6 @@ import {
   Heading1Icon,
   Heading2Icon,
   HighlightIcon,
-  // TODO: Re-enable when Link and Ask AI features are implemented
-  // LinkIcon,
-  // SparklesIcon,
 } from '@scribe/design-system';
 import * as styles from './SelectionToolbar.css';
 
@@ -58,9 +53,6 @@ export interface SelectionToolbarProps {
   activeFormats: ActiveFormats;
   /** Callback when a format button is clicked */
   onFormat: (format: FormatType) => void;
-  // TODO: Re-enable when Ask AI feature is implemented
-  // /** Callback when "Ask AI" is clicked */
-  // onAskAi?: () => void;
 }
 
 export function SelectionToolbar({ position, activeFormats, onFormat }: SelectionToolbarProps) {
@@ -126,19 +118,6 @@ export function SelectionToolbar({ position, activeFormats, onFormat }: Selectio
         onClick={() => onFormat('highlight')}
         title="Highlight"
       />
-
-      {/* TODO: Re-enable Actions section when Link and Ask AI features are implemented */}
-      {/* <div className={styles.divider} /> */}
-      {/* <ToolbarButton
-        icon={<LinkIcon size={16} strokeWidth={2.5} />}
-        active={activeFormats.link}
-        onClick={() => onFormat('link')}
-        title="Link"
-      />
-      <button className={styles.askAiButton} onClick={onAskAi} type="button" title="Ask AI">
-        <SparklesIcon size={12} strokeWidth={2.5} />
-        <span>Ask AI</span>
-      </button> */}
 
       {/* Triangle pointer */}
       <div className={styles.pointerBorder} />

@@ -444,3 +444,70 @@ export function isSyncConflictError(error: unknown): error is SyncConflictError 
 export function isMigrationError(error: unknown): error is MigrationError {
   return error instanceof MigrationError;
 }
+
+// ============================================================================
+// Error Message Extraction Utilities
+// ============================================================================
+
+/**
+ * Safely extract an error message from an unknown caught value.
+ *
+ * This utility standardizes error message extraction across the codebase,
+ * replacing inconsistent inline patterns like:
+ * ```typescript
+ * const msg = err instanceof Error ? err.message : 'Unknown error';
+ * ```
+ *
+ * @param error - The caught value (could be Error, string, or anything)
+ * @param fallback - Default message if error is not an Error instance
+ * @returns Human-readable error message
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await riskyOperation();
+ * } catch (error) {
+ *   const message = getErrorMessage(error, 'Operation failed');
+ *   showToast(message, 'error');
+ * }
+ * ```
+ */
+export function getErrorMessage(error: unknown, fallback = 'An error occurred'): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return fallback;
+}
+
+/**
+ * Extract error message with context prefix.
+ *
+ * Use this when you want to provide context about what operation failed,
+ * combined with the actual error message.
+ *
+ * @param error - The caught value
+ * @param context - Context message describing the operation that failed
+ * @returns Combined context and error message, or just context if no message
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await saveNote(note);
+ * } catch (error) {
+ *   const message = getErrorMessageWithContext(error, 'Failed to save note');
+ *   // Returns: "Failed to save note: Network timeout" or "Failed to save note"
+ *   showToast(message, 'error');
+ * }
+ * ```
+ */
+export function getErrorMessageWithContext(error: unknown, context: string): string {
+  const message = getErrorMessage(error);
+  // Only append the message if it's not the default fallback
+  if (message !== 'An error occurred' && message) {
+    return `${context}: ${message}`;
+  }
+  return context;
+}

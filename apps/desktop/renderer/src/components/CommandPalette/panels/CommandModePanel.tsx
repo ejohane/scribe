@@ -10,7 +10,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import clsx from 'clsx';
 import type { SearchResult } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import type { Command } from '../../../commands/types';
+
+const log = createLogger({ prefix: 'CommandModePanel' });
 import {
   Text,
   FileTextIcon,
@@ -34,6 +37,8 @@ export interface CommandModePanelProps {
   filterCommands?: (commands: Command[], query: string) => Command[];
   /** Callback to create a daily note for a specific date */
   onCreateDailyNote?: (isoDate: string) => Promise<void>;
+  /** Callback when an error occurs (for showing toast notifications) */
+  onError?: (message: string) => void;
 }
 
 export function CommandModePanel({
@@ -42,6 +47,7 @@ export function CommandModePanel({
   onSearchResultSelect,
   filterCommands,
   onCreateDailyNote,
+  onError,
 }: CommandModePanelProps) {
   // Get shared state from context
   const { query, selectedIndex, setSelectedIndex, onClose } = useCommandPaletteContext();
@@ -91,10 +97,11 @@ export function CommandModePanel({
             setCreateDailyIsoDate(null);
           }
         } catch (error) {
-          console.error('Search failed:', error);
+          log.error('Search failed', { query, error });
           setSearchResults([]);
           setShowCreateDailyOption(false);
           setCreateDailyIsoDate(null);
+          onError?.('Search failed');
         }
       } else {
         setSearchResults([]);

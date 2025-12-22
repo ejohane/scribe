@@ -357,6 +357,7 @@ export function CommandPalette({
               onSearchResultSelect={onSearchResultSelect}
               filterCommands={filterCommands}
               onCreateDailyNote={onCreateDailyNote}
+              onError={showToast ? (msg) => showToast(msg, 'error') : undefined}
             />
           )}
         </div>

@@ -7,8 +7,6 @@
  * - Format button click callbacks
  * - mouseDown preventDefault behavior (to preserve selection)
  * - Accessibility attributes
- *
- * TODO: Re-enable Ask AI and Link button tests when those features are implemented
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -38,12 +36,6 @@ vi.mock('@scribe/design-system', () => ({
   HighlightIcon: ({ size, strokeWidth }: { size: number; strokeWidth: number }) => (
     <svg data-testid="highlight-icon" data-size={size} data-stroke-width={strokeWidth} />
   ),
-  LinkIcon: ({ size, strokeWidth }: { size: number; strokeWidth: number }) => (
-    <svg data-testid="link-icon" data-size={size} data-stroke-width={strokeWidth} />
-  ),
-  SparklesIcon: ({ size, strokeWidth }: { size: number; strokeWidth: number }) => (
-    <svg data-testid="sparkles-icon" data-size={size} data-stroke-width={strokeWidth} />
-  ),
 }));
 
 describe('SelectionToolbar', () => {
@@ -62,7 +54,6 @@ describe('SelectionToolbar', () => {
     position: { top: 100, left: 200 },
     activeFormats: defaultActiveFormats,
     onFormat: vi.fn(),
-    // onAskAi prop removed - Ask AI feature not yet implemented
   };
 
   beforeEach(() => {
@@ -122,7 +113,6 @@ describe('SelectionToolbar', () => {
       expect(screen.getByTitle('Heading 1')).toBeInTheDocument();
       expect(screen.getByTitle('Heading 2')).toBeInTheDocument();
       expect(screen.getByTitle('Highlight')).toBeInTheDocument();
-      // Link and Ask AI buttons temporarily removed until features are implemented
     });
   });
 
@@ -144,8 +134,6 @@ describe('SelectionToolbar', () => {
         expect(screen.getByTestId('heading2-icon')).toBeInTheDocument();
         expect(screen.getByTestId('highlight-icon')).toBeInTheDocument();
       });
-
-      // Link button and Ask AI button tests temporarily removed until features are implemented
     });
 
     describe('click handling', () => {
@@ -218,8 +206,6 @@ describe('SelectionToolbar', () => {
         expect(onFormat).toHaveBeenCalledTimes(1);
         expect(onFormat).toHaveBeenCalledWith('highlight');
       });
-
-      // Link button test temporarily removed until Link feature is implemented
     });
 
     describe('active states', () => {
@@ -308,8 +294,6 @@ describe('SelectionToolbar', () => {
         expect(highlightButton.className).toContain('buttonActive');
       });
 
-      // Link active state test temporarily removed until Link feature is implemented
-
       it('can show multiple formats as active simultaneously', () => {
         render(
           <SelectionToolbar
@@ -339,12 +323,9 @@ describe('SelectionToolbar', () => {
         expect(screen.getByTitle('Heading 1').className).not.toContain('buttonActive');
         expect(screen.getByTitle('Heading 2').className).not.toContain('buttonActive');
         expect(screen.getByTitle('Highlight').className).not.toContain('buttonActive');
-        // Link button temporarily removed until feature is implemented
       });
     });
   });
-
-  // Ask AI button tests temporarily removed until Ask AI feature is implemented
 
   describe('selection preservation', () => {
     it('prevents default on mousedown to preserve text selection', () => {
@@ -364,8 +345,7 @@ describe('SelectionToolbar', () => {
     it('renders dividers between sections', () => {
       const { container } = render(<SelectionToolbar {...defaultProps} />);
 
-      // The toolbar has 1 divider separating the 2 sections (Actions section temporarily removed)
-      // We can check by looking for divider class elements
+      // The toolbar has 1 divider separating the 2 sections
       const dividers = container.querySelectorAll('[class*="divider"]');
       expect(dividers.length).toBe(1);
     });

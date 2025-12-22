@@ -8,8 +8,8 @@
  */
 
 import type { Note, NoteId } from '@scribe/shared';
+import { getRelativeDateString } from '@scribe/shared';
 import { FileTextIcon } from '@scribe/design-system';
-import { formatRelativeDate } from '../../../utils/formatRelativeDate';
 import { MAX_RECENT_NOTES } from '../config';
 import { useCommandPaletteContext } from '../CommandPaletteContext';
 import { useFuzzySearch, useRecentNotes } from './useFuzzySearch';
@@ -59,7 +59,7 @@ export function DeleteBrowsePanel({ allNotes, isLoading }: DeleteBrowsePanelProp
           key={note.id}
           id={note.id}
           title={note.title}
-          description={formatRelativeDate(note.updatedAt)}
+          description={getRelativeDateString(note.updatedAt)}
           icon={<FileTextIcon />}
           isSelected={index === selectedNoteIndex}
           index={index}

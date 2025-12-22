@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
 import type { Note } from '@scribe/shared';
+import { createMockNote, createContent, paragraph, text } from '@scribe/test-utils';
 
 // Mock the context module
 vi.mock('../../../src/context.js', () => ({
@@ -79,38 +80,23 @@ describe('search commands', () => {
   });
 
   /**
-   * Helper to create a mock note with all required fields
+   * Helper to create a mock note with content text
    */
-  function createMockNote(id: string, title: string, content: string): Note {
-    return {
+  function createMockNoteWithContent(id: string, title: string, contentText: string): Note {
+    return createMockNote({
       id,
       title,
-      tags: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      content: {
-        root: {
-          type: 'root',
-          children: [
-            {
-              type: 'paragraph',
-              children: [{ type: 'text', text: content }],
-            },
-          ],
-        },
-      },
-      metadata: {
-        title: null,
-        tags: [],
-        links: [],
-        mentions: [],
-      },
-    } as unknown as Note;
+      content: createContent(paragraph(text(contentText))),
+    });
   }
 
   describe('basic search', () => {
     it('performs basic search', async () => {
-      const note1 = createMockNote('note-1', 'Test Note', 'This is a test note about JavaScript');
+      const note1 = createMockNoteWithContent(
+        'note-1',
+        'Test Note',
+        'This is a test note about JavaScript'
+      );
       const searchResults = [{ id: 'note-1', score: 0.95 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -135,8 +121,12 @@ describe('search commands', () => {
     });
 
     it('returns results with relevance scoring', async () => {
-      const note1 = createMockNote('note-1', 'High Score', 'JavaScript JavaScript JavaScript');
-      const note2 = createMockNote('note-2', 'Low Score', 'Contains JavaScript once');
+      const note1 = createMockNoteWithContent(
+        'note-1',
+        'High Score',
+        'JavaScript JavaScript JavaScript'
+      );
+      const note2 = createMockNoteWithContent('note-2', 'Low Score', 'Contains JavaScript once');
 
       const searchResults = [
         { id: 'note-1', score: 0.95 },
@@ -187,7 +177,7 @@ describe('search commands', () => {
   describe('pagination', () => {
     it('supports limit option', async () => {
       const notes = Array.from({ length: 30 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, `Content ${i}`)
+        createMockNoteWithContent(`note-${i}`, `Note ${i}`, `Content ${i}`)
       );
       const searchResults = notes.map((n, i) => ({ id: n.id, score: 1 - i * 0.01 }));
 
@@ -207,7 +197,7 @@ describe('search commands', () => {
 
     it('supports offset option', async () => {
       const notes = Array.from({ length: 30 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, `Content ${i}`)
+        createMockNoteWithContent(`note-${i}`, `Note ${i}`, `Content ${i}`)
       );
       const searchResults = notes.map((n, i) => ({ id: n.id, score: 1 - i * 0.01 }));
 
@@ -238,7 +228,7 @@ describe('search commands', () => {
 
     it('uses default limit of 20', async () => {
       const notes = Array.from({ length: 30 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, `Content ${i}`)
+        createMockNoteWithContent(`note-${i}`, `Note ${i}`, `Content ${i}`)
       );
       const searchResults = notes.map((n, i) => ({ id: n.id, score: 1 - i * 0.01 }));
 
@@ -258,7 +248,7 @@ describe('search commands', () => {
 
     it('requests enough results from engine to cover offset + limit', async () => {
       const notes = Array.from({ length: 50 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, `Content ${i}`)
+        createMockNoteWithContent(`note-${i}`, `Note ${i}`, `Content ${i}`)
       );
       const searchResults = notes.map((n, i) => ({ id: n.id, score: 1 - i * 0.01 }));
 
@@ -288,7 +278,11 @@ describe('search commands', () => {
 
   describe('result formatting', () => {
     it('includes snippet in results', async () => {
-      const note = createMockNote('note-1', 'JavaScript Tutorial', 'Learn JavaScript basics today');
+      const note = createMockNoteWithContent(
+        'note-1',
+        'JavaScript Tutorial',
+        'Learn JavaScript basics today'
+      );
       const searchResults = [{ id: 'note-1', score: 0.9 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -310,7 +304,7 @@ describe('search commands', () => {
     });
 
     it('includes match count in results', async () => {
-      const note = createMockNote('note-1', 'Test', 'JavaScript JavaScript JavaScript');
+      const note = createMockNoteWithContent('note-1', 'Test', 'JavaScript JavaScript JavaScript');
       const searchResults = [{ id: 'note-1', score: 0.9 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -338,7 +332,7 @@ describe('search commands', () => {
 
     it('includes total count in output', async () => {
       const notes = Array.from({ length: 25 }, (_, i) =>
-        createMockNote(`note-${i}`, `Note ${i}`, `Content ${i}`)
+        createMockNoteWithContent(`note-${i}`, `Note ${i}`, `Content ${i}`)
       );
       const searchResults = notes.map((n, i) => ({ id: n.id, score: 1 - i * 0.01 }));
 
@@ -364,7 +358,7 @@ describe('search commands', () => {
   describe('snippet generation', () => {
     it('generates snippet around match location', async () => {
       const longContent = 'A'.repeat(100) + 'JavaScript' + 'B'.repeat(100);
-      const note = createMockNote('note-1', 'Test', longContent);
+      const note = createMockNoteWithContent('note-1', 'Test', longContent);
       const searchResults = [{ id: 'note-1', score: 0.9 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -384,7 +378,7 @@ describe('search commands', () => {
 
     it('adds ellipsis for truncated snippets', async () => {
       const longContent = 'A'.repeat(100) + 'JavaScript' + 'B'.repeat(100);
-      const note = createMockNote('note-1', 'Test', longContent);
+      const note = createMockNoteWithContent('note-1', 'Test', longContent);
       const searchResults = [{ id: 'note-1', score: 0.9 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -402,7 +396,7 @@ describe('search commands', () => {
 
     it('returns beginning of content when query not found in plain text', async () => {
       const content = 'This is the beginning of the note content that is very long';
-      const note = createMockNote('note-1', 'Test', content);
+      const note = createMockNoteWithContent('note-1', 'Test', content);
       const searchResults = [{ id: 'note-1', score: 0.5 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -423,7 +417,7 @@ describe('search commands', () => {
   describe('special character handling', () => {
     it('handles regex special characters in query', async () => {
       const content = 'Using regex patterns like (foo|bar) and [a-z]+';
-      const note = createMockNote('note-1', 'Regex Tutorial', content);
+      const note = createMockNoteWithContent('note-1', 'Regex Tutorial', content);
       const searchResults = [{ id: 'note-1', score: 0.9 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);
@@ -438,7 +432,7 @@ describe('search commands', () => {
 
     it('correctly counts matches with special characters', async () => {
       const content = 'Using C++ and C++ for development';
-      const note = createMockNote('note-1', 'C++ Guide', content);
+      const note = createMockNoteWithContent('note-1', 'C++ Guide', content);
       const searchResults = [{ id: 'note-1', score: 0.9 }];
 
       mockSearchEngine.search.mockReturnValue(searchResults);

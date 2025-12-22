@@ -9,7 +9,10 @@
 
 import { Component, ReactNode } from 'react';
 import { Surface, Text, Button } from '@scribe/design-system';
+import { createLogger } from '@scribe/shared';
 import * as styles from './ErrorBoundary.css';
+
+const log = createLogger({ prefix: 'ErrorBoundary' });
 
 interface ErrorBoundaryProps {
   /** The child components to render */
@@ -39,11 +42,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log the error for debugging
-    console.error(
-      `[ErrorBoundary${this.props.name ? `: ${this.props.name}` : ''}] Caught error:`,
-      error,
-      errorInfo
-    );
+    log.error('Caught error', {
+      name: this.props.name,
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
 
     // Call optional error callback
     this.props.onError?.(error, errorInfo);

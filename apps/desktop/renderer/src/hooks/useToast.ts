@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { TOAST_AUTO_DISMISS_MS } from '../constants';
 
 export interface Toast {
   id: string;
@@ -12,13 +13,11 @@ interface UseToastReturn {
   dismissToast: (id: string) => void;
 }
 
-const AUTO_DISMISS_MS = 3000;
-
 /**
  * Custom hook for managing toast notifications
  *
  * Features:
- * - Auto-dismiss after 3 seconds
+ * - Auto-dismiss after TOAST_AUTO_DISMISS_MS (see constants/timing.ts)
  * - Manual dismissal via dismissToast
  * - Multiple concurrent toasts
  * - Cleanup of pending timeouts on unmount
@@ -58,7 +57,7 @@ export function useToast(): UseToastReturn {
       // Set up auto-dismiss timeout
       const timeout = setTimeout(() => {
         dismissToast(id);
-      }, AUTO_DISMISS_MS);
+      }, TOAST_AUTO_DISMISS_MS);
 
       timeoutsRef.current.set(id, timeout);
     },

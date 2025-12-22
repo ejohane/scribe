@@ -294,13 +294,13 @@ describe('ErrorBoundary', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalled();
 
-      // Find the call from our ErrorBoundary (not React's internal logging)
+      // Find the call from our ErrorBoundary (logger outputs structured format)
       const errorBoundaryCall = consoleErrorSpy.mock.calls.find(
         (call) => typeof call[0] === 'string' && call[0].includes('[ErrorBoundary]')
       );
 
       expect(errorBoundaryCall).toBeDefined();
-      expect(errorBoundaryCall![0]).toContain('Caught error:');
+      expect(errorBoundaryCall![0]).toContain('Caught error');
     });
 
     it('logs error with name in prefix when name prop is provided', () => {
@@ -312,9 +312,12 @@ describe('ErrorBoundary', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalled();
 
-      // Find the call from our ErrorBoundary with the name
+      // Find the call from our ErrorBoundary - logger outputs name in context
       const errorBoundaryCall = consoleErrorSpy.mock.calls.find(
-        (call) => typeof call[0] === 'string' && call[0].includes('[ErrorBoundary: Sidebar]')
+        (call) =>
+          typeof call[0] === 'string' &&
+          call[0].includes('[ErrorBoundary]') &&
+          call[0].includes('Sidebar')
       );
 
       expect(errorBoundaryCall).toBeDefined();
@@ -329,15 +332,14 @@ describe('ErrorBoundary', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalled();
 
-      // Find the call from our ErrorBoundary
+      // Find the call from our ErrorBoundary (logger outputs structured JSON with error message)
       const errorBoundaryCall = consoleErrorSpy.mock.calls.find(
         (call) => typeof call[0] === 'string' && call[0].includes('[ErrorBoundary]')
       );
 
       expect(errorBoundaryCall).toBeDefined();
-      // Second argument should be the error
-      expect(errorBoundaryCall![1]).toBeInstanceOf(Error);
-      expect((errorBoundaryCall![1] as Error).message).toBe('Test error message');
+      // Logger serializes error to JSON - check the message is in the output
+      expect(errorBoundaryCall![0]).toContain('Test error message');
     });
 
     it('logs error info (component stack)', () => {
@@ -355,8 +357,8 @@ describe('ErrorBoundary', () => {
       );
 
       expect(errorBoundaryCall).toBeDefined();
-      // Third argument should be errorInfo with componentStack
-      expect(errorBoundaryCall![2]).toHaveProperty('componentStack');
+      // Logger includes componentStack in the JSON context
+      expect(errorBoundaryCall![0]).toContain('componentStack');
     });
   });
 

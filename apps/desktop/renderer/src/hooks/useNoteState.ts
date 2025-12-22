@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Note, NoteId, EditorContent, NoteType } from '@scribe/shared';
-import { isSystemNoteId } from '@scribe/shared';
+import { isSystemNoteId, getErrorMessage, logger } from '@scribe/shared';
+
+const log = logger.child('useNoteState');
 
 /**
  * Partial note metadata that can be updated via the header UI
@@ -98,9 +100,8 @@ export function useNoteState(): UseNoteStateReturn {
       // Remember this as the last opened note
       await window.scribe.app.setLastOpenedNote(id);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load note';
-      setError(errorMessage);
-      console.error('Failed to load note:', err);
+      setError(getErrorMessage(err, 'Failed to load note'));
+      log.error('Failed to load note', { noteId: id, error: getErrorMessage(err) });
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +116,8 @@ export function useNoteState(): UseNoteStateReturn {
         setError('No note loaded to save');
         return;
       }
+
+      setError(null);
 
       try {
         // Create updated note with new content
@@ -136,9 +139,8 @@ export function useNoteState(): UseNoteStateReturn {
           setError('Failed to save note');
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to save note';
-        setError(errorMessage);
-        console.error('Failed to save note:', err);
+        setError(getErrorMessage(err, 'Failed to save note'));
+        log.error('Failed to save note', { noteId: currentNote?.id, error: getErrorMessage(err) });
       }
     },
     [currentNote]
@@ -160,6 +162,8 @@ export function useNoteState(): UseNoteStateReturn {
         setError('No note loaded to update');
         return;
       }
+
+      setError(null);
 
       // Use functional setState to ensure we're working with the latest state
       // This is critical for preventing race conditions with rapid updates
@@ -214,9 +218,11 @@ export function useNoteState(): UseNoteStateReturn {
           }
           return prevNote;
         });
-        const errorMessage = err instanceof Error ? err.message : 'Failed to update note metadata';
-        setError(errorMessage);
-        console.error('Failed to update note metadata:', err);
+        setError(getErrorMessage(err, 'Failed to update note metadata'));
+        log.error('Failed to update note metadata', {
+          noteId: stateBeforeUpdate?.id,
+          error: getErrorMessage(err),
+        });
       }
     },
     [] // No dependencies needed - we use ref for current state
@@ -237,9 +243,8 @@ export function useNoteState(): UseNoteStateReturn {
       // Remember this as the last opened note
       await window.scribe.app.setLastOpenedNote(newNote.id);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create note';
-      setError(errorMessage);
-      console.error('Failed to create note:', err);
+      setError(getErrorMessage(err, 'Failed to create note'));
+      log.error('Failed to create note', { error: getErrorMessage(err) });
     } finally {
       setIsLoading(false);
     }
@@ -258,6 +263,8 @@ export function useNoteState(): UseNoteStateReturn {
         throw new Error(errorMessage);
       }
 
+      setError(null);
+
       try {
         await window.scribe.notes.delete(id);
 
@@ -267,9 +274,8 @@ export function useNoteState(): UseNoteStateReturn {
           setCurrentNoteId(null);
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to delete note';
-        setError(errorMessage);
-        console.error('Failed to delete note:', err);
+        setError(getErrorMessage(err, 'Failed to delete note'));
+        log.error('Failed to delete note', { noteId: id, error: getErrorMessage(err) });
         throw err; // Re-throw so caller can handle (e.g., show error toast)
       }
     },
@@ -296,7 +302,7 @@ export function useNoteState(): UseNoteStateReturn {
           await createNote();
         }
       } catch (err) {
-        console.error('Failed to initialize note:', err);
+        log.error('Failed to initialize note', { error: getErrorMessage(err) });
         // If loading last note fails, clear error and create a new one
         setError(null);
         await createNote();

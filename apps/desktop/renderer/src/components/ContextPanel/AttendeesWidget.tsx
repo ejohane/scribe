@@ -14,8 +14,10 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import clsx from 'clsx';
 import type { Note, NoteId } from '@scribe/shared';
-import { isMeetingNote } from '@scribe/shared';
+import { isMeetingNote, createLogger } from '@scribe/shared';
 import { UsersIcon } from '@scribe/design-system';
+
+const log = createLogger({ prefix: 'AttendeesWidget' });
 import * as styles from './AttendeesWidget.css';
 
 export interface AttendeesWidgetProps {
@@ -96,7 +98,7 @@ export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWid
         setSearchQuery('');
         onNoteUpdate?.();
       } catch (error) {
-        console.error('Failed to create person:', error);
+        log.error('Failed to create person', { name, noteId: note.id, error });
       }
     },
     [note.id, onNoteUpdate]

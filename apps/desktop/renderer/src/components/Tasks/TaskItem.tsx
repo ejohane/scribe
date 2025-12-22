@@ -90,7 +90,7 @@ export const TaskItem = forwardRef<HTMLDivElement, TaskItemProps>(function TaskI
   );
 
   const handleTextClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
       onNavigate(task);
     },
@@ -98,7 +98,7 @@ export const TaskItem = forwardRef<HTMLDivElement, TaskItemProps>(function TaskI
   );
 
   const handleNoteTitleClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
       onNavigate(task);
     },
@@ -154,7 +154,7 @@ export const TaskItem = forwardRef<HTMLDivElement, TaskItemProps>(function TaskI
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
-              handleTextClick(e as unknown as React.MouseEvent);
+              handleTextClick(e);
             }
           }}
         >
@@ -169,7 +169,7 @@ export const TaskItem = forwardRef<HTMLDivElement, TaskItemProps>(function TaskI
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                handleNoteTitleClick(e as unknown as React.MouseEvent);
+                handleNoteTitleClick(e);
               }
             }}
           >

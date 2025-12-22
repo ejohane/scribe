@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Command } from 'commander';
-import type { Note, BaseNote } from '@scribe/shared';
-import { createNoteId } from '@scribe/shared';
+import type { Note } from '@scribe/shared';
+import { createMockNote } from '@scribe/test-utils';
 
 // Mock the context module
 vi.mock('../../../src/context.js', () => ({
@@ -23,51 +23,6 @@ vi.mock('../../../src/output.js', () => ({
 import { registerVaultCommands } from '../../../src/commands/vault';
 import { initializeContext } from '../../../src/context';
 import { output } from '../../../src/output';
-
-/**
- * Create a base note structure for testing
- */
-function createBaseNote(id: string, title: string): Omit<BaseNote, 'type'> {
-  return {
-    id: createNoteId(id),
-    title,
-    content: { root: { type: 'root', children: [] } },
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    tags: [],
-    metadata: {
-      title: null,
-      tags: [],
-      links: [],
-      mentions: [],
-    },
-  };
-}
-
-/**
- * Create a mock regular note for testing
- */
-function createMockNote(
-  id: string,
-  title: string,
-  options?: {
-    type?: 'person' | 'daily' | undefined;
-    createdAt?: number;
-    updatedAt?: number;
-    tags?: string[];
-    daily?: { date: string };
-  }
-): Note {
-  const base = createBaseNote(id, title);
-  return {
-    ...base,
-    type: options?.type,
-    createdAt: options?.createdAt ?? base.createdAt,
-    updatedAt: options?.updatedAt ?? base.updatedAt,
-    tags: options?.tags ?? [],
-    ...(options?.daily ? { daily: options.daily } : {}),
-  } as Note;
-}
 
 /**
  * Create a mock vault with common methods
@@ -154,7 +109,10 @@ describe('vault commands', () => {
 
   describe('info', () => {
     it('returns vault statistics', async () => {
-      const notes = [createMockNote('note-1', 'Note 1'), createMockNote('note-2', 'Note 2')];
+      const notes = [
+        createMockNote({ id: 'note-1', title: 'Note 1' }),
+        createMockNote({ id: 'note-2', title: 'Note 2' }),
+      ];
 
       const ctx = createMockContext(notes, { tagCount: 5 });
       mockInitializeContext.mockResolvedValue(ctx);
@@ -174,9 +132,9 @@ describe('vault commands', () => {
 
     it('includes note count', async () => {
       const notes = [
-        createMockNote('note-1', 'Note 1'),
-        createMockNote('note-2', 'Note 2'),
-        createMockNote('note-3', 'Note 3'),
+        createMockNote({ id: 'note-1', title: 'Note 1' }),
+        createMockNote({ id: 'note-2', title: 'Note 2' }),
+        createMockNote({ id: 'note-3', title: 'Note 3' }),
       ];
 
       const ctx = createMockContext(notes);
@@ -190,7 +148,7 @@ describe('vault commands', () => {
     });
 
     it('includes task count', async () => {
-      const notes = [createMockNote('note-1', 'Note 1')];
+      const notes = [createMockNote({ id: 'note-1', title: 'Note 1' })];
       const tasks = [{ completed: false }, { completed: true }, { completed: false }];
 
       const ctx = createMockContext(notes, { tasks });
@@ -206,7 +164,9 @@ describe('vault commands', () => {
 
     it('outputs JSON format correctly', async () => {
       const notes = [
-        createMockNote('note-1', 'Note 1', {
+        createMockNote({
+          id: 'note-1',
+          title: 'Note 1',
           createdAt: new Date('2024-01-01').getTime(),
           updatedAt: new Date('2024-06-15').getTime(),
         }),
@@ -232,7 +192,7 @@ describe('vault commands', () => {
     });
 
     it('returns current vault path', async () => {
-      const notes = [createMockNote('note-1', 'Note 1')];
+      const notes = [createMockNote({ id: 'note-1', title: 'Note 1' })];
 
       const ctx = createMockContext(notes);
       ctx.vaultPath = '/my/custom/vault';
@@ -246,7 +206,7 @@ describe('vault commands', () => {
     });
 
     it('includes tag count from graph engine', async () => {
-      const notes = [createMockNote('note-1', 'Note 1')];
+      const notes = [createMockNote({ id: 'note-1', title: 'Note 1' })];
 
       const ctx = createMockContext(notes, { tagCount: 15 });
       mockInitializeContext.mockResolvedValue(ctx);
@@ -260,9 +220,9 @@ describe('vault commands', () => {
 
     it('counts person notes correctly', async () => {
       const notes = [
-        createMockNote('person-1', 'Alice', { type: 'person' }),
-        createMockNote('person-2', 'Bob', { type: 'person' }),
-        createMockNote('note-1', 'Regular Note'),
+        createMockNote({ id: 'person-1', title: 'Alice', type: 'person' }),
+        createMockNote({ id: 'person-2', title: 'Bob', type: 'person' }),
+        createMockNote({ id: 'note-1', title: 'Regular Note' }),
       ];
 
       const ctx = createMockContext(notes);
@@ -277,15 +237,19 @@ describe('vault commands', () => {
 
     it('counts daily notes correctly', async () => {
       const notes = [
-        createMockNote('daily-1', 'January 1, 2025', {
+        createMockNote({
+          id: 'daily-1',
+          title: 'January 1, 2025',
           type: 'daily',
           daily: { date: '2025-01-01' },
         }),
-        createMockNote('daily-2', 'January 2, 2025', {
+        createMockNote({
+          id: 'daily-2',
+          title: 'January 2, 2025',
           type: 'daily',
           daily: { date: '2025-01-02' },
         }),
-        createMockNote('note-1', 'Regular Note'),
+        createMockNote({ id: 'note-1', title: 'Regular Note' }),
       ];
 
       const ctx = createMockContext(notes);
@@ -303,9 +267,21 @@ describe('vault commands', () => {
       const newestDate = new Date('2024-12-31T00:00:00Z').getTime();
 
       const notes = [
-        createMockNote('note-1', 'Oldest', { createdAt: oldestDate, updatedAt: oldestDate }),
-        createMockNote('note-2', 'Newest', { createdAt: newestDate, updatedAt: newestDate }),
-        createMockNote('note-3', 'Middle', {
+        createMockNote({
+          id: 'note-1',
+          title: 'Oldest',
+          createdAt: oldestDate,
+          updatedAt: oldestDate,
+        }),
+        createMockNote({
+          id: 'note-2',
+          title: 'Newest',
+          createdAt: newestDate,
+          updatedAt: newestDate,
+        }),
+        createMockNote({
+          id: 'note-3',
+          title: 'Middle',
           createdAt: new Date('2024-06-15T00:00:00Z').getTime(),
           updatedAt: new Date('2024-06-15T00:00:00Z').getTime(),
         }),
@@ -324,11 +300,15 @@ describe('vault commands', () => {
 
     it('returns last modified date based on updatedAt', async () => {
       const notes = [
-        createMockNote('note-1', 'Note 1', {
+        createMockNote({
+          id: 'note-1',
+          title: 'Note 1',
           createdAt: new Date('2024-01-01').getTime(),
           updatedAt: new Date('2024-03-01').getTime(),
         }),
-        createMockNote('note-2', 'Note 2', {
+        createMockNote({
+          id: 'note-2',
+          title: 'Note 2',
           createdAt: new Date('2024-02-01').getTime(),
           updatedAt: new Date('2024-06-15').getTime(), // Most recently updated
         }),
@@ -361,7 +341,7 @@ describe('vault commands', () => {
     });
 
     it('ensures task index is loaded before accessing tasks', async () => {
-      const notes = [createMockNote('note-1', 'Note 1')];
+      const notes = [createMockNote({ id: 'note-1', title: 'Note 1' })];
       const ctx = createMockContext(notes);
       mockInitializeContext.mockResolvedValue(ctx);
 

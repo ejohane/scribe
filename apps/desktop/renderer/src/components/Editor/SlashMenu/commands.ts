@@ -136,8 +136,6 @@ export const slashCommands: SlashCommand[] = [
       });
     },
   },
-  // TODO: Re-enable AI commands when AI functionality is implemented
-  // See: https://github.com/scribe/scribe/issues/XXX (future AI feature epic)
 ];
 
 /**

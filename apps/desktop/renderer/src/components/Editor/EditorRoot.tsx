@@ -19,8 +19,11 @@ import {
   HorizontalRuleNode,
 } from '@lexical/react/LexicalHorizontalRuleNode';
 import type { LexicalNode } from 'lexical';
+import { createLogger } from '@scribe/shared';
 
 import type { useNoteState } from '../../hooks/useNoteState';
+
+const log = createLogger({ prefix: 'EditorRoot' });
 import { InitialStatePlugin } from './plugins/InitialStatePlugin';
 import { AutosavePlugin } from './plugins/AutosavePlugin';
 import { ManualSavePlugin } from './plugins/ManualSavePlugin';
@@ -93,7 +96,7 @@ const editorConfig = {
     tableCellSelected: styles.tableCellSelected,
   },
   onError(error: Error) {
-    console.error('Lexical error:', error);
+    log.error('Lexical error', { error: error.message, stack: error.stack });
   },
   nodes: [
     HeadingNode,

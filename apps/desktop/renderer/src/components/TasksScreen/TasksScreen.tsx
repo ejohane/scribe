@@ -14,7 +14,10 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Task, NoteId, TaskFilter, TaskChangeEvent } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import { CheckCircleIcon } from '@scribe/design-system';
+
+const log = createLogger({ prefix: 'TasksScreen' });
 import { DraggableTaskList } from '../Tasks/DraggableTaskList';
 import { FilterBar, type SortOption, type StatusOption, type DateRangeOption } from './FilterBar';
 import * as styles from './TasksScreen.css';
@@ -195,7 +198,7 @@ export function TasksScreen({ onNavigate }: TasksScreenProps) {
       setTasks(loadedTasks);
       setNextCursor(cursor);
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      log.error('Failed to load tasks', { error });
     } finally {
       setLoading(false);
     }
@@ -217,7 +220,7 @@ export function TasksScreen({ onNavigate }: TasksScreenProps) {
       setTasks((prev) => [...prev, ...moreTasks]);
       setNextCursor(cursor);
     } catch (error) {
-      console.error('Failed to load more tasks:', error);
+      log.error('Failed to load more tasks', { error });
     } finally {
       setLoadingMore(false);
     }
@@ -290,7 +293,7 @@ export function TasksScreen({ onNavigate }: TasksScreenProps) {
       await window.scribe.tasks.toggle(taskId);
       // Note: UI update handled by onChange subscription
     } catch (error) {
-      console.error('Failed to toggle task:', error);
+      log.error('Failed to toggle task', { taskId, error });
     }
   }, []);
 
@@ -310,7 +313,7 @@ export function TasksScreen({ onNavigate }: TasksScreenProps) {
       await window.scribe.tasks.reorder(taskIds);
       // Note: UI update handled by onChange subscription
     } catch (error) {
-      console.error('Failed to reorder tasks:', error);
+      log.error('Failed to reorder tasks', { error });
     }
   }, []);
 

@@ -1,16 +1,17 @@
-import { defineConfig } from 'vitest/config';
+import { nodeConfig, mergeConfig, defineConfig } from '../../config/vitest/base';
 
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-    include: ['tests/**/*.test.ts'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.ts'],
-      exclude: ['src/index.ts', 'src/cli.ts'],
+export default mergeConfig(
+  nodeConfig,
+  defineConfig({
+    test: {
+      include: ['tests/**/*.test.ts'],
+      setupFiles: ['./tests/setup.ts'],
+      coverage: {
+        include: ['src/**/*.ts'],
+        exclude: ['src/index.ts', 'src/cli.ts'],
+        // Override thresholds - CLI has different coverage needs
+        thresholds: undefined,
+      },
     },
-    setupFiles: ['./tests/setup.ts'],
-  },
-});
+  })
+);

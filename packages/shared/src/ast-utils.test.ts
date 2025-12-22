@@ -12,12 +12,12 @@ import {
   extractTextFromNodes,
   extractTextFromNode,
 } from './ast-utils.js';
-import type { LexicalNode } from './types.js';
+import type { EditorNode } from './types.js';
 
 /**
  * Helper to create a text node
  */
-function createTextNode(text: string, key?: string): LexicalNode {
+function createTextNode(text: string, key?: string): EditorNode {
   return {
     type: 'text',
     text,
@@ -28,7 +28,7 @@ function createTextNode(text: string, key?: string): LexicalNode {
 /**
  * Helper to create a paragraph node with children
  */
-function createParagraphNode(children: LexicalNode[], key?: string): LexicalNode {
+function createParagraphNode(children: EditorNode[], key?: string): EditorNode {
   return {
     type: 'paragraph',
     children,
@@ -39,7 +39,7 @@ function createParagraphNode(children: LexicalNode[], key?: string): LexicalNode
 /**
  * Helper to create a heading node
  */
-function createHeadingNode(tag: string, children: LexicalNode[], key?: string): LexicalNode {
+function createHeadingNode(tag: string, children: EditorNode[], key?: string): EditorNode {
   return {
     type: 'heading',
     tag,
@@ -51,7 +51,7 @@ function createHeadingNode(tag: string, children: LexicalNode[], key?: string): 
 /**
  * Helper to create a code block node
  */
-function createCodeNode(children: LexicalNode[], key?: string): LexicalNode {
+function createCodeNode(children: EditorNode[], key?: string): EditorNode {
   return {
     type: 'code',
     children,
@@ -62,7 +62,7 @@ function createCodeNode(children: LexicalNode[], key?: string): LexicalNode {
 /**
  * Helper to create a list node
  */
-function createListNode(listType: string, children: LexicalNode[], key?: string): LexicalNode {
+function createListNode(listType: string, children: EditorNode[], key?: string): EditorNode {
   return {
     type: 'list',
     listType,
@@ -74,7 +74,7 @@ function createListNode(listType: string, children: LexicalNode[], key?: string)
 /**
  * Helper to create a list item node
  */
-function createListItemNode(children: LexicalNode[], key?: string): LexicalNode {
+function createListItemNode(children: EditorNode[], key?: string): EditorNode {
   return {
     type: 'listitem',
     children,
@@ -140,7 +140,7 @@ describe('ast-utils', () => {
 
     it('should handle nodes without children property', () => {
       const callback = vi.fn();
-      const node: LexicalNode = { type: 'linebreak' };
+      const node: EditorNode = { type: 'linebreak' };
 
       traverseNodes([node], callback);
 
@@ -205,7 +205,7 @@ describe('ast-utils', () => {
     it('should allow checking ancestor types', () => {
       const textNode = createTextNode('code example');
       const codeNode = createCodeNode([textNode]);
-      const nodesInsideCode: LexicalNode[] = [];
+      const nodesInsideCode: EditorNode[] = [];
 
       traverseNodesWithAncestors([codeNode], (node, ancestors) => {
         if (ancestors.some((a) => a.type === 'code')) {
@@ -282,7 +282,7 @@ describe('ast-utils', () => {
     });
 
     it('should find node without children property', () => {
-      const linebreak: LexicalNode = { type: 'linebreak', __key: 'lb_1' };
+      const linebreak: EditorNode = { type: 'linebreak', __key: 'lb_1' };
       const paragraph = createParagraphNode([createTextNode('Text')]);
 
       const result = findNodeByKey([paragraph, linebreak], 'lb_1');
@@ -337,7 +337,7 @@ describe('ast-utils', () => {
 
     it('should ignore non-text nodes', () => {
       const textNode = createTextNode('Text content');
-      const linebreak: LexicalNode = { type: 'linebreak' };
+      const linebreak: EditorNode = { type: 'linebreak' };
       const paragraph = createParagraphNode([textNode, linebreak]);
 
       const result = extractTextFromNodes([paragraph]);
@@ -346,7 +346,7 @@ describe('ast-utils', () => {
     });
 
     it('should handle nodes where text is not a string', () => {
-      const invalidTextNode: LexicalNode = { type: 'text', text: undefined };
+      const invalidTextNode: EditorNode = { type: 'text', text: undefined };
       const validTextNode = createTextNode('Valid');
 
       const result = extractTextFromNodes([invalidTextNode, validTextNode]);

@@ -1,22 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useHistoryEntries } from './useHistoryEntries';
-import { createNoteId, type NoteId, type Note } from '@scribe/shared';
+import { createNoteId, type NoteId } from '@scribe/shared';
+import { createMockNote } from '@scribe/test-utils';
 
 describe('useHistoryEntries', () => {
   let mockNotesList: ReturnType<typeof vi.fn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
-  // Helper to create mock notes
-  const createMockNote = (id: string, title: string): Note => ({
-    id: createNoteId(id),
-    title,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    tags: [],
-    content: { root: { type: 'root', children: [] } },
-    metadata: { title: null, tags: [], links: [], mentions: [] },
-  });
 
   beforeEach(() => {
     mockNotesList = vi.fn();
@@ -57,8 +47,8 @@ describe('useHistoryEntries', () => {
   describe('fetching history entries', () => {
     it('fetches history entries on mount when shouldFetch is true', async () => {
       const mockNotes = [
-        createMockNote('note-1', 'Note One'),
-        createMockNote('note-2', 'Note Two'),
+        createMockNote({ id: 'note-1', title: 'Note One' }),
+        createMockNote({ id: 'note-2', title: 'Note Two' }),
       ];
       mockNotesList.mockResolvedValue(mockNotes);
 
@@ -81,9 +71,9 @@ describe('useHistoryEntries', () => {
 
     it('returns entries in historyStack order', async () => {
       const mockNotes = [
-        createMockNote('note-3', 'Third'),
-        createMockNote('note-1', 'First'),
-        createMockNote('note-2', 'Second'),
+        createMockNote({ id: 'note-3', title: 'Third' }),
+        createMockNote({ id: 'note-1', title: 'First' }),
+        createMockNote({ id: 'note-2', title: 'Second' }),
       ];
       mockNotesList.mockResolvedValue(mockNotes);
 
@@ -108,7 +98,7 @@ describe('useHistoryEntries', () => {
     });
 
     it('handles notes not found in the list (undefined title)', async () => {
-      const mockNotes = [createMockNote('note-1', 'Note One')];
+      const mockNotes = [createMockNote({ id: 'note-1', title: 'Note One' })];
       mockNotesList.mockResolvedValue(mockNotes);
 
       // Stack includes a note that doesn't exist in the list
@@ -141,7 +131,7 @@ describe('useHistoryEntries', () => {
     });
 
     it('clears entries when history stack becomes empty', async () => {
-      const mockNotes = [createMockNote('note-1', 'Note One')];
+      const mockNotes = [createMockNote({ id: 'note-1', title: 'Note One' })];
       mockNotesList.mockResolvedValue(mockNotes);
 
       const { result, rerender } = renderHook(
@@ -164,7 +154,7 @@ describe('useHistoryEntries', () => {
 
   describe('shouldFetch changes', () => {
     it('fetches when shouldFetch changes to true', async () => {
-      const mockNotes = [createMockNote('note-1', 'Note One')];
+      const mockNotes = [createMockNote({ id: 'note-1', title: 'Note One' })];
       mockNotesList.mockResolvedValue(mockNotes);
 
       const historyStack: NoteId[] = [createNoteId('note-1')];
@@ -189,8 +179,8 @@ describe('useHistoryEntries', () => {
 
     it('refetches when history stack changes', async () => {
       const mockNotes = [
-        createMockNote('note-1', 'Note One'),
-        createMockNote('note-2', 'Note Two'),
+        createMockNote({ id: 'note-1', title: 'Note One' }),
+        createMockNote({ id: 'note-2', title: 'Note Two' }),
       ];
       mockNotesList.mockResolvedValue(mockNotes);
 
@@ -219,12 +209,13 @@ describe('useHistoryEntries', () => {
       const historyStack: NoteId[] = [createNoteId('note-1')];
       const { result } = renderHook(() => useHistoryEntries(historyStack, true));
 
-      // Wait for the error to be logged
+      // Wait for the error to be logged (logger outputs structured format)
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to fetch history entries:',
-          expect.any(Error)
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+        const logOutput = consoleErrorSpy.mock.calls[0][0] as string;
+        expect(logOutput).toContain('ERROR');
+        expect(logOutput).toContain('[useHistoryEntries]');
+        expect(logOutput).toContain('Failed to fetch history entries');
       });
 
       // Should still return empty array on error
@@ -234,7 +225,7 @@ describe('useHistoryEntries', () => {
 
   describe('memoization', () => {
     it('does not refetch when irrelevant props change', async () => {
-      const mockNotes = [createMockNote('note-1', 'Note One')];
+      const mockNotes = [createMockNote({ id: 'note-1', title: 'Note One' })];
       mockNotesList.mockResolvedValue(mockNotes);
 
       const historyStack: NoteId[] = [createNoteId('note-1')];

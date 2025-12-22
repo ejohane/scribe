@@ -15,7 +15,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import clsx from 'clsx';
 import type { Task, NoteId, TaskChangeEvent } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import { CheckCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@scribe/design-system';
+
+const log = createLogger({ prefix: 'TasksWidget' });
 import { DraggableTaskList } from '../Tasks/DraggableTaskList';
 import * as styles from './ContextPanel.css';
 
@@ -33,6 +36,8 @@ export interface TasksWidgetProps {
   currentNoteId?: NoteId | null;
   /** Callback to refresh the current note in the editor after task changes */
   onNoteUpdate?: () => void;
+  /** Callback when an error occurs (for showing toast notifications) */
+  onError?: (message: string) => void;
 }
 
 /**
@@ -51,6 +56,7 @@ export function TasksWidget({
   onNavigate,
   currentNoteId,
   onNoteUpdate,
+  onError,
 }: TasksWidgetProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +80,10 @@ export function TasksWidget({
           setLoading(false);
         }
       } catch (error) {
-        console.error('Failed to load tasks:', error);
+        log.error('Failed to load tasks', { error });
         if (mounted) {
           setLoading(false);
+          onError?.('Failed to load tasks');
         }
       }
     }
@@ -91,7 +98,7 @@ export function TasksWidget({
   // Subscribe to task changes
   useEffect(() => {
     const handleTaskChanges = (events: TaskChangeEvent[]) => {
-      console.debug('[TasksWidget] Received task changes:', events);
+      log.debug('Received task changes', { eventCount: events.length });
       for (const event of events) {
         switch (event.type) {
           case 'added':
@@ -134,7 +141,8 @@ export function TasksWidget({
                 setTasks(refreshedTasks);
               })
               .catch((error) => {
-                console.error('Failed to refresh tasks after reorder:', error);
+                log.error('Failed to refresh tasks after reorder', { error });
+                onError?.('Failed to refresh tasks');
               });
             break;
         }
@@ -164,7 +172,8 @@ export function TasksWidget({
           onNoteUpdate();
         }
       } catch (error) {
-        console.error('Failed to toggle task:', error);
+        log.error('Failed to toggle task', { taskId, error });
+        onError?.('Failed to toggle task');
       }
     },
     [tasks, currentNoteId, onNoteUpdate]
@@ -186,7 +195,8 @@ export function TasksWidget({
       await window.scribe.tasks.reorder(taskIds);
       // Note: UI update handled by onChange subscription
     } catch (error) {
-      console.error('Failed to reorder tasks:', error);
+      log.error('Failed to reorder tasks', { error });
+      onError?.('Failed to reorder tasks');
     }
   }, []);
 

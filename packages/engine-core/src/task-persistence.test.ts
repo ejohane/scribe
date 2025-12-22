@@ -109,10 +109,8 @@ describe('JsonlTaskPersistence', () => {
       const tasks = await persistence.load();
 
       expect(tasks.length).toBe(2); // Both valid lines
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[JsonlTaskPersistence] Skipping malformed line:',
-        '{invalid json}'
-      );
+      // Logger outputs structured format: "TIMESTAMP WARN [JsonlTaskPersistence] Skipping malformed line {JSON}"
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Skipping malformed line'));
 
       consoleSpy.mockRestore();
     });

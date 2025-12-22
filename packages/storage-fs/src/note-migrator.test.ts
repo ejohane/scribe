@@ -7,7 +7,7 @@ import { createNoteId } from '@scribe/shared';
 import type {
   Note,
   NoteMetadata,
-  LexicalState,
+  EditorContent,
   DailyNoteData,
   MeetingNoteData,
 } from '@scribe/shared';
@@ -35,12 +35,12 @@ function createLegacyV1Note(
     type: overrides.metadata?.type,
   };
 
-  const content: LexicalState = {
+  const content: EditorContent = {
     root: {
       type: 'root',
       children: [],
     },
-    type: overrides.type as LexicalState['type'],
+    type: overrides.type as EditorContent['type'],
   };
 
   const note: Record<string, unknown> = {
@@ -89,7 +89,7 @@ function createV2Note(
     type: overrides.type,
   };
 
-  const content: LexicalState = {
+  const content: EditorContent = {
     root: {
       type: 'root',
       children: [],

@@ -7,8 +7,11 @@ import {
   LexicalEditor,
 } from 'lexical';
 import type { NoteId } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import { createElement, MouseEvent } from 'react';
 import { useWikiLinkContext } from './WikiLinkContext';
+
+const log = createLogger({ prefix: 'WikiLinkNode' });
 
 /**
  * Serialized form of WikiLinkNode for JSON export/import
@@ -55,7 +58,7 @@ function WikiLinkComponent({
     try {
       await onLinkClick(noteTitle, targetId);
     } catch (error) {
-      console.error('Failed to navigate via wiki-link:', error);
+      log.error('Failed to navigate via wiki-link', { noteTitle, targetId, error });
       onError(`Failed to navigate to "${noteTitle}"`);
     }
   };

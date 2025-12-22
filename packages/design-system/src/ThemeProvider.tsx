@@ -51,6 +51,7 @@ export function ThemeProvider({
           setThemeState(savedTheme);
         }
       } catch (error) {
+        // eslint-disable-next-line no-console -- Browser-side theme loading error, acceptable for design-system
         console.error('Failed to load theme preference:', error);
       }
     };
@@ -96,6 +97,7 @@ export function ThemeProvider({
         localStorage.setItem(storageKey, newTheme);
       }
     } catch (error) {
+      // eslint-disable-next-line no-console -- Browser-side theme saving error, acceptable for design-system
       console.error('Failed to save theme preference:', error);
     }
   };

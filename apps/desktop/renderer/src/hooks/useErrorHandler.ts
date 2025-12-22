@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
-import { ScribeError } from '@scribe/shared';
+import { ScribeError, logger, getErrorMessage } from '@scribe/shared';
+
+const log = logger.child('useErrorHandler');
 
 /**
  * Return type for the useErrorHandler hook
@@ -93,12 +95,8 @@ export function useErrorHandler({ showToast }: UseErrorHandlerOptions): UseError
       // Extract user-friendly message
       const userMessage = getUserFriendlyMessage(error);
 
-      // Log to console with context for debugging
-      if (context) {
-        console.error(`${context}:`, error);
-      } else {
-        console.error('Error:', error);
-      }
+      // Log error with context for debugging
+      log.error(context ?? 'Error', { error: getErrorMessage(error) });
 
       // Show toast notification to user
       showToast(userMessage, 'error');

@@ -1,5 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { GraphNode, NoteId } from '@scribe/shared';
+import { logger, getErrorMessage } from '@scribe/shared';
+
+const log = logger.child('useBacklinks');
 
 interface UseBacklinksReturn {
   /** Backlink results for the current note */
@@ -41,7 +44,7 @@ export function useBacklinks(): UseBacklinksReturn {
       setResults(backlinks);
       setIsVisible(true);
     } catch (error) {
-      console.error('Failed to fetch backlinks:', error);
+      log.error('Failed to fetch backlinks', { noteId, error: getErrorMessage(error) });
     }
   }, []);
 

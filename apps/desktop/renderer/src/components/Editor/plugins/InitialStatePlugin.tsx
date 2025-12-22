@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { EditorContent } from '@scribe/shared';
+import { createLogger } from '@scribe/shared';
 import type { SerializedEditorState } from 'lexical';
+
+const log = createLogger({ prefix: 'InitialStatePlugin' });
 
 interface InitialStatePluginProps {
   /** Initial editor state to load */
@@ -42,7 +45,7 @@ export function InitialStatePlugin({ initialState, noteId }: InitialStatePluginP
       // Focus editor after loading content
       editor.focus();
     } catch (error) {
-      console.error('Failed to load editor state:', error);
+      log.error('Failed to load editor state', { noteId, error });
     }
   }, [editor, initialState, noteId]);
 

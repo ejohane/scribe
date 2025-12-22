@@ -11,13 +11,13 @@ import type {
   Note,
   NoteId,
   VaultPath,
-  LexicalState,
+  EditorContent,
   NoteType,
   DailyNoteData,
   MeetingNoteData,
 } from '@scribe/shared';
 import { createNoteId, isDailyNote, isMeetingNote, createEmptyContent } from '@scribe/shared';
-import { ErrorCode, ScribeError } from '@scribe/shared';
+import { ErrorCode, ScribeError, logger } from '@scribe/shared';
 import { extractMetadata } from '@scribe/engine-core';
 import { getNotesDir, getNoteFilePath } from './vault.js';
 import { noteValidator } from './note-validator.js';
@@ -36,7 +36,7 @@ export interface CreateNoteOptions {
   /** Initial title (optional, defaults to 'Untitled') */
   title?: string;
   /** Initial Lexical content (optional) */
-  content?: LexicalState;
+  content?: EditorContent;
   /** Note type discriminator (optional) */
   type?: NoteType;
   /** Initial user-defined tags (optional) */
@@ -194,16 +194,8 @@ export class FileSystemVault {
   }
 
   /**
-   * Get list of quarantined file names
-   * @deprecated Use getQuarantineManager().listQuarantined() for full functionality
-   */
-  getQuarantinedFiles(): string[] {
-    return this.quarantineManager.listQuarantined();
-  }
-
-  /**
-   * Get the QuarantineManager for advanced quarantine operations
-   * (restore, delete, detailed info)
+   * Get the QuarantineManager for quarantine operations
+   * (list, restore, delete, detailed info)
    */
   getQuarantineManager(): IQuarantineManager {
     return this.quarantineManager;
@@ -287,12 +279,14 @@ export class FileSystemVault {
             this.notes.set(migratedNote.id, migratedNote);
           } else {
             // Quarantine invalid notes
-            console.warn(`Invalid note structure in ${file}, quarantining`);
+            const log = logger.child('FileSystemVault');
+            log.warn('Invalid note structure, quarantining', { file });
             await this.quarantineManager.quarantine(file, 'Invalid note structure');
           }
         } catch (error) {
           // Quarantine corrupt files (e.g., invalid JSON)
-          console.warn(`Failed to load note ${file}, quarantining:`, error);
+          const log = logger.child('FileSystemVault');
+          log.warn('Failed to load note, quarantining', { file, error: String(error) });
           await this.quarantineManager.quarantine(file, 'Parse error or corrupt file');
         }
       });
@@ -343,11 +337,11 @@ export class FileSystemVault {
     const createdAt = options?.createdAt ?? now;
 
     // Build content with optional type
-    const noteContent: LexicalState = options?.content ?? createEmptyContent();
+    const noteContent: EditorContent = options?.content ?? createEmptyContent();
 
     // Set type on the content if provided (for backward compat with metadata extraction)
     if (options?.type) {
-      (noteContent as LexicalState & { type?: NoteType }).type = options.type;
+      (noteContent as EditorContent & { type?: NoteType }).type = options.type;
     }
 
     // Build the note using the discriminated union pattern
@@ -423,7 +417,7 @@ export class FileSystemVault {
    * await vault.save({ ...note, title: 'New Title' });
    *
    * // Note: metadata is auto-extracted from content
-   * await vault.save({ ...note, content: newLexicalState });
+   * await vault.save({ ...note, content: newEditorContent });
    * ```
    */
   async save(note: Note): Promise<void> {
@@ -612,7 +606,7 @@ export class FileSystemVault {
     updatedAt: number;
     type?: NoteType;
     tags: string[];
-    content: LexicalState;
+    content: EditorContent;
     metadata: Note['metadata'];
     daily?: DailyNoteData;
     meeting?: MeetingNoteData;

@@ -12,7 +12,10 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_ENTER_COMMAND,
 } from 'lexical';
+import { createLogger } from '@scribe/shared';
 import { HR_PATTERN } from './constants';
+
+const log = createLogger({ prefix: 'HorizontalRulePlugin' });
 
 /**
  * Plugin to handle horizontal rule creation when pressing Enter after typing ---, ***, or ___
@@ -28,9 +31,7 @@ export function HorizontalRulePlugin(): null {
   useEffect(() => {
     // Verify the HorizontalRuleNode is registered
     if (!editor.hasNode(HorizontalRuleNode)) {
-      console.error(
-        'HorizontalRulePlugin: HorizontalRuleNode is not registered. Please add it to the editor config.'
-      );
+      log.error('HorizontalRuleNode is not registered. Please add it to the editor config.');
       return;
     }
 

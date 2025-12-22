@@ -4,7 +4,7 @@
  */
 
 import { deepClone } from '@scribe/shared';
-import type { EditorContent, EditorNode, LexicalNode, LexicalState } from '@scribe/shared';
+import type { EditorContent, EditorNode } from '@scribe/shared';
 
 /**
  * Create a text node with the given content.
@@ -201,4 +201,4 @@ export function createContentWithHeading(
 }
 
 // Re-export types for consumers
-export type { EditorContent, EditorNode, LexicalNode, LexicalState };
+export type { EditorContent, EditorNode };

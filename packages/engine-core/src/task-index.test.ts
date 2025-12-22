@@ -1384,11 +1384,8 @@ describe('TaskIndex', () => {
       // Advance past debounce to trigger persist
       await vi.advanceTimersByTimeAsync(150);
 
-      // The error should be logged
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[TaskIndex] Persist failed:',
-        expect.any(Error)
-      );
+      // The error should be logged (logger outputs structured format)
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Persist failed'));
 
       consoleErrorSpy.mockRestore();
     });

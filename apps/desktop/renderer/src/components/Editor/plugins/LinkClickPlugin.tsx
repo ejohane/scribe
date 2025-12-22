@@ -10,6 +10,9 @@
 
 import { useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { createLogger } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'LinkClickPlugin' });
 
 export function LinkClickPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -34,7 +37,7 @@ export function LinkClickPlugin() {
         event.stopPropagation();
         // Use Electron's shell API to open in system default browser
         window.scribe.shell.openExternal(href).catch((err: unknown) => {
-          console.error('Failed to open external URL:', err);
+          log.error('Failed to open external URL', { href, error: err });
         });
       }
     };

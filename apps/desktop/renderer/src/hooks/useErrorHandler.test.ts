@@ -36,7 +36,12 @@ describe('useErrorHandler', () => {
         result.current.handleError(testError);
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error:', testError);
+      // Logger outputs structured format with timestamp and JSON context
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      const logOutput = consoleErrorSpy.mock.calls[0][0] as string;
+      expect(logOutput).toContain('ERROR');
+      expect(logOutput).toContain('[useErrorHandler]');
+      expect(logOutput).toContain('Error');
     });
 
     it('logs error to console with context', () => {
@@ -47,7 +52,12 @@ describe('useErrorHandler', () => {
         result.current.handleError(testError, 'Failed to save note');
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save note:', testError);
+      // Logger outputs structured format with timestamp and JSON context
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      const logOutput = consoleErrorSpy.mock.calls[0][0] as string;
+      expect(logOutput).toContain('ERROR');
+      expect(logOutput).toContain('[useErrorHandler]');
+      expect(logOutput).toContain('Failed to save note');
     });
 
     it('handles ScribeError with user-friendly message', () => {
@@ -59,7 +69,10 @@ describe('useErrorHandler', () => {
       });
 
       expect(mockShowToast).toHaveBeenCalledWith('The requested file could not be found.', 'error');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to open file:', scribeError);
+      // Logger outputs structured format
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      const logOutput = consoleErrorSpy.mock.calls[0][0] as string;
+      expect(logOutput).toContain('Failed to open file');
     });
 
     it('handles ScribeError with FILE_WRITE_ERROR code', () => {

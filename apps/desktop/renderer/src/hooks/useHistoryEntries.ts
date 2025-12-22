@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { NoteId } from '@scribe/shared';
+import { logger, getErrorMessage } from '@scribe/shared';
 import type { HistoryEntry } from '../components/Sidebar';
+
+const log = logger.child('useHistoryEntries');
 
 /**
  * Custom hook for fetching history entries with their titles
@@ -34,7 +37,7 @@ export function useHistoryEntries(historyStack: NoteId[], shouldFetch: boolean):
 
       setHistoryEntries(entries);
     } catch (error) {
-      console.error('Failed to fetch history entries:', error);
+      log.error('Failed to fetch history entries', { error: getErrorMessage(error) });
     }
   }, [historyStack]);
 

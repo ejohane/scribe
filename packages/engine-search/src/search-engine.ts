@@ -202,12 +202,14 @@ export class SearchEngine {
           searchableTitle = `${note.title} ${formattedDate}`;
         } else {
           // Log warning for invalid dates that parsed but aren't valid
+          // eslint-disable-next-line no-console -- TODO: Migrate to logger abstraction
           console.warn(
             `[SearchEngine] Invalid date in daily note title: "${note.title}" (note id: ${note.id})`
           );
         }
       } catch (error) {
         // Log warning for dates that failed to parse
+        // eslint-disable-next-line no-console -- TODO: Migrate to logger abstraction
         console.warn(
           `[SearchEngine] Failed to parse date from daily note title: "${note.title}" (note id: ${note.id})`,
           error instanceof Error ? error.message : error

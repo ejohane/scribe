@@ -494,7 +494,8 @@ describe('extractMentions', () => {
   });
 
   it('should return empty array for undefined root children', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Testing malformed content that doesn't conform to NoteContent type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Intentional: testing defensive handling of malformed input
     const content: any = {
       root: {
         type: 'root',

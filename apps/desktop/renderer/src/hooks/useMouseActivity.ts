@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { MOUSE_INACTIVITY_THRESHOLD_MS } from '../constants';
 
 interface UseMouseActivityOptions {
-  /** Timeout in milliseconds before considering the user inactive (default: 2000) */
+  /** Timeout in milliseconds before considering the user inactive (default: MOUSE_INACTIVITY_THRESHOLD_MS) */
   timeout?: number;
   /** Whether to track activity (default: true) */
   enabled?: boolean;
@@ -26,7 +27,7 @@ interface UseMouseActivityReturn {
  * @returns Object with isActive state and resetActivity function
  */
 export function useMouseActivity(options: UseMouseActivityOptions = {}): UseMouseActivityReturn {
-  const { timeout = 2000, enabled = true, hideOnTyping = true } = options;
+  const { timeout = MOUSE_INACTIVITY_THRESHOLD_MS, enabled = true, hideOnTyping = true } = options;
 
   const [isActive, setIsActive] = useState(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

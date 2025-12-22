@@ -9,6 +9,10 @@
 import { join, dirname } from 'path';
 import { promises as fs } from 'fs';
 import type { Task } from '@scribe/shared';
+import { logger as rootLogger } from '@scribe/shared';
+
+/** Module-level logger for JsonlTaskPersistence */
+const logger = rootLogger.child('JsonlTaskPersistence');
 
 /**
  * Interface for task persistence operations
@@ -97,7 +101,7 @@ export class JsonlTaskPersistence implements TaskPersistence {
           tasks.push(task);
         } catch {
           // Skip malformed lines
-          console.warn('[JsonlTaskPersistence] Skipping malformed line:', line);
+          logger.warn('Skipping malformed line', { line });
         }
       }
 
