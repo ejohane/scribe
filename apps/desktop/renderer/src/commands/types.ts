@@ -15,6 +15,7 @@ import type { ReactNode } from 'react';
  * - 'delete-confirm': Confirmation screen before deleting a note
  * - 'person-browse': Browse people mode for viewing and selecting people
  * - 'prompt-input': Text input prompt mode for collecting user input
+ * - 'meeting-create': Meeting creation mode with title input and date picker
  */
 export type PaletteMode =
   | 'command'
@@ -22,7 +23,8 @@ export type PaletteMode =
   | 'delete-browse'
   | 'delete-confirm'
   | 'person-browse'
-  | 'prompt-input';
+  | 'prompt-input'
+  | 'meeting-create';
 
 /**
  * Context provided to commands when they execute

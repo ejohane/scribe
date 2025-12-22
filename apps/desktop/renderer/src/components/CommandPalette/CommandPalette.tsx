@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { format } from 'date-fns';
 import type { Command, PaletteMode } from '../../commands/types';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { Overlay, Surface, SearchIcon, ArrowLeftIcon } from '@scribe/design-system';
@@ -32,6 +33,7 @@ import {
   usePeopleData,
   useKeyboardNavigation,
 } from './panels';
+import { MeetingCreatePanel } from '../MeetingCreatePanel';
 import { useErrorHandler } from '../../hooks/useErrorHandler';
 
 export interface CommandPaletteProps {
@@ -274,6 +276,27 @@ export function CommandPalette({
           onSubmit={handlePromptSubmit}
           onCancel={handlePromptCancel}
           inputRef={inputRef}
+        />
+      );
+    }
+
+    if (mode === 'meeting-create') {
+      return (
+        <MeetingCreatePanel
+          onSubmit={async (title, date) => {
+            try {
+              onClose();
+              const isoDate = format(date, 'yyyy-MM-dd');
+              const note = await window.scribe.meeting.create(title, isoDate);
+              onNoteSelect?.(note.id);
+            } catch (error) {
+              handleError(error, 'Failed to create meeting');
+            }
+          }}
+          onCancel={() => {
+            setMode('command');
+            onModeChange?.('command');
+          }}
         />
       );
     }

@@ -33,18 +33,11 @@ export const templateCommands: Command[] = [
     description: 'Create a new meeting note',
     group: 'notes',
     keywords: ['meeting', 'notes', 'agenda', 'sync'],
-    closeOnSelect: false, // Keep open for prompt
+    closeOnSelect: false, // Keep open for meeting creation panel
     icon: createElement(CalendarDaysIcon, { size: 16 }),
     run: async (context) => {
-      const title = await context.promptInput('Meeting title');
-      if (!title?.trim()) {
-        // User cancelled or entered empty title
-        return;
-      }
-
-      context.closePalette(); // Close after getting input
-      const note = await window.scribe.meeting.create(title);
-      context.navigateToNote(note.id);
+      // Switch to meeting-create mode to show the MeetingCreatePanel
+      context.setPaletteMode('meeting-create');
     },
   },
 ];

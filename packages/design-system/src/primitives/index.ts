@@ -1,6 +1,12 @@
 export { Surface } from './Surface';
 export type { SurfaceProps } from './Surface';
 
+export { Calendar } from './Calendar';
+export type { CalendarProps } from './Calendar';
+
+export { DatePicker } from './DatePicker';
+export type { DatePickerProps } from './DatePicker';
+
 export { Text } from './Text';
 export type { TextProps } from './Text';
 

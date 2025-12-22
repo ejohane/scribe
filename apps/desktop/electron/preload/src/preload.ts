@@ -66,7 +66,8 @@ const scribeAPI: ScribeAPI = {
   },
 
   meeting: {
-    create: (title: string) => ipcRenderer.invoke(IPC_CHANNELS.MEETING_CREATE, { title }),
+    create: (title: string, date?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.MEETING_CREATE, { title, date }),
     addAttendee: (noteId: NoteId, personId: NoteId) =>
       ipcRenderer.invoke(IPC_CHANNELS.MEETING_ADD_ATTENDEE, { noteId, personId }),
     removeAttendee: (noteId: NoteId, personId: NoteId) =>

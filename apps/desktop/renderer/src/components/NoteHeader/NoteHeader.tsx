@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import { parse } from 'date-fns';
 import type { Note } from '@scribe/shared';
+import { isMeetingNote } from '@scribe/shared';
 import { getTemplate } from '../../templates';
 // Import templates to auto-register them
 import '../../templates/daily';
@@ -28,6 +30,37 @@ function formatDate(timestamp: number): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+/**
+ * Format a date string (MM-dd-yyyy) as a human-readable date
+ */
+function formatDateString(dateStr: string): string {
+  const date = parse(dateStr, 'MM-dd-yyyy', new Date());
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Get the date to display for a note.
+ * - Meeting notes: use meeting.date (the scheduled date)
+ * - Other notes: use createdAt timestamp
+ */
+function getDisplayDate(note: Note): { formatted: string; date: Date } {
+  if (isMeetingNote(note)) {
+    const date = parse(note.meeting.date, 'MM-dd-yyyy', new Date());
+    return {
+      formatted: formatDateString(note.meeting.date),
+      date,
+    };
+  }
+  return {
+    formatted: formatDate(note.createdAt),
+    date: new Date(note.createdAt),
+  };
 }
 
 /**
@@ -189,20 +222,22 @@ export function NoteHeader({
 
       {/* Metadata row: date, tags */}
       <div className={styles.metadataRow}>
-        {/* Creation date - clickable to open the daily note for that date */}
+        {/* Date - clickable to open the daily note for that date */}
+        {/* For meeting notes, shows the meeting date; for others, shows creation date */}
         <div className={styles.metadataItem}>
-          <button
-            className={styles.dateButton}
-            onClick={() => {
-              // Use the note's creation date for navigation
-              const dateForNavigation = new Date(note.createdAt);
-              onDateClick?.(dateForNavigation);
-            }}
-            title="Open daily note for this date"
-            aria-label="Open daily note for this date"
-          >
-            {formatDate(note.createdAt)}
-          </button>
+          {(() => {
+            const displayDate = getDisplayDate(note);
+            return (
+              <button
+                className={styles.dateButton}
+                onClick={() => onDateClick?.(displayDate.date)}
+                title="Open daily note for this date"
+                aria-label="Open daily note for this date"
+              >
+                {displayDate.formatted}
+              </button>
+            );
+          })()}
         </div>
 
         {/* Tags */}

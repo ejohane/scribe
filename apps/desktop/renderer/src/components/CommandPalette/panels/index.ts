@@ -22,6 +22,9 @@ export type { PersonBrowsePanelProps } from './PersonBrowsePanel';
 export { PromptInputPanel } from './PromptInputPanel';
 export type { PromptInputPanelProps } from './PromptInputPanel';
 
+export { MeetingCreatePanel } from './MeetingCreatePanel';
+export type { MeetingCreatePanelProps } from './MeetingCreatePanel';
+
 // Shared item component
 export { PaletteItem, PaletteItemList } from './PaletteItem';
 export type { PaletteItemProps, PaletteItemListProps } from './PaletteItem';

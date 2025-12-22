@@ -9,7 +9,7 @@
  *
  * | Channel | Parameters | Returns | Description |
  * |---------|------------|---------|-------------|
- * | `meeting:create` | `{ title: string }` | `Note` | Create a new meeting note |
+ * | `meeting:create` | `{ title: string; date?: string }` | `Note` | Create a new meeting note |
  * | `meeting:addAttendee` | `{ noteId, personId }` | `{ success: true }` | Add person to meeting |
  * | `meeting:removeAttendee` | `{ noteId, personId }` | `{ success: true }` | Remove person from meeting |
  *
@@ -31,7 +31,7 @@
  */
 
 import { ipcMain } from 'electron';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import type { NoteId, EditorContent, MeetingNote } from '@scribe/shared';
 import { ScribeError, ErrorCode, isMeetingNote } from '@scribe/shared';
 import {
@@ -122,22 +122,23 @@ export function setupMeetingHandlers(deps: HandlerDependencies): void {
   /**
    * IPC: `meeting:create`
    *
-   * Creates a new meeting note for today.
-   * Automatically creates today's daily note if it doesn't exist.
+   * Creates a new meeting note for a specific date.
+   * Automatically creates the daily note for that date if it doesn't exist.
    *
    * @param title - The meeting title (will be trimmed)
+   * @param date - Optional ISO date string (YYYY-MM-DD). Defaults to today if not provided.
    * @returns `Note` - The newly created meeting note
-   * @throws VALIDATION_ERROR if title is empty
+   * @throws VALIDATION_ERROR if title is empty or date format is invalid
    *
    * @sideeffects
-   * - May create a daily note for today if none exists
+   * - May create a daily note for the specified date if none exists
    * - Adds meeting and daily notes to graph and search engines
    *
    * @remarks
-   * The meeting note is linked to today's daily note via `meeting.dailyNoteId`.
+   * The meeting note is linked to the daily note for the specified date via `meeting.dailyNoteId`.
    * Initial content includes Pre-Read, Notes, and Action Items sections.
    */
-  ipcMain.handle('meeting:create', async (_, { title }: { title: string }) => {
+  ipcMain.handle('meeting:create', async (_, { title, date }: { title: string; date?: string }) => {
     const vault = requireVault(deps);
     const graphEngine = requireGraphEngine(deps);
     const searchEngine = requireSearchEngine(deps);
@@ -146,8 +147,23 @@ export function setupMeetingHandlers(deps: HandlerDependencies): void {
       throw new ScribeError(ErrorCode.VALIDATION_ERROR, 'Meeting title required');
     }
 
-    const today = new Date();
-    const dateStr = format(today, 'MM-dd-yyyy');
+    // Parse date parameter or default to today
+    let targetDate: Date;
+    const effectiveDate = date?.trim() || undefined;
+    if (effectiveDate) {
+      // Parse ISO date string (YYYY-MM-DD)
+      targetDate = parse(effectiveDate, 'yyyy-MM-dd', new Date());
+      if (!isValid(targetDate)) {
+        throw new ScribeError(
+          ErrorCode.VALIDATION_ERROR,
+          `Invalid date format: "${date}". Expected YYYY-MM-DD (e.g., "2025-12-25").`
+        );
+      }
+    } else {
+      targetDate = new Date(); // Default to today
+    }
+
+    const dateStr = format(targetDate, 'MM-dd-yyyy');
 
     // Ensure daily note exists (create if needed)
     let dailyNote = vault.list().find((n) => n.type === 'daily' && n.title === dateStr);

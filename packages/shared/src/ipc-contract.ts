@@ -291,11 +291,22 @@ export interface DailyAPI {
  */
 export interface MeetingAPI {
   /**
-   * Create a new meeting note for today.
-   * Auto-creates daily note if needed and links the meeting to it.
+   * Create a new meeting note for a specific date.
+   * Auto-creates the daily note for that date if needed and links the meeting to it.
+   *
    * @param title - The meeting title (required, cannot be empty)
+   * @param date - Optional ISO date string (YYYY-MM-DD). Defaults to today if not provided.
+   * @returns The newly created meeting note
+   *
+   * @example
+   * // Create meeting for today (default)
+   * const note = await window.scribe.meeting.create('Sprint Planning');
+   *
+   * @example
+   * // Create meeting for a specific date
+   * const note = await window.scribe.meeting.create('Retro', '2025-12-25');
    */
-  create(title: string): Promise<Note>;
+  create(title: string, date?: string): Promise<Note>;
 
   /**
    * Add a person as attendee to a meeting.
