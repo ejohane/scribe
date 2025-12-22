@@ -2,6 +2,14 @@
 
 echo "Running pre-commit checks..."
 
+# 0. Verify lockfile is in sync (catches CI failures early)
+echo "Verifying lockfile..."
+bun install --frozen-lockfile
+if [ $? -ne 0 ]; then
+  echo "Lockfile out of sync. Run 'bun install' and commit the updated bun.lockb"
+  exit 1
+fi
+
 # 1. Lint
 echo "Running ESLint..."
 bun run lint
