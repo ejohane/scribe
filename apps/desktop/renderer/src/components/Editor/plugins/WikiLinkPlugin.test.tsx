@@ -462,6 +462,271 @@ describe('WikiLinkPlugin integration', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
+  // GH-43: Verify cursor position after insertion (no trailing space)
+  describe('GH-43: cursor position after insertion', () => {
+    it('positions cursor immediately after WikiLinkNode without adding space on ]] closure', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // First trigger [[
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('Hello [[');
+          paragraph.append(textNode);
+          root.append(paragraph);
+          textNode.select(8, 8);
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('listbox')).toBeInTheDocument();
+      });
+
+      // Type complete link with ]]
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild() as ParagraphNode | null;
+          if ($isParagraphNode(paragraph)) {
+            const textNode = paragraph.getFirstChild() as TextNode | null;
+            if (textNode && textNode.getType() === 'text') {
+              textNode.setTextContent('Hello [[Test Note]]');
+              textNode.select(19, 19);
+            }
+          }
+        });
+      });
+
+      // Wait for WikiLinkNode to be created
+      await waitFor(
+        () => {
+          let verified = false;
+          editor.getEditorState().read(() => {
+            const root = $getRoot();
+            const paragraph = root.getFirstChild() as ParagraphNode | null;
+            if ($isParagraphNode(paragraph)) {
+              const children: LexicalNode[] = paragraph.getChildren();
+
+              // Should have: TextNode("Hello ") + WikiLinkNode
+              // NO trailing TextNode with space
+              expect(children.length).toBe(2);
+
+              // First child should be text "Hello "
+              const firstChild = children[0];
+              expect(firstChild?.getType()).toBe('text');
+              expect((firstChild as TextNode).getTextContent()).toBe('Hello ');
+
+              // Second child should be WikiLinkNode
+              const lastChild = children[1];
+              expect($isWikiLinkNode(lastChild)).toBe(true);
+
+              // Full text should NOT have trailing space
+              const fullText = paragraph.getTextContent();
+              expect(fullText).toBe('Hello Test Note');
+              expect(fullText.endsWith(' ')).toBe(false);
+
+              verified = true;
+            }
+          });
+          expect(verified).toBe(true);
+        },
+        { timeout: 1000 }
+      );
+
+      // Autocomplete should be closed
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    it('positions cursor immediately after WikiLinkNode without adding space on autocomplete selection', async () => {
+      // Mock search to return a result for selection
+      mockSearchTitles.mockResolvedValue([
+        { id: createNoteId('test-id'), title: 'Test Note', snippet: '', score: 1, matches: [] },
+      ]);
+
+      render(
+        <TestEditor editorRef={editorRef}>
+          <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Step 1: Type [[ to trigger autocomplete
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('Hello [[');
+          paragraph.append(textNode);
+          root.append(paragraph);
+          textNode.select(8, 8);
+        });
+      });
+
+      // Wait for autocomplete to open
+      await waitFor(
+        () => {
+          expect(screen.getByRole('listbox')).toBeInTheDocument();
+        },
+        { timeout: 1000 }
+      );
+
+      // Step 2: Now append 'te' to the text to simulate typing
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild() as ParagraphNode | null;
+          if ($isParagraphNode(paragraph)) {
+            const textNode = paragraph.getFirstChild() as TextNode | null;
+            if (textNode && textNode.getType() === 'text') {
+              textNode.setTextContent('Hello [[te');
+              textNode.select(10, 10);
+            }
+          }
+        });
+      });
+
+      // Wait for search to be called (debounced 150ms)
+      await waitFor(
+        () => {
+          expect(mockSearchTitles).toHaveBeenCalled();
+        },
+        { timeout: 1000 }
+      );
+
+      // Wait for the option to appear in the autocomplete
+      await waitFor(
+        () => {
+          expect(screen.getByText('Test Note')).toBeInTheDocument();
+        },
+        { timeout: 1000 }
+      );
+
+      // Click on the result to select it
+      await act(async () => {
+        const option = screen.getByText('Test Note');
+        option.click();
+      });
+
+      // Verify: Check editor content has NO trailing space after WikiLinkNode
+      await waitFor(
+        () => {
+          let verified = false;
+          editor.getEditorState().read(() => {
+            const root = $getRoot();
+            const paragraph = root.getFirstChild() as ParagraphNode | null;
+            if ($isParagraphNode(paragraph)) {
+              const children: LexicalNode[] = paragraph.getChildren();
+
+              // Should have: TextNode("Hello ") + WikiLinkNode
+              expect(children.length).toBe(2);
+
+              // Verify no trailing TextNode with just a space
+              const lastChild = children[children.length - 1];
+              expect($isWikiLinkNode(lastChild)).toBe(true);
+
+              // Full text should NOT have trailing space
+              const fullText = paragraph.getTextContent();
+              expect(fullText.endsWith(' ')).toBe(false);
+
+              verified = true;
+            }
+          });
+          expect(verified).toBe(true);
+        },
+        { timeout: 1000 }
+      );
+    });
+
+    it('allows typing punctuation immediately after WikiLinkNode without extra space', async () => {
+      // This is the actual user pain point from GH-43:
+      // Users want to type [[note]]. but were getting [[note]] .
+      render(
+        <TestEditor editorRef={editorRef}>
+          <WikiLinkPlugin currentNoteId={createNoteId('note-1')} />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create a WikiLinkNode by typing [[text]]
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('See [[');
+          paragraph.append(textNode);
+          root.append(paragraph);
+          textNode.select(6, 6);
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('listbox')).toBeInTheDocument();
+      });
+
+      // Complete the link
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild() as ParagraphNode | null;
+          if ($isParagraphNode(paragraph)) {
+            const textNode = paragraph.getFirstChild() as TextNode | null;
+            if (textNode && textNode.getType() === 'text') {
+              textNode.setTextContent('See [[this note]]');
+              textNode.select(17, 17);
+            }
+          }
+        });
+      });
+
+      // Wait for WikiLinkNode creation
+      await waitFor(
+        () => {
+          let hasWikiLink = false;
+          editor.getEditorState().read(() => {
+            const root = $getRoot();
+            const paragraph = root.getFirstChild() as ParagraphNode | null;
+            if ($isParagraphNode(paragraph)) {
+              hasWikiLink = paragraph.getChildren().some((child) => $isWikiLinkNode(child));
+            }
+          });
+          expect(hasWikiLink).toBe(true);
+        },
+        { timeout: 1000 }
+      );
+
+      // After WikiLinkNode is created, the content should NOT have a trailing space
+      // This is crucial for allowing users to type punctuation like period, comma
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild() as ParagraphNode | null;
+        if ($isParagraphNode(paragraph)) {
+          const fullText = paragraph.getTextContent();
+          // The key assertion: no trailing space that would interfere with punctuation
+          expect(fullText).toBe('See this note');
+          expect(fullText.endsWith(' ')).toBe(false);
+        }
+      });
+    });
+  });
+
   it('handles consecutive wiki links without interference', async () => {
     // Test that creating multiple wiki links in sequence works correctly.
     // This exercises the command system under conditions that would have
@@ -535,19 +800,22 @@ describe('WikiLinkPlugin integration', () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     // Now add a second wiki link - need to trigger [[ again
+    // First, we need to add a text node after the WikiLinkNode
     await act(async () => {
       editor.update(() => {
         const root = $getRoot();
         const paragraph = root.getFirstChild() as ParagraphNode | null;
         if ($isParagraphNode(paragraph)) {
-          // Find the text node that comes after the first wiki link (the space)
+          // Find the WikiLinkNode and add text after it
           const children = paragraph.getChildren();
-          const lastChild = children[children.length - 1];
-          if (lastChild && lastChild.getType() === 'text') {
-            const textNode = lastChild as TextNode;
-            // Start the second link trigger
-            textNode.setTextContent(' and [[');
-            textNode.select(7, 7);
+          for (const child of children) {
+            if ($isWikiLinkNode(child)) {
+              // Create a new text node after the WikiLinkNode
+              const textNode = $createTextNode(' and [[');
+              child.insertAfter(textNode);
+              textNode.select(7, 7);
+              break;
+            }
           }
         }
       });
@@ -558,7 +826,7 @@ describe('WikiLinkPlugin integration', () => {
       expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
-    // Complete the second link
+    // Complete the second link by appending ]] to the text
     await act(async () => {
       editor.update(() => {
         const root = $getRoot();

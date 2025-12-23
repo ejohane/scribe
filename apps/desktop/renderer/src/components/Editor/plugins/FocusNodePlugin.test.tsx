@@ -559,6 +559,7 @@ describe('FocusNodePlugin', () => {
       // Verify highlight class is added initially
       expect(element?.classList.contains('focus-highlight')).toBe(true);
       // Verify scrollIntoView was called with correct options
+      // Note: Uses 'center' as fallback when scrollable ancestor isn't found in test env
       expect(mockScrollIntoView).toHaveBeenCalledWith({
         behavior: 'smooth',
         block: 'center',
