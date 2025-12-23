@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.28.1](https://github.com/ejohane/scribe/compare/v1.28.0...v1.28.1) (2025-12-23)
+
+### Code Refactoring
+
+* complete tech debt remediation epic (scribe-g6j) ([529efd3](https://github.com/ejohane/scribe/commit/529efd30a33d26745bab89d347e5afa4a0d4a07b))
+
 ## [1.28.0](https://github.com/ejohane/scribe/compare/v1.27.0...v1.28.0) (2025-12-23)
 
 ### Features
