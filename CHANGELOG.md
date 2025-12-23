@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.28.0](https://github.com/ejohane/scribe/compare/v1.27.0...v1.28.0) (2025-12-23)
+
+### Features
+
+* add outline widget, find/replace, collapsible headings, and editor improvements ([b53a382](https://github.com/ejohane/scribe/commit/b53a38255042410cf7fee3a2fe1b8f00707f0474))
+
+### Bug Fixes
+
+* correct flaky WikiLinkPlugin and FocusNodePlugin tests ([0ce0c62](https://github.com/ejohane/scribe/commit/0ce0c62468d491b0a6c3715446c41749cfbab484))
+
 ## [1.27.0](https://github.com/ejohane/scribe/compare/v1.26.0...v1.27.0) (2025-12-22)
 
 ### Features
