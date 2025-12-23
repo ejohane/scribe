@@ -24,6 +24,8 @@ A Scribe vault has a predictable, stable layout:
 /vault
   /notes
     {noteId}.json
+  /quarantine              (corrupt files awaiting recovery)
+  /derived                 (generated data: tasks.jsonl)
   manifest.json            (optional now, recommended later)
   /index                   (optional future cache directory)
 ```
@@ -39,6 +41,18 @@ A Scribe vault has a predictable, stable layout:
 #### `manifest.json` (optional)
 
 - Stores vault-level metadata such as last-opened note ID or schema version.
+
+#### `/quarantine`
+
+- Destination for corrupt note files that fail to load.
+- Files are timestamped to preserve recovery history.
+- See Section 7 for detailed quarantine system documentation.
+
+#### `/derived`
+
+- Contains generated data derived from notes.
+- `tasks.jsonl`: Persistent task index extracted from checklist items.
+- Can be regenerated from notes if lost.
 
 #### `/index` (optional)
 
@@ -165,7 +179,78 @@ All operations are incremental; only the affected note is reindexed.
 
 ---
 
-# 7. Search & Graph Indexing Rules
+# 7. Quarantine System for Corrupt Files
+
+Data integrity is a core promise of local-first software. When note files become corrupt (JSON parse errors, validation failures), Scribe must:
+
+1. Not crash or block vault loading
+2. Preserve the corrupt file for manual recovery
+3. Provide a path to restoration
+
+The quarantine system handles this gracefully.
+
+### **7.1 Overview**
+
+When a note file fails to load (parse error, validation failure), it is moved to quarantine rather than being deleted or blocking the vault. This preserves data for manual recovery while allowing the application to continue operating.
+
+### **7.2 Quarantine Process**
+
+1. **Detection**: Note fails `JSON.parse()` or schema validation
+2. **Isolation**: File moved to `/vault/quarantine/`
+3. **Naming**: Prefixed with ISO timestamp (e.g., `2024-01-15T10-30-00-000Z_abc123.json`)
+4. **Logging**: Error logged with reason and original path
+5. **Continuation**: Vault load continues with remaining notes
+
+### **7.3 Two-Strategy Approach**
+
+**Primary strategy**: Move to quarantine directory
+
+- Cleanest separation of corrupt files
+- Easy to list and manage quarantined files
+- Preserves original filename in suffix
+
+**Fallback strategy**: Rename in place with `.corrupt` extension
+
+- Used if quarantine directory is unavailable or move fails
+- File becomes `{noteId}.json.corrupt`
+- Still prevents loading but keeps file accessible
+
+This two-strategy approach ensures corrupt files are always removed from the notes directory to prevent repeated parse failures on startup.
+
+### **7.4 Recovery Operations**
+
+| Operation | Method | Description |
+|-----------|--------|-------------|
+| List | `quarantine.listQuarantined()` | Show all quarantined files |
+| Restore | `quarantine.restore(fileName)` | Move back to notes/ |
+| Delete | `quarantine.deleteQuarantined(fileName)` | Permanent removal |
+| Scan | `quarantine.scanQuarantineDir()` | Discover pre-existing quarantined files |
+
+### **7.5 When Files Get Quarantined**
+
+1. **JSON syntax error**: Malformed JSON (missing braces, invalid escapes)
+2. **Schema validation failure**: Missing required fields (`id`, `content`)
+3. **Type mismatch**: Wrong data types for fields
+4. **Unknown note type**: Unrecognized type discriminator
+
+### **7.6 Implementation Location**
+
+- **Source file**: `packages/storage-fs/src/quarantine-manager.ts`
+- **Interface**: `IQuarantineManager`
+- **Integration**: Called during `FileSystemVault` load process
+
+### **7.7 Connection to Decision 8**
+
+Decision 8 (Data Flow) mentions "corrupt files skipped and flagged" but doesn't explain how. This quarantine system provides the implementation details:
+
+- Corrupt files are **moved**, not deleted
+- Original content is **preserved** with timestamp
+- Application **continues loading** other notes
+- Recovery path **always exists** via restore operation
+
+---
+
+# 8. Search & Graph Indexing Rules
 
 The vault design directly supports fast indexing.
 
@@ -193,7 +278,7 @@ Graph is kept in memory with:
 
 ---
 
-# 8. Optional Future Extensions
+# 9. Optional Future Extensions
 
 The chosen vault design supports seamless extension, including:
 
@@ -209,7 +294,7 @@ No part of the MVP architecture blocks future progression.
 
 ---
 
-# 9. Final Definition
+# 10. Final Definition
 
 **Decision 4 defines Scribe’s vault and persistence architecture:**
 
@@ -217,6 +302,7 @@ No part of the MVP architecture blocks future progression.
 - Notes stored as `/notes/{id}.json`.
 - Metadata embedded but always derived.
 - Atomic, durable save guarantees.
+- Quarantine system for graceful corrupt file handling.
 - In-memory indexing for metadata, graph, and search.
 - A simple, portable vault folder structure.
 

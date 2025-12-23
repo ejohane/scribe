@@ -8,7 +8,8 @@
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical';
 import { $setBlocksType } from '@lexical/selection';
-import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
+import { $createQuoteNode } from '@lexical/rich-text';
+import { $createCollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode';
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND } from '@lexical/list';
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
 
@@ -51,7 +52,7 @@ export const slashCommands: SlashCommand[] = [
       editor.update(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
-          $setBlocksType(selection, () => $createHeadingNode('h1'));
+          $setBlocksType(selection, () => $createCollapsibleHeadingNode('h1'));
         }
       });
     },
@@ -66,7 +67,7 @@ export const slashCommands: SlashCommand[] = [
       editor.update(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
-          $setBlocksType(selection, () => $createHeadingNode('h2'));
+          $setBlocksType(selection, () => $createCollapsibleHeadingNode('h2'));
         }
       });
     },
@@ -81,7 +82,7 @@ export const slashCommands: SlashCommand[] = [
       editor.update(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
-          $setBlocksType(selection, () => $createHeadingNode('h3'));
+          $setBlocksType(selection, () => $createCollapsibleHeadingNode('h3'));
         }
       });
     },

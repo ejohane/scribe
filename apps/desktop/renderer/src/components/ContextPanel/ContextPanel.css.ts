@@ -434,3 +434,80 @@ export const taskListScrollable = style({
     },
   },
 });
+
+/**
+ * Outline widget styles
+ */
+
+/**
+ * Outline list container
+ * Unstyled list for outline items, similar to backlinkList
+ */
+export const outlineList = style({
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+  display: 'flex',
+  flexDirection: 'column',
+});
+
+/**
+ * Individual outline item
+ * Clickable with hover state, truncation for long headings
+ * Uses CSS custom property --outline-depth for dynamic indentation
+ */
+export const outlineItem = style({
+  display: 'block',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  paddingLeft: `calc(${vars.spacing['2']} + var(--outline-depth, 0) * 12px)`,
+  fontSize: vars.typography.size.sm,
+  color: vars.color.foreground,
+  cursor: 'pointer',
+  borderRadius: vars.radius.sm,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  transition: `background-color ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
+
+  ':hover': {
+    backgroundColor: vars.color.surface,
+  },
+
+  ':focus': {
+    outline: 'none',
+  },
+
+  ':focus-visible': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '-2px',
+  },
+});
+
+/**
+ * Scrollable container for expanded outline (many headings)
+ * Similar to taskListScrollable
+ */
+export const outlineListScrollable = style({
+  maxHeight: '280px',
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  marginRight: `calc(-1 * ${vars.spacing['2']})`,
+  paddingRight: vars.spacing['2'],
+
+  // Custom scrollbar styling (matching taskListScrollable)
+  '::-webkit-scrollbar': {
+    width: '4px',
+  },
+  '::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '::-webkit-scrollbar-thumb': {
+    backgroundColor: vars.color.border,
+    borderRadius: vars.radius.full,
+  },
+  selectors: {
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: vars.color.foregroundMuted,
+    },
+  },
+});

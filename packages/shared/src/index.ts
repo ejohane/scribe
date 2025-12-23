@@ -166,3 +166,10 @@ export type { Logger, LogLevel, LogContext } from './logger.js';
 
 // General Utilities
 export { deepClone } from './utils.js';
+
+// Hash Utilities - consistent text hashing across codebase
+export { computeTextHash } from './hash-utils.js';
+
+// Heading Extractor - extract document outline from editor content
+export { extractHeadings } from './heading-extractor.js';
+export type { HeadingItem } from './heading-extractor.js';

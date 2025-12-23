@@ -91,3 +91,39 @@ export const referenceText = style({
  * Empty state message - re-exported from design system
  */
 export const emptyState = emptyStateInline;
+
+/**
+ * Scrollable reference list container for expanded state
+ * Max height allows for ~15 reference items with scroll
+ * Matches taskListScrollable from ContextPanel.css.ts
+ */
+export const referenceListScrollable = style({
+  maxHeight: '400px',
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  marginRight: `calc(-1 * ${vars.spacing['2']})`,
+  paddingRight: vars.spacing['2'],
+
+  // Custom scrollbar styling
+  '::-webkit-scrollbar': {
+    width: '4px',
+  },
+  '::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '::-webkit-scrollbar-thumb': {
+    backgroundColor: vars.color.border,
+    borderRadius: vars.radius.full,
+  },
+  selectors: {
+    '&::-webkit-scrollbar-thumb:hover': {
+      backgroundColor: vars.color.foregroundMuted,
+    },
+  },
+});
+
+/**
+ * Re-export expandButton from ContextPanel for use in ReferencesWidget
+ * This maintains consistency with TasksWidget and LinkedMentions
+ */
+export { expandButton } from './ContextPanel.css';

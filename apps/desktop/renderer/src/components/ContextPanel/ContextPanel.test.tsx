@@ -16,6 +16,14 @@ import {
 import type { Note, EditorContent, GraphNode, MeetingNote, DailyNote } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 
+// Mock the EditorCommandContext used by OutlineWidget
+vi.mock('../Editor/EditorCommandContext', () => ({
+  useEditorCommand: () => ({
+    focusNode: vi.fn(),
+    hasEditor: true,
+  }),
+}));
+
 // Helper to create a mock note
 function createMockNote(overrides: Partial<Note> = {}): Note {
   return {

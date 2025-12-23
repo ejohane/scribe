@@ -48,4 +48,5 @@ export type ContextPanelSection =
   | { type: 'attendees' }
   | { type: 'tasks'; placeholder?: boolean }
   | { type: 'references' }
-  | { type: 'calendar' };
+  | { type: 'calendar' }
+  | { type: 'outline' };

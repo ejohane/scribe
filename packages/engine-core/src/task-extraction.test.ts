@@ -5,12 +5,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   extractTasksFromNote,
-  computeTextHash,
   type NoteForExtraction,
   type ExtractedTask,
 } from './task-extraction.js';
 import type { EditorContent, EditorNode } from '@scribe/shared';
-import { createNoteId } from '@scribe/shared';
+import { createNoteId, computeTextHash } from '@scribe/shared';
 
 /**
  * Helper to create a minimal note for testing

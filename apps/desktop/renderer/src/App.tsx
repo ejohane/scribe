@@ -29,6 +29,7 @@ import { useAppCommands } from './hooks/useAppCommands';
 import { useAppKeyboardShortcuts } from './hooks/useAppKeyboardShortcuts';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
+import { EditorCommandProvider } from './components/Editor/EditorCommandContext';
 
 function App() {
   // Note state management
@@ -277,154 +278,156 @@ function App() {
           onForward={navigateForward}
         />
       </ErrorBoundary>
-      <div className={styles.mainContent}>
-        <TopToolbar
-          sidebarOpen={sidebar.isOpen}
-          contextPanelOpen={contextPanel.isOpen}
-          onToggleSidebar={sidebar.toggle}
-          onToggleContextPanel={contextPanel.toggle}
-          onOpenSearch={() => commandPalette.open('command')}
-          canGoBack={canGoBack}
-          canGoForward={canGoForward}
-          onBack={navigateBack}
-          onForward={navigateForward}
-          isMouseActive={isMouseActive}
-          currentNoteId={noteState.currentNoteId ?? undefined}
-          onExportSuccess={handleExportSuccess}
-          onExportError={handleExportError}
-          shareMenuOpen={!contextPanel.isOpen ? shareMenuOpen : undefined}
-          onShareMenuOpenChange={!contextPanel.isOpen ? setShareMenuOpen : undefined}
-        />
-        <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
-          {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
-            <ErrorBoundary name="TasksScreen">
-              <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>
-                <h1>Tasks</h1>
-                <p>TasksScreen placeholder - component to be implemented</p>
-              </div>
-            </ErrorBoundary>
-          ) : (
-            <>
-              {noteState.currentNote && (
-                <ErrorBoundary name="NoteHeader">
-                  <NoteHeader
-                    note={noteState.currentNote}
-                    onTitleChange={(title: string) => noteState.updateMetadata({ title })}
-                    onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
-                    onNavigateToDaily={handleNavigateToDaily}
-                    translateY={translateY}
-                  />
-                </ErrorBoundary>
-              )}
-              <ErrorBoundary name="Editor">
-                <WikiLinkProvider
-                  currentNoteId={noteState.currentNoteId}
-                  onLinkClick={handleWikiLinkClick}
-                  onError={handleProviderError}
-                >
-                  <PersonMentionProvider
+      <EditorCommandProvider>
+        <div className={styles.mainContent}>
+          <TopToolbar
+            sidebarOpen={sidebar.isOpen}
+            contextPanelOpen={contextPanel.isOpen}
+            onToggleSidebar={sidebar.toggle}
+            onToggleContextPanel={contextPanel.toggle}
+            onOpenSearch={() => commandPalette.open('command')}
+            canGoBack={canGoBack}
+            canGoForward={canGoForward}
+            onBack={navigateBack}
+            onForward={navigateForward}
+            isMouseActive={isMouseActive}
+            currentNoteId={noteState.currentNoteId ?? undefined}
+            onExportSuccess={handleExportSuccess}
+            onExportError={handleExportError}
+            shareMenuOpen={!contextPanel.isOpen ? shareMenuOpen : undefined}
+            onShareMenuOpenChange={!contextPanel.isOpen ? setShareMenuOpen : undefined}
+          />
+          <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
+            {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
+              <ErrorBoundary name="TasksScreen">
+                <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>
+                  <h1>Tasks</h1>
+                  <p>TasksScreen placeholder - component to be implemented</p>
+                </div>
+              </ErrorBoundary>
+            ) : (
+              <>
+                {noteState.currentNote && (
+                  <ErrorBoundary name="NoteHeader">
+                    <NoteHeader
+                      note={noteState.currentNote}
+                      onTitleChange={(title: string) => noteState.updateMetadata({ title })}
+                      onTagsChange={(tags: string[]) => noteState.updateMetadata({ tags })}
+                      onNavigateToDaily={handleNavigateToDaily}
+                      translateY={translateY}
+                    />
+                  </ErrorBoundary>
+                )}
+                <ErrorBoundary name="Editor">
+                  <WikiLinkProvider
                     currentNoteId={noteState.currentNoteId}
-                    onMentionClick={handlePersonMentionClick}
+                    onLinkClick={handleWikiLinkClick}
                     onError={handleProviderError}
                   >
-                    <EditorRoot noteState={noteState} />
-                  </PersonMentionProvider>
-                </WikiLinkProvider>
-              </ErrorBoundary>
-            </>
-          )}
-        </div>
-        <ErrorBoundary name="Command Palette">
-          <CommandPalette
-            isOpen={commandPalette.isOpen}
-            onClose={commandPalette.close}
-            commands={commandRegistry.getVisible()}
-            onCommandSelect={handleCommandSelect}
-            onSearchResultSelect={(result) => {
-              navigateToNote(result.id);
-              commandPalette.close();
-            }}
-            filterCommands={fuzzySearchCommands}
-            initialMode={commandPalette.mode}
-            currentNoteId={noteState.currentNoteId}
-            onNoteSelect={(noteId) => {
-              navigateToNote(noteId);
-            }}
-            onModeChange={commandPalette.setMode}
-            showToast={showToast}
-            noteState={{
-              currentNoteId: noteState.currentNoteId,
-              deleteNote: noteState.deleteNote,
-              loadNote: noteState.loadNote,
-              createNote: noteState.createNote,
-              removeFromHistory,
-            }}
-            promptPlaceholder={commandPalette.promptPlaceholder}
-            onPromptSubmit={commandPalette.resolvePrompt}
-            onPromptCancel={() => commandPalette.resolvePrompt(undefined)}
-          />
-        </ErrorBoundary>
-        <ErrorNotification error={null} onDismiss={() => {}} />
-        <Toast toasts={toasts} onDismiss={dismissToast} />
-        <UpdateToast />
-
-        {backlinks.isVisible && (
-          <div className={styles.backlinksOverlay} onClick={backlinks.hide}>
-            <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.backlinksHeader}>
-                <h3>Backlinks</h3>
-                <button onClick={backlinks.hide}>Close</button>
-              </div>
-              <div className={styles.backlinksList}>
-                {backlinks.results.length === 0 ? (
-                  <div className={styles.backlinksEmpty}>No backlinks found</div>
-                ) : (
-                  backlinks.results.map((backlink) => (
-                    <div
-                      key={backlink.id}
-                      className={styles.backlinkItem}
-                      onClick={() => handleBacklinkSelect(backlink)}
+                    <PersonMentionProvider
+                      currentNoteId={noteState.currentNoteId}
+                      onMentionClick={handlePersonMentionClick}
+                      onError={handleProviderError}
                     >
-                      <div className={styles.backlinkTitle}>{backlink.title || 'Untitled'}</div>
-                      {backlink.tags.length > 0 && (
-                        <div className={styles.backlinkTags}>
-                          {backlink.tags.map((tag) => (
-                            <span key={tag} className={styles.backlinkTag}>
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
+                      <EditorRoot noteState={noteState} />
+                    </PersonMentionProvider>
+                  </WikiLinkProvider>
+                </ErrorBoundary>
+              </>
+            )}
+          </div>
+          <ErrorBoundary name="Command Palette">
+            <CommandPalette
+              isOpen={commandPalette.isOpen}
+              onClose={commandPalette.close}
+              commands={commandRegistry.getVisible()}
+              onCommandSelect={handleCommandSelect}
+              onSearchResultSelect={(result) => {
+                navigateToNote(result.id);
+                commandPalette.close();
+              }}
+              filterCommands={fuzzySearchCommands}
+              initialMode={commandPalette.mode}
+              currentNoteId={noteState.currentNoteId}
+              onNoteSelect={(noteId) => {
+                navigateToNote(noteId);
+              }}
+              onModeChange={commandPalette.setMode}
+              showToast={showToast}
+              noteState={{
+                currentNoteId: noteState.currentNoteId,
+                deleteNote: noteState.deleteNote,
+                loadNote: noteState.loadNote,
+                createNote: noteState.createNote,
+                removeFromHistory,
+              }}
+              promptPlaceholder={commandPalette.promptPlaceholder}
+              onPromptSubmit={commandPalette.resolvePrompt}
+              onPromptCancel={() => commandPalette.resolvePrompt(undefined)}
+            />
+          </ErrorBoundary>
+          <ErrorNotification error={null} onDismiss={() => {}} />
+          <Toast toasts={toasts} onDismiss={dismissToast} />
+          <UpdateToast />
+
+          {backlinks.isVisible && (
+            <div className={styles.backlinksOverlay} onClick={backlinks.hide}>
+              <div className={styles.backlinksPanel} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.backlinksHeader}>
+                  <h3>Backlinks</h3>
+                  <button onClick={backlinks.hide}>Close</button>
+                </div>
+                <div className={styles.backlinksList}>
+                  {backlinks.results.length === 0 ? (
+                    <div className={styles.backlinksEmpty}>No backlinks found</div>
+                  ) : (
+                    backlinks.results.map((backlink) => (
+                      <div
+                        key={backlink.id}
+                        className={styles.backlinkItem}
+                        onClick={() => handleBacklinkSelect(backlink)}
+                      >
+                        <div className={styles.backlinkTitle}>{backlink.title || 'Untitled'}</div>
+                        {backlink.tags.length > 0 && (
+                          <div className={styles.backlinkTags}>
+                            {backlink.tags.map((tag) => (
+                              <span key={tag} className={styles.backlinkTag}>
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-      <ErrorBoundary name="Context Panel">
-        <ContextPanel
-          isOpen={contextPanel.isOpen}
-          note={noteState.currentNote}
-          onNavigate={(noteId) => {
-            navigateToNote(noteId);
-          }}
-          onNoteUpdate={() => {
-            if (noteState.currentNoteId) {
-              noteState.loadNote(noteState.currentNoteId);
-            }
-          }}
-          width={contextPanel.width}
-          onWidthChange={contextPanel.setWidth}
-          onClose={contextPanel.toggle}
-          onExportSuccess={handleExportSuccess}
-          onExportError={handleExportError}
-          onError={handleProviderError}
-          shareMenuOpen={contextPanel.isOpen ? shareMenuOpen : undefined}
-          onShareMenuOpenChange={contextPanel.isOpen ? setShareMenuOpen : undefined}
-        />
-      </ErrorBoundary>
+          )}
+        </div>
+        <ErrorBoundary name="Context Panel">
+          <ContextPanel
+            isOpen={contextPanel.isOpen}
+            note={noteState.currentNote}
+            onNavigate={(noteId) => {
+              navigateToNote(noteId);
+            }}
+            onNoteUpdate={() => {
+              if (noteState.currentNoteId) {
+                noteState.loadNote(noteState.currentNoteId);
+              }
+            }}
+            width={contextPanel.width}
+            onWidthChange={contextPanel.setWidth}
+            onClose={contextPanel.toggle}
+            onExportSuccess={handleExportSuccess}
+            onExportError={handleExportError}
+            onError={handleProviderError}
+            shareMenuOpen={contextPanel.isOpen ? shareMenuOpen : undefined}
+            onShareMenuOpenChange={contextPanel.isOpen ? setShareMenuOpen : undefined}
+          />
+        </ErrorBoundary>
+      </EditorCommandProvider>
     </div>
   );
 }

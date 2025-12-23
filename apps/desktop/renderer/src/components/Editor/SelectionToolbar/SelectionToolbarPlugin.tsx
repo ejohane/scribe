@@ -18,7 +18,8 @@ import {
   $createParagraphNode,
   $isRootOrShadowRoot,
 } from 'lexical';
-import { $isHeadingNode, $createHeadingNode, HeadingTagType } from '@lexical/rich-text';
+import { $isHeadingNode, HeadingTagType } from '@lexical/rich-text';
+import { $createCollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode';
 import { $findMatchingParent, $getNearestBlockElementAncestorOrThrow } from '@lexical/utils';
 import { SelectionToolbar, type FormatType } from './SelectionToolbar';
 
@@ -299,7 +300,7 @@ export function SelectionToolbarPlugin() {
           paragraph.select();
         } else {
           // Convert to heading
-          const heading = $createHeadingNode(tag);
+          const heading = $createCollapsibleHeadingNode(tag);
           element.getChildren().forEach((child) => {
             heading.append(child);
           });

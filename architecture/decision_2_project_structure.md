@@ -30,26 +30,68 @@ The repository is structured as follows:
       /preload
         src/preload.ts
         tsconfig.json
-      /builder
-        electron-builder.yml
     /renderer
       src/
         index.tsx
         App.tsx
       vite.config.ts
       tsconfig.json
+    /build                 # Electron app icons and resources
+    package.json           # Contains electron-builder config under "build" key
+
+/apps
+  /cli                     # Command-line interface for Scribe
+    src/
+    package.json
 
 /packages
-  /engine-core
-  /storage-fs
-  /search
-  /graph
-  /shared
-  /ui
+  /engine-core       # Note operations, metadata, tasks
+  /engine-search     # Full-text search with FlexSearch
+  /engine-graph      # Knowledge graph, backlinks, tags
+  /storage-fs        # Filesystem vault operations
+  /shared            # Types, IPC contracts, utilities
+  /design-system     # UI tokens, themes, primitives
+  /test-utils        # Test factories and fixtures
+
+/config             # Shared ESLint, Prettier, TSConfig, Vitest configs
 
 /tsconfig.base.json
 /turbo.json
 ```
+
+### Package Descriptions
+
+| Package | Purpose | Dependencies |
+|---------|---------|--------------|
+| `engine-core` | Note CRUD, metadata extraction, task management | `shared` |
+| `engine-search` | Full-text search with FlexSearch | `shared` |
+| `engine-graph` | Knowledge graph, backlinks, tags | `shared` |
+| `storage-fs` | Filesystem vault, atomic saves, quarantine | `shared`, `engine-core` |
+| `shared` | Types, IPC contracts, utilities | (none) |
+| `design-system` | UI tokens, themes, primitives | (none) |
+| `test-utils` | Test factories and fixtures | `shared` |
+
+### Test Utils Package
+
+The `test-utils` package provides shared testing utilities:
+
+```
+packages/test-utils/src/
+  index.ts            # Barrel exports
+  content-factory.ts  # EditorContent factory
+  note-factory.ts     # Note factories (all variants)
+  vault-factory.ts    # In-memory vault for tests
+```
+
+Factory functions:
+- `createEditorContent(text)` - Generate valid Lexical JSON
+- `createNote(overrides)` - Create any note variant
+- `createRegularNote()` / `createDailyNote()` / etc. - Type-specific factories
+- `createTestVault()` - In-memory vault for integration tests
+
+See `architecture/testing_strategy_and_design.md` for test patterns.
+
+> **Note:** The electron-builder configuration is embedded directly in `/apps/desktop/package.json` under the `"build"` key, following electron-builder's recommended "simple project" pattern. This co-locates build config with the app it builds and simplifies CI scripts.
 
 Each directory represents an independently buildable unit with its own TypeScript configuration. The structure supports parallelization and caching via Turborepo.
 

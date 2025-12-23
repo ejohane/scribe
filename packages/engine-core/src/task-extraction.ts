@@ -6,15 +6,7 @@
  */
 
 import type { EditorContent, EditorNode, NoteId } from '@scribe/shared';
-import { traverseNodesWithAncestors, extractTextFromNode } from '@scribe/shared';
-
-// DJB2 hash algorithm constants
-/** Initial value for DJB2 hash algorithm */
-const DJB2_HASH_INITIAL = 5381;
-/** Multiplier used in DJB2 hash algorithm */
-const DJB2_HASH_MULTIPLIER = 33;
-/** Number of hex characters for text hash output */
-const TEXT_HASH_LENGTH = 16;
+import { traverseNodesWithAncestors, extractTextFromNode, computeTextHash } from '@scribe/shared';
 
 /**
  * Raw task data extracted from a note's content.
@@ -105,82 +97,6 @@ export function extractTasksFromNote(note: NoteForExtraction): ExtractedTask[] {
  */
 function isInsideCodeBlock(ancestors: EditorNode[]): boolean {
   return ancestors.some((node) => node.type === 'code' || node.type === 'code-block');
-}
-
-/**
- * Compute a hash of text content for task identity tracking.
- *
- * Uses the DJB2 hash algorithm to generate a 16-character hexadecimal string.
- *
- * ## Algorithm Choice: DJB2
- *
- * DJB2 was chosen for the following reasons:
- * - **Simplicity**: Pure JavaScript implementation with no dependencies
- * - **Performance**: O(n) time complexity with minimal memory overhead; uses only
- *   bitwise XOR and multiplication - ideal for frequent re-computation during
- *   note editing
- * - **Portability**: Works identically in Node.js, Electron main/renderer, and
- *   browser contexts without crypto API availability concerns
- * - **Sufficient distribution**: Provides good hash distribution for short text
- *   strings (typical task lengths of 10-200 characters)
- *
- * ## Collision Probability
- *
- * DJB2 produces a 32-bit hash value, which means:
- * - Theoretical collision probability: ~1 in 4 billion for random inputs
- * - For typical task lists (< 1000 tasks per note), collision risk is negligible
- * - With 16 hex characters (64-bit representation via padding), display collisions
- *   are extremely rare
- * - Note: Actual collision resistance is lower than cryptographic hashes due to
- *   DJB2's simpler mixing function
- *
- * ## Output Format: 16 Characters
- *
- * The 16-character hex output was chosen because:
- * - Provides a compact, URL-safe identifier suitable for task reconciliation
- * - Balances uniqueness vs. storage/display overhead
- * - Matches common hash prefix conventions (e.g., Git short SHA)
- * - Sufficient entropy for task deduplication within a single note
- *
- * ## Security Warning
- *
- * **NOT CRYPTOGRAPHICALLY SECURE**: This hash is for content identity only.
- * Do NOT use for:
- * - Password hashing
- * - Authentication tokens
- * - Integrity verification against malicious tampering
- * - Any security-sensitive application
- *
- * For cryptographic needs, use the Web Crypto API (crypto.subtle.digest).
- *
- * ## Performance Characteristics
- *
- * - Time complexity: O(n) where n is string length
- * - Space complexity: O(1) - single number accumulator
- * - Typical task text (50 chars): < 0.01ms
- * - Large text (10,000 chars): < 1ms
- * - No memory allocation during iteration
- *
- * @param text - The text content to hash
- * @returns A 16-character hexadecimal string
- *
- * @example
- * ```typescript
- * computeTextHash("Buy groceries") // => "0000000b8c9f3a2e"
- * computeTextHash("")              // => "0000000000001505"
- * ```
- */
-export function computeTextHash(text: string): string {
-  // DJB2 hash algorithm: hash = hash * 33 ^ char
-  // Initial value 5381 is a magic number that produces good distribution
-  let hash = DJB2_HASH_INITIAL;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash * DJB2_HASH_MULTIPLIER) ^ text.charCodeAt(i);
-  }
-  // Convert to hex and pad/truncate to TEXT_HASH_LENGTH chars
-  // Math.abs handles potential negative numbers from integer overflow
-  const hexHash = Math.abs(hash).toString(16).padStart(TEXT_HASH_LENGTH, '0');
-  return hexHash.slice(0, TEXT_HASH_LENGTH);
 }
 
 /**

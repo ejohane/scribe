@@ -19,14 +19,57 @@ The layers build on one another but remain cleanly separated to enforce modulari
 
 # 2. Foundations / Shared Types
 
-The foundations layer provides the type system and core interfaces used across all engine modules and in communication between layers.
+The foundations layer provides the type system and core interfaces used across all engine modules and in communication between layers. Types are organized into domain-specific modules for discoverability and tree-shaking.
 
-### Key responsibilities:
+### Directory Structure
 
-- Define the canonical `Note` structure.
-- Define types for metadata, graph, search results, and identifiers.
+```
+packages/shared/src/types/
+  index.ts              # Barrel re-exports all types
+  note-types.ts         # Note, NoteId, NoteType, note variants
+  editor-types.ts       # EditorContent, EditorNode
+  task-types.ts         # Task, TaskId, TaskFilter, TaskChangeEvent
+  graph-types.ts        # GraphNode, GraphEdge
+  search-types.ts       # SearchResult
+```
 
-### Core Types:
+### Key Responsibilities
+
+- Define the canonical `Note` structure with discriminated union pattern
+- Define branded types for type-safe identifiers (`NoteId`, `VaultPath`, `TaskId`)
+- Define types for metadata, graph, search results, and tasks
+- Provide type guards for runtime type narrowing
+
+### Type Categories
+
+**Note Types** (`note-types.ts`):
+- `NoteId` / `VaultPath` — Branded string types for type-safe identifiers
+- `NoteType` — Discriminator: `'person' | 'project' | 'meeting' | 'daily' | 'template' | 'system'`
+- `BaseNote` — Common fields (id, title, createdAt, updatedAt, content, metadata)
+- Note variants: `RegularNote`, `PersonNote`, `DailyNote`, `MeetingNote`, `ProjectNote`, `TemplateNote`, `SystemNote`
+- Type-specific data: `DailyNoteData`, `MeetingNoteData`
+- Type guards: `isRegularNote()`, `isPersonNote()`, `isDailyNote()`, `isMeetingNote()`, etc.
+- System notes: `SYSTEM_NOTE_IDS`, `isSystemNoteId()`
+
+**Editor Types** (`editor-types.ts`):
+- `EditorContent` — Wrapper for Lexical JSON with `root` node
+- `EditorNode` — Generic node structure for traversal
+
+**Task Types** (`task-types.ts`):
+- `TaskId` — Composite identifier: `{noteId, nodeKey, textHash}`
+- `Task` — Full task with metadata (text, completed, priority, timestamps)
+- `TaskFilter` — Query parameters for task listing
+- `TaskChangeEvent` — Real-time update events (`added`, `updated`, `removed`, `reordered`)
+- Serialization: `serializeTaskId()`, `parseTaskId()`
+
+**Graph Types** (`graph-types.ts`):
+- `GraphNode` — Node in knowledge graph (note representation)
+- `GraphEdge` — Directed edge (link, mention, tag relationships)
+
+**Search Types** (`search-types.ts`):
+- `SearchResult` — Search hit with score and snippet
+
+### Core Types
 
 ```ts
 // Branded type for type-safe identifiers
@@ -47,14 +90,6 @@ interface BaseNote {
 type Note = RegularNote | PersonNote | ProjectNote | TemplateNote 
           | SystemNote | DailyNote | MeetingNote;
 
-interface NoteMetadata {
-  title: string | null;          // @deprecated - use Note.title
-  tags: string[];                // Tags extracted from #tag patterns in content
-  links: NoteId[];               // Outbound references to other notes
-  mentions: NoteId[];            // People mentioned via @name syntax
-  type?: NoteType;               // Note type discriminator
-}
-
 // Editor content is an abstraction over Lexical JSON
 interface EditorContent {
   root: {
@@ -64,13 +99,128 @@ interface EditorContent {
 }
 ```
 
-### Additional foundational types include:
+### Barrel Export Pattern
 
-- `NoteId` / `VaultPath` — Branded types for type-safe identifiers
-- `NoteType` — Discriminator: `'person' | 'project' | 'meeting' | 'daily' | 'template' | 'system'`
-- `SearchResult` — Full-text search results
-- `GraphNode` / `GraphEdge` — Knowledge graph types
-- Type guards: `isPersonNote()`, `isDailyNote()`, `isMeetingNote()`, etc.
+The `index.ts` re-exports all types from domain modules:
+- Consumers can import from `@scribe/shared` for convenience
+- Or import from specific modules (e.g., `@scribe/shared/types/task-types`) for better tree-shaking
+- All types are consumed by engine, storage, and desktop packages
+
+### Note Type Variants
+
+The `Note` type is a discriminated union. Each variant serves a specific purpose:
+
+#### RegularNote
+
+The default note type for general content. No special behavior or metadata.
+
+```ts
+interface RegularNote extends BaseNote {
+  type?: undefined;  // Distinguishes from specialized types
+}
+```
+
+#### PersonNote
+
+Notes about people, used for `@mention` autocomplete.
+
+```ts
+interface PersonNote extends BaseNote {
+  type: 'person';
+}
+```
+
+- Referenced by `@name` mentions in editor
+- `PersonMentionPlugin` handles autocomplete
+- Appears in `metadata.mentions` when mentioned
+
+#### DailyNote
+
+Date-based journal notes, one per calendar day.
+
+```ts
+interface DailyNote extends BaseNote {
+  type: 'daily';
+  daily: {
+    date: string;  // "YYYY-MM-DD" format
+  };
+}
+```
+
+- Created via `daily:getOrCreate` IPC
+- Title derived from date (e.g., "December 23, 2024")
+- MeetingNotes link to their DailyNote
+
+#### MeetingNote
+
+Notes for meetings with attendee tracking.
+
+```ts
+interface MeetingNote extends BaseNote {
+  type: 'meeting';
+  meeting: {
+    date: string;        // Links to DailyNote by date
+    dailyNoteId: NoteId; // Direct reference to DailyNote
+    attendees: NoteId[]; // References to PersonNotes
+  };
+}
+```
+
+- Attendees are `PersonNote` references
+- Automatically linked to the `DailyNote` for that date
+- Created via `meeting:create` IPC
+
+#### ProjectNote
+
+Notes for project organization and grouping.
+
+```ts
+interface ProjectNote extends BaseNote {
+  type: 'project';
+}
+```
+
+- Organizational container for related notes
+- Can be linked via wiki-links
+
+#### TemplateNote
+
+Reusable templates for note creation.
+
+```ts
+interface TemplateNote extends BaseNote {
+  type: 'template';
+}
+```
+
+- Content used as starting point for new notes
+- Not used in graph relationships
+
+#### SystemNote
+
+Virtual notes for system UI screens (not persisted to vault).
+
+```ts
+interface SystemNote extends BaseNote {
+  type: 'system';
+}
+```
+
+- `system:tasks`: Tasks management screen
+- Rendered by special components, not the editor
+- ID format: `system:{screen-name}`
+
+### Note Type Relationships
+
+```
+MeetingNote ──── date ────→ DailyNote
+     │
+     └── attendees ──→ PersonNote[]
+
+RegularNote ──── @mention ──→ PersonNote
+     │
+     └── [[link]] ──→ Any Note
+```
 
 This layer contains **no application logic**—only shared definitions.
 
@@ -93,7 +243,7 @@ The engine is organized into distinct modules for clarity and separation of conc
 
 ## 3.1 `engine-core`
 
-The `engine-core` module owns the fundamental operations over notes.
+The `engine-core` module owns the fundamental operations over notes and tasks.
 
 ### Responsibilities:
 
@@ -102,12 +252,20 @@ The `engine-core` module owns the fundamental operations over notes.
 - Normalizing note structure
 - Extracting metadata from Lexical JSON
 - Providing helper methods for metadata consistency
+- **Task management** — extraction, indexing, reconciliation, and persistence
 
 ### Metadata extraction includes:
 
 - **Title** — determined from the first textual block or an explicit metadata node.
 - **Tags** — parsed from content using `#tag` conventions or custom Lexical nodes.
 - **Links** — extracted from link nodes, wiki-link style nodes, or dedicated reference nodes.
+- **Tasks** — extracted from checklist items within Lexical JSON content.
+
+### Browser-safe exports:
+
+The module carefully separates browser-safe code (extractors, utilities) from Node-only code (persistence). This enables:
+- Reuse in the CLI without Electron
+- Potential future web deployment of extraction logic
 
 `engine-core` is the heart of the note model.
 
@@ -176,30 +334,85 @@ The preload layer exposes the engine to the renderer via a stable, secure, typed
 
 - Exposing note CRUD operations
 - Exposing search and graph queries
+- Exposing domain-specific operations (people, meetings, tasks, etc.)
 - Translating renderer calls into IPC events
 - Serializing responses back to the UI
+- Managing auto-update lifecycle events
 
-### Example exposed API:
+### Full API Surface
+
+The preload exposes 13 API domains with 50+ methods. The contract is defined in `@scribe/shared` (`packages/shared/src/ipc-contract.ts`):
 
 ```ts
 window.scribe = {
+  ping: () => Promise<'pong'>,
+  
   notes: {
-    list: () => ipc.invoke('notes:list'),
-    read: (id) => ipc.invoke('notes:read', id),
-    save: (note) => ipc.invoke('notes:save', note),
-    create: () => ipc.invoke('notes:create'),
+    list, read, create, save, delete,
+    findByTitle, searchTitles, findByDate
   },
-  search: {
-    query: (text) => ipc.invoke('search:query', text),
+  
+  search: { query },
+  
+  graph: { forNote, backlinks, notesWithTag },
+  
+  shell: { openExternal },
+  
+  app: {
+    openDevTools, getLastOpenedNote, setLastOpenedNote,
+    getConfig, setConfig
   },
-  graph: {
-    forNote: (id) => ipc.invoke('graph:forNote', id),
-    backlinks: (id) => ipc.invoke('graph:backlinks', id),
+  
+  people: { list, create, search },
+  
+  daily: { getOrCreate, find },
+  
+  meeting: { create, addAttendee, removeAttendee },
+  
+  dictionary: {
+    addWord, removeWord, getLanguages,
+    setLanguages, getAvailableLanguages
   },
+  
+  tasks: { list, toggle, reorder, get, onChange },
+  
+  update: {
+    check, install,
+    onChecking, onAvailable, onNotAvailable, onDownloaded, onError
+  },
+  
+  cli: { install, isInstalled, uninstall, getStatus },
+  
+  export: { toMarkdown }
 };
 ```
 
-Preload enforces Scribe’s strict isolation model.
+### API Domain Reference
+
+| Domain | Purpose | Note Type Affinity |
+|--------|---------|-------------------|
+| notes | Core CRUD operations | All notes |
+| search | Full-text search | All notes |
+| graph | Relationship queries | All notes |
+| shell | System integration | N/A |
+| app | Application state | N/A |
+| people | Person management | PersonNote |
+| daily | Daily note creation | DailyNote |
+| meeting | Meeting management | MeetingNote |
+| dictionary | Spellcheck dictionary | N/A |
+| tasks | Task extraction/toggle | All notes with checklists |
+| update | Auto-update lifecycle | N/A |
+| cli | CLI tool management | N/A |
+| export | Export to external formats | All notes |
+
+### Security Boundary
+
+Preload enforces Scribe's strict isolation model:
+
+- The renderer has **no direct Node.js access**
+- All filesystem operations go through IPC
+- The API is statically typed for compile-time safety
+- Error handling prevents leaking internal details to the renderer
 
 ---
 

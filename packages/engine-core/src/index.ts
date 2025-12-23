@@ -8,8 +8,11 @@ export { extractMetadata, extractTags, extractLinks } from './metadata.js';
 export { MetadataIndex } from './metadata-index.js';
 
 // Task extraction (browser-safe)
-export { extractTasksFromNote, computeTextHash } from './task-extraction.js';
+export { extractTasksFromNote } from './task-extraction.js';
 export type { ExtractedTask, NoteForExtraction } from './task-extraction.js';
+
+// Re-export computeTextHash from shared for backwards compatibility
+export { computeTextHash } from '@scribe/shared';
 
 // NOTE: TaskIndex, TaskPersistence, and TaskReconciler are NOT exported from barrel
 // to avoid pulling Node.js dependencies (path, fs) into browser bundles.

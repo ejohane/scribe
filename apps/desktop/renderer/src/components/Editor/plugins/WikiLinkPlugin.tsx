@@ -195,10 +195,8 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
             wikiLinkNode.insertAfter(afterNode);
             afterNode.select(0, 0);
           } else {
-            // Add a space after the link for continued typing
-            const spaceNode = $createTextNode(' ');
-            wikiLinkNode.insertAfter(spaceNode);
-            spaceNode.select(1, 1);
+            // Position cursor after the link without adding a space
+            wikiLinkNode.selectNext();
           }
         }
 

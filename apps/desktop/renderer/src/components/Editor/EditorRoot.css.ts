@@ -432,3 +432,78 @@ export const tableSelection = style({
 export const tableCellSelected = style({
   backgroundColor: `color-mix(in srgb, ${vars.color.info} 15%, transparent)`,
 });
+
+// === Search highlight styles ===
+
+// Base search highlight (all matches) - yellow highlighter effect
+globalStyle(`${editorInput} mark[data-lexical-mark-ids*="search-match"]`, {
+  backgroundColor: 'rgba(255, 212, 0, 0.4)',
+  borderRadius: vars.radius.sm,
+  padding: '0 1px',
+});
+
+// Active/current match - orange with accent outline for emphasis
+globalStyle(`${editorInput} mark[data-lexical-mark-ids*="search-match-active"]`, {
+  backgroundColor: 'rgba(255, 165, 0, 0.6)',
+  outline: `2px solid ${vars.color.accent}`,
+  outlineOffset: '1px',
+});
+
+// === Collapsible Heading styles ===
+
+// Fold icon - positioned via JS portal, hidden by default
+export const foldIcon = style({
+  position: 'fixed',
+  width: '24px',
+  height: '24px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  opacity: 0,
+  transition: 'opacity 150ms ease',
+  color: vars.color.foregroundMuted,
+  border: 'none',
+  background: 'transparent',
+  padding: 0,
+  fontSize: '12px',
+  zIndex: 10,
+  ':hover': {
+    color: vars.color.foreground,
+  },
+  ':focus-visible': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '2px',
+  },
+  // Touch device support: always visible
+  '@media': {
+    '(hover: none) and (pointer: coarse)': {
+      opacity: 1,
+      width: '44px',
+      height: '44px',
+    },
+  },
+});
+
+// Class to show fold icon (applied on heading hover)
+export const foldIconVisible = style({
+  opacity: 1,
+});
+
+// Visual indicator on collapsed headings - "..." suffix
+globalStyle('.collapsible-heading[data-collapsed="true"]::after', {
+  content: '"..."',
+  color: vars.color.foregroundMuted,
+  marginLeft: vars.spacing['2'],
+  fontSize: '0.8em',
+});
+
+// Content hidden under collapsed headings
+globalStyle('.collapsed-content', {
+  display: 'none',
+});
+
+// Base styling for collapsible headings - position relative for potential fold icon positioning
+globalStyle('.collapsible-heading', {
+  position: 'relative',
+});

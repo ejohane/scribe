@@ -24,6 +24,7 @@ export function getTemplate(type: NoteType | undefined): TemplateConfig | undefi
  * Default context panel sections for notes without a template
  */
 export const defaultContextPanelSections: ContextPanelSection[] = [
+  { type: 'outline' },
   { type: 'linked-mentions' },
   { type: 'tasks', placeholder: true },
   { type: 'references' },

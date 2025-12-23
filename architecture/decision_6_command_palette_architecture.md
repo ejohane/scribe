@@ -66,35 +66,59 @@ Commands are discoverable via fuzzy search across:
 
 ---
 
-# 4. Core Commands (MVP)
+# 4. Core Commands
 
-The following commands are implemented in the MVP:
+The following commands are registered in the command palette, organized by group:
 
-### **1. New Note**
+### Notes Group
 
-Creates a new note via `window.scribe.notes.create()` and opens it.
+| Command | ID | Shortcut | Description |
+|---------|-----|----------|-------------|
+| Create Note | `new-note` | — | Creates a new note via `window.scribe.notes.create()` and opens it |
+| Open Note | `open-note` | — | Switches to file-browse mode to select an existing note |
+| Save | `save` | `Cmd+S` | Triggers manual save (handled by ManualSavePlugin) |
+| Delete Note | `delete-note` | — | Switches to delete-browse mode for note deletion |
+| Today | `daily:today` | — | Opens or creates today's daily note via `window.scribe.daily.getOrCreate()` |
+| New Meeting | `meeting:create` | — | Creates a new meeting note (switches to meeting-create mode) |
 
-### **2. Open Note**
+### Navigation Group
 
-Lists notes via `window.scribe.notes.list()` and opens selected note.
+| Command | ID | Shortcut | Description |
+|---------|-----|----------|-------------|
+| Show Backlinks | `show-backlinks` | — | Retrieves backlinks via `window.scribe.graph.backlinks(id)` |
+| Tasks | `navigate-tasks` | — | Opens the system Tasks note (`system:tasks`) |
 
-### **3. Search Notes**
+### People Group
 
-Calls `window.scribe.search.query(text)` and displays ranked note results.
+| Command | ID | Shortcut | Description |
+|---------|-----|----------|-------------|
+| New Person | `person:create` | — | Creates a new person via `window.scribe.people.create(name)` |
+| Browse People | `person:browse` | — | Switches to person-browse mode to view all people |
 
-### **4. Show Backlinks**
+### Settings Group
 
-Retrieves backlinks via `window.scribe.graph.backlinks(id)` and presents results.
+| Command | ID | Shortcut | Description |
+|---------|-----|----------|-------------|
+| Toggle Theme | `toggle-theme` | — | Toggles between light and dark themes |
 
-### **5. Save Note**
+### Developer Group
 
-Triggers manual save of the current editor state (even though autosave exists).
+| Command | ID | Shortcut | Description |
+|---------|-----|----------|-------------|
+| Open Developer Tools | `open-devtools` | `Cmd+Shift+I` | Invokes Electron DevTools for debugging |
 
-### **6. Open Developer Tools**
+### Visibility
 
-Invokes Electron’s devtools for debugging.
+Commands marked with `hidden: true` are not shown in the default command list but are accessible via search/keywords. This keeps the palette clean while maintaining discoverability.
 
-More commands can be added without architectural changes.
+### Source of Truth
+
+Command registrations are defined in:
+- `apps/desktop/renderer/src/hooks/useAppCommands.tsx` (core commands)
+- `apps/desktop/renderer/src/commands/templates.ts` (template commands)
+- `apps/desktop/renderer/src/commands/people.ts` (people commands)
+
+More commands can be added without architectural changes by following the same registration pattern.
 
 ---
 

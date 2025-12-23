@@ -26,6 +26,7 @@ import { TasksWidget } from './TasksWidget';
 import { CalendarWidget } from './CalendarWidget';
 import { AttendeesWidget } from './AttendeesWidget';
 import { ReferencesWidget } from './ReferencesWidget';
+import { OutlineWidget } from './OutlineWidget';
 import { ResizeHandle } from '../ResizeHandle';
 import { ShareMenu } from '../ShareMenu';
 import * as styles from './ContextPanel.css';
@@ -177,6 +178,12 @@ export function ContextPanel({
   // Render a single section based on its type
   const renderSection = (section: ContextPanelSection, index: number) => {
     switch (section.type) {
+      case 'outline':
+        // Only render if we have a note with content
+        if (note) {
+          return <OutlineWidget key={`section-${index}`} note={note} />;
+        }
+        return null;
       case 'linked-mentions':
         return (
           <LinkedMentions

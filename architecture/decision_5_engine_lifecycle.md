@@ -75,13 +75,15 @@ const searchEngine = new SearchEngine();
 
 ### 6. Bind IPC routes
 
-- `notes:list`
-- `notes:read`
-- `notes:create`
-- `notes:save`
-- `search:query`
-- `graph:forNote`
-- `graph:backlinks`
+All IPC handlers are registered via the `IPC_CHANNELS` constant from `@scribe/shared`. The main domains include:
+- **notes**: list, read, create, save, delete, findByTitle, searchTitles, findByDate
+- **search**: query
+- **graph**: forNote, backlinks, notesWithTag
+- **people**: list, create, search
+- **daily**: getOrCreate, find
+- **meeting**: create, addAttendee, removeAttendee
+- **tasks**: list, toggle, reorder, get, onChange
+- **app**, **shell**, **dictionary**, **cli**, **export**, **update**
 
 ### 7. Load and display the renderer window
 
@@ -178,35 +180,168 @@ All updates are incremental—only the affected note is reprocessed.
 
 # 6. IPC Routing Architecture
 
-IPC routes allow the renderer to invoke engine operations through preload.
+IPC routes allow the renderer to invoke engine operations through preload. All channels are defined in `@scribe/shared` (`packages/shared/src/ipc-contract.ts`) and follow the `{domain}:{action}` naming convention.
 
-### Notes
+### Channel Naming Convention
 
-```ts
-ipcMain.handle('notes:list', () => Array.from(AllNotes.values()));
-ipcMain.handle('notes:read', (_, id) => AllNotes.get(id));
-ipcMain.handle('notes:create', createNoteHandler);
-ipcMain.handle('notes:save', saveNoteHandler);
-```
+All channels follow the pattern `{domain}:{action}`:
+- **Domain** = API namespace (notes, search, graph, etc.)
+- **Action** = specific operation (list, create, query, etc.)
 
-### Search
+This enables:
+1. **Handler organization**: Each domain has its own handler file
+2. **Permission scoping** (future): Could restrict domains per window
+3. **Logging/debugging**: Easy to filter by domain
 
-```ts
-ipcMain.handle('search:query', (_, query) => searchEngine.search(query));
-```
-
-### Graph
+### Complete IPC Channels
 
 ```ts
-ipcMain.handle('graph:forNote', (_, id) => graphEngine.neighbors(id));
-ipcMain.handle('graph:backlinks', (_, id) => graphEngine.backlinks(id));
+IPC_CHANNELS = {
+  // Notes domain
+  notes: {
+    list: 'notes:list',
+    read: 'notes:read',
+    create: 'notes:create',
+    save: 'notes:save',
+    delete: 'notes:delete',
+    findByTitle: 'notes:findByTitle',
+    searchTitles: 'notes:searchTitles',
+    findByDate: 'notes:findByDate',
+  },
+  
+  // Search domain
+  search: { query: 'search:query' },
+  
+  // Graph domain
+  graph: {
+    forNote: 'graph:forNote',
+    backlinks: 'graph:backlinks',
+    notesWithTag: 'graph:notesWithTag',
+  },
+  
+  // Shell integration
+  shell: { openExternal: 'shell:openExternal' },
+  
+  // Application state
+  app: {
+    openDevTools: 'app:openDevTools',
+    getLastOpenedNote: 'app:getLastOpenedNote',
+    setLastOpenedNote: 'app:setLastOpenedNote',
+    getConfig: 'app:getConfig',
+    setConfig: 'app:setConfig',
+  },
+  
+  // People management
+  people: { list, create, search },
+  
+  // Daily notes
+  daily: { getOrCreate, find },
+  
+  // Meeting notes
+  meeting: { create, addAttendee, removeAttendee },
+  
+  // Dictionary/spellcheck
+  dictionary: {
+    addWord, removeWord, getLanguages,
+    setLanguages, getAvailableLanguages
+  },
+  
+  // Task management
+  tasks: { list, toggle, reorder, get, onChange },
+  
+  // Auto-update lifecycle
+  update: { check, install },
+  
+  // CLI tool management
+  cli: { install, isInstalled, uninstall, getStatus },
+  
+  // Export
+  export: { toMarkdown }
+}
 ```
 
-### Properties:
+### Handler File Mapping
+
+| Domain | Handler File | Location |
+|--------|-------------|----------|
+| notes | notesHandlers.ts | electron/main/src/handlers/ |
+| search | searchHandlers.ts | electron/main/src/handlers/ |
+| graph | graphHandlers.ts | electron/main/src/handlers/ |
+| people | peopleHandlers.ts | electron/main/src/handlers/ |
+| daily | dailyHandlers.ts | electron/main/src/handlers/ |
+| meeting | meetingHandlers.ts | electron/main/src/handlers/ |
+| dictionary | dictionaryHandlers.ts | electron/main/src/handlers/ |
+| tasks | tasksHandlers.ts | electron/main/src/handlers/ |
+| cli | cliHandlers.ts | electron/main/src/handlers/ |
+| export | exportHandlers.ts | electron/main/src/handlers/ |
+| app | appHandlers.ts | electron/main/src/handlers/ |
+| update | (in auto-updater.ts) | electron/main/src/ |
+
+### Handler Dependencies
+
+Each handler receives a shared dependencies object:
+
+```ts
+interface HandlerDependencies {
+  mainWindow: BrowserWindow | null;
+  vault: FileSystemVault | null;
+  graphEngine: GraphEngine | null;
+  searchEngine: SearchEngine | null;
+  taskIndex: TaskIndex | null;
+}
+```
+
+| Handler | Required Dependencies |
+|---------|----------------------|
+| notesHandlers | vault, graphEngine, searchEngine |
+| searchHandlers | searchEngine |
+| graphHandlers | graphEngine |
+| peopleHandlers | vault |
+| dailyHandlers | vault |
+| meetingHandlers | vault |
+| tasksHandlers | taskIndex, vault |
+| dictionaryHandlers | (electron webContents) |
+| cliHandlers | (filesystem) |
+| exportHandlers | vault |
+| appHandlers | (electron APIs) |
+
+### Handler Registration Pattern
+
+All handlers are registered in `main.ts` during startup:
+
+```ts
+// In main.ts
+registerNotesHandlers(deps);
+registerSearchHandlers(deps);
+registerGraphHandlers(deps);
+registerPeopleHandlers(deps);
+registerDailyHandlers(deps);
+registerMeetingHandlers(deps);
+registerDictionaryHandlers(deps);
+registerTasksHandlers(deps);
+registerCliHandlers(deps);
+registerExportHandlers(deps);
+registerAppHandlers(deps);
+```
+
+Each handler file exports a `register*Handlers(deps)` function that:
+1. Destructures the dependencies it needs
+2. Registers `ipcMain.handle()` for each channel
+3. Returns early if required dependencies are null (graceful degradation)
+
+### Handler Design Properties
+
+- **Separation of concerns**: Each domain in its own file
+- **Testability**: Handlers can be tested with mock dependencies
+- **Consistency**: All handlers follow the same signature
+- **Discoverability**: File name matches channel prefix
+
+### Security Properties
 
 - Renderer cannot bypass preload
 - All domain logic stays in main process
 - IPC routes remain stable API boundaries
+- Channels are typed end-to-end via `@scribe/shared`
 
 ---
 
@@ -226,7 +361,119 @@ For MVP, polling is unnecessary—renderer reloads note state only on explicit u
 
 ---
 
-# 8. Performance Considerations
+# 8. Auto-Update Lifecycle
+
+Scribe uses **electron-updater** for automatic updates, providing seamless delivery of new versions to users.
+
+### **8.1 Overview**
+
+The auto-update system:
+- Checks for updates on startup (after 10-second delay)
+- Checks periodically (every hour)
+- Downloads updates automatically in background
+- Installs on app quit (user-triggered or automatic)
+
+### **8.2 Configuration**
+
+```ts
+autoUpdater.autoDownload = true;        // Download automatically when available
+autoUpdater.autoInstallOnAppQuit = true; // Install when user quits app
+```
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| Initial check delay | 10 seconds | Avoid blocking startup |
+| Check interval | 1 hour | Balance freshness vs. network usage |
+| Auto-download | enabled | Seamless background updates |
+| Install on quit | enabled | Non-disruptive installation |
+
+### **8.3 Update Flow**
+
+```
+App Starts
+    ↓ (10s delay)
+Check for Updates
+    ↓
+[Update Available?]
+    ├─ No → Wait for next interval (1 hour)
+    └─ Yes → Auto-download begins
+                ↓
+           Download Complete
+                ↓
+           Notify Renderer (update:downloaded)
+                ↓
+           User Quits App
+                ↓
+           Install & Restart
+```
+
+### **8.4 IPC Channels**
+
+| Channel | Direction | Purpose |
+|---------|-----------|---------|
+| `update:check` | Renderer → Main | Manual check trigger |
+| `update:install` | Renderer → Main | Install downloaded update and restart |
+| `update:checking` | Main → Renderer | Check started notification |
+| `update:available` | Main → Renderer | Update found (includes version, date) |
+| `update:not-available` | Main → Renderer | No update available |
+| `update:downloaded` | Main → Renderer | Ready to install (includes version, date) |
+| `update:error` | Main → Renderer | Error occurred (includes message) |
+
+### **8.5 Event Payloads**
+
+```ts
+// update:available and update:downloaded
+{
+  version: string;      // e.g., "1.2.0"
+  releaseDate: string;  // ISO date
+}
+
+// update:error
+{
+  message: string;      // Error description
+}
+```
+
+### **8.6 Platform Support**
+
+| Platform | Format | Status |
+|----------|--------|--------|
+| macOS | DMG | Production (code-signed) |
+| Windows | NSIS | Planned |
+| Linux | AppImage | Planned |
+
+### **8.7 Error Handling**
+
+- **Network errors**: Silent retry on next interval
+- **Download errors**: Logged to console, retry on next interval
+- **Install errors**: Logged, update preserved for next quit
+- **Check failures**: Logged, do not block app operation
+
+### **8.8 Security Considerations**
+
+- Updates are code-signed (macOS)
+- HTTPS-only download from GitHub Releases
+- Signature verification by electron-updater
+- Update server: GitHub Releases (default for electron-builder)
+
+### **8.9 Implementation Location**
+
+- **Source file**: `apps/desktop/electron/main/src/auto-updater.ts`
+- **Setup**: Called during app initialization in main process
+- **Cleanup**: `cleanupAutoUpdater()` for graceful shutdown and testing
+
+### **8.10 Relationship to CI/CD**
+
+The CI/CD pipeline (`release.yml`) handles how releases are **created**:
+- Version tagging and changelog generation
+- Platform-specific builds with code signing
+- Publishing to GitHub Releases
+
+This section documents how releases are **consumed** by the running app.
+
+---
+
+# 9. Performance Considerations
 
 The architecture ensures:
 
@@ -240,7 +487,7 @@ This supports Scribe’s goal of being fast, predictable, and durable.
 
 ---
 
-# 9. Rationale
+# 10. Rationale
 
 This lifecycle design was chosen to:
 
@@ -251,8 +498,8 @@ This lifecycle design was chosen to:
 
 ---
 
-# 10. Final Definition
+# 11. Final Definition
 
-**Decision 5 defines how Scribe's engine initializes, loads the vault, indexes notes, updates its in-memory structures, and exposes its capabilities via IPC.** The main process is the authoritative host for domain logic, while the renderer remains a pure UI layer.
+**Decision 5 defines how Scribe's engine initializes, loads the vault, indexes notes, updates its in-memory structures, manages auto-updates, and exposes its capabilities via IPC.** The main process is the authoritative host for domain logic, while the renderer remains a pure UI layer.
 
-This lifecycle ensures that Scribe is fast, robust, and scalable for future enhancements.
+This lifecycle ensures that Scribe is fast, robust, secure (via automatic updates), and scalable for future enhancements.

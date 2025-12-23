@@ -57,47 +57,118 @@ The editor coexists with the command palette, which overlays non-destructively.
 
 # 3. Editor Component Structure
 
-Scribe's editor consists of a small number of components:
+Scribe's editor uses a plugin-based architecture with custom Lexical nodes:
 
 ```
 Editor/
-  EditorRoot.tsx
-  useNoteState.ts
+  EditorRoot.tsx              # LexicalComposer setup, node registration
+  EditorRoot.css.ts           # Editor styles (vanilla-extract)
+  index.ts                    # Barrel export
+  
   plugins/
-    AutosavePlugin.ts
-    MetadataExtractionPlugin.ts
-    CommandPaletteOverlay.tsx
+    # Save plugins
+    AutosavePlugin.tsx        # Debounced auto-save on content change
+    ManualSavePlugin.tsx      # Cmd/Ctrl+S handler
+    InitialStatePlugin.tsx    # Loads note content into editor
+    
+    # Link plugins
+    WikiLinkPlugin.tsx        # [[wiki-link]] autocomplete and creation
+    WikiLinkNode.ts           # Custom Lexical node for wiki links
+    WikiLinkContext.tsx       # Wiki link navigation context
+    LinkClickPlugin.tsx       # External link click handling
+    InlineLinkNode.ts         # Inline link node type
+    
+    # Mention plugins
+    PersonMentionPlugin.tsx   # @person mention autocomplete
+    PersonMentionNode.ts      # Custom node for person mentions
+    PersonMentionContext.tsx  # Person mention navigation context
+    
+    # Table plugins
+    TablePlugin.tsx           # Base table support
+    TableKeyboardPlugin.tsx   # Tab/arrow navigation in tables
+    TableUIPlugin.tsx         # Table control UI
+    TableContentPlugin.tsx    # Table content management
+    table/                    # Table utility hooks and tests
+    
+    # Utility plugins
+    HorizontalRulePlugin.tsx  # --- horizontal rule insertion
+    FocusNodePlugin.tsx       # Navigate to specific node (for Tasks panel)
+    CheckListShortcutPlugin.tsx # Checklist keyboard shortcuts
+    
+  SelectionToolbar/
+    SelectionToolbarPlugin.tsx # Floating toolbar on text selection
+    
+  SlashMenu/
+    SlashMenuPlugin.tsx       # / command menu
 ```
 
 ### **EditorRoot.tsx**
 
-- Initializes Lexical
-- Loads the selected note’s content
-- Re-renders when the active note changes
+The main editor component that:
+- Initializes LexicalComposer with configuration
+- Registers all Lexical nodes (see below)
+- Composes all editor plugins
+- Receives note state from the parent component
 
-### **useNoteState.ts**
+### **Plugin Architecture Patterns**
 
-Custom React hook that:
+**1. Node + Plugin pairs**: Custom Lexical nodes (WikiLinkNode, PersonMentionNode) are always paired with a Plugin that handles creation, autocomplete, and interaction.
 
-- Tracks current note ID
-- Loads note data via preload
-- Trigger save operations
-- Maps Lexical state to engine note format
+**2. Context providers**: Link and mention plugins use Context for navigation callbacks, allowing the plugin to remain decoupled from routing logic.
 
-### **AutosavePlugin**
+**3. Domain grouping**: Complex features like tables are split across multiple plugins for separation of concerns:
+   - TablePlugin: Registration and basic setup
+   - TableKeyboardPlugin: Keyboard navigation (Tab, arrows)
+   - TableUIPlugin: Visual controls (row/column buttons)
+   - TableContentPlugin: Content operations
 
-- Watches Lexical updates
-- Debounces and triggers `window.scribe.notes.save()`
+**4. Subdirectory components**: SelectionToolbar and SlashMenu are complex enough to warrant their own directories.
 
-### **MetadataExtractionPlugin**
+### **Registered Lexical Nodes**
 
-- Provides hints to the engine about metadata extraction
-- Optional in MVP; metadata is primarily extracted in engine, but Lexical plugins may help with structured nodes later
+EditorRoot registers these node types in the LexicalComposer config:
 
-### **CommandPaletteOverlay**
+```typescript
+nodes: [
+  // Rich text nodes
+  HeadingNode,
+  QuoteNode,
+  ListNode,
+  ListItemNode,
+  
+  // Code nodes
+  CodeNode,
+  CodeHighlightNode,
+  
+  // Link and rule nodes
+  LinkNode,
+  HorizontalRuleNode,
+  
+  // Custom nodes
+  WikiLinkNode,
+  PersonMentionNode,
+  
+  // Table nodes
+  TableNode,
+  TableRowNode,
+  TableCellNode,
+  
+  // Search highlight support
+  MarkNode,
+]
+```
 
-- Constrains the editor visually when palette is open
-- Forward keyboard events appropriately
+### **useNoteState Hook**
+
+Note state is managed by `useNoteState` hook (located in `hooks/useNoteState.ts`):
+- Tracks current note ID and loading state
+- Loads note data via preload API
+- Provides save function to plugins
+- Handles note switching and cleanup
+
+### **Command Palette (separate component)**
+
+The CommandPalette is NOT a Lexical plugin—it's rendered above the editor in App.tsx as a sibling component. It overlays the editor without modifying editor state.
 
 ---
 

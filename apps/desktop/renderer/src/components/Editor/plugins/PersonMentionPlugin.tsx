@@ -131,10 +131,8 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
             personMentionNode.insertAfter(afterNode);
             afterNode.select(0, 0);
           } else {
-            // Add a space after the mention for continued typing
-            const spaceNode = $createTextNode(' ');
-            personMentionNode.insertAfter(spaceNode);
-            spaceNode.select(1, 1);
+            // Position cursor after the mention without adding a space
+            personMentionNode.selectNext();
           }
         }
 

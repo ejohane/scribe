@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
@@ -10,8 +12,9 @@ import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { CodeNode, CodeHighlightNode } from '@lexical/code';
-import { LinkNode } from '@lexical/link';
+import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { TableNode, TableRowNode, TableCellNode } from '@lexical/table';
+import { MarkNode } from '@lexical/mark';
 import { TRANSFORMERS, ElementTransformer } from '@lexical/markdown';
 import {
   $createHorizontalRuleNode,
@@ -38,11 +41,36 @@ import { WikiLinkPlugin } from './plugins/WikiLinkPlugin';
 import { PersonMentionNode } from './plugins/PersonMentionNode';
 import { PersonMentionPlugin } from './plugins/PersonMentionPlugin';
 import { LinkClickPlugin } from './plugins/LinkClickPlugin';
+import { AutoLinkPlugin } from './plugins/AutoLinkPlugin';
 import { FocusNodePlugin } from './plugins/FocusNodePlugin';
 import { CheckListShortcutPlugin } from './plugins/CheckListShortcutPlugin';
+import { CollapsibleHeadingNode } from './plugins/CollapsibleHeadingNode';
+import { CollapsibleHeadingPlugin } from './plugins/CollapsibleHeadingPlugin';
 import { SelectionToolbarPlugin } from './SelectionToolbar';
 import { SlashMenuPlugin } from './SlashMenu';
+import { FindReplacePlugin } from './FindReplace';
+import { useOptionalEditorCommandSetter } from './EditorCommandContext';
 import * as styles from './EditorRoot.css';
+
+/**
+ * Bridge plugin that exposes the editor instance to EditorCommandContext.
+ * This enables cross-component communication between Editor and ContextPanel.
+ *
+ * Must be placed inside LexicalComposer to access editor context.
+ * Gracefully no-ops if EditorCommandProvider is not present (e.g., in tests).
+ */
+function EditorCommandBridge(): null {
+  const [editor] = useLexicalComposerContext();
+  const setter = useOptionalEditorCommandSetter();
+
+  useEffect(() => {
+    if (!setter) return; // No provider present, nothing to do
+    setter.setEditor(editor);
+    return () => setter.setEditor(null);
+  }, [editor, setter]);
+
+  return null;
+}
 
 // Horizontal rule transformer for markdown shortcut (---, ***, or ___)
 const HR_TRANSFORMER: ElementTransformer = {
@@ -99,19 +127,25 @@ const editorConfig = {
     log.error('Lexical error', { error: error.message, stack: error.stack });
   },
   nodes: [
+    // HeadingNode is registered for backward compatibility - old notes may have
+    // "type": "heading" in their serialized state. The transform in
+    // CollapsibleHeadingPlugin automatically converts HeadingNode to CollapsibleHeadingNode.
     HeadingNode,
+    CollapsibleHeadingNode,
     QuoteNode,
     ListNode,
     ListItemNode,
     CodeNode,
     CodeHighlightNode,
     LinkNode,
+    AutoLinkNode,
     HorizontalRuleNode,
     WikiLinkNode,
     PersonMentionNode,
     TableNode,
     TableRowNode,
     TableCellNode,
+    MarkNode,
   ],
 };
 
@@ -152,6 +186,7 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <CheckListPlugin />
           <CheckListShortcutPlugin />
           <TabIndentationPlugin />
+          <CollapsibleHeadingPlugin />
           <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
           <HorizontalRulePlugin />
           <TablePlugin />
@@ -170,8 +205,14 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <PersonMentionPlugin currentNoteId={currentNoteId} />
           {/* Handle clicks on external hyperlinks */}
           <LinkClickPlugin />
+          {/* Auto-convert typed/pasted URLs to clickable links */}
+          <AutoLinkPlugin />
           {/* Focus and navigate to specific nodes (used by Tasks panel) */}
           <FocusNodePlugin />
+          {/* Bridge to EditorCommandContext for cross-component communication */}
+          <EditorCommandBridge />
+          {/* In-note search with Cmd/Ctrl+F */}
+          <FindReplacePlugin />
           {/* Floating toolbar for text selection formatting */}
           <SelectionToolbarPlugin />
           {/* Slash command menu */}
