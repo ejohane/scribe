@@ -62,7 +62,7 @@ function readFromFile(filePath: string): string {
   if (!existsSync(filePath)) {
     throw new CLIError(
       `Input file not found: ${filePath}`,
-      ErrorCode.INVALID_INPUT,
+      ErrorCode.CLI_INVALID_ARGUMENT,
       { filePath },
       'Check that the file path is correct'
     );
@@ -72,7 +72,7 @@ function readFromFile(filePath: string): string {
     return readFileSync(filePath, 'utf-8');
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    throw new CLIError(`Failed to read input file: ${filePath}`, ErrorCode.INVALID_INPUT, {
+    throw new CLIError(`Failed to read input file: ${filePath}`, ErrorCode.CLI_INVALID_ARGUMENT, {
       filePath,
       reason: message,
     });
@@ -102,7 +102,7 @@ async function readStdin(): Promise<string> {
         reject(
           new CLIError(
             `Input exceeds maximum size of ${MAX_STDIN_SIZE} bytes (1MB)`,
-            ErrorCode.INVALID_INPUT,
+            ErrorCode.CLI_INVALID_ARGUMENT,
             { maxSize: MAX_STDIN_SIZE, receivedSize: totalSize },
             'Consider using --file for large content'
           )
@@ -118,7 +118,7 @@ async function readStdin(): Promise<string> {
         reject(
           new CLIError(
             'Empty input from stdin',
-            ErrorCode.INVALID_INPUT,
+            ErrorCode.CLI_INVALID_ARGUMENT,
             undefined,
             'Provide content via stdin or use inline text'
           )
@@ -130,7 +130,9 @@ async function readStdin(): Promise<string> {
 
     stdin.on('error', (err) => {
       reject(
-        new CLIError('Failed to read from stdin', ErrorCode.INVALID_INPUT, { reason: err.message })
+        new CLIError('Failed to read from stdin', ErrorCode.CLI_INVALID_ARGUMENT, {
+          reason: err.message,
+        })
       );
     });
   });

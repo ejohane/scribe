@@ -21,6 +21,7 @@ import { SearchEngine } from '@scribe/engine-search';
 import type { NoteId, EditorContent } from '@scribe/shared';
 import {
   type TestContext,
+  type BlockNode,
   setupTestContext,
   cleanupTestContext,
   createNoteContent,
@@ -29,6 +30,8 @@ import {
   indexNoteInEngines,
   simulateAppRestart,
   createWikiLinkNode,
+  getBlockChild,
+  getNodeChildren,
 } from './test-helpers';
 
 /**
@@ -141,12 +144,13 @@ describe('Linked Notes E2E Integration Tests', () => {
       const loaded = vault.read(alpha.id);
       expect(loaded).toBeDefined();
 
-      // Find the wiki-link node in the content
-      const paragraph = loaded?.content.root.children[1] as any;
+      // Find the wiki-link node in the content using type-safe accessor
+      const paragraph = getBlockChild(loaded!.content, 1);
       expect(paragraph).toBeDefined();
-      expect(paragraph.children.length).toBe(2);
+      const paragraphChildren = getNodeChildren(paragraph);
+      expect(paragraphChildren.length).toBe(2);
 
-      const wikiLinkNode = paragraph.children[1];
+      const wikiLinkNode = paragraphChildren[1];
       expect(wikiLinkNode.type).toBe('wiki-link');
       expect(wikiLinkNode.noteTitle).toBe('Beta');
       expect(wikiLinkNode.displayText).toBe('Beta');
@@ -329,9 +333,9 @@ describe('Linked Notes E2E Integration Tests', () => {
       const sourceNote = await vault.create({ content: sourceContent });
       const savedSource = vault.read(sourceNote.id);
 
-      // Verify wiki-link has resolved targetId
-      const paragraph = savedSource?.content.root.children[1] as any;
-      const wikiLink = paragraph.children[1];
+      // Verify wiki-link has resolved targetId using type-safe accessor
+      const paragraph = getBlockChild(savedSource!.content, 1);
+      const wikiLink = getNodeChildren(paragraph)[1];
 
       expect(wikiLink.type).toBe('wiki-link');
       expect(wikiLink.targetId).toBe(targetNote.id);
@@ -645,8 +649,8 @@ describe('Linked Notes E2E Integration Tests', () => {
       const note = await vault.create({ content });
       const saved = vault.read(note.id);
 
-      const paragraph = saved?.content.root.children[1] as any;
-      const wikiLink = paragraph.children[0];
+      const paragraph = getBlockChild(saved!.content, 1);
+      const wikiLink = getNodeChildren(paragraph)[0];
 
       expect(wikiLink.noteTitle).toBe('Meeting Notes');
       expect(wikiLink.displayText).toBe("yesterday's meeting");
@@ -685,8 +689,8 @@ describe('Linked Notes E2E Integration Tests', () => {
       const reloadedSource = newVault.read(sourceNote.id);
       expect(reloadedSource).toBeDefined();
 
-      const paragraph = reloadedSource?.content.root.children[1] as any;
-      const wikiLink = paragraph.children[0];
+      const paragraph = getBlockChild(reloadedSource!.content, 1);
+      const wikiLink = getNodeChildren(paragraph)[0];
 
       expect(wikiLink.type).toBe('wiki-link');
       expect(wikiLink.noteTitle).toBe('Target Note');
@@ -786,8 +790,8 @@ describe('Linked Notes E2E Integration Tests', () => {
       expect(reloadedSource).toBeDefined();
 
       // Wiki-link still has the targetId, but it points to deleted note
-      const paragraph = reloadedSource?.content.root.children[1] as any;
-      const wikiLink = paragraph.children[0];
+      const paragraph = getBlockChild(reloadedSource!.content, 1);
+      const wikiLink = getNodeChildren(paragraph)[0];
       expect(wikiLink.targetId).toBe(targetId);
 
       // Per spec: "Broken link (note deleted): Click creates new note with that title"
@@ -857,7 +861,7 @@ describe('Linked Notes E2E Integration Tests', () => {
       expect(saved?.title).toBe(linkTitle);
 
       // Verify the content does NOT contain an H1 heading
-      const firstChild = saved?.content.root.children[0] as any;
+      const firstChild = getBlockChild(saved!.content, 0);
       expect(firstChild.type).not.toBe('heading');
     });
   });

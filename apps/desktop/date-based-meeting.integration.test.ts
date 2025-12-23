@@ -20,99 +20,15 @@ import { format, subDays, addDays, parse, isValid } from 'date-fns';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { EditorContent, MeetingNote } from '@scribe/shared';
+import type { MeetingNote } from '@scribe/shared';
 import { isMeetingNote, ScribeError, ErrorCode } from '@scribe/shared';
-import { type TestContext, setupTestContext, cleanupTestContext } from './test-helpers';
-
-/**
- * Create initial content for daily notes (mirrors handler implementation)
- */
-function createDailyContent(): EditorContent {
-  return {
-    root: {
-      children: [
-        {
-          type: 'list',
-          listType: 'bullet',
-          children: [
-            {
-              type: 'listitem',
-              children: [],
-              direction: null,
-              format: '',
-              indent: 0,
-              version: 1,
-            },
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'daily',
-  } as EditorContent;
-}
-
-/**
- * Create initial content for meeting notes (mirrors handler implementation)
- */
-function createMeetingContent(): EditorContent {
-  const createH3 = (text: string) => ({
-    type: 'heading',
-    tag: 'h3',
-    children: [{ type: 'text', text, format: 0, mode: 'normal', style: '', detail: 0, version: 1 }],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  });
-
-  const emptyBulletList = () => ({
-    type: 'list',
-    listType: 'bullet',
-    start: 1,
-    tag: 'ul',
-    children: [
-      {
-        type: 'listitem',
-        value: 1,
-        children: [],
-        direction: null,
-        format: '',
-        indent: 0,
-        version: 1,
-      },
-    ],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  });
-
-  return {
-    root: {
-      children: [
-        createH3('Pre-Read'),
-        emptyBulletList(),
-        createH3('Notes'),
-        emptyBulletList(),
-        createH3('Action Items'),
-        emptyBulletList(),
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'meeting',
-  } as EditorContent;
-}
+import {
+  type TestContext,
+  setupTestContext,
+  cleanupTestContext,
+  createDailyContent,
+  createMeetingContent,
+} from './test-helpers';
 
 /**
  * Simulates the meeting creation handler logic.

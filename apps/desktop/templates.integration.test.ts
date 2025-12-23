@@ -15,7 +15,7 @@ import { format, parse, isValid, isToday } from 'date-fns';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { Note, NoteId, EditorContent, DailyNote, MeetingNote } from '@scribe/shared';
+import type { Note, NoteId, DailyNote, MeetingNote } from '@scribe/shared';
 import { isDailyNote, isMeetingNote } from '@scribe/shared';
 import {
   type TestContext,
@@ -24,100 +24,9 @@ import {
   simulateAppRestart,
   createPersonContent,
   indexNoteInEngines,
+  createDailyContent,
+  createMeetingContent,
 } from './test-helpers';
-
-// =============================================================================
-// Content Generation Helpers
-// =============================================================================
-
-/**
- * Creates Lexical content for a daily note (empty bullet list, no H1)
- * Matches the structure defined in spec.md
- */
-function createDailyContent(): EditorContent & { type: 'daily' } {
-  return {
-    root: {
-      type: 'root',
-      children: [
-        {
-          type: 'list',
-          listType: 'bullet',
-          children: [
-            {
-              type: 'listitem',
-              children: [],
-              direction: null,
-              format: '',
-              indent: 0,
-              version: 1,
-            },
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-      ],
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'daily',
-  };
-}
-
-/**
- * Creates Lexical content for a meeting note (H3 sections with bullet lists, no H1)
- * Matches the structure defined in spec.md
- */
-function createMeetingContent(): EditorContent & { type: 'meeting' } {
-  const createH3 = (text: string) => ({
-    type: 'heading',
-    tag: 'h3',
-    children: [{ type: 'text', text }],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  });
-
-  const emptyBulletList = () => ({
-    type: 'list',
-    listType: 'bullet',
-    children: [
-      {
-        type: 'listitem',
-        children: [],
-        direction: null,
-        format: '',
-        indent: 0,
-        version: 1,
-      },
-    ],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  });
-
-  return {
-    root: {
-      type: 'root',
-      children: [
-        createH3('Pre-Read'),
-        emptyBulletList(),
-        createH3('Notes'),
-        emptyBulletList(),
-        createH3('Action Items'),
-        emptyBulletList(),
-      ],
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'meeting',
-  };
-}
 
 // =============================================================================
 // Daily Note API Helpers (Simulating IPC handlers)

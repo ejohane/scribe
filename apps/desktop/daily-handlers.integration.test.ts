@@ -17,48 +17,13 @@ import { format } from 'date-fns';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import type { EditorContent } from '@scribe/shared';
 import {
   type TestContext,
   setupTestContext,
   cleanupTestContext,
   simulateAppRestart,
+  createDailyContent,
 } from './test-helpers';
-
-/**
- * Create initial content for daily notes (mirrors handler implementation)
- */
-function createDailyContent(): EditorContent {
-  return {
-    root: {
-      children: [
-        {
-          type: 'list',
-          listType: 'bullet',
-          children: [
-            {
-              type: 'listitem',
-              children: [],
-              direction: null,
-              format: '',
-              indent: 0,
-              version: 1,
-            },
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'daily',
-  } as EditorContent;
-}
 
 describe('Daily Handler Integration Tests', () => {
   let ctx: TestContext;

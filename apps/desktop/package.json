@@ -22,7 +22,7 @@
     "start": "../../node_modules/.bin/electron .",
     "clean": "rm -rf renderer/dist electron/main/dist electron/preload/dist",
     "lint": "cd electron/main && eslint src && cd ../preload && eslint src",
-    "test": "bun test *.integration.test.ts && cd electron/preload && bun run test && cd ../../renderer && bun run test"
+    "test": "bun test *.integration.test.ts && cd electron/main && bun run test && cd ../preload && bun run test && cd ../../renderer && bun run test"
   },
   "build": {
     "appId": "com.scribe.app",

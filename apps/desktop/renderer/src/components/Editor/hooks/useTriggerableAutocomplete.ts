@@ -11,6 +11,8 @@
  * - Escape key handling with text cleanup
  * - Position calculation for floating menus
  * - Insertion tracking to prevent re-triggering
+ *
+ * @module hooks/useTriggerableAutocomplete
  */
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -23,6 +25,13 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_ESCAPE_COMMAND,
 } from 'lexical';
+
+// Re-export the extracted hooks for convenience
+export { useClickOutside } from './useClickOutside';
+export {
+  useAutocompleteKeyboardNavigation,
+  type KeyboardNavigationActions,
+} from './useAutocompleteKeyboard';
 
 /**
  * State tracking the active trigger in the editor.
@@ -425,74 +434,6 @@ export function useTriggerableAutocomplete<T>(
   };
 }
 
-/**
- * Hook for keyboard navigation in autocomplete menus.
- * Handles ArrowUp, ArrowDown, Enter, and Tab keys.
- *
- * @param isOpen - Whether the autocomplete is open
- * @param selectedIndex - Current selected index
- * @param totalItems - Total number of selectable items
- * @param onSelect - Callback when an item is selected (Enter/Tab)
- * @param actions - Autocomplete actions for navigation
- */
-export function useAutocompleteKeyboardNavigation(
-  isOpen: boolean,
-  selectedIndex: number,
-  totalItems: number,
-  onSelect: () => void,
-  actions: Pick<AutocompleteActions<unknown>, 'selectPrevious' | 'selectNext'>
-): void {
-  useEffect(() => {
-    if (!isOpen || totalItems === 0) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          actions.selectNext(totalItems - 1);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          actions.selectPrevious();
-          break;
-        case 'Tab':
-        case 'Enter':
-          e.preventDefault();
-          e.stopPropagation();
-          onSelect();
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [isOpen, selectedIndex, totalItems, onSelect, actions]);
-}
-
-/**
- * Hook for handling click-outside behavior in autocomplete menus.
- *
- * @param isOpen - Whether the autocomplete is open
- * @param onClose - Callback when clicking outside
- * @param containerSelector - CSS selector for the container (e.g., '[role="listbox"]')
- */
-export function useClickOutside(
-  isOpen: boolean,
-  onClose: () => void,
-  containerSelector: string = '[role="listbox"]'
-): void {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Check if click is inside the container
-      if (target.closest(containerSelector)) return;
-      onClose();
-    };
-
-    // Use mousedown to detect clicks before focus changes
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, containerSelector]);
-}
+// Note: useAutocompleteKeyboardNavigation and useClickOutside have been
+// extracted to separate files for reusability. They are re-exported above
+// from ./useAutocompleteKeyboard and ./useClickOutside respectively.

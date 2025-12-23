@@ -2,8 +2,8 @@
  * Engine Orchestrator
  *
  * Coordinates the 4 core systems (vault, graphEngine, searchEngine, taskIndex)
- * for note operations. Centralizes the coordination logic that was previously
- * duplicated across IPC handlers.
+ * for note operations. Encapsulates the coordination logic used by IPC handlers
+ * for write operations.
  *
  * ## Responsibilities
  *
@@ -11,6 +11,20 @@
  * - Coordinates delete operations across all engines
  * - Provides coordinated initialization and shutdown
  * - Emits task change events when tasks are modified
+ *
+ * ## Relationship to IPC Handlers
+ *
+ * This class provides the same coordination logic that handlers use via the
+ * `withEngines` pattern. The handlers currently perform coordination inline
+ * for explicitness. This class can be used as an alternative when you need:
+ *
+ * - Centralized coordination logic (reduces duplication)
+ * - Testable coordination separate from IPC plumbing
+ * - A single object to inject into services
+ *
+ * See handlers/notesHandlers.ts for documentation on the two handler patterns:
+ * - Pattern A: Direct vault access (read-only operations)
+ * - Pattern B: Coordinated engine access (write operations)
  *
  * ## Usage
  *

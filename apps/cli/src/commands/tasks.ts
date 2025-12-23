@@ -231,7 +231,7 @@ export function registerTasksCommands(program: Command): void {
       // Validate priority
       const priority = parseInt(priorityStr, 10);
       if (isNaN(priority) || priority < 0 || priority > 3) {
-        throw new CLIError('Priority must be 0-3', ErrorCode.INVALID_INPUT, {
+        throw new CLIError('Priority must be 0-3', ErrorCode.CLI_INVALID_ARGUMENT, {
           value: priorityStr,
           expected: '0, 1, 2, or 3',
         });

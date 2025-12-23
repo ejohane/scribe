@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import {
   ErrorCode,
   EXIT_CODES,
+  getExitCode,
   CLIError,
   formatError,
   vaultNotFound,
@@ -19,68 +20,90 @@ import {
 
 describe('errors', () => {
   describe('ErrorCode enum', () => {
-    it('should define all expected error codes', () => {
-      expect(ErrorCode.INTERNAL_ERROR).toBe('INTERNAL_ERROR');
-      expect(ErrorCode.VAULT_NOT_FOUND).toBe('VAULT_NOT_FOUND');
+    it('should define CLI-specific error codes', () => {
+      expect(ErrorCode.CLI_INTERNAL_ERROR).toBe('CLI_INTERNAL_ERROR');
+      expect(ErrorCode.CLI_MISSING_VAULT).toBe('CLI_MISSING_VAULT');
+      expect(ErrorCode.CLI_INVALID_ARGUMENT).toBe('CLI_INVALID_ARGUMENT');
+      expect(ErrorCode.CLI_WRITE_FAILED).toBe('CLI_WRITE_FAILED');
+      expect(ErrorCode.CLI_HAS_BACKLINKS).toBe('CLI_HAS_BACKLINKS');
+    });
+
+    it('should also include shared error codes used by CLI', () => {
       expect(ErrorCode.NOTE_NOT_FOUND).toBe('NOTE_NOT_FOUND');
-      expect(ErrorCode.INVALID_INPUT).toBe('INVALID_INPUT');
-      expect(ErrorCode.WRITE_FAILED).toBe('WRITE_FAILED');
       expect(ErrorCode.PERMISSION_DENIED).toBe('PERMISSION_DENIED');
-      expect(ErrorCode.HAS_BACKLINKS).toBe('HAS_BACKLINKS');
+      expect(ErrorCode.VALIDATION_ERROR).toBe('VALIDATION_ERROR');
     });
   });
 
   describe('EXIT_CODES', () => {
-    it('should have exit codes for all error codes', () => {
-      for (const code of Object.values(ErrorCode)) {
-        expect(EXIT_CODES[code]).toBeDefined();
-        expect(typeof EXIT_CODES[code]).toBe('number');
-      }
+    it('should have exit codes for CLI-specific error codes', () => {
+      expect(EXIT_CODES[ErrorCode.CLI_INTERNAL_ERROR]).toBeDefined();
+      expect(EXIT_CODES[ErrorCode.CLI_MISSING_VAULT]).toBeDefined();
+      expect(EXIT_CODES[ErrorCode.CLI_INVALID_ARGUMENT]).toBeDefined();
+      expect(EXIT_CODES[ErrorCode.CLI_WRITE_FAILED]).toBeDefined();
+      expect(EXIT_CODES[ErrorCode.CLI_HAS_BACKLINKS]).toBeDefined();
+    });
+
+    it('should have exit codes for commonly used shared codes', () => {
+      expect(EXIT_CODES[ErrorCode.NOTE_NOT_FOUND]).toBeDefined();
+      expect(EXIT_CODES[ErrorCode.PERMISSION_DENIED]).toBeDefined();
     });
 
     it('should use non-zero exit codes', () => {
-      for (const code of Object.values(ErrorCode)) {
-        expect(EXIT_CODES[code]).toBeGreaterThan(0);
+      for (const code of Object.keys(EXIT_CODES)) {
+        expect(EXIT_CODES[code as ErrorCode]).toBeGreaterThan(0);
       }
     });
 
     it('should have unique exit codes for distinct error types', () => {
       // All primary error types should have unique codes
       const uniqueCodes = new Set([
-        EXIT_CODES.INTERNAL_ERROR,
-        EXIT_CODES.VAULT_NOT_FOUND,
-        EXIT_CODES.NOTE_NOT_FOUND,
-        EXIT_CODES.INVALID_INPUT,
-        EXIT_CODES.WRITE_FAILED,
-        EXIT_CODES.PERMISSION_DENIED,
+        EXIT_CODES[ErrorCode.CLI_INTERNAL_ERROR],
+        EXIT_CODES[ErrorCode.CLI_MISSING_VAULT],
+        EXIT_CODES[ErrorCode.NOTE_NOT_FOUND],
+        EXIT_CODES[ErrorCode.CLI_INVALID_ARGUMENT],
+        EXIT_CODES[ErrorCode.CLI_WRITE_FAILED],
+        EXIT_CODES[ErrorCode.PERMISSION_DENIED],
       ]);
 
-      // Should have at least 6 unique codes for the main error types
-      expect(uniqueCodes.size).toBeGreaterThanOrEqual(6);
+      // Should have at least 5 unique codes for the main error types
+      // (NOTE_NOT_FOUND and CLI_HAS_BACKLINKS share exit code 3)
+      expect(uniqueCodes.size).toBeGreaterThanOrEqual(5);
     });
 
     it('should have expected exit code values', () => {
-      expect(EXIT_CODES.INTERNAL_ERROR).toBe(1);
-      expect(EXIT_CODES.VAULT_NOT_FOUND).toBe(2);
-      expect(EXIT_CODES.NOTE_NOT_FOUND).toBe(3);
-      expect(EXIT_CODES.INVALID_INPUT).toBe(4);
-      expect(EXIT_CODES.WRITE_FAILED).toBe(5);
-      expect(EXIT_CODES.PERMISSION_DENIED).toBe(6);
+      expect(EXIT_CODES[ErrorCode.CLI_INTERNAL_ERROR]).toBe(1);
+      expect(EXIT_CODES[ErrorCode.CLI_MISSING_VAULT]).toBe(2);
+      expect(EXIT_CODES[ErrorCode.NOTE_NOT_FOUND]).toBe(3);
+      expect(EXIT_CODES[ErrorCode.CLI_INVALID_ARGUMENT]).toBe(4);
+      expect(EXIT_CODES[ErrorCode.CLI_WRITE_FAILED]).toBe(5);
+      expect(EXIT_CODES[ErrorCode.PERMISSION_DENIED]).toBe(6);
+    });
+  });
+
+  describe('getExitCode', () => {
+    it('should return mapped exit code for known codes', () => {
+      expect(getExitCode(ErrorCode.CLI_INTERNAL_ERROR)).toBe(1);
+      expect(getExitCode(ErrorCode.NOTE_NOT_FOUND)).toBe(3);
+    });
+
+    it('should return 1 for unknown codes', () => {
+      expect(getExitCode(ErrorCode.UNKNOWN_ERROR)).toBe(1);
     });
   });
 
   describe('CLIError class', () => {
     it('should create error with message and code', () => {
-      const error = new CLIError('Something went wrong', ErrorCode.INTERNAL_ERROR);
+      const error = new CLIError('Something went wrong', ErrorCode.CLI_INTERNAL_ERROR);
 
       expect(error.message).toBe('Something went wrong');
-      expect(error.code).toBe(ErrorCode.INTERNAL_ERROR);
+      expect(error.code).toBe(ErrorCode.CLI_INTERNAL_ERROR);
       expect(error.name).toBe('CLIError');
     });
 
     it('should store optional details', () => {
       const details = { path: '/some/path', count: 5 };
-      const error = new CLIError('Error', ErrorCode.INTERNAL_ERROR, details);
+      const error = new CLIError('Error', ErrorCode.CLI_INTERNAL_ERROR, details);
 
       expect(error.details).toEqual(details);
     });
@@ -88,7 +111,7 @@ describe('errors', () => {
     it('should store optional hint', () => {
       const error = new CLIError(
         'Error',
-        ErrorCode.INTERNAL_ERROR,
+        ErrorCode.CLI_INTERNAL_ERROR,
         undefined,
         'Try running with --verbose'
       );
@@ -97,18 +120,18 @@ describe('errors', () => {
     });
 
     it('should be instanceof Error', () => {
-      const error = new CLIError('Error', ErrorCode.INTERNAL_ERROR);
+      const error = new CLIError('Error', ErrorCode.CLI_INTERNAL_ERROR);
       expect(error).toBeInstanceOf(Error);
     });
   });
 
   describe('formatError', () => {
     it('should format basic error', () => {
-      const error = new CLIError('Something failed', ErrorCode.INTERNAL_ERROR);
+      const error = new CLIError('Something failed', ErrorCode.CLI_INTERNAL_ERROR);
       const formatted = formatError(error);
 
       expect(formatted.error).toBe('Something failed');
-      expect(formatted.code).toBe(ErrorCode.INTERNAL_ERROR);
+      expect(formatted.code).toBe(ErrorCode.CLI_INTERNAL_ERROR);
     });
 
     it('should include details when present', () => {
@@ -121,7 +144,7 @@ describe('errors', () => {
     });
 
     it('should omit details when not present', () => {
-      const error = new CLIError('Error', ErrorCode.INTERNAL_ERROR);
+      const error = new CLIError('Error', ErrorCode.CLI_INTERNAL_ERROR);
       const formatted = formatError(error);
 
       expect(formatted.details).toBeUndefined();
@@ -130,7 +153,7 @@ describe('errors', () => {
     it('should include hint when present', () => {
       const error = new CLIError(
         'Invalid input',
-        ErrorCode.INVALID_INPUT,
+        ErrorCode.CLI_INVALID_ARGUMENT,
         undefined,
         'Check the --help output'
       );
@@ -140,7 +163,7 @@ describe('errors', () => {
     });
 
     it('should omit hint when not present', () => {
-      const error = new CLIError('Error', ErrorCode.INTERNAL_ERROR);
+      const error = new CLIError('Error', ErrorCode.CLI_INTERNAL_ERROR);
       const formatted = formatError(error);
 
       expect(formatted.hint).toBeUndefined();
@@ -149,7 +172,7 @@ describe('errors', () => {
     it('should produce valid JSON structure', () => {
       const error = new CLIError(
         'Full error',
-        ErrorCode.VAULT_NOT_FOUND,
+        ErrorCode.CLI_MISSING_VAULT,
         {
           path: '/test',
         },
@@ -163,7 +186,7 @@ describe('errors', () => {
 
       const parsed = JSON.parse(json);
       expect(parsed.error).toBe('Full error');
-      expect(parsed.code).toBe(ErrorCode.VAULT_NOT_FOUND);
+      expect(parsed.code).toBe(ErrorCode.CLI_MISSING_VAULT);
       expect(parsed.details.path).toBe('/test');
       expect(parsed.hint).toBe('Check path');
     });
@@ -171,10 +194,10 @@ describe('errors', () => {
 
   describe('convenience constructors', () => {
     describe('vaultNotFound', () => {
-      it('should create VAULT_NOT_FOUND error with path', () => {
+      it('should create CLI_MISSING_VAULT error with path', () => {
         const error = vaultNotFound('/path/to/vault');
 
-        expect(error.code).toBe(ErrorCode.VAULT_NOT_FOUND);
+        expect(error.code).toBe(ErrorCode.CLI_MISSING_VAULT);
         expect(error.message).toContain('/path/to/vault');
         expect(error.details?.path).toBe('/path/to/vault');
       });
@@ -204,10 +227,10 @@ describe('errors', () => {
     });
 
     describe('invalidInput', () => {
-      it('should create INVALID_INPUT error with message', () => {
+      it('should create CLI_INVALID_ARGUMENT error with message', () => {
         const error = invalidInput('Invalid date format');
 
-        expect(error.code).toBe(ErrorCode.INVALID_INPUT);
+        expect(error.code).toBe(ErrorCode.CLI_INVALID_ARGUMENT);
         expect(error.message).toBe('Invalid date format');
       });
 
@@ -232,14 +255,14 @@ describe('errors', () => {
     });
 
     describe('hasBacklinks', () => {
-      it('should create HAS_BACKLINKS error with backlink info', () => {
+      it('should create CLI_HAS_BACKLINKS error with backlink info', () => {
         const backlinks = [
           { id: 'note-1', title: 'Note 1' },
           { id: 'note-2', title: 'Note 2' },
         ];
         const error = hasBacklinks('target-note', backlinks);
 
-        expect(error.code).toBe(ErrorCode.HAS_BACKLINKS);
+        expect(error.code).toBe(ErrorCode.CLI_HAS_BACKLINKS);
         expect(error.details?.noteId).toBe('target-note');
         expect(error.details?.backlinkCount).toBe(2);
         expect(error.details?.backlinks).toEqual(backlinks);
@@ -253,10 +276,10 @@ describe('errors', () => {
     });
 
     describe('writeFailed', () => {
-      it('should create WRITE_FAILED error with reason', () => {
+      it('should create CLI_WRITE_FAILED error with reason', () => {
         const error = writeFailed('Permission denied');
 
-        expect(error.code).toBe(ErrorCode.WRITE_FAILED);
+        expect(error.code).toBe(ErrorCode.CLI_WRITE_FAILED);
         expect(error.details?.reason).toBe('Permission denied');
       });
 

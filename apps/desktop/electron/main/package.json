@@ -9,7 +9,8 @@
     "build:watch": "node build.mjs --watch",
     "dev": "node build.mjs --watch",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@scribe/engine-core": "workspace:*",

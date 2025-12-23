@@ -20,9 +20,13 @@ vi.mock('../../../src/output.js', () => ({
 }));
 
 // Mock @scribe/shared
-vi.mock('@scribe/shared', () => ({
-  createNoteId: (id: string) => id as NoteId,
-}));
+vi.mock('@scribe/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@scribe/shared')>();
+  return {
+    ...actual,
+    createNoteId: (id: string) => id as NoteId,
+  };
+});
 
 // Helper to create branded NoteId
 function createTestNoteId(id: string): NoteId {

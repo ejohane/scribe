@@ -71,6 +71,9 @@ export enum ErrorCode {
   // CLI-specific codes
   CLI_INVALID_ARGUMENT = 'CLI_INVALID_ARGUMENT',
   CLI_MISSING_VAULT = 'CLI_MISSING_VAULT',
+  CLI_INTERNAL_ERROR = 'CLI_INTERNAL_ERROR',
+  CLI_HAS_BACKLINKS = 'CLI_HAS_BACKLINKS',
+  CLI_WRITE_FAILED = 'CLI_WRITE_FAILED',
 
   // Generic errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
@@ -160,6 +163,12 @@ export class ScribeError extends Error {
         return 'Invalid command line argument provided.';
       case ErrorCode.CLI_MISSING_VAULT:
         return 'No vault specified. Please provide a vault path.';
+      case ErrorCode.CLI_INTERNAL_ERROR:
+        return 'An internal CLI error occurred.';
+      case ErrorCode.CLI_HAS_BACKLINKS:
+        return 'Note has incoming links from other notes.';
+      case ErrorCode.CLI_WRITE_FAILED:
+        return 'Failed to save the note.';
       default:
         return 'An unexpected error occurred. Please try again.';
     }

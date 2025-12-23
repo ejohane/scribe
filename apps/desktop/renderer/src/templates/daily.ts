@@ -1,43 +1,11 @@
 import { format, parse, isValid, isToday, isYesterday, isTomorrow } from 'date-fns';
-import type { Note, EditorContent } from '@scribe/shared';
+import type { Note } from '@scribe/shared';
+import { createDailyContent } from '@scribe/shared';
 import type { TemplateConfig, TemplateContext } from './types';
 import { registerTemplate } from './registry';
 
-/**
- * Create initial content for daily notes: a single empty bullet list.
- * No H1 heading - title is displayed in the header only.
- */
-export function createDailyContent(): EditorContent {
-  return {
-    root: {
-      children: [
-        {
-          type: 'list',
-          listType: 'bullet',
-          children: [
-            {
-              type: 'listitem',
-              children: [],
-              direction: null,
-              format: '',
-              indent: 0,
-              version: 1,
-            },
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'daily',
-  } as EditorContent;
-}
+// Re-export from @scribe/shared for consumers that import from templates
+export { createDailyContent } from '@scribe/shared';
 
 /**
  * Get display title for a daily note.

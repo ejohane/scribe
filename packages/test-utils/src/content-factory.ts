@@ -372,3 +372,126 @@ export function emptyContent(): EditorContent {
 export function textContent(textContent: string): EditorContent {
   return createContent(paragraph(text(textContent)));
 }
+
+// ============================================================================
+// Content Accessors (Type-Safe Child Access)
+// ============================================================================
+
+/**
+ * Type guard interface for block nodes with children.
+ */
+export interface BlockNode extends EditorNode {
+  children?: EditorNode[];
+}
+
+/**
+ * Type guard interface for paragraph nodes.
+ */
+export interface ParagraphNode extends BlockNode {
+  type: 'paragraph';
+}
+
+/**
+ * Type guard interface for heading nodes.
+ */
+export interface HeadingNode extends BlockNode {
+  type: 'heading';
+  tag: `h${1 | 2 | 3 | 4 | 5 | 6}`;
+}
+
+/**
+ * Type guard interface for list nodes.
+ */
+export interface ListNode extends BlockNode {
+  type: 'list';
+  listType: 'bullet' | 'number' | 'check';
+}
+
+/**
+ * Type guard interface for list item nodes.
+ */
+export interface ListItemNode extends BlockNode {
+  type: 'listitem';
+  checked?: boolean;
+  value?: number;
+  listType?: string;
+}
+
+/**
+ * Gets a child node at a specific index from content with type safety.
+ *
+ * @param content - The EditorContent to access
+ * @param index - The index of the child to access
+ * @returns The child node at the index, or undefined if not found
+ *
+ * @example
+ * ```ts
+ * const firstChild = getContentChild(note.content, 0);
+ * if (firstChild && firstChild.type === 'heading') {
+ *   expect((firstChild as HeadingNode).tag).toBe('h1');
+ * }
+ * ```
+ */
+export function getContentChild(content: EditorContent, index: number): EditorNode | undefined {
+  return content.root.children?.[index];
+}
+
+/**
+ * Gets a child node as a specific block type with assertion.
+ *
+ * @param content - The EditorContent to access
+ * @param index - The index of the child to access
+ * @returns The child node at the index
+ * @throws Error if child is not found
+ *
+ * @example
+ * ```ts
+ * const heading = getBlockChild(note.content, 0);
+ * expect(heading.type).toBe('heading');
+ * ```
+ */
+export function getBlockChild(content: EditorContent, index: number): BlockNode {
+  const child = content.root.children?.[index];
+  if (!child) {
+    throw new Error(`No child at index ${index}`);
+  }
+  return child as BlockNode;
+}
+
+/**
+ * Type guard for paragraph nodes.
+ */
+export function isParagraphNode(node: EditorNode): node is ParagraphNode {
+  return node.type === 'paragraph';
+}
+
+/**
+ * Type guard for heading nodes.
+ */
+export function isHeadingNode(node: EditorNode): node is HeadingNode {
+  return node.type === 'heading';
+}
+
+/**
+ * Type guard for list nodes.
+ */
+export function isListNode(node: EditorNode): node is ListNode {
+  return node.type === 'list';
+}
+
+/**
+ * Type guard for list item nodes.
+ */
+export function isListItemNode(node: EditorNode): node is ListItemNode {
+  return node.type === 'listitem';
+}
+
+/**
+ * Gets the children of a block node, or empty array if none.
+ *
+ * @param node - The block node to access
+ * @returns Array of child nodes
+ */
+export function getNodeChildren(node: EditorNode): EditorNode[] {
+  return (node as BlockNode).children ?? [];
+}

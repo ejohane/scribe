@@ -7,6 +7,48 @@
  * - Search note titles (autocomplete)
  * - Find notes by date (daily note mentions)
  *
+ * ## Handler Patterns
+ *
+ * This module uses two distinct patterns for engine access:
+ *
+ * ### Pattern A: Direct Vault Access (Read-Only Operations)
+ *
+ * For read-only operations that only need the vault (list, read, findByTitle, searchTitles):
+ * ```typescript
+ * ipcMain.handle('notes:list', async () => {
+ *   const vault = requireVault(deps);
+ *   return vault.list();
+ * });
+ * ```
+ *
+ * Use this pattern when:
+ * - Operation only reads from vault (no writes)
+ * - No need to update graph, search, or task indexes
+ * - Performance is critical (avoids unnecessary engine validation)
+ *
+ * ### Pattern B: Coordinated Engine Access (Write Operations)
+ *
+ * For write operations that must update all engines in sync (save, delete):
+ * ```typescript
+ * ipcMain.handle('notes:save', withEngines(deps, async (engines, note) => {
+ *   await engines.vault.save(note);
+ *   engines.graphEngine.addNote(note);
+ *   engines.searchEngine.indexNote(note);
+ *   const taskChanges = engines.taskIndex.indexNote(note);
+ *   // Emit task changes...
+ * }));
+ * ```
+ *
+ * Use this pattern when:
+ * - Operation modifies note data (create, update, delete)
+ * - All engines must be updated atomically to maintain consistency
+ * - Task changes need to be broadcast to the renderer
+ *
+ * Note: The EngineOrchestrator class in ../EngineOrchestrator.ts provides
+ * similar coordination logic and could be used as an alternative to manual
+ * coordination. The current inline approach was chosen for explicitness
+ * and to avoid adding another dependency layer during early development.
+ *
  * ## IPC Channels
  *
  * | Channel | Parameters | Returns | Description |
@@ -36,27 +78,7 @@
 
 import { ipcMain } from 'electron';
 import type { Note, NoteId } from '@scribe/shared';
-import { ScribeError } from '@scribe/shared';
-import { HandlerDependencies, requireVault, withEngines } from './types';
-
-/**
- * Wrap ScribeError for IPC transport with user-friendly message.
- *
- * @param error - The error to wrap
- * @throws Always throws - either wrapped ScribeError or original error
- *
- * @remarks
- * ScribeErrors are converted to plain Errors with user-friendly messages
- * since Error subclasses don't serialize properly over IPC.
- */
-function wrapError(error: unknown): never {
-  if (error instanceof ScribeError) {
-    const userError = new Error(error.getUserMessage());
-    userError.name = error.code;
-    throw userError;
-  }
-  throw error;
-}
+import { HandlerDependencies, requireVault, withEngines, wrapError } from './types';
 
 /**
  * Setup IPC handlers for notes CRUD operations.
@@ -75,10 +97,12 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * IPC: `notes:list`
    *
    * Lists all notes in the vault.
+   * Uses Pattern A (direct vault access) - read-only operation.
    *
    * @returns `Note[]` - Array of all notes (metadata only, content may be lazy-loaded)
    */
   ipcMain.handle('notes:list', async () => {
+    // Pattern A: Direct vault access for read-only operation
     const vault = requireVault(deps);
     return vault.list();
   });
@@ -87,6 +111,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * IPC: `notes:read`
    *
    * Reads a single note by ID, including full content.
+   * Uses Pattern A (direct vault access) - read-only operation.
    *
    * @param id - The note ID to read
    * @returns `Note` - The full note with content
@@ -94,6 +119,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    */
   ipcMain.handle('notes:read', async (_event, id: NoteId) => {
     try {
+      // Pattern A: Direct vault access for read-only operation
       const vault = requireVault(deps);
       return vault.read(id);
     } catch (error) {
@@ -106,9 +132,15 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    *
    * Creates a new empty note with auto-generated ID.
    *
+   * Note: This uses Pattern A (direct vault access) even though it's a write
+   * operation because newly created notes are empty - they have no content to
+   * index in search, no links for the graph, and no tasks to track. The caller
+   * will typically follow up with a `notes:save` call once the user adds content.
+   *
    * @returns `Note` - The newly created note
    */
   ipcMain.handle('notes:create', async () => {
+    // Pattern A: Direct vault access - new notes are empty, no indexing needed
     const vault = requireVault(deps);
     return await vault.create();
   });
@@ -117,6 +149,8 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * IPC: `notes:save`
    *
    * Saves a note to the vault and updates all indexes.
+   * Uses Pattern B (coordinated engine access) - write operation requiring
+   * all engines to stay in sync.
    *
    * @param note - The complete note object to save
    * @returns `{ success: true }`
@@ -129,17 +163,19 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    */
   ipcMain.handle(
     'notes:save',
+    // Pattern B: Coordinated engine access for write operation
     withEngines(deps, async (engines, note: Note) => {
       try {
+        // Step 1: Save to vault (source of truth)
         await engines.vault.save(note);
 
-        // Update graph with new note data
+        // Step 2: Update graph with new note data (links, backlinks, tags, mentions)
         engines.graphEngine.addNote(note);
 
-        // Update search index with new note data
+        // Step 3: Update search index for full-text search
         engines.searchEngine.indexNote(note);
 
-        // Re-index tasks for this note and broadcast changes
+        // Step 4: Re-index tasks for this note and broadcast changes
         const taskChanges = engines.taskIndex.indexNote(note);
         if (taskChanges.length > 0) {
           deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
@@ -156,6 +192,8 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * IPC: `notes:delete`
    *
    * Deletes a note from the vault and removes from all indexes.
+   * Uses Pattern B (coordinated engine access) - write operation requiring
+   * all engines to stay in sync.
    *
    * @param id - The note ID to delete
    * @returns `{ success: true }`
@@ -168,13 +206,19 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    */
   ipcMain.handle(
     'notes:delete',
+    // Pattern B: Coordinated engine access for write operation
     withEngines(deps, async (engines, id: NoteId) => {
       try {
+        // Step 1: Delete from vault (source of truth)
         await engines.vault.delete(id);
+
+        // Step 2: Remove from graph (clears links, backlinks)
         engines.graphEngine.removeNote(id);
+
+        // Step 3: Remove from search index
         engines.searchEngine.removeNote(id);
 
-        // Remove tasks for this note and broadcast changes
+        // Step 4: Remove tasks for this note and broadcast changes
         const taskChanges = engines.taskIndex.removeNote(id);
         if (taskChanges.length > 0) {
           deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
@@ -191,6 +235,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * IPC: `notes:findByTitle`
    *
    * Finds a note by title for wiki-link resolution.
+   * Uses Pattern A (direct vault access) - read-only operation.
    *
    * @param title - The title to search for
    * @returns `Note | null` - The matching note, or null if not found
@@ -201,6 +246,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * 2. Case-insensitive match (most recently updated wins if multiple)
    */
   ipcMain.handle('notes:findByTitle', async (_event, title: string) => {
+    // Pattern A: Direct vault access for read-only operation
     const vault = requireVault(deps);
     const notes = vault.list();
 
@@ -223,6 +269,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    *
    * Finds notes created or updated on a specific date.
    * Used for date-based linked mentions in daily notes.
+   * Uses Pattern A (direct vault access) - read-only operation.
    *
    * @param date - Date string in "MM-dd-yyyy" format (matches daily note title format)
    * @param includeCreated - Include notes created on this date
@@ -244,6 +291,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
         includeUpdated,
       }: { date: string; includeCreated: boolean; includeUpdated: boolean }
     ) => {
+      // Pattern A: Direct vault access for read-only operation
       const vault = requireVault(deps);
 
       // Parse the date string (expecting "MM-dd-yyyy" format from daily note titles)
@@ -286,6 +334,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    *
    * Searches note titles for wiki-link autocomplete.
    * Performs case-insensitive substring matching.
+   * Uses Pattern A (direct vault access) - read-only operation.
    *
    * @param query - The search query (substring match)
    * @param limit - Maximum results to return (default: 10)
@@ -297,6 +346,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * - Results are not ranked; all matches have score of 1
    */
   ipcMain.handle('notes:searchTitles', async (_event, query: string, limit = 10) => {
+    // Pattern A: Direct vault access for read-only operation
     const vault = requireVault(deps);
 
     // Empty query returns empty results

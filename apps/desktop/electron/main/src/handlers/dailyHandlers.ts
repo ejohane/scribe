@@ -31,54 +31,13 @@
 
 import { ipcMain } from 'electron';
 import { format } from 'date-fns';
-import type { EditorContent } from '@scribe/shared';
+import { createDailyContent } from '@scribe/shared';
 import {
   HandlerDependencies,
   requireVault,
   requireGraphEngine,
   requireSearchEngine,
 } from './types';
-
-/**
- * Create initial content for daily notes.
- *
- * @returns EditorContent with a bullet list containing one empty item
- *
- * @remarks
- * Matches the structure in renderer/src/templates/daily.ts
- * Daily notes start with a bullet list for quick capture.
- */
-function createDailyContent(): EditorContent {
-  return {
-    root: {
-      children: [
-        {
-          type: 'list',
-          listType: 'bullet',
-          children: [
-            {
-              type: 'listitem',
-              children: [],
-              direction: null,
-              format: '',
-              indent: 0,
-              version: 1,
-            },
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'daily',
-  } as EditorContent;
-}
 
 /**
  * Setup IPC handlers for daily note operations.

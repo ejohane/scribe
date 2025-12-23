@@ -3,8 +3,11 @@
  * Used by CLI write operations to generate valid note content.
  */
 
-import { deepClone } from '@scribe/shared';
+import { deepClone, createEmptyContent } from '@scribe/shared';
 import type { EditorContent, EditorNode } from '@scribe/shared';
+
+// Re-export for consumers
+export { createEmptyContent } from '@scribe/shared';
 
 /**
  * Create a text node with the given content.
@@ -140,22 +143,6 @@ export function appendHeadingToContent(
   updated.root.children.push(newNode);
 
   return updated;
-}
-
-/**
- * Create empty note content.
- * Returns a valid Lexical state with an empty root.
- */
-export function createEmptyContent(): EditorContent {
-  return {
-    root: {
-      type: 'root',
-      format: '',
-      indent: 0,
-      direction: null,
-      children: [],
-    },
-  };
 }
 
 /**

@@ -83,21 +83,71 @@ export function levenshteinDistance(a: string, b: string): number {
 /**
  * Minimum score threshold for considering a match valid.
  * Scores below this are typically noise.
+ *
+ * ## Rationale for 0.3
+ *
+ * This threshold was chosen based on Levenshtein distance characteristics:
+ * - A score of 0.3 means approximately 70% of characters differ between strings
+ * - This captures typos (1-2 chars in a 5-char word = 0.6-0.8 score)
+ * - But filters out completely unrelated strings (e.g., "cat" vs "elephant")
+ *
+ * In practice, 0.3 allows:
+ * - 2 typos in a 6-character word (distance 2, score ~0.67)
+ * - 3 typos in a 10-character word (distance 3, score ~0.7)
+ * - Partial matches where query is significantly shorter than title
+ *
+ * Lower values (e.g., 0.2) would include too many false positives.
+ * Higher values (e.g., 0.5) would miss legitimate fuzzy matches with typos.
  */
 export const FUZZY_MATCH_THRESHOLD = 0.3;
 
 /**
  * Score returned for exact matches (query equals title, case-insensitive).
+ *
+ * ## Rationale for 1.0
+ *
+ * Maximum possible score - an exact match should always rank highest.
+ * This ensures users find what they're looking for when they type it exactly.
  */
 export const EXACT_MATCH_SCORE = 1.0;
 
 /**
  * Base score for substring matches (query is contained in title).
+ *
+ * ## Rationale for 0.9
+ *
+ * Substring matches should rank just below exact matches:
+ * - High enough (0.9) to prioritize over fuzzy matches (~0.3-0.7)
+ * - Low enough to leave room for the coverage bonus (+0.1 max)
+ * - The actual score is: 0.9 * (queryLength / titleLength) + 0.1
+ *
+ * Examples:
+ * - "meet" in "Meeting Notes" = 0.9 * (4/13) + 0.1 = ~0.38
+ * - "meeting" in "Meeting Notes" = 0.9 * (7/13) + 0.1 = ~0.58
+ * - "meeting notes" in "Meeting Notes" = 0.9 * (13/13) + 0.1 = 1.0
+ *
+ * This rewards longer, more specific queries that cover more of the title.
  */
 export const SUBSTRING_MATCH_BASE = 0.9;
 
 /**
  * Score for when all query words are found in title.
+ *
+ * ## Rationale for 0.85
+ *
+ * Multi-word matching (all words found) should rank between:
+ * - Substring matches (0.9 base) - because word order may differ
+ * - Pure fuzzy matches (~0.3-0.7) - because all words were found exactly
+ *
+ * The value 0.85 was chosen because:
+ * - It's lower than SUBSTRING_MATCH_BASE (0.9) since the words may be
+ *   scattered throughout the title rather than appearing as a substring
+ * - It's higher than typical fuzzy scores to reward finding all query terms
+ * - It provides a clear tier: exact(1.0) > substring(0.9) > all-words(0.85) > fuzzy
+ *
+ * Example: "project plan" matching "My Project Plan for 2024"
+ * - Not a substring match (extra words in between)
+ * - But all query words are present, so score = 0.85
  */
 export const ALL_WORDS_MATCH_SCORE = 0.85;
 

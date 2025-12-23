@@ -169,7 +169,8 @@ describe('node-builder', () => {
       const content = createEmptyContent();
       const updated = appendParagraphToContent(content, 'First');
 
-      expect(updated.root.children).toHaveLength(1);
+      // createEmptyContent has 1 empty paragraph, append adds another
+      expect(updated.root.children).toHaveLength(2);
     });
 
     it('should handle content with no children array', () => {
@@ -193,18 +194,20 @@ describe('node-builder', () => {
       const content = createEmptyContent();
       const updated = appendTaskToContent(content, 'New task');
 
-      expect(updated.root.children).toHaveLength(1);
-      expect(updated.root.children[0].type).toBe('listitem');
-      expect(updated.root.children[0].checked).toBe(false);
-      expect(updated.root.children[0].children?.[0].text).toBe('New task');
+      // createEmptyContent has 1 empty paragraph, append adds task as second child
+      expect(updated.root.children).toHaveLength(2);
+      expect(updated.root.children[1].type).toBe('listitem');
+      expect(updated.root.children[1].checked).toBe(false);
+      expect(updated.root.children[1].children?.[0].text).toBe('New task');
     });
 
     it('should not mutate original content', () => {
       const original = createEmptyContent();
       const updated = appendTaskToContent(original, 'Task');
 
-      expect(original.root.children).toHaveLength(0);
-      expect(updated.root.children).toHaveLength(1);
+      // createEmptyContent starts with 1 empty paragraph
+      expect(original.root.children).toHaveLength(1);
+      expect(updated.root.children).toHaveLength(2);
     });
   });
 
@@ -213,33 +216,38 @@ describe('node-builder', () => {
       const content = createEmptyContent();
       const updated = appendHeadingToContent(content, 'New Section');
 
-      expect(updated.root.children).toHaveLength(1);
-      expect(updated.root.children[0].type).toBe('heading');
-      expect(updated.root.children[0].tag).toBe('h1');
+      // createEmptyContent has 1 empty paragraph, append adds heading as second child
+      expect(updated.root.children).toHaveLength(2);
+      expect(updated.root.children[1].type).toBe('heading');
+      expect(updated.root.children[1].tag).toBe('h1');
     });
 
     it('should append heading with specified level', () => {
       const content = createEmptyContent();
       const updated = appendHeadingToContent(content, 'Subsection', 2);
 
-      expect(updated.root.children[0].tag).toBe('h2');
+      expect(updated.root.children[1].tag).toBe('h2');
     });
 
     it('should not mutate original content', () => {
       const original = createEmptyContent();
       appendHeadingToContent(original, 'Heading');
 
-      expect(original.root.children).toHaveLength(0);
+      // createEmptyContent starts with 1 empty paragraph
+      expect(original.root.children).toHaveLength(1);
     });
   });
 
   describe('createEmptyContent', () => {
-    it('should create valid empty content structure', () => {
+    it('should create valid empty content structure with empty paragraph', () => {
       const content = createEmptyContent();
 
       expect(content.root).toBeDefined();
       expect(content.root.type).toBe('root');
-      expect(content.root.children).toEqual([]);
+      // Canonical empty content includes one empty paragraph
+      expect(content.root.children).toHaveLength(1);
+      expect(content.root.children[0].type).toBe('paragraph');
+      expect(content.root.children[0].children).toEqual([]);
     });
 
     it('should set standard root properties', () => {
@@ -247,7 +255,7 @@ describe('node-builder', () => {
 
       expect(content.root.format).toBe('');
       expect(content.root.indent).toBe(0);
-      expect(content.root.direction).toBeNull();
+      expect(content.root.version).toBe(1);
     });
   });
 

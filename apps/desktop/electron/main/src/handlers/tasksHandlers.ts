@@ -242,7 +242,7 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
         const updatedTask = engines.taskIndex.get(taskId);
         return { success: true, task: updatedTask };
       } catch (error) {
-        tasksLogger.error('Toggle error:', error);
+        tasksLogger.error('Toggle error', { error });
         return { success: false, error: String(error) };
       }
     })

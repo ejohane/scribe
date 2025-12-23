@@ -23,11 +23,15 @@ vi.mock('../../../src/output.js', () => ({
 const { mockExtractMarkdown } = vi.hoisted(() => ({
   mockExtractMarkdown: vi.fn(),
 }));
-vi.mock('@scribe/shared', () => ({
-  createNoteId: (id: string) => id,
-  isDailyNote: (note: { type?: string }) => note.type === 'daily',
-  extractMarkdown: mockExtractMarkdown,
-}));
+vi.mock('@scribe/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@scribe/shared')>();
+  return {
+    ...actual,
+    createNoteId: (id: string) => id,
+    isDailyNote: (note: { type?: string }) => note.type === 'daily',
+    extractMarkdown: mockExtractMarkdown,
+  };
+});
 
 // Mock the node-builder module
 vi.mock('../../../src/node-builder.js', () => ({

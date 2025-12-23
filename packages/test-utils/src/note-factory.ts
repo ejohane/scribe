@@ -291,6 +291,134 @@ export function createLexicalContentWithMention(
 }
 
 // ============================================================================
+// Node Data Types (for test content structures)
+// ============================================================================
+
+/**
+ * Type definition for a wiki-link node in Lexical content.
+ * Used for creating type-safe wiki-link nodes in tests without `as any` assertions.
+ */
+export interface WikiLinkNodeData {
+  type: 'wiki-link';
+  noteTitle: string;
+  displayText: string;
+  targetId: string | null;
+  version: number;
+}
+
+/**
+ * Creates a typed wiki-link node for use in test content structures.
+ *
+ * @param noteTitle - The target note's title (used for resolution)
+ * @param displayText - What to display (alias or title), defaults to noteTitle
+ * @param targetId - Resolved note ID, or null if unresolved
+ * @returns A typed WikiLinkNodeData object
+ *
+ * @example
+ * ```ts
+ * const unresolved = createWikiLinkNode('New Note');
+ * const resolved = createWikiLinkNode('Target Note', 'Target Note', targetNote.id);
+ * ```
+ */
+export function createWikiLinkNode(
+  noteTitle: string,
+  displayText: string = noteTitle,
+  targetId: string | null = null
+): WikiLinkNodeData {
+  return { type: 'wiki-link', noteTitle, displayText, targetId, version: 1 };
+}
+
+/**
+ * Type definition for a person-mention node in Lexical content.
+ * Used for creating type-safe person-mention nodes in tests.
+ */
+export interface PersonMentionNodeData {
+  type: 'person-mention';
+  personId: string;
+  personName: string;
+  version: number;
+}
+
+/**
+ * Creates a typed person-mention node for use in test content structures.
+ *
+ * @param personId - The ID of the person being mentioned
+ * @param personName - The display name of the person
+ * @returns A typed PersonMentionNodeData object
+ */
+export function createPersonMentionNode(
+  personId: string,
+  personName: string
+): PersonMentionNodeData {
+  return { type: 'person-mention', personId, personName, version: 1 };
+}
+
+/**
+ * Creates Lexical content for a note that mentions a person.
+ *
+ * @param title - The note's title
+ * @param personId - The ID of the person being mentioned
+ * @param personName - The display name of the person
+ * @returns EditorContent with person-mention node
+ */
+export function createNoteWithMention(
+  title: string,
+  personId: string,
+  personName: string
+): EditorContent {
+  return {
+    root: {
+      type: 'root',
+      children: [
+        { type: 'paragraph', children: [{ type: 'text', text: title }] },
+        {
+          type: 'paragraph',
+          children: [
+            { type: 'text', text: 'Meeting with ' },
+            createPersonMentionNode(personId, personName) as unknown as EditorNode,
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Creates Lexical content for a note with multiple person mentions.
+ *
+ * @param title - The note's title
+ * @param mentions - Array of person mentions with id and name
+ * @returns EditorContent with multiple person-mention nodes
+ */
+export function createNoteWithMultipleMentions(
+  title: string,
+  mentions: Array<{ personId: string; personName: string }>
+): EditorContent {
+  const mentionNodes = mentions.flatMap((m, i) => {
+    const nodes: EditorNode[] = [
+      createPersonMentionNode(m.personId, m.personName) as unknown as EditorNode,
+    ];
+    if (i < mentions.length - 1) {
+      nodes.push({ type: 'text', text: ' and ' } as EditorNode);
+    }
+    return nodes;
+  });
+
+  return {
+    root: {
+      type: 'root',
+      children: [
+        { type: 'paragraph', children: [{ type: 'text', text: title }] },
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text: 'Meeting with ' } as EditorNode, ...mentionNodes],
+        },
+      ],
+    },
+  };
+}
+
+// ============================================================================
 // Metadata Helpers
 // ============================================================================
 
@@ -306,6 +434,105 @@ export function createTestMetadata(input: TestMetadataInput): NoteMetadata {
     mentions: input.mentions.map(createNoteId),
     type: input.type,
   };
+}
+
+// ============================================================================
+// Shared Type Variant Builder
+// ============================================================================
+
+/**
+ * Internal interface for base note structure.
+ * @internal
+ */
+interface BaseNoteShape {
+  id: ReturnType<typeof createNoteId>;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  tags: string[];
+  content: EditorContent;
+  metadata: NoteMetadata;
+}
+
+/**
+ * Options for building typed note variants.
+ * @internal
+ */
+interface TypeVariantOptions {
+  daily?: DailyNoteData;
+  meeting?: MeetingNoteData | { date: string; dailyNoteId: string; attendees: string[] };
+}
+
+/**
+ * Builds a properly typed Note variant from a base note object.
+ *
+ * This internal helper eliminates the duplicated switch statements across
+ * createTestNote, createMockNote, and createGraphTestNote by centralizing
+ * the discriminated union variant logic.
+ *
+ * @internal
+ * @param baseNote - The base note object with common properties
+ * @param noteType - The note type discriminator (or undefined for RegularNote)
+ * @param options - Type-specific data (daily, meeting)
+ * @returns A properly typed Note based on noteType
+ */
+function buildTypedNote(
+  baseNote: BaseNoteShape,
+  noteType: NoteType | undefined,
+  options?: TypeVariantOptions
+): Note {
+  const defaultDate = () => new Date().toISOString().split('T')[0];
+
+  if (noteType === 'daily') {
+    return {
+      ...baseNote,
+      type: 'daily',
+      daily: options?.daily ?? { date: defaultDate() },
+    } as DailyNote;
+  }
+
+  if (noteType === 'meeting') {
+    const meetingData = options?.meeting;
+    if (meetingData && 'dailyNoteId' in meetingData) {
+      // Handle both branded NoteId and plain string formats
+      const dailyNoteId =
+        typeof meetingData.dailyNoteId === 'string'
+          ? createNoteId(meetingData.dailyNoteId)
+          : meetingData.dailyNoteId;
+      const attendees = (meetingData.attendees as unknown[]).map((a) =>
+        typeof a === 'string' ? createNoteId(a) : (a as ReturnType<typeof createNoteId>)
+      );
+      return {
+        ...baseNote,
+        type: 'meeting',
+        meeting: { date: meetingData.date, dailyNoteId, attendees },
+      } as MeetingNote;
+    }
+    return {
+      ...baseNote,
+      type: 'meeting',
+      meeting: { date: defaultDate(), dailyNoteId: createNoteId(''), attendees: [] },
+    } as MeetingNote;
+  }
+
+  if (noteType === 'person') {
+    return { ...baseNote, type: 'person' } as PersonNote;
+  }
+
+  if (noteType === 'project') {
+    return { ...baseNote, type: 'project' } as ProjectNote;
+  }
+
+  if (noteType === 'template') {
+    return { ...baseNote, type: 'template' } as TemplateNote;
+  }
+
+  if (noteType === 'system') {
+    return { ...baseNote, type: 'system' } as SystemNote;
+  }
+
+  // Regular note (no type)
+  return { ...baseNote, type: undefined } as RegularNote;
 }
 
 // ============================================================================
@@ -342,13 +569,11 @@ export function createTestMetadata(input: TestMetadataInput): NoteMetadata {
  */
 export function createTestNote(options: TestNoteOptions): Note {
   const now = Date.now();
-  const noteId = createNoteId(options.id);
   const links = (options.links ?? []).map(createNoteId);
   const mentions = (options.mentions ?? []).map(createNoteId);
-  const noteType = options.type;
 
-  const baseNote = {
-    id: noteId,
+  const baseNote: BaseNoteShape = {
+    id: createNoteId(options.id),
     title: options.title,
     createdAt: options.createdAt ?? now,
     updatedAt: options.updatedAt ?? now,
@@ -359,49 +584,14 @@ export function createTestNote(options: TestNoteOptions): Note {
       tags: options.tags ?? [],
       links,
       mentions,
-      type: noteType,
+      type: options.type,
     },
   };
 
-  // Build proper discriminated union variant based on type
-  if (noteType === 'daily') {
-    return {
-      ...baseNote,
-      type: 'daily',
-      daily: options.daily ?? { date: new Date().toISOString().split('T')[0] },
-    } as DailyNote;
-  }
-
-  if (noteType === 'meeting') {
-    return {
-      ...baseNote,
-      type: 'meeting',
-      meeting: options.meeting ?? {
-        date: new Date().toISOString().split('T')[0],
-        dailyNoteId: createNoteId(''),
-        attendees: [],
-      },
-    } as MeetingNote;
-  }
-
-  if (noteType === 'person') {
-    return { ...baseNote, type: 'person' } as PersonNote;
-  }
-
-  if (noteType === 'project') {
-    return { ...baseNote, type: 'project' } as ProjectNote;
-  }
-
-  if (noteType === 'template') {
-    return { ...baseNote, type: 'template' } as TemplateNote;
-  }
-
-  if (noteType === 'system') {
-    return { ...baseNote, type: 'system' } as SystemNote;
-  }
-
-  // Regular note (no type)
-  return { ...baseNote, type: undefined } as RegularNote;
+  return buildTypedNote(baseNote, options.type, {
+    daily: options.daily,
+    meeting: options.meeting,
+  });
 }
 
 /**
@@ -426,7 +616,7 @@ export function createMockNote(overrides: MockNoteInput): Note {
   const now = Date.now();
   const title = overrides.title ?? overrides.metadata?.title ?? 'Untitled';
 
-  const baseNote = {
+  const baseNote: BaseNoteShape = {
     id: createNoteId(overrides.id),
     title,
     createdAt: overrides.createdAt ?? now,
@@ -441,45 +631,10 @@ export function createMockNote(overrides: MockNoteInput): Note {
     },
   };
 
-  // Build proper discriminated union variant based on type
-  if (overrides.type === 'daily') {
-    return {
-      ...baseNote,
-      type: 'daily',
-      daily: overrides.daily ?? { date: new Date().toISOString().split('T')[0] },
-    } as DailyNote;
-  }
-
-  if (overrides.type === 'meeting') {
-    return {
-      ...baseNote,
-      type: 'meeting',
-      meeting: overrides.meeting ?? {
-        date: new Date().toISOString().split('T')[0],
-        dailyNoteId: createNoteId(''),
-        attendees: [],
-      },
-    } as MeetingNote;
-  }
-
-  if (overrides.type === 'person') {
-    return { ...baseNote, type: 'person' };
-  }
-
-  if (overrides.type === 'project') {
-    return { ...baseNote, type: 'project' };
-  }
-
-  if (overrides.type === 'template') {
-    return { ...baseNote, type: 'template' };
-  }
-
-  if (overrides.type === 'system') {
-    return { ...baseNote, type: 'system' };
-  }
-
-  // Regular note (no type)
-  return baseNote as RegularNote;
+  return buildTypedNote(baseNote, overrides.type, {
+    daily: overrides.daily,
+    meeting: overrides.meeting,
+  });
 }
 
 /**
@@ -515,7 +670,7 @@ export function createGraphTestNote(
   const typedMetadata = createTestMetadata(metadata);
   const noteType = options?.type ?? metadata.type;
 
-  const baseNote = {
+  const baseNote: BaseNoteShape = {
     id: createNoteId(id),
     title: metadata.title ?? 'Untitled',
     createdAt: Date.now(),
@@ -527,52 +682,10 @@ export function createGraphTestNote(
     metadata: typedMetadata,
   };
 
-  if (noteType === 'meeting' && options?.meeting) {
-    return {
-      ...baseNote,
-      type: 'meeting',
-      meeting: {
-        date: options.meeting.date,
-        dailyNoteId: createNoteId(options.meeting.dailyNoteId),
-        attendees: options.meeting.attendees.map(createNoteId),
-      },
-    };
-  }
-
-  if (noteType === 'daily' && options?.daily) {
-    return {
-      ...baseNote,
-      type: 'daily',
-      daily: options.daily,
-    };
-  }
-
-  if (noteType === 'daily') {
-    return {
-      ...baseNote,
-      type: 'daily',
-      daily: { date: new Date().toISOString().split('T')[0] },
-    };
-  }
-
-  if (noteType === 'person') {
-    return { ...baseNote, type: 'person' };
-  }
-
-  if (noteType === 'project') {
-    return { ...baseNote, type: 'project' };
-  }
-
-  if (noteType === 'template') {
-    return { ...baseNote, type: 'template' };
-  }
-
-  if (noteType === 'system') {
-    return { ...baseNote, type: 'system' };
-  }
-
-  // Regular note (no type)
-  return { ...baseNote, type: undefined };
+  return buildTypedNote(baseNote, noteType, {
+    daily: options?.daily,
+    meeting: options?.meeting,
+  });
 }
 
 /**
@@ -616,4 +729,58 @@ export function createContentTestNote(
     updatedAt: 1702650000000,
     ...overrides,
   } as RegularNote;
+}
+
+// ============================================================================
+// Note Utilities
+// ============================================================================
+
+/**
+ * Override timestamps on a note for deterministic testing.
+ *
+ * This utility eliminates the need for `as any` casts when setting timestamps
+ * on notes for testing time-based behavior.
+ *
+ * @param note - The note to modify
+ * @param timestamp - The timestamp to set for both createdAt and updatedAt
+ * @returns The same note object (mutated)
+ *
+ * @example
+ * ```ts
+ * const note = await vault.create({ title: 'Test' });
+ * const savedNote = vault.read(note.id);
+ * withTimestamp(savedNote, Date.now() - 86400000); // Yesterday
+ * ```
+ */
+export function withTimestamp<T extends { createdAt: number; updatedAt: number }>(
+  note: T,
+  timestamp: number
+): T {
+  // Use Object.assign for type-safe property assignment
+  return Object.assign(note, { createdAt: timestamp, updatedAt: timestamp });
+}
+
+/**
+ * Override individual timestamps on a note.
+ *
+ * @param note - The note to modify
+ * @param options - Timestamp options
+ * @returns The same note object (mutated)
+ *
+ * @example
+ * ```ts
+ * withTimestamps(note, { createdAt: yesterday, updatedAt: today });
+ * ```
+ */
+export function withTimestamps<T extends { createdAt: number; updatedAt: number }>(
+  note: T,
+  options: { createdAt?: number; updatedAt?: number }
+): T {
+  if (options.createdAt !== undefined) {
+    Object.assign(note, { createdAt: options.createdAt });
+  }
+  if (options.updatedAt !== undefined) {
+    Object.assign(note, { updatedAt: options.updatedAt });
+  }
+  return note;
 }

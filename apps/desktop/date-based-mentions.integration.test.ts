@@ -25,6 +25,7 @@ import {
   createNoteContent,
   indexNoteInEngines,
   createWikiLinkNode,
+  withTimestamp,
 } from './test-helpers';
 
 // =============================================================================
@@ -221,10 +222,8 @@ async function createNoteAtTimestamp(
   // Read the note to get the actual saved version
   const savedNote = vault.read(note.id);
 
-  // Manually override timestamps for testing
-  // Note: This is a testing hack - in production, timestamps are managed by the vault
-  (savedNote as any).createdAt = timestamp;
-  (savedNote as any).updatedAt = timestamp;
+  // Override timestamps for testing using type-safe utility
+  withTimestamp(savedNote, timestamp);
 
   // Save with modified timestamps
   await vault.save(savedNote);
@@ -256,7 +255,11 @@ function createNoteWithWikiLink(
           type: 'paragraph',
           children: [
             { type: 'text', text: 'Link to ' },
-            createWikiLinkNode(linkTitle, linkTitle, linkTargetId),
+            createWikiLinkNode(
+              linkTitle,
+              linkTitle,
+              linkTargetId
+            ) as unknown as import('@scribe/shared').EditorNode,
           ],
         },
       ],
@@ -590,8 +593,7 @@ describe('Date-Based Linked Mentions Integration Tests', () => {
       });
       // Override timestamps to be from yesterday
       const loadedBacklink = vault.read(backlinkNote.id);
-      (loadedBacklink as any).createdAt = yesterdayMs;
-      (loadedBacklink as any).updatedAt = yesterdayMs;
+      withTimestamp(loadedBacklink, yesterdayMs);
       await vault.save(loadedBacklink);
       // Re-read to get the saved version with correct timestamps
       const finalBacklink = vault.read(backlinkNote.id);
@@ -679,8 +681,7 @@ describe('Date-Based Linked Mentions Integration Tests', () => {
 
       // Override timestamps
       const loaded = vault.read(note.id);
-      (loaded as any).createdAt = specificDate.getTime();
-      (loaded as any).updatedAt = specificDate.getTime();
+      withTimestamp(loaded, specificDate.getTime());
       await vault.save(loaded);
 
       // Query with the correct date

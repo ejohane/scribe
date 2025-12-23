@@ -8,12 +8,9 @@ export type {
   NoteId,
   NoteType,
   VaultPath,
-  // Abstract editor types (preferred)
+  // Abstract editor types
   EditorContent,
   EditorNode,
-  // Lexical compatibility aliases (deprecated)
-  LexicalState,
-  LexicalNode,
   NoteMetadata,
   // Note types (discriminated union)
   Note,
@@ -58,28 +55,12 @@ export {
 export {
   ErrorCode,
   ScribeError,
-  FileSystemError,
-  NoteError,
-  VaultError,
-  EngineError,
   ValidationError,
-  TaskNotFoundError,
-  SyncConflictError,
-  MigrationError,
   isScribeError,
-  isFileSystemError,
-  isNoteError,
-  isVaultError,
-  isEngineError,
   isValidationError,
-  isTaskNotFoundError,
-  isSyncConflictError,
-  isMigrationError,
   // Error message extraction utilities
   getErrorMessage,
-  getErrorMessageWithContext,
 } from './errors.js';
-export type { EngineName } from './errors.js';
 
 export { DEFAULT_NOTE_TITLE } from './constants.js';
 
@@ -123,25 +104,25 @@ export type {
 export {
   formatDate,
   formatDateYMD,
-  formatDateMMDDYYYY,
   formatDateTitle,
   getRelativeDateString,
   parseDate,
   parseDateToTimestamp,
-  parseDateMMDDYYYY,
   isToday,
   isYesterday,
   isSameDay,
-  getDaysBetween,
-  startOfDay,
-  endOfDay,
   toDate,
   isValidDate,
 } from './date-utils.js';
 export type { DateFormatStyle } from './date-utils.js';
 
 // Content Utilities - Lexical editor structure helpers
-export { createEmptyContent } from './content.js';
+export {
+  createEmptyContent,
+  createDailyContent,
+  createMeetingContent,
+  createPersonContent,
+} from './content.js';
 
 // Validation Utilities - shared validation for CLI and other consumers
 export { validatePaginationOptions } from './validation.js';

@@ -113,7 +113,7 @@ export function isCLILinkedToThisApp(): boolean {
 
     return linkTarget === expectedTarget;
   } catch (error) {
-    mainLogger.warn('Failed to check CLI symlink:', error);
+    mainLogger.warn('Failed to check CLI symlink', { error });
     return false;
   }
 }
@@ -175,7 +175,7 @@ export async function installCLI(): Promise<CLIInstallResult> {
       mkdirSync(TARGET_DIR, { recursive: true });
       mainLogger.info(`Created directory: ${TARGET_DIR}`);
     } catch (error) {
-      mainLogger.error('Failed to create target directory:', error);
+      mainLogger.error('Failed to create target directory', { error });
       return {
         success: false,
         message: `Failed to create directory ${TARGET_DIR}: ${error instanceof Error ? error.message : String(error)}`,
@@ -201,7 +201,7 @@ export async function installCLI(): Promise<CLIInstallResult> {
       needsPathSetup,
     };
   } catch (error) {
-    mainLogger.error('Failed to create symlink:', error);
+    mainLogger.error('Failed to create symlink', { error });
 
     // Provide helpful error messages for common issues
     if (error instanceof Error) {
@@ -263,7 +263,7 @@ export async function uninstallCLI(): Promise<CLIInstallResult> {
       };
     }
   } catch (error) {
-    mainLogger.error('Failed to check symlink:', error);
+    mainLogger.error('Failed to check symlink', { error });
     return {
       success: false,
       message: `Failed to check symlink: ${error instanceof Error ? error.message : String(error)}`,
@@ -279,7 +279,7 @@ export async function uninstallCLI(): Promise<CLIInstallResult> {
       message: 'CLI uninstalled successfully.',
     };
   } catch (error) {
-    mainLogger.error('Failed to remove symlink:', error);
+    mainLogger.error('Failed to remove symlink', { error });
     return {
       success: false,
       message: `Failed to remove symlink: ${error instanceof Error ? error.message : String(error)}`,

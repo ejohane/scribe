@@ -24,10 +24,14 @@ const { mockExtractMarkdown } = vi.hoisted(() => ({
   mockExtractMarkdown: vi.fn(),
 }));
 
-vi.mock('@scribe/shared', () => ({
-  createNoteId: (id: string) => id as NoteId,
-  extractMarkdown: mockExtractMarkdown,
-}));
+vi.mock('@scribe/shared', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@scribe/shared')>();
+  return {
+    ...actual,
+    createNoteId: (id: string) => id as NoteId,
+    extractMarkdown: mockExtractMarkdown,
+  };
+});
 
 // Helper to create branded NoteId
 function createTestNoteId(id: string): NoteId {

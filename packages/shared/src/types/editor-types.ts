@@ -84,27 +84,3 @@ export interface EditorContent {
    */
   type?: NoteTypeForEditor;
 }
-
-// ============================================================================
-// Lexical Compatibility Aliases (Deprecated)
-// ============================================================================
-// These type aliases are maintained for backward compatibility with existing
-// code that references the Lexical-specific type names. New code should use
-// EditorContent and EditorNode instead.
-// ============================================================================
-
-/**
- * @deprecated Use EditorContent instead. This alias is maintained for backward compatibility.
- *
- * Lexical editor state serialized as JSON.
- * This is an alias for EditorContent to support existing code.
- */
-export type LexicalState = EditorContent;
-
-/**
- * @deprecated Use EditorNode instead. This alias is maintained for backward compatibility.
- *
- * Generic Lexical node structure.
- * This is an alias for EditorNode to support existing code.
- */
-export type LexicalNode = EditorNode;

@@ -3,6 +3,7 @@ import type { FileSystemVault } from '@scribe/storage-fs';
 import type { GraphEngine } from '@scribe/engine-graph';
 import type { SearchEngine } from '@scribe/engine-search';
 import type { TaskIndex } from '@scribe/engine-core/node';
+import { ScribeError } from '@scribe/shared';
 
 /**
  * Dependencies injected into each handler module.
@@ -124,4 +125,31 @@ export function withEngines<T extends unknown[], R>(
     };
     return handler(engines, ...args);
   };
+}
+
+/**
+ * Wrap ScribeError for IPC transport with user-friendly message.
+ *
+ * ScribeErrors are converted to plain Errors with user-friendly messages
+ * since Error subclasses don't serialize properly over IPC.
+ *
+ * @param error - The error to wrap
+ * @throws Always throws - either wrapped ScribeError or original error
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const note = vault.read(noteId);
+ * } catch (error) {
+ *   wrapError(error);
+ * }
+ * ```
+ */
+export function wrapError(error: unknown): never {
+  if (error instanceof ScribeError) {
+    const userError = new Error(error.getUserMessage());
+    userError.name = error.code;
+    throw userError;
+  }
+  throw error;
 }

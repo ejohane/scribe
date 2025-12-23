@@ -64,14 +64,7 @@ export {
 } from './note-types.js';
 
 // Editor types - content abstraction layer
-export {
-  type EditorNode,
-  type EditorContent,
-
-  // Deprecated Lexical aliases (for backwards compatibility)
-  type LexicalState,
-  type LexicalNode,
-} from './editor-types.js';
+export { type EditorNode, type EditorContent } from './editor-types.js';
 
 // Task types - task extraction and management
 export {

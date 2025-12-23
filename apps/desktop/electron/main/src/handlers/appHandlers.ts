@@ -107,7 +107,7 @@ async function saveConfig(config: AppConfig): Promise<void> {
     await fs.mkdir(CONFIG_DIR, { recursive: true });
     await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
   } catch (error) {
-    configLogger.error('Failed to save config:', error);
+    configLogger.error('Failed to save config', { error });
   }
 }
 

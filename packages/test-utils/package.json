@@ -6,7 +6,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./integration": "./src/integration-helpers.ts"
   },
   "scripts": {
     "lint": "eslint src",
@@ -18,14 +19,29 @@
     "@scribe/shared": "workspace:*"
   },
   "devDependencies": {
+    "@scribe/engine-graph": "workspace:*",
+    "@scribe/engine-search": "workspace:*",
+    "@scribe/storage-fs": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },
   "peerDependencies": {
+    "@scribe/engine-graph": "workspace:*",
+    "@scribe/engine-search": "workspace:*",
+    "@scribe/storage-fs": "workspace:*",
     "vitest": "^2.0.0"
   },
   "peerDependenciesMeta": {
+    "@scribe/engine-graph": {
+      "optional": true
+    },
+    "@scribe/engine-search": {
+      "optional": true
+    },
+    "@scribe/storage-fs": {
+      "optional": true
+    },
     "vitest": {
       "optional": true
     }

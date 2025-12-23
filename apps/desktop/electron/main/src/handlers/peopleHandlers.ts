@@ -25,71 +25,14 @@
  */
 
 import { ipcMain } from 'electron';
-import type { EditorContent } from '@scribe/shared';
-import { ScribeError, ErrorCode } from '@scribe/shared';
+import { ScribeError, ErrorCode, createPersonContent } from '@scribe/shared';
 import {
   HandlerDependencies,
   requireVault,
   requireGraphEngine,
   requireSearchEngine,
+  wrapError,
 } from './types';
-
-/**
- * Wrap ScribeError for IPC transport with user-friendly message.
- *
- * @param error - The error to wrap
- * @throws Always throws - either wrapped ScribeError or original error
- */
-function wrapError(error: unknown): never {
-  if (error instanceof ScribeError) {
-    const userError = new Error(error.getUserMessage());
-    userError.name = error.code;
-    throw userError;
-  }
-  throw error;
-}
-
-/**
- * Create the initial Lexical content for a new person note.
- *
- * @param name - The person's name
- * @returns EditorContent with H1 heading (name) and empty paragraph
- *
- * @remarks
- * Sets up the initial structure for person notes:
- * - H1 heading with the person's name
- * - Empty paragraph for additional content
- */
-function createPersonContent(name: string): EditorContent {
-  return {
-    root: {
-      children: [
-        {
-          type: 'heading',
-          tag: 'h1',
-          children: [{ type: 'text', text: name }],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-        {
-          type: 'paragraph',
-          children: [],
-          direction: null,
-          format: '',
-          indent: 0,
-          version: 1,
-        },
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'person',
-  };
-}
 
 /**
  * Setup IPC handlers for people management operations.

@@ -470,20 +470,23 @@ describe('useNoteState', () => {
       expect(result.current.currentNote?.tags).toEqual(['new-tag', 'another-tag']);
     });
 
-    // TODO: Fix rollback tests - they have timing issues with hook's ref-based rollback mechanism
-    // The latestNoteRef.current value may not be captured correctly due to useEffect timing
-    it.skip('rolls back on save failure (success: false)', async () => {
+    it('rolls back on save failure (success: false)', async () => {
       const originalNote = createMockNote({ title: 'Original Title' });
       mockGetLastOpenedNote.mockResolvedValue(originalNote.id);
       mockRead.mockResolvedValue(originalNote);
       mockSetLastOpenedNote.mockResolvedValue(undefined);
       mockSave.mockResolvedValue({ success: false });
 
-      const { result } = renderHook(() => useNoteState());
+      const { result, rerender } = renderHook(() => useNoteState());
 
+      // Wait for initial load
       await waitFor(() => {
         expect(result.current.currentNote?.title).toBe('Original Title');
+        expect(result.current.isLoading).toBe(false);
       });
+
+      // Force rerender to ensure useEffect synced latestNoteRef
+      rerender();
 
       await act(async () => {
         await result.current.updateMetadata({ title: 'New Title' });
@@ -497,19 +500,23 @@ describe('useNoteState', () => {
       expect(result.current.error).toBe('Failed to update note metadata');
     });
 
-    // TODO: Fix rollback tests - they have timing issues with hook's ref-based rollback mechanism
-    it.skip('rolls back on save exception', async () => {
+    it('rolls back on save exception', async () => {
       const originalNote = createMockNote({ title: 'Original Title' });
       mockGetLastOpenedNote.mockResolvedValue(originalNote.id);
       mockRead.mockResolvedValue(originalNote);
       mockSetLastOpenedNote.mockResolvedValue(undefined);
       mockSave.mockRejectedValue(new Error('Save failed'));
 
-      const { result } = renderHook(() => useNoteState());
+      const { result, rerender } = renderHook(() => useNoteState());
 
+      // Wait for initial load
       await waitFor(() => {
         expect(result.current.currentNote?.title).toBe('Original Title');
+        expect(result.current.isLoading).toBe(false);
       });
+
+      // Force rerender to ensure useEffect synced latestNoteRef
+      rerender();
 
       await act(async () => {
         await result.current.updateMetadata({ title: 'New Title' });

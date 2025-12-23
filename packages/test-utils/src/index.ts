@@ -55,12 +55,22 @@ export {
   createLexicalContentWithHeading,
   createLexicalContentWithWikiLink,
   createLexicalContentWithMention,
+  // Node helpers (for test content structures)
+  createWikiLinkNode,
+  createPersonMentionNode,
+  createNoteWithMention,
+  createNoteWithMultipleMentions,
   // Metadata helpers
   createTestMetadata,
+  // Note utilities (type-safe timestamp overrides)
+  withTimestamp,
+  withTimestamps,
   // Types
   type TestNoteOptions,
   type MockNoteInput,
   type TestMetadataInput,
+  type WikiLinkNodeData,
+  type PersonMentionNodeData,
 } from './note-factory.js';
 
 // Vault Factory
@@ -111,6 +121,20 @@ export {
   createContent,
   emptyContent,
   textContent,
+  // Content accessors (type-safe child access)
+  getContentChild,
+  getBlockChild,
+  getNodeChildren,
+  // Type guards for content nodes
+  isParagraphNode,
+  isHeadingNode,
+  isListNode,
+  isListItemNode,
   // Types
   type ListType,
+  type BlockNode,
+  type ParagraphNode,
+  type HeadingNode,
+  type ListNode,
+  type ListItemNode,
 } from './content-factory.js';

@@ -32,76 +32,20 @@
 
 import { ipcMain } from 'electron';
 import { format, parse, isValid } from 'date-fns';
-import type { NoteId, EditorContent, MeetingNote } from '@scribe/shared';
-import { ScribeError, ErrorCode, isMeetingNote } from '@scribe/shared';
+import type { NoteId, MeetingNote } from '@scribe/shared';
+import {
+  ScribeError,
+  ErrorCode,
+  isMeetingNote,
+  createDailyContent,
+  createMeetingContent,
+} from '@scribe/shared';
 import {
   HandlerDependencies,
   requireVault,
   requireGraphEngine,
   requireSearchEngine,
 } from './types';
-import { createDailyContent } from './dailyHandlers';
-
-/**
- * Create initial content for meeting notes.
- *
- * @returns EditorContent with Pre-Read, Notes, and Action Items sections
- *
- * @remarks
- * Matches the structure in renderer/src/templates/meeting.ts
- * Each section has an H3 heading followed by an empty bullet list.
- */
-function createMeetingContent(): EditorContent {
-  const createH3 = (text: string) => ({
-    type: 'heading',
-    tag: 'h3',
-    children: [{ type: 'text', text, format: 0, mode: 'normal', style: '', detail: 0, version: 1 }],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  });
-
-  const emptyBulletList = () => ({
-    type: 'list',
-    listType: 'bullet',
-    start: 1,
-    tag: 'ul',
-    children: [
-      {
-        type: 'listitem',
-        value: 1,
-        children: [],
-        direction: null,
-        format: '',
-        indent: 0,
-        version: 1,
-      },
-    ],
-    direction: null,
-    format: '',
-    indent: 0,
-    version: 1,
-  });
-
-  return {
-    root: {
-      children: [
-        createH3('Pre-Read'),
-        emptyBulletList(),
-        createH3('Notes'),
-        emptyBulletList(),
-        createH3('Action Items'),
-        emptyBulletList(),
-      ],
-      type: 'root',
-      format: '',
-      indent: 0,
-      version: 1,
-    },
-    type: 'meeting',
-  } as EditorContent;
-}
 
 /**
  * Setup IPC handlers for meeting note operations.

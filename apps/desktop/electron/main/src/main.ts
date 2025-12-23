@@ -81,7 +81,7 @@ async function initializeEngine() {
     const stats = deps.graphEngine.getStats();
     mainLogger.debug(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
   } catch (error) {
-    mainLogger.error('Failed to initialize engine:', error);
+    mainLogger.error('Failed to initialize engine', { error });
     throw error;
   }
 }
@@ -104,6 +104,63 @@ function setupIPCHandlers() {
   setupExportHandlers(deps);
 }
 
+/**
+ * Create and configure the main application window.
+ *
+ * This function initializes the BrowserWindow with security-hardened settings,
+ * loads the renderer process, and sets up the native context menu for spell-check
+ * and editing operations.
+ *
+ * ## Window Configuration
+ *
+ * - **Dimensions**: Uses DEFAULT_WINDOW_WIDTH (1200) and DEFAULT_WINDOW_HEIGHT (800)
+ *   as comfortable defaults for note-taking. These can be resized by the user.
+ *
+ * - **Title Bar**: Uses macOS-native `hiddenInset` style with custom traffic light
+ *   positioning (TRAFFIC_LIGHT_POSITION) to blend with our custom UI while keeping
+ *   native window controls accessible.
+ *
+ * - **Platform Icons**: Windows requires explicit .ico file; macOS uses dock icon
+ *   (set separately); Linux uses the .desktop file configuration.
+ *
+ * ## Security Settings (webPreferences)
+ *
+ * - **nodeIntegration: false** - Prevents renderer process from accessing Node.js
+ *   APIs directly. This is a critical security measure that prevents XSS attacks
+ *   from accessing the filesystem or executing system commands.
+ *
+ * - **contextIsolation: true** - Runs preload script in isolated context, preventing
+ *   the renderer from tampering with the preload script's privileged APIs. Works
+ *   with contextBridge to expose only specific, controlled APIs.
+ *
+ * - **spellcheck: true** - Enables Chromium's built-in spell-checking. Dictionary
+ *   management is handled via session.addWordToSpellCheckerDictionary() in the
+ *   context menu handler.
+ *
+ * - **preload**: Points to the preload script that bridges main and renderer
+ *   processes via contextBridge.exposeInMainWorld().
+ *
+ * ## Context Menu Behavior
+ *
+ * The context menu adapts to the current content:
+ *
+ * 1. **Misspelled words**: Shows dictionary suggestions, "Add to Dictionary" option
+ * 2. **Editable fields**: Cut, Copy, Paste actions
+ * 3. **Selected text (non-editable)**: Copy action only
+ * 4. **No selection**: No menu shown
+ *
+ * ## Lifecycle
+ *
+ * - Window reference is stored in `deps.mainWindow` for IPC handler access
+ * - Reference is nulled on 'closed' event to allow garbage collection
+ * - In dev mode: loads from Vite dev server (localhost:5173) with DevTools open
+ * - In production: loads from bundled renderer/dist/index.html
+ *
+ * @sideeffects
+ * - Sets `deps.mainWindow` to the created BrowserWindow instance
+ * - Opens DevTools in development mode
+ * - Registers 'closed' and 'context-menu' event listeners
+ */
 function createWindow() {
   // Set window icon for Windows (macOS uses dock icon, Linux uses desktop file)
   const iconPath =
@@ -116,9 +173,13 @@ function createWindow() {
     trafficLightPosition: TRAFFIC_LIGHT_POSITION,
     icon: iconPath,
     webPreferences: {
+      // Security: Disable Node.js integration to prevent XSS from accessing system
       nodeIntegration: false,
+      // Security: Isolate preload context to protect privileged APIs
       contextIsolation: true,
+      // Enable Chromium spell-check with custom dictionary support
       spellcheck: true,
+      // Bridge to renderer via contextBridge.exposeInMainWorld()
       preload: path.join(__dirname, '../../preload/dist/preload.js'),
     },
   });
@@ -212,7 +273,7 @@ app.whenReady().then(async () => {
     try {
       app.dock.setIcon(iconPath);
     } catch (err) {
-      mainLogger.error('Failed to set dock icon:', err);
+      mainLogger.error('Failed to set dock icon', { error: err });
     }
     app.dock.show();
     app.focus({ steal: true });
@@ -238,7 +299,7 @@ app.on('before-quit', async () => {
       await deps.taskIndex.flush();
       mainLogger.debug('Task index flushed successfully');
     } catch (error) {
-      mainLogger.error('Failed to flush task index:', error);
+      mainLogger.error('Failed to flush task index', { error });
     }
   }
 });
