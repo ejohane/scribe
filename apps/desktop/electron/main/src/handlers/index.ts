@@ -45,6 +45,9 @@ export { setupMeetingHandlers } from './meetingHandlers';
 export { setupTasksHandlers } from './tasksHandlers';
 export { setupCLIHandlers } from './cliHandlers';
 export { setupExportHandlers } from './exportHandlers';
+export { setupDialogHandlers } from './dialogHandlers';
+export { setupVaultHandlers } from './vaultHandlers';
 
 export type { HandlerDependencies, AppConfig, Engines } from './types';
 export { withEngines } from './types';
+export { loadConfig, saveConfig, getVaultPath, DEFAULT_VAULT_PATH } from './config';

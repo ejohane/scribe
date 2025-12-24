@@ -1,6 +1,9 @@
 export { Surface } from './Surface';
 export type { SurfaceProps } from './Surface';
 
+export { SegmentedControl } from './SegmentedControl';
+export type { SegmentedControlProps, SegmentedControlOption } from './SegmentedControl';
+
 export { Calendar } from './Calendar';
 export type { CalendarProps } from './Calendar';
 

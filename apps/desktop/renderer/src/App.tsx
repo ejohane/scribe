@@ -27,9 +27,11 @@ import { useMouseActivity } from './hooks/useMouseActivity';
 import { useHistoryEntries } from './hooks/useHistoryEntries';
 import { useAppCommands } from './hooks/useAppCommands';
 import { useAppKeyboardShortcuts } from './hooks/useAppKeyboardShortcuts';
+import { useSettingsPage } from './hooks/useSettingsPage';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 import { EditorCommandProvider } from './components/Editor/EditorCommandContext';
+import { SettingsPage } from './components/Settings';
 
 function App() {
   // Note state management
@@ -79,6 +81,9 @@ function App() {
 
   // History entries with titles for sidebar display
   const historyEntries = useHistoryEntries(historyStack, sidebar.isOpen);
+
+  // Settings page state
+  const settings = useSettingsPage();
 
   // ShareMenu controlled state (for keyboard shortcut)
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
@@ -263,11 +268,7 @@ function App() {
           currentHistoryIndex={currentIndex}
           onSelectHistoryEntry={handleSelectHistoryEntry}
           onClearHistory={clearHistory}
-          onThemeToggle={() => {
-            const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
-          }}
-          currentTheme={resolvedTheme as 'light' | 'dark'}
+          onOpenSettings={settings.open}
           width={sidebar.width}
           onWidthChange={sidebar.setWidth}
           onClose={sidebar.toggle}
@@ -428,6 +429,8 @@ function App() {
           />
         </ErrorBoundary>
       </EditorCommandProvider>
+
+      <SettingsPage isOpen={settings.isOpen} onClose={settings.close} />
     </div>
   );
 }

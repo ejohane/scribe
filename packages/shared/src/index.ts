@@ -97,6 +97,12 @@ export type {
   TasksAPI,
   UpdateAPI,
   ExportAPI,
+  DialogAPI,
+  FolderPickerOptions,
+  VaultAPI,
+  VaultSwitchResult,
+  VaultCreateResult,
+  VaultValidationResult,
   ScribeAPI,
 } from './ipc-contract.js';
 

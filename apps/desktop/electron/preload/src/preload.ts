@@ -47,6 +47,7 @@ const scribeAPI: ScribeAPI = {
     getConfig: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_CONFIG),
     setConfig: (config: Record<string, unknown>) =>
       ipcRenderer.invoke(IPC_CHANNELS.APP_SET_CONFIG, config),
+    relaunch: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RELAUNCH),
   },
 
   people: {
@@ -139,6 +140,18 @@ const scribeAPI: ScribeAPI = {
 
   export: {
     toMarkdown: (noteId: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.EXPORT_TO_MARKDOWN, noteId),
+  },
+
+  dialog: {
+    selectFolder: (options?: { title?: string; defaultPath?: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.DIALOG_SELECT_FOLDER, options),
+  },
+
+  vault: {
+    getPath: () => ipcRenderer.invoke(IPC_CHANNELS.VAULT_GET_PATH),
+    setPath: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_SET_PATH, path),
+    create: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_CREATE, path),
+    validate: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_VALIDATE, path),
   },
 };
 
