@@ -307,17 +307,12 @@ function VersionSetting() {
  * Changes apply immediately and persist via the ThemeProvider's storage adapter.
  */
 function ThemeSetting() {
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
-  // Build options with dynamic System label showing resolved theme
   const options: Array<{ value: 'dark' | 'light' | 'system'; label: string }> = [
     { value: 'dark', label: 'Dark' },
     { value: 'light', label: 'Light' },
-    {
-      value: 'system',
-      label:
-        theme === 'system' ? `System (${resolvedTheme === 'dark' ? 'Dark' : 'Light'})` : 'System',
-    },
+    { value: 'system', label: 'System' },
   ];
 
   return (

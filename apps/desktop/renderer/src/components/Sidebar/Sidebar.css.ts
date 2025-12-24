@@ -217,7 +217,7 @@ export const footer = style({
   borderTop: `1px solid ${vars.color.border}`,
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'center',
+  justifyContent: 'flex-start',
 });
 
 /**
