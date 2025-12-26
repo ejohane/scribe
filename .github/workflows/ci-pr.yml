@@ -82,7 +82,7 @@ jobs:
         run: bunx turbo run test --filter='./packages/*' --concurrency=4
 
       - name: Run CLI unit tests
-        run: cd apps/cli && bun test
+        run: cd apps/cli && bun run test
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
