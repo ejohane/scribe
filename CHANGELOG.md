@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.0](https://github.com/ejohane/scribe/compare/v1.28.1...v1.29.0) (2025-12-26)
+
+### Features
+
+* implement Settings page with theme switching and vault management ([618cfdc](https://github.com/ejohane/scribe/commit/618cfdcc04008f0ee684ee398079dc88a2bf6603))
+
+### Bug Fixes
+
+* add dev mode update handlers and improve version section layout ([f6da171](https://github.com/ejohane/scribe/commit/f6da1710b4e1a3f882ead08236040d4d0603d275))
+* relax performance test threshold for CI runner variability ([6462887](https://github.com/ejohane/scribe/commit/646288738600340e028116d35fc496331358c50a))
+* simplify theme dropdown and align sidebar footer left ([13b189c](https://github.com/ejohane/scribe/commit/13b189c1bb50a4e5932c1b2ce990ef2c954c94cb))
+* use vitest for CLI tests and add CLI tests to pre-commit hook ([1fcdc2b](https://github.com/ejohane/scribe/commit/1fcdc2b5883911a3794c3b740c7f14540b3dd439))
+
 ## [1.28.1](https://github.com/ejohane/scribe/compare/v1.28.0...v1.28.1) (2025-12-23)
 
 ### Code Refactoring
