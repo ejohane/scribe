@@ -95,9 +95,10 @@ export async function createTestVault(options: TestVaultOptions = {}): Promise<T
   }
 
   const cleanup = async (): Promise<void> => {
-    await rm(vaultDir, { recursive: true, force: true }).catch(() => {
-      // Ignore cleanup errors
-    });
+    // INTENTIONAL: Swallow cleanup errors - this is best-effort teardown.
+    // Expected scenarios: directory already removed, concurrent test cleanup,
+    // or process termination. Test correctness is unaffected.
+    await rm(vaultDir, { recursive: true, force: true }).catch(() => {});
   };
 
   return {
@@ -176,9 +177,10 @@ export async function writeNoteToVault(vaultPath: string, note: Note): Promise<v
  * ```
  */
 export async function cleanupTestVault(vaultPath: string): Promise<void> {
-  await rm(vaultPath, { recursive: true, force: true }).catch(() => {
-    // Ignore errors during cleanup
-  });
+  // INTENTIONAL: Swallow cleanup errors - this is best-effort teardown.
+  // Expected scenarios: directory already removed, concurrent cleanup,
+  // or process termination. Test correctness is unaffected.
+  await rm(vaultPath, { recursive: true, force: true }).catch(() => {});
 }
 
 // ============================================================================

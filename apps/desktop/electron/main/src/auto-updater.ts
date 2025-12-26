@@ -1,5 +1,8 @@
 import { autoUpdater } from 'electron-updater';
-import { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, app } from 'electron';
+import { createLogger, getErrorMessage } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'auto-updater' });
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const INITIAL_CHECK_DELAY_MS = 10 * 1000; // 10 seconds
@@ -48,7 +51,10 @@ export function setupAutoUpdater(mainWindow: BrowserWindow): void {
   });
 
   autoUpdater.on('error', (err) => {
-    console.error('Auto-updater error:', err);
+    log.error('Auto-updater error', {
+      error: getErrorMessage(err),
+      currentVersion: app.getVersion(),
+    });
     mainWindow.webContents.send('update:error', {
       message: err.message,
     });
@@ -76,14 +82,14 @@ export function setupAutoUpdater(mainWindow: BrowserWindow): void {
   // Initial check (delayed to not block startup)
   initialCheckTimeout = setTimeout(() => {
     autoUpdater.checkForUpdates().catch((err) => {
-      console.error('Initial update check failed:', err);
+      log.error('Initial update check failed', { error: getErrorMessage(err) });
     });
   }, INITIAL_CHECK_DELAY_MS);
 
   // Periodic checks
   updateCheckInterval = setInterval(() => {
     autoUpdater.checkForUpdates().catch((err) => {
-      console.error('Periodic update check failed:', err);
+      log.error('Periodic update check failed', { error: getErrorMessage(err) });
     });
   }, CHECK_INTERVAL_MS);
 }
@@ -152,6 +158,6 @@ export function setupDevUpdateHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.on('update:install', () => {
     // No-op in dev mode - there's nothing to install
-    console.log('update:install called in dev mode - no action taken');
+    log.info('update:install called in dev mode - no action taken');
   });
 }

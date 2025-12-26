@@ -57,6 +57,9 @@ const Document = FlexSearch.Document as typeof FlexSearchDocumentClass;
 type Document<T, S extends string[] = string[]> = FlexSearchDocumentClass<T, S>;
 import { format, parse, isValid } from 'date-fns';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
+import { createLogger, getErrorMessage } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'search-engine' });
 import { extractTextForSearch, extractTextWithContext, generateSnippet } from './text-extraction';
 
 // Search indexing constants
@@ -202,18 +205,15 @@ export class SearchEngine {
           searchableTitle = `${note.title} ${formattedDate}`;
         } else {
           // Log warning for invalid dates that parsed but aren't valid
-          // eslint-disable-next-line no-console -- TODO: Migrate to logger abstraction
-          console.warn(
-            `[SearchEngine] Invalid date in daily note title: "${note.title}" (note id: ${note.id})`
-          );
+          log.warn('Invalid date in daily note title', { title: note.title, noteId: note.id });
         }
       } catch (error) {
         // Log warning for dates that failed to parse
-        // eslint-disable-next-line no-console -- TODO: Migrate to logger abstraction
-        console.warn(
-          `[SearchEngine] Failed to parse date from daily note title: "${note.title}" (note id: ${note.id})`,
-          error instanceof Error ? error.message : error
-        );
+        log.warn('Failed to parse date from daily note title', {
+          title: note.title,
+          noteId: note.id,
+          error: getErrorMessage(error),
+        });
       }
     }
 
