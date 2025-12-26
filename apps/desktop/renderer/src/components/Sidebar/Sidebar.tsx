@@ -13,17 +13,15 @@ import { useCallback, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { NoteId } from '@scribe/shared';
 import {
-  MoonIcon,
-  SunIcon,
   TrashIcon,
   MenuIcon,
   SearchIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
+  SettingsIcon,
 } from '@scribe/design-system';
 import { HistoryListItem } from './HistoryListItem';
 import { ResizeHandle } from '../ResizeHandle';
-import { VersionIndicator } from './VersionIndicator';
 import * as styles from './Sidebar.css';
 import { sidebarWidth } from './Sidebar.css';
 
@@ -51,10 +49,8 @@ export interface SidebarProps {
   onSelectHistoryEntry: (index: number) => void;
   /** Callback to clear all history */
   onClearHistory: () => void;
-  /** Callback to toggle theme */
-  onThemeToggle: () => void;
-  /** Current theme */
-  currentTheme: 'light' | 'dark';
+  /** Callback to open settings page */
+  onOpenSettings: () => void;
   /** Current width of the sidebar (optional, defaults to SIDEBAR_DEFAULT_WIDTH) */
   width?: number;
   /** Callback when width changes via resize handle */
@@ -79,8 +75,7 @@ export function Sidebar({
   currentHistoryIndex,
   onSelectHistoryEntry,
   onClearHistory,
-  onThemeToggle,
-  currentTheme,
+  onOpenSettings,
   width = SIDEBAR_DEFAULT_WIDTH,
   onWidthChange,
   onClose,
@@ -205,22 +200,15 @@ export function Sidebar({
 
         {/* Footer */}
         <div className={styles.footer}>
-          <div className={styles.userInfo}>
-            <div className={styles.userAvatar} />
-            <div className={styles.userName}>Guest User</div>
-          </div>
-
-          <div className={styles.footerRight}>
-            <VersionIndicator />
-            <button
-              onClick={onThemeToggle}
-              className={styles.themeToggle}
-              title={currentTheme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              type="button"
-            >
-              {currentTheme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
-            </button>
-          </div>
+          <button
+            onClick={onOpenSettings}
+            className={styles.settingsButton}
+            aria-label="Open settings"
+            title="Settings"
+            type="button"
+          >
+            <SettingsIcon size={20} />
+          </button>
         </div>
       </div>
       {/* Resize handle on the right edge - outside sidebarInner to avoid overflow clipping */}

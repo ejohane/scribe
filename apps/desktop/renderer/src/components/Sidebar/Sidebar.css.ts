@@ -210,62 +210,44 @@ export const noteList = style({
 });
 
 /**
- * Footer section with user info and theme toggle
+ * Footer section with settings button
  */
 export const footer = style({
-  padding: vars.spacing['6'],
+  padding: vars.spacing['4'],
   borderTop: `1px solid ${vars.color.border}`,
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'space-between',
+  justifyContent: 'flex-start',
 });
 
-export const userInfo = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['3'],
-  opacity: 0.6,
-  transition: `opacity ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
-  cursor: 'default',
-
-  ':hover': {
-    opacity: 1,
-  },
-});
-
-export const userAvatar = style({
-  width: '32px',
-  height: '32px',
-  borderRadius: vars.radius.full,
-  background: `linear-gradient(135deg, ${vars.color.surface} 0%, ${vars.color.border} 100%)`,
-});
-
-export const userName = style({
-  fontSize: vars.typography.size.xs,
-  fontWeight: vars.typography.weight.medium,
-  color: vars.color.foregroundMuted,
-});
-
-export const footerRight = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.spacing['2'],
-});
-
-export const themeToggle = style({
-  padding: vars.spacing['2'],
-  borderRadius: vars.radius.full,
-  color: vars.color.foregroundMuted,
-  backgroundColor: 'transparent',
-  border: 'none',
-  cursor: 'pointer',
-  transition: `all ${vars.animation.duration.normal} ${vars.animation.easing.default}`,
+/**
+ * Settings button in footer
+ */
+export const settingsButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  width: '40px',
+  height: '40px',
+  padding: 0,
+  borderRadius: vars.radius.md,
+  border: 'none',
+  background: 'transparent',
+  color: vars.color.foregroundMuted,
+  cursor: 'pointer',
+  transition: `all ${vars.animation.duration.fast} ${vars.animation.easing.default}`,
 
   ':hover': {
-    color: vars.color.foreground,
     backgroundColor: vars.color.surface,
+    color: vars.color.foreground,
+  },
+
+  ':focus': {
+    outline: 'none',
+  },
+
+  ':focus-visible': {
+    outline: `2px solid ${vars.color.accent}`,
+    outlineOffset: '2px',
   },
 });

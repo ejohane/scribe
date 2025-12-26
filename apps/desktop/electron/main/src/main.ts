@@ -1,10 +1,11 @@
 import { app, BrowserWindow, Menu, MenuItem } from 'electron';
 import path from 'path';
+import { createVaultPath } from '@scribe/shared';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import { TaskIndex } from '@scribe/engine-core/node';
-import { setupAutoUpdater } from './auto-updater';
+import { setupAutoUpdater, setupDevUpdateHandlers } from './auto-updater';
 import {
   setupNotesHandlers,
   setupSearchHandlers,
@@ -17,6 +18,9 @@ import {
   setupTasksHandlers,
   setupCLIHandlers,
   setupExportHandlers,
+  setupDialogHandlers,
+  setupVaultHandlers,
+  getVaultPath,
   type HandlerDependencies,
 } from './handlers';
 import { mainLogger } from './logger';
@@ -40,8 +44,12 @@ const deps: HandlerDependencies = {
  */
 async function initializeEngine() {
   try {
-    // Initialize vault directory structure
-    const vaultPath = await initializeVault();
+    // Load configured vault path (or default)
+    const configuredPath = await getVaultPath();
+    mainLogger.info(`Using vault path from config: ${configuredPath}`);
+
+    // Initialize vault directory structure (creates if needed)
+    const vaultPath = await initializeVault(createVaultPath(configuredPath));
     mainLogger.info(`Vault initialized at: ${vaultPath}`);
 
     // Create vault instance and load notes
@@ -102,6 +110,8 @@ function setupIPCHandlers() {
   setupTasksHandlers(deps);
   setupCLIHandlers(deps);
   setupExportHandlers(deps);
+  setupDialogHandlers();
+  setupVaultHandlers(deps);
 }
 
 /**
@@ -259,9 +269,13 @@ app.whenReady().then(async () => {
   setupIPCHandlers();
   createWindow();
 
-  // Only enable auto-updates in production
-  if (!isDev && deps.mainWindow) {
-    setupAutoUpdater(deps.mainWindow);
+  // Setup update handlers - production uses real auto-updater, dev uses stubs
+  if (deps.mainWindow) {
+    if (isDev) {
+      setupDevUpdateHandlers(deps.mainWindow);
+    } else {
+      setupAutoUpdater(deps.mainWindow);
+    }
   }
 
   // On macOS, set the dock icon explicitly (needed for dev mode, production uses bundled icon)

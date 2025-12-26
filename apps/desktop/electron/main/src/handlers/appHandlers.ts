@@ -31,7 +31,7 @@
  * @module handlers/appHandlers
  */
 
-import { ipcMain, shell } from 'electron';
+import { ipcMain, shell, app } from 'electron';
 import * as fs from 'node:fs/promises';
 import path from 'path';
 import { homedir } from 'node:os';
@@ -227,6 +227,19 @@ export function setupAppHandlers(deps: HandlerDependencies): void {
     }
     await shell.openExternal(url);
     return { success: true };
+  });
+
+  /**
+   * IPC: `app:relaunch`
+   *
+   * Relaunches the application. Used for vault switching and updates
+   * that require a full restart to take effect.
+   *
+   * @returns void (never resolves - app exits before response)
+   */
+  ipcMain.handle('app:relaunch', async () => {
+    app.relaunch();
+    app.exit(0);
   });
 }
 

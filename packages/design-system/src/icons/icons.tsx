@@ -59,6 +59,8 @@ export {
   ChevronUp as ChevronUpIcon,
   GripVertical as GripVerticalIcon,
   Check as CheckIcon,
+  // Settings icon for settings page
+  Settings as SettingsIcon,
 } from 'lucide-react';
 
 // Re-export LucideProps as IconComponentProps for backwards compatibility

@@ -52,6 +52,8 @@ export {
   ChevronUpIcon,
   GripVerticalIcon,
   CheckIcon,
+  // Settings icon
+  SettingsIcon,
 } from './icons';
 
 export type { IconComponentProps } from './icons';

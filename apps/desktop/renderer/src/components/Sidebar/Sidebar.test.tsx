@@ -35,8 +35,7 @@ function createSidebarProps(overrides?: Partial<SidebarProps>): SidebarProps {
     currentHistoryIndex: 0,
     onSelectHistoryEntry: vi.fn(),
     onClearHistory: vi.fn(),
-    onThemeToggle: vi.fn(),
-    currentTheme: 'light',
+    onOpenSettings: vi.fn(),
     onClose: vi.fn(),
     onOpenSearch: vi.fn(),
     canGoBack: false,
@@ -296,51 +295,29 @@ describe('Sidebar', () => {
     });
   });
 
-  describe('theme toggle', () => {
-    it('displays sun icon in dark mode', () => {
-      render(
-        <Sidebar
-          {...createSidebarProps({
-            currentTheme: 'dark',
-          })}
-        />
-      );
+  describe('settings button', () => {
+    it('displays settings button in footer', () => {
+      render(<Sidebar {...createSidebarProps()} />);
 
-      // In dark mode, button should offer to switch to light mode
-      const themeButton = screen.getByTitle('Switch to Light Mode');
-      expect(themeButton).toBeInTheDocument();
+      const settingsButton = screen.getByRole('button', { name: 'Open settings' });
+      expect(settingsButton).toBeInTheDocument();
     });
 
-    it('displays moon icon in light mode', () => {
-      render(
-        <Sidebar
-          {...createSidebarProps({
-            currentTheme: 'light',
-          })}
-        />
-      );
-
-      // In light mode, button should offer to switch to dark mode
-      const themeButton = screen.getByTitle('Switch to Dark Mode');
-      expect(themeButton).toBeInTheDocument();
-    });
-
-    it('calls onThemeToggle when theme button is clicked', () => {
-      const onThemeToggle = vi.fn();
+    it('calls onOpenSettings when settings button is clicked', () => {
+      const onOpenSettings = vi.fn();
 
       render(
         <Sidebar
           {...createSidebarProps({
-            currentTheme: 'light',
-            onThemeToggle,
+            onOpenSettings,
           })}
         />
       );
 
-      const themeButton = screen.getByTitle('Switch to Dark Mode');
-      fireEvent.click(themeButton);
+      const settingsButton = screen.getByRole('button', { name: 'Open settings' });
+      fireEvent.click(settingsButton);
 
-      expect(onThemeToggle).toHaveBeenCalledTimes(1);
+      expect(onOpenSettings).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -443,10 +420,10 @@ describe('Sidebar', () => {
       expect(screen.getByText('HISTORY')).toBeInTheDocument();
     });
 
-    it('displays Guest User in footer', () => {
+    it('displays settings button in footer', () => {
       render(<Sidebar {...createSidebarProps()} />);
 
-      expect(screen.getByText('Guest User')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Open settings' })).toBeInTheDocument();
     });
   });
 

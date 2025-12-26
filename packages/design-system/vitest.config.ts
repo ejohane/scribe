@@ -6,6 +6,7 @@ export default mergeConfig(
   defineConfig({
     plugins: [vanillaExtractPlugin()],
     test: {
+      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
       setupFiles: ['./src/test/setup.ts'],
     },
   })

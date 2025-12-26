@@ -43,11 +43,20 @@ if [ $? -ne 0 ]; then
 fi
 
 # 5. Run unit tests
-echo "Running unit tests..."
+echo "Running package unit tests..."
 bunx turbo run test --filter='./packages/*' --concurrency=4
 if [ $? -ne 0 ]; then
-  echo "Unit tests failed"
+  echo "Package unit tests failed"
   exit 1
 fi
+
+# 6. Run CLI unit tests
+echo "Running CLI unit tests..."
+cd apps/cli && bun run test
+if [ $? -ne 0 ]; then
+  echo "CLI unit tests failed"
+  exit 1
+fi
+cd ../..  # Return to root
 
 echo "All pre-commit checks passed!"

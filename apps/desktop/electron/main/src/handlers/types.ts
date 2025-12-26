@@ -23,6 +23,7 @@ export interface HandlerDependencies {
 export interface AppConfig {
   lastOpenedNoteId?: string;
   theme?: 'light' | 'dark' | 'system';
+  vaultPath?: string;
 }
 
 /**

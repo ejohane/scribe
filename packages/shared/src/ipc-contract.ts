@@ -62,6 +62,7 @@ export const IPC_CHANNELS = {
   APP_SET_LAST_OPENED_NOTE: 'app:setLastOpenedNote',
   APP_GET_CONFIG: 'app:getConfig',
   APP_SET_CONFIG: 'app:setConfig',
+  APP_RELAUNCH: 'app:relaunch',
 
   // People
   PEOPLE_LIST: 'people:list',
@@ -108,6 +109,15 @@ export const IPC_CHANNELS = {
 
   // Export
   EXPORT_TO_MARKDOWN: 'export:toMarkdown',
+
+  // Dialog
+  DIALOG_SELECT_FOLDER: 'dialog:selectFolder',
+
+  // Vault
+  VAULT_GET_PATH: 'vault:getPath',
+  VAULT_SET_PATH: 'vault:setPath',
+  VAULT_CREATE: 'vault:create',
+  VAULT_VALIDATE: 'vault:validate',
 } as const;
 
 // ============================================================================
@@ -250,6 +260,9 @@ export interface AppAPI {
 
   /** Set app configuration (merges with existing) */
   setConfig(config: Record<string, unknown>): Promise<SuccessResponse>;
+
+  /** Relaunch the application (for vault switching and updates) */
+  relaunch(): Promise<void>;
 }
 
 /**
@@ -482,6 +495,94 @@ export interface ExportAPI {
   toMarkdown(noteId: NoteId): Promise<ExportResult>;
 }
 
+/**
+ * Options for the folder picker dialog
+ */
+export interface FolderPickerOptions {
+  /** Dialog window title */
+  title?: string;
+  /** Initial directory to display */
+  defaultPath?: string;
+}
+
+/**
+ * Dialog API for native OS dialogs
+ */
+export interface DialogAPI {
+  /**
+   * Open the native OS folder picker dialog.
+   *
+   * @param options - Optional configuration for the dialog
+   * @returns The selected folder path, or null if cancelled
+   */
+  selectFolder(options?: FolderPickerOptions): Promise<string | null>;
+}
+
+/**
+ * Result of vault switching operation
+ */
+export interface VaultSwitchResult {
+  success: boolean;
+  path: string;
+  error?: string;
+  /** Whether app restart is required (always true in MVP) */
+  requiresRestart?: boolean;
+}
+
+/**
+ * Result of vault creation operation
+ */
+export interface VaultCreateResult {
+  success: boolean;
+  path: string;
+  error?: string;
+}
+
+/**
+ * Result of vault validation
+ */
+export interface VaultValidationResult {
+  valid: boolean;
+  missingDirs?: string[];
+}
+
+/**
+ * Vault API for vault management operations
+ */
+export interface VaultAPI {
+  /**
+   * Get the current vault path.
+   *
+   * @returns The absolute path to the current vault
+   */
+  getPath(): Promise<string>;
+
+  /**
+   * Set the vault path (switch vaults).
+   * Note: Requires app restart to take effect.
+   *
+   * @param path - The new vault path
+   * @returns Result of the switch operation
+   */
+  setPath(path: string): Promise<VaultSwitchResult>;
+
+  /**
+   * Create a new vault at the specified path.
+   *
+   * @param path - Path where to create the vault
+   * @returns Result of the creation operation
+   */
+  create(path: string): Promise<VaultCreateResult>;
+
+  /**
+   * Validate if a path is a valid vault.
+   *
+   * @param path - Path to validate
+   * @returns Validation result
+   */
+  validate(path: string): Promise<VaultValidationResult>;
+}
+
 // ============================================================================
 // Complete Scribe API Interface
 // ============================================================================
@@ -535,4 +636,10 @@ export interface ScribeAPI {
 
   /** Export notes to external formats */
   export: ExportAPI;
+
+  /** Native OS dialogs */
+  dialog: DialogAPI;
+
+  /** Vault management */
+  vault: VaultAPI;
 }
