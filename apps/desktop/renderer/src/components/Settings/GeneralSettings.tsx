@@ -292,11 +292,11 @@ function VersionSetting() {
 
   return (
     <div className={styles.versionSetting}>
-      <span className={styles.versionText}>v{__APP_VERSION__}</span>
-      <div className={styles.updateControls}>
+      <div className={styles.versionRow}>
+        <span className={styles.versionText}>v{__APP_VERSION__}</span>
         {renderUpdateButton()}
-        {renderStatusMessage()}
       </div>
+      {renderStatusMessage()}
     </div>
   );
 }

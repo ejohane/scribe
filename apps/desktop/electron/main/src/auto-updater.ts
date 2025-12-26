@@ -129,3 +129,29 @@ export function getAutoUpdaterTimerState(): {
     hasUpdateCheckInterval: updateCheckInterval !== null,
   };
 }
+
+/**
+ * Setup stub update handlers for development mode.
+ *
+ * In development, auto-updates don't work because there's no packaged app.
+ * This function registers the IPC handlers so the UI doesn't error, but
+ * immediately sends an "update:not-available" message to indicate no updates.
+ *
+ * @param mainWindow - The main BrowserWindow to send update events to
+ */
+export function setupDevUpdateHandlers(mainWindow: BrowserWindow): void {
+  // IPC handlers that simulate the update flow
+  ipcMain.handle('update:check', async () => {
+    // Simulate the checking -> not-available flow
+    mainWindow.webContents.send('update:checking');
+    // Small delay to show the "Checking..." state
+    setTimeout(() => {
+      mainWindow.webContents.send('update:not-available');
+    }, 500);
+  });
+
+  ipcMain.on('update:install', () => {
+    // No-op in dev mode - there's nothing to install
+    console.log('update:install called in dev mode - no action taken');
+  });
+}

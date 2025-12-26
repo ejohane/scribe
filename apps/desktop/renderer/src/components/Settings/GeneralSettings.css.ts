@@ -153,6 +153,13 @@ export const versionSetting = style({
   gap: vars.spacing['2'],
 });
 
+/** Version row with version text and button */
+export const versionRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.spacing['3'],
+});
+
 /** Update controls row */
 export const updateControls = style({
   display: 'flex',
