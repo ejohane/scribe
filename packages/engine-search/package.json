@@ -23,6 +23,6 @@
     "@scribe/tsconfig": "workspace:*",
     "@types/flexsearch": "^0.7.6",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.16"
   }
 }
