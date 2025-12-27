@@ -7,6 +7,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { VaultSwitchResult, VaultCreateResult, VaultValidationResult } from '@scribe/shared';
+import { createLogger, getErrorMessage } from '@scribe/shared';
+
+const log = createLogger({ prefix: 'useVaultPath' });
 
 export interface UseVaultPathReturn {
   /** Current vault path */
@@ -50,7 +53,7 @@ export function useVaultPath(): UseVaultPathReturn {
       setPath(currentPath);
     } catch (err) {
       setError('Failed to load vault path');
-      console.error('Failed to load vault path:', err);
+      log.error('Failed to load vault path', { error: getErrorMessage(err) });
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +78,7 @@ export function useVaultPath(): UseVaultPathReturn {
     } catch (err) {
       const errorMsg = 'Failed to switch vault';
       setError(errorMsg);
-      console.error('Failed to switch vault:', err);
+      log.error('Failed to switch vault', { error: getErrorMessage(err), path: newPath });
       return { success: false, path: newPath, error: errorMsg };
     } finally {
       setIsLoading(false);
@@ -96,7 +99,7 @@ export function useVaultPath(): UseVaultPathReturn {
     } catch (err) {
       const errorMsg = 'Failed to create vault';
       setError(errorMsg);
-      console.error('Failed to create vault:', err);
+      log.error('Failed to create vault', { error: getErrorMessage(err), path: newPath });
       return { success: false, path: newPath, error: errorMsg };
     } finally {
       setIsLoading(false);
@@ -108,7 +111,10 @@ export function useVaultPath(): UseVaultPathReturn {
       try {
         return await window.scribe.vault.validate(pathToValidate);
       } catch (err) {
-        console.error('Failed to validate vault path:', err);
+        log.error('Failed to validate vault path', {
+          error: getErrorMessage(err),
+          path: pathToValidate,
+        });
         return { valid: false, missingDirs: ['unknown'] };
       }
     },

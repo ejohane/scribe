@@ -5,6 +5,8 @@
  * Verbose/debug messages are sent to stderr to avoid polluting JSON output.
  */
 
+import { formatDate as sharedFormatDate } from '@scribe/shared';
+
 export type OutputFormat = 'json' | 'text';
 
 export interface OutputOptions {
@@ -129,14 +131,8 @@ export async function timedAsync<T>(
 
 /**
  * Format an ISO date string for human-readable text output.
+ * Uses the shared formatDate utility with 'time' style.
  */
 export function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return sharedFormatDate(iso, 'time');
 }

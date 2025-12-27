@@ -43,7 +43,9 @@ describe('vault-resolver', () => {
       }
     }
 
-    // Clean up temp directory
+    // Clean up temp directory - INTENTIONAL: Swallow cleanup errors.
+    // This is best-effort teardown; directory may already be removed or
+    // process may be terminating. Test correctness is unaffected.
     await rm(tempDir, { recursive: true, force: true }).catch(() => {});
 
     // Reset all mocks

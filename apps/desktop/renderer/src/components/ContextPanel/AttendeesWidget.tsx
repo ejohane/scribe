@@ -47,6 +47,9 @@ export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWid
         return;
       }
 
+      // INTENTIONAL: Return null on read failure (person deleted, ID invalid).
+      // Null results are filtered out below - missing attendees are simply not shown.
+      // This is graceful degradation, not error swallowing.
       const personNotes = await Promise.all(
         attendeeIds.map((id) => window.scribe.notes.read(id).catch(() => null))
       );

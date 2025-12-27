@@ -110,15 +110,20 @@ export type {
 export {
   formatDate,
   formatDateYMD,
+  formatDateMMDDYYYY,
   formatDateTitle,
   getRelativeDateString,
   parseDate,
   parseDateToTimestamp,
+  parseDateMMDDYYYY,
   isToday,
   isYesterday,
   isSameDay,
   toDate,
   isValidDate,
+  startOfDay,
+  endOfDay,
+  getDaysBetween,
 } from './date-utils.js';
 export type { DateFormatStyle } from './date-utils.js';
 

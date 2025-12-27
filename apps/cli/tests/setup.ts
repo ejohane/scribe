@@ -41,11 +41,13 @@ afterEach(async () => {
     }
   }
 
-  // Clean up temp vault
+  // Clean up temp vault - best effort, non-critical if it fails
   if (testVaultPath) {
-    await rm(testVaultPath, { recursive: true, force: true }).catch(() => {
-      // Ignore cleanup errors
-    });
+    // INTENTIONAL: Swallow cleanup errors during test teardown.
+    // Expected scenarios: directory already removed, permission changes,
+    // or process terminating before cleanup completes.
+    // Test results are unaffected if cleanup fails.
+    await rm(testVaultPath, { recursive: true, force: true }).catch(() => {});
   }
 });
 

@@ -371,7 +371,7 @@ describe('SearchEngine', () => {
 
         // Should have logged a warning
         expect(consoleSpy).toHaveBeenCalled();
-        expect(consoleSpy.mock.calls[0][0]).toContain('[SearchEngine]');
+        expect(consoleSpy.mock.calls[0][0]).toContain('[search-engine]');
         expect(consoleSpy.mock.calls[0][0]).toContain('99-99-9999');
       } finally {
         consoleSpy.mockRestore();
@@ -394,7 +394,7 @@ describe('SearchEngine', () => {
 
         // Should have logged a warning (either parse failure or invalid date)
         expect(consoleSpy).toHaveBeenCalled();
-        expect(consoleSpy.mock.calls[0][0]).toContain('[SearchEngine]');
+        expect(consoleSpy.mock.calls[0][0]).toContain('[search-engine]');
         expect(consoleSpy.mock.calls[0][0]).toContain('not-a-valid-date-format');
       } finally {
         consoleSpy.mockRestore();

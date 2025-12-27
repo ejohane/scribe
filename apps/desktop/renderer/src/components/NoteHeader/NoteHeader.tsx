@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
-import { parse } from 'date-fns';
 import type { Note } from '@scribe/shared';
-import { isMeetingNote, isDailyNote } from '@scribe/shared';
+import { isMeetingNote, isDailyNote, formatDate, parseDateMMDDYYYY } from '@scribe/shared';
 import { getTemplate } from '../../templates';
 // Import templates to auto-register them
 import '../../templates/daily';
@@ -22,44 +21,20 @@ interface NoteHeaderProps {
 }
 
 /**
- * Format a timestamp as a human-readable date
- */
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-/**
- * Format a date string (MM-dd-yyyy) as a human-readable date
- */
-function formatDateString(dateStr: string): string {
-  const date = parse(dateStr, 'MM-dd-yyyy', new Date());
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-/**
  * Get the date to display for a note.
  * - Meeting notes: use meeting.date (the scheduled date)
  * - Other notes: use createdAt timestamp
  */
 function getDisplayDate(note: Note): { formatted: string; date: Date } {
   if (isMeetingNote(note)) {
-    const date = parse(note.meeting.date, 'MM-dd-yyyy', new Date());
+    const date = parseDateMMDDYYYY(note.meeting.date);
     return {
-      formatted: formatDateString(note.meeting.date),
+      formatted: formatDate(date, 'medium'),
       date,
     };
   }
   return {
-    formatted: formatDate(note.createdAt),
+    formatted: formatDate(note.createdAt, 'medium'),
     date: new Date(note.createdAt),
   };
 }

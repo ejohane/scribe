@@ -6,29 +6,16 @@
 
 import { Command } from 'commander';
 import type { Note, NoteId, TaskFilter } from '@scribe/shared';
-import { createNoteId, isDailyNote, extractMarkdown } from '@scribe/shared';
+import {
+  createNoteId,
+  isDailyNote,
+  extractMarkdown,
+  formatDateYMD,
+  formatDateTitle,
+} from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { createEmptyContent } from '../node-builder.js';
-
-/**
- * Format a date as YYYY-MM-DD
- */
-function formatDateYMD(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-/**
- * Format a date as a human-readable title (e.g., "January 15, 2025")
- */
-function formatDateTitle(dateStr: string): string {
-  const date = new Date(dateStr + 'T12:00:00'); // Use noon to avoid timezone issues
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
 
 /**
  * Find a daily note for a specific date
