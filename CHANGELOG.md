@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.29.1](https://github.com/ejohane/scribe/compare/v1.29.0...v1.29.1) (2025-12-27)
+
+### Code Refactoring
+
+* complete tech debt remediation (scribe-p2d) ([b2297c1](https://github.com/ejohane/scribe/commit/b2297c13d4241c3352ae0292dd86245c1f3f890b))
+
 ## [1.29.0](https://github.com/ejohane/scribe/compare/v1.28.1...v1.29.0) (2025-12-26)
 
 ### Features
