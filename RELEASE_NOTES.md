@@ -4,6 +4,17 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.33.2
+
+## [1.33.2](https://github.com/ejohane/scribe/compare/v1.33.1...v1.33.2) (2025-12-30)
+
+### Bug Fixes
+
+* improve release notes prompt for user-friendly output ([44550f2](https://github.com/ejohane/scribe/commit/44550f29faec8be92ea7a38531669f41fe732c86))
+
 ---
 
 # What's New in v1.33.1
