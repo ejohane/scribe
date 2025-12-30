@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.31.0](https://github.com/ejohane/scribe/compare/v1.30.0...v1.31.0) (2025-12-30)
+
+### Features
+
+* add copy to markdown feature in share menu ([3058c64](https://github.com/ejohane/scribe/commit/3058c64f86dba407dd989cbe795740c3068b7778)), closes [#55](https://github.com/ejohane/scribe/issues/55)
+
+### Bug Fixes
+
+* pass noteContent prop to ShareMenu for copy functionality ([cada5e8](https://github.com/ejohane/scribe/commit/cada5e848ccb31c989ea959932d57e63ea9dc3d6))
+
 ## [1.30.0](https://github.com/ejohane/scribe/compare/v1.29.1...v1.30.0) (2025-12-30)
 
 ### Features
