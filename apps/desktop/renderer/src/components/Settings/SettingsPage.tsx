@@ -6,14 +6,15 @@
  */
 
 import { useState, useCallback } from 'react';
-import { CloseIcon, SettingsIcon, CalendarIcon } from '@scribe/design-system';
+import { CloseIcon, SettingsIcon, CalendarIcon, CloudIcon } from '@scribe/design-system';
 import { Overlay } from '@scribe/design-system';
 import * as styles from './SettingsPage.css';
 import clsx from 'clsx';
 import { GeneralSettings } from './GeneralSettings';
+import { SyncSettings } from './SyncSettings';
 
 /** Available settings sections */
-export type SettingsSection = 'general' | 'changelog';
+export type SettingsSection = 'general' | 'sync' | 'changelog';
 
 export interface SettingsPageProps {
   /** Whether the settings page is open */
@@ -42,6 +43,14 @@ function SettingsSidebar({ activeSection, onSelect }: SettingsSidebarProps) {
       >
         <SettingsIcon size={18} />
         General
+      </button>
+      <button
+        className={clsx(styles.navItem, activeSection === 'sync' && styles.navItemActive)}
+        onClick={() => onSelect('sync')}
+        type="button"
+      >
+        <CloudIcon size={18} />
+        Sync
       </button>
       <button
         className={clsx(styles.navItem, activeSection === 'changelog' && styles.navItemActive)}
@@ -109,6 +118,7 @@ export function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
 
           <main className={styles.main}>
             {activeSection === 'general' && <GeneralSettings />}
+            {activeSection === 'sync' && <SyncSettings />}
             {activeSection === 'changelog' && <ChangelogSettings />}
           </main>
         </div>

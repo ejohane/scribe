@@ -1,10 +1,12 @@
 import { app, BrowserWindow, Menu, MenuItem } from 'electron';
 import path from 'path';
-import { createVaultPath } from '@scribe/shared';
+import { createVaultPath, createNoteId } from '@scribe/shared';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import { TaskIndex } from '@scribe/engine-core/node';
+import { loadSyncConfig, createSyncEngine } from '@scribe/engine-sync';
+import { createCredentialManager } from './sync/credential-manager.js';
 import { setupAutoUpdater, setupDevUpdateHandlers } from './auto-updater';
 import {
   setupNotesHandlers,
@@ -20,6 +22,8 @@ import {
   setupExportHandlers,
   setupDialogHandlers,
   setupVaultHandlers,
+  setupSyncHandlers,
+  setupSyncStatusForwarding,
   getVaultPath,
   type HandlerDependencies,
 } from './handlers';
@@ -37,6 +41,7 @@ const deps: HandlerDependencies = {
   graphEngine: null,
   searchEngine: null,
   taskIndex: null,
+  syncEngine: null,
 };
 
 /**
@@ -88,6 +93,56 @@ async function initializeEngine() {
 
     const stats = deps.graphEngine.getStats();
     mainLogger.debug(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
+
+    // SYNC: Load sync configuration using engine-sync package
+    // Sync is disabled by default - only enabled with valid config and enabled: true
+    const syncConfigResult = await loadSyncConfig(vaultPath);
+
+    if (syncConfigResult.status === 'enabled') {
+      try {
+        // Get API key from secure storage
+        const credentialManager = createCredentialManager(vaultPath);
+        const apiKey = await credentialManager.getApiKey();
+
+        if (apiKey) {
+          // Create and initialize sync engine
+          deps.syncEngine = await createSyncEngine({
+            vaultPath,
+            config: syncConfigResult.config,
+            apiKey,
+            // networkMonitor: new ElectronNetworkMonitor(), // TODO: Implement if needed
+            onSaveNote: async (note) => {
+              // Save via vault without triggering sync again (internal sync save)
+              await deps.vault?.save(note);
+            },
+            onDeleteNote: async (noteId) => {
+              await deps.vault?.delete(createNoteId(noteId));
+            },
+            onReadNote: async (noteId) => {
+              return deps.vault?.read(createNoteId(noteId)) ?? null;
+            },
+          });
+
+          mainLogger.info('Sync engine initialized', {
+            serverUrl: syncConfigResult.config.serverUrl,
+            deviceId: syncConfigResult.config.deviceId.slice(0, 8) + '...', // Log only prefix for privacy
+          });
+        } else {
+          mainLogger.warn('Sync enabled but no API key found - sync engine not initialized');
+          deps.syncEngine = null;
+        }
+      } catch (error) {
+        mainLogger.error('Failed to initialize sync engine', { error });
+        deps.syncEngine = null;
+      }
+    } else if (syncConfigResult.status === 'disabled') {
+      deps.syncEngine = null;
+      mainLogger.info(`Sync disabled - reason: ${syncConfigResult.reason}`);
+    } else {
+      // Error loading config
+      deps.syncEngine = null;
+      mainLogger.error('Error loading sync config', { error: syncConfigResult.error });
+    }
   } catch (error) {
     mainLogger.error('Failed to initialize engine', { error });
     throw error;
@@ -112,6 +167,7 @@ function setupIPCHandlers() {
   setupExportHandlers(deps);
   setupDialogHandlers();
   setupVaultHandlers(deps);
+  setupSyncHandlers(deps);
 }
 
 /**
@@ -276,6 +332,9 @@ app.whenReady().then(async () => {
     } else {
       setupAutoUpdater(deps.mainWindow);
     }
+
+    // Setup sync status forwarding to renderer (if sync is enabled)
+    setupSyncStatusForwarding(deps, deps.mainWindow);
   }
 
   // On macOS, set the dock icon explicitly (needed for dev mode, production uses bundled icon)
@@ -306,14 +365,25 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Flush task index before quitting to persist any pending changes
+// Cleanup engines before quitting
 app.on('before-quit', async () => {
+  // Flush task index to persist any pending changes
   if (deps.taskIndex) {
     try {
       await deps.taskIndex.flush();
       mainLogger.debug('Task index flushed successfully');
     } catch (error) {
       mainLogger.error('Failed to flush task index', { error });
+    }
+  }
+
+  // Shutdown sync engine to stop polling and cleanup resources
+  if (deps.syncEngine) {
+    try {
+      await deps.syncEngine.shutdown();
+      mainLogger.debug('Sync engine shutdown successfully');
+    } catch (error) {
+      mainLogger.error('Failed to shutdown sync engine', { error });
     }
   }
 });

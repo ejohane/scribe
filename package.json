@@ -8,7 +8,8 @@
     "config/*",
     "apps/desktop",
     "apps/desktop/*",
-    "apps/cli"
+    "apps/cli",
+    "apps/sync-server"
   ],
   "scripts": {
     "dev": "cd apps/desktop && bun run dev",

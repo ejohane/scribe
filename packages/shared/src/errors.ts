@@ -60,9 +60,25 @@ export enum ErrorCode {
   TASK_NOT_FOUND = 'TASK_NOT_FOUND',
   TASK_INVALID = 'TASK_INVALID',
 
-  // Sync-related codes (for future multi-device scenarios)
+  // Sync-related codes
   SYNC_CONFLICT = 'SYNC_CONFLICT',
   SYNC_FAILED = 'SYNC_FAILED',
+  /** Network error during sync (timeout, connection refused, etc.) */
+  SYNC_NETWORK_ERROR = 'SYNC_NETWORK_ERROR',
+  /** Authentication failed (invalid API key, expired token) */
+  SYNC_AUTH_FAILED = 'SYNC_AUTH_FAILED',
+  /** Version mismatch detected (conflict) */
+  SYNC_VERSION_MISMATCH = 'SYNC_VERSION_MISMATCH',
+  /** Rate limit exceeded */
+  SYNC_RATE_LIMITED = 'SYNC_RATE_LIMITED',
+  /** Sync is disabled for this vault */
+  SYNC_DISABLED = 'SYNC_DISABLED',
+  /** Invalid note received from server */
+  SYNC_INVALID_NOTE = 'SYNC_INVALID_NOTE',
+  /** Server error (5xx response) */
+  SYNC_SERVER_ERROR = 'SYNC_SERVER_ERROR',
+  /** Device ID conflict */
+  SYNC_DEVICE_CONFLICT = 'SYNC_DEVICE_CONFLICT',
 
   // Migration codes
   MIGRATION_FAILED = 'MIGRATION_FAILED',
@@ -155,6 +171,22 @@ export class ScribeError extends Error {
         return 'A sync conflict was detected. Please resolve the conflict manually.';
       case ErrorCode.SYNC_FAILED:
         return 'Failed to sync. Please check your connection and try again.';
+      case ErrorCode.SYNC_NETWORK_ERROR:
+        return 'Network error during sync. Please check your internet connection.';
+      case ErrorCode.SYNC_AUTH_FAILED:
+        return 'Authentication failed. Please sign in again.';
+      case ErrorCode.SYNC_VERSION_MISMATCH:
+        return 'A newer version of this note exists. Please refresh and try again.';
+      case ErrorCode.SYNC_RATE_LIMITED:
+        return 'Too many sync requests. Please wait a moment and try again.';
+      case ErrorCode.SYNC_DISABLED:
+        return 'Sync is disabled for this vault.';
+      case ErrorCode.SYNC_INVALID_NOTE:
+        return 'Received invalid note data from server.';
+      case ErrorCode.SYNC_SERVER_ERROR:
+        return 'Server error during sync. Please try again later.';
+      case ErrorCode.SYNC_DEVICE_CONFLICT:
+        return 'Device conflict detected. Please re-authenticate this device.';
       case ErrorCode.MIGRATION_FAILED:
         return 'Failed to migrate data. Please contact support.';
       case ErrorCode.MIGRATION_REQUIRED:
@@ -301,7 +333,7 @@ export class VaultError extends ScribeError {
 /**
  * Engine type for EngineError
  */
-export type EngineName = 'graph' | 'search' | 'storage' | 'metadata';
+export type EngineName = 'graph' | 'search' | 'storage' | 'metadata' | 'sync';
 
 /**
  * Error class for engine-related operations
@@ -379,6 +411,33 @@ export class SyncConflictError extends ScribeError {
 }
 
 /**
+ * Error class for sync-related operations
+ *
+ * Use this class for errors from the sync engine.
+ * The `noteId` property optionally identifies the affected note.
+ *
+ * @example
+ * ```typescript
+ * throw new SyncError(
+ *   ErrorCode.SYNC_NETWORK_ERROR,
+ *   'Connection timed out',
+ *   'note-abc-123'
+ * );
+ * ```
+ */
+export class SyncError extends ScribeError {
+  constructor(
+    code: ErrorCode,
+    message: string,
+    public readonly noteId?: string,
+    cause?: Error
+  ) {
+    super(code, message, cause);
+    this.name = 'SyncError';
+  }
+}
+
+/**
  * Error thrown when note migration fails.
  */
 export class MigrationError extends ScribeError {
@@ -445,6 +504,13 @@ export function isTaskNotFoundError(error: unknown): error is TaskNotFoundError 
  */
 export function isSyncConflictError(error: unknown): error is SyncConflictError {
   return error instanceof SyncConflictError;
+}
+
+/**
+ * Type guard to check if an error is a SyncError
+ */
+export function isSyncError(error: unknown): error is SyncError {
+  return error instanceof SyncError;
 }
 
 /**

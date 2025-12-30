@@ -61,6 +61,16 @@ export {
   Check as CheckIcon,
   // Settings icon for settings page
   Settings as SettingsIcon,
+  // Navigation icons for modals
+  ChevronLeft as ChevronLeftIcon,
+  // Copy icons
+  Copy as CopyIcon,
+  // Sync conflict icons
+  RefreshCw as RefreshIcon,
+  AlertTriangle as AlertIcon,
+  // Sync settings icons
+  Cloud as CloudIcon,
+  LogOut as LogOutIcon,
 } from 'lucide-react';
 
 // Re-export LucideProps as IconComponentProps for backwards compatibility

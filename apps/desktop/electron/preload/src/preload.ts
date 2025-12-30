@@ -1,6 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { Note, NoteId, TaskFilter, TaskChangeEvent } from '@scribe/shared';
+import type {
+  Note,
+  NoteId,
+  TaskFilter,
+  TaskChangeEvent,
+  SyncStatus,
+  ConflictResolution,
+} from '@scribe/shared';
 import { IPC_CHANNELS, type ScribeAPI } from '@scribe/shared';
+
+// Re-import SyncStatus for the event handler type annotation
+type IpcRendererEvent = Electron.IpcRendererEvent;
 
 /**
  * Scribe API implementation exposed to the renderer process.
@@ -152,6 +162,32 @@ const scribeAPI: ScribeAPI = {
     setPath: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_SET_PATH, path),
     create: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_CREATE, path),
     validate: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_VALIDATE, path),
+  },
+
+  sync: {
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_GET_STATUS),
+
+    trigger: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_TRIGGER),
+
+    getConflicts: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_GET_CONFLICTS),
+
+    resolveConflict: (noteId: string, resolution: ConflictResolution) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SYNC_RESOLVE_CONFLICT, noteId, resolution),
+
+    enable: (options: { apiKey: string; serverUrl?: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SYNC_ENABLE, options),
+
+    disable: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_DISABLE),
+
+    onStatusChange: (callback: (status: SyncStatus) => void) => {
+      const handler = (_event: IpcRendererEvent, status: SyncStatus) => {
+        callback(status);
+      };
+      ipcRenderer.on(IPC_CHANNELS.SYNC_STATUS_CHANGED, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.SYNC_STATUS_CHANGED, handler);
+      };
+    },
   },
 };
 

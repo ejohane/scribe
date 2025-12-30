@@ -19,6 +19,7 @@
  * | {@link setupTasksHandlers} | `tasks:*` | Task toggle, list, reorder |
  * | {@link setupCLIHandlers} | `cli:*` | CLI installation and management |
  * | {@link setupExportHandlers} | `export:*` | Export notes to external formats |
+ * | {@link setupSyncHandlers} | `sync:*` | Multi-device sync operations |
  *
  * ## IPC Channel Naming Convention
  *
@@ -47,6 +48,7 @@ export { setupCLIHandlers } from './cliHandlers';
 export { setupExportHandlers } from './exportHandlers';
 export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';
+export { setupSyncHandlers, setupSyncStatusForwarding } from './syncHandlers';
 
 export type { HandlerDependencies, AppConfig, Engines } from './types';
 export { withEngines } from './types';

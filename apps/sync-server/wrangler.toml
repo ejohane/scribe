@@ -1,0 +1,26 @@
+name = "scribe-sync-server"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Development
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Staging
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+# Production
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# D1 Database binding (placeholder - will be configured later)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "scribe-sync-db"
+# database_id = "REPLACE_WITH_DATABASE_ID"
+
+# Rate limiting KV (placeholder)
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT"
+# id = "REPLACE_WITH_KV_ID"

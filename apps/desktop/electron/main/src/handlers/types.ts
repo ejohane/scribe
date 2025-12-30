@@ -3,6 +3,7 @@ import type { FileSystemVault } from '@scribe/storage-fs';
 import type { GraphEngine } from '@scribe/engine-graph';
 import type { SearchEngine } from '@scribe/engine-search';
 import type { TaskIndex } from '@scribe/engine-core/node';
+import type { SyncEngine } from '@scribe/engine-sync';
 import { ScribeError } from '@scribe/shared';
 
 /**
@@ -15,6 +16,8 @@ export interface HandlerDependencies {
   searchEngine: SearchEngine | null;
   taskIndex: TaskIndex | null;
   mainWindow: BrowserWindow | null;
+  /** Sync engine instance. Explicitly nullable - null when sync is disabled (default). */
+  syncEngine: SyncEngine | null;
 }
 
 /**
@@ -74,6 +77,23 @@ export function requireMainWindow(deps: HandlerDependencies): BrowserWindow {
     throw new Error('Main window not available');
   }
   return deps.mainWindow;
+}
+
+/**
+ * Helper to get a guaranteed non-null syncEngine, throwing if not initialized or disabled.
+ */
+export function requireSyncEngine(deps: HandlerDependencies): SyncEngine {
+  if (!deps.syncEngine) {
+    throw new Error('Sync engine not initialized or sync is disabled');
+  }
+  return deps.syncEngine;
+}
+
+/**
+ * Check if sync is enabled and ready.
+ */
+export function isSyncAvailable(deps: HandlerDependencies): boolean {
+  return deps.syncEngine !== null;
 }
 
 /**
