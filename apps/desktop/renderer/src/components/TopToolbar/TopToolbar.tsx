@@ -19,6 +19,7 @@ import {
 import type { NoteId } from '@scribe/shared';
 import * as styles from './TopToolbar.css';
 import { ShareMenu } from '../ShareMenu';
+import { SyncStatusIndicator } from '../Sync/SyncStatusIndicator';
 
 export interface TopToolbarProps {
   /** Whether the sidebar is currently open */
@@ -51,6 +52,10 @@ export interface TopToolbarProps {
   shareMenuOpen?: boolean;
   /** Callback when ShareMenu open state changes */
   onShareMenuOpenChange?: (isOpen: boolean) => void;
+  /** Callback when user clicks conflict badge in sync indicator */
+  onConflictClick?: () => void;
+  /** Callback when user clicks error state in sync indicator */
+  onSyncSettingsClick?: () => void;
 }
 
 export function TopToolbar({
@@ -69,6 +74,8 @@ export function TopToolbar({
   onExportError,
   shareMenuOpen,
   onShareMenuOpenChange,
+  onConflictClick,
+  onSyncSettingsClick,
 }: TopToolbarProps) {
   // When sidebar is open, left buttons move into sidebar header
   const showLeftButtons = !sidebarOpen;
@@ -148,9 +155,16 @@ export function TopToolbar({
       {/* Spacer when left section is hidden */}
       {!showLeftButtons && <div />}
 
-      {/* Right section: Share menu and Context panel toggle - hidden when context panel open */}
+      {/* Right section: Sync status, Share menu and Context panel toggle - hidden when context panel open */}
       {showRightButton && (
         <div className={`${styles.rightSection} ${visibilityClass}`}>
+          <div className={styles.syncStatusContainer}>
+            <SyncStatusIndicator
+              showLabel={false}
+              onOpenConflicts={onConflictClick}
+              onOpenSettings={onSyncSettingsClick}
+            />
+          </div>
           {currentNoteId && (
             <div className={styles.shareMenuContainer}>
               <ShareMenu

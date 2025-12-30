@@ -23,6 +23,8 @@ import type {
   TaskChangeEvent,
 } from './types.js';
 
+import type { SyncStatus, SyncResult, SyncConflict, ConflictResolution } from './sync-types.js';
+
 // ============================================================================
 // IPC Channel Names
 // ============================================================================
@@ -118,6 +120,15 @@ export const IPC_CHANNELS = {
   VAULT_SET_PATH: 'vault:setPath',
   VAULT_CREATE: 'vault:create',
   VAULT_VALIDATE: 'vault:validate',
+
+  // Sync
+  SYNC_GET_STATUS: 'sync:getStatus',
+  SYNC_TRIGGER: 'sync:trigger',
+  SYNC_GET_CONFLICTS: 'sync:getConflicts',
+  SYNC_RESOLVE_CONFLICT: 'sync:resolveConflict',
+  SYNC_ENABLE: 'sync:enable',
+  SYNC_DISABLE: 'sync:disable',
+  SYNC_STATUS_CHANGED: 'sync:statusChanged',
 } as const;
 
 // ============================================================================
@@ -583,6 +594,71 @@ export interface VaultAPI {
   validate(path: string): Promise<VaultValidationResult>;
 }
 
+/**
+ * Sync API for multi-device synchronization
+ */
+export interface SyncAPI {
+  /**
+   * Get the current sync status.
+   *
+   * @returns Current sync status including state, pending changes, and conflicts
+   */
+  getStatus(): Promise<SyncStatus>;
+
+  /**
+   * Manually trigger a sync cycle.
+   * Pushes local changes and pulls remote changes.
+   *
+   * @returns Result of the sync operation
+   */
+  trigger(): Promise<SyncResult>;
+
+  /**
+   * Get list of unresolved conflicts.
+   *
+   * @returns Array of conflicts awaiting resolution
+   */
+  getConflicts(): Promise<SyncConflict[]>;
+
+  /**
+   * Resolve a sync conflict.
+   *
+   * @param noteId - ID of the note with the conflict
+   * @param resolution - How to resolve the conflict (keep_local, keep_remote, or keep_both)
+   * @returns Success status
+   */
+  resolveConflict(noteId: string, resolution: ConflictResolution): Promise<{ success: boolean }>;
+
+  /**
+   * Enable sync for the current vault.
+   *
+   * @param options - Sync configuration options
+   * @param options.apiKey - API key for authentication
+   * @param options.serverUrl - Optional custom server URL
+   * @returns Success status with optional error message
+   */
+  enable(options: {
+    apiKey: string;
+    serverUrl?: string;
+  }): Promise<{ success: boolean; error?: string }>;
+
+  /**
+   * Disable sync for the current vault.
+   *
+   * @returns Success status
+   */
+  disable(): Promise<{ success: boolean }>;
+
+  /**
+   * Subscribe to sync status changes.
+   * Called whenever the sync state changes (e.g., idle -> syncing -> idle).
+   *
+   * @param callback - Function called with new status on each change
+   * @returns Unsubscribe function for cleanup
+   */
+  onStatusChange(callback: (status: SyncStatus) => void): () => void;
+}
+
 // ============================================================================
 // Complete Scribe API Interface
 // ============================================================================
@@ -642,4 +718,7 @@ export interface ScribeAPI {
 
   /** Vault management */
   vault: VaultAPI;
+
+  /** Sync API for multi-device synchronization */
+  sync: SyncAPI;
 }

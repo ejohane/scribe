@@ -32,6 +32,9 @@ import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 import { EditorCommandProvider } from './components/Editor/EditorCommandContext';
 import { SettingsPage } from './components/Settings';
+import { ConflictListModal, ConflictCompareView } from './components/Sync';
+import { useSyncStatus } from './hooks/useSyncStatus';
+import type { SyncConflict, ConflictResolution } from '@scribe/shared';
 
 function App() {
   // Note state management
@@ -87,6 +90,11 @@ function App() {
 
   // ShareMenu controlled state (for keyboard shortcut)
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  // Sync status and conflict management
+  const syncStatus = useSyncStatus();
+  const [showConflictList, setShowConflictList] = useState(false);
+  const [selectedConflict, setSelectedConflict] = useState<SyncConflict | null>(null);
 
   // Global error state (kept local since it's simple display logic)
   const showError = useCallback(
@@ -204,6 +212,61 @@ function App() {
     [showToast]
   );
 
+  // Handle opening conflict list modal from sync status indicator
+  const handleOpenConflicts = useCallback(() => {
+    setShowConflictList(true);
+  }, []);
+
+  // Handle viewing a specific conflict in detail
+  const handleViewConflict = useCallback((conflict: SyncConflict) => {
+    setSelectedConflict(conflict);
+  }, []);
+
+  // Handle closing compare view and returning to conflict list
+  const handleBackFromCompare = useCallback(() => {
+    setSelectedConflict(null);
+  }, []);
+
+  // Handle resolving a conflict from the list modal
+  const handleResolveConflict = useCallback(
+    async (noteId: string, resolution: ConflictResolution) => {
+      try {
+        await syncStatus.resolveConflict(noteId, resolution);
+        showToast('Conflict resolved', 'success');
+      } catch (error) {
+        showToast(
+          `Failed to resolve conflict: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'error'
+        );
+      }
+    },
+    [syncStatus, showToast]
+  );
+
+  // Handle resolving a conflict from the compare view
+  const handleResolveFromCompare = useCallback(
+    async (noteId: string, resolution: 'local' | 'remote' | 'keepBoth') => {
+      const conflictResolution: ConflictResolution =
+        resolution === 'keepBoth'
+          ? { type: 'keep_both' }
+          : resolution === 'local'
+            ? { type: 'keep_local' }
+            : { type: 'keep_remote' };
+
+      try {
+        await syncStatus.resolveConflict(noteId, conflictResolution);
+        showToast('Conflict resolved', 'success');
+        setSelectedConflict(null); // Return to list after resolving
+      } catch (error) {
+        showToast(
+          `Failed to resolve conflict: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'error'
+        );
+      }
+    },
+    [syncStatus, showToast]
+  );
+
   // Handle command selection
   const handleCommandSelect = useCallback(
     async (command: Command) => {
@@ -297,6 +360,8 @@ function App() {
             onExportError={handleExportError}
             shareMenuOpen={!contextPanel.isOpen ? shareMenuOpen : undefined}
             onShareMenuOpenChange={!contextPanel.isOpen ? setShareMenuOpen : undefined}
+            onConflictClick={handleOpenConflicts}
+            onSyncSettingsClick={settings.open}
           />
           <div ref={scrollContainerRef} className={styles.scrollContainer} onScroll={handleScroll}>
             {noteState.currentNoteId === SYSTEM_NOTE_IDS.TASKS ? (
@@ -431,6 +496,21 @@ function App() {
       </EditorCommandProvider>
 
       <SettingsPage isOpen={settings.isOpen} onClose={settings.close} />
+
+      {/* Sync Conflict Modals */}
+      <ConflictListModal
+        isOpen={showConflictList && !selectedConflict}
+        onClose={() => setShowConflictList(false)}
+        conflicts={syncStatus.conflicts}
+        onViewConflict={handleViewConflict}
+        onResolveConflict={handleResolveConflict}
+      />
+      <ConflictCompareView
+        isOpen={showConflictList && selectedConflict !== null}
+        conflict={selectedConflict}
+        onBack={handleBackFromCompare}
+        onResolve={handleResolveFromCompare}
+      />
     </div>
   );
 }

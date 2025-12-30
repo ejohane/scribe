@@ -56,11 +56,15 @@ export {
   ErrorCode,
   ScribeError,
   ValidationError,
+  SyncError,
   isScribeError,
   isValidationError,
+  isSyncError,
   // Error message extraction utilities
   getErrorMessage,
 } from './errors.js';
+
+export type { EngineName } from './errors.js';
 
 export { DEFAULT_NOTE_TITLE } from './constants.js';
 
@@ -165,3 +169,32 @@ export { computeTextHash } from './hash-utils.js';
 // Heading Extractor - extract document outline from editor content
 export { extractHeadings } from './heading-extractor.js';
 export type { HeadingItem } from './heading-extractor.js';
+
+// Sync Configuration and Protocol Types
+export {
+  DEFAULT_SYNC_CONFIG,
+  SYNC_CONFIG_PATH,
+  MIN_SYNC_INTERVAL_MS,
+  MAX_SYNC_INTERVAL_MS,
+} from './sync-types.js';
+export type {
+  // Config types
+  SyncConfig,
+  DefaultSyncConfig,
+  // Metadata types
+  SyncMetadata,
+  // Push protocol types
+  SyncPushRequest,
+  SyncChange,
+  SyncPushResponse,
+  // Pull protocol types
+  SyncPullRequest,
+  SyncPullResponse,
+  // Conflict types
+  SyncConflict,
+  ConflictResolution,
+  // Status types
+  SyncState,
+  SyncStatus,
+  SyncResult,
+} from './sync-types.js';

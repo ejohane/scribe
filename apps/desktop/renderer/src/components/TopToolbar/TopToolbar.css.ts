@@ -60,6 +60,22 @@ export const shareMenuContainer = style({
 });
 
 /**
+ * Container for sync status indicator in toolbar
+ * Positioned before share menu, hidden at very narrow viewports
+ */
+export const syncStatusContainer = style({
+  display: 'flex',
+  alignItems: 'center',
+  marginRight: vars.spacing['1'],
+
+  '@media': {
+    '(max-width: 480px)': {
+      display: 'none',
+    },
+  },
+});
+
+/**
  * Toolbar button - flat design, no shadows, no animations
  */
 export const toolbarButton = style({

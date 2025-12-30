@@ -7,6 +7,7 @@
  */
 
 import type { EditorContent } from './editor-types.js';
+import type { SyncMetadata } from '../sync-types.js';
 
 // ============================================================================
 // Branded Type Identifiers
@@ -301,6 +302,22 @@ export interface BaseNote {
    * while note.title and note.tags are user-editable explicit fields.
    */
   metadata: NoteMetadata;
+
+  /**
+   * Sync metadata for multi-device synchronization.
+   *
+   * This field is optional for backward compatibility:
+   * - Vaults without sync enabled: field is undefined
+   * - Vaults with sync enabled: field is present with version/hash
+   *
+   * When present, the sync engine uses this to:
+   * - Detect conflicts (version mismatch)
+   * - Skip unchanged notes (hash comparison)
+   * - Track last sync time per note
+   *
+   * @since 1.1.0
+   */
+  sync?: SyncMetadata;
 }
 
 /**

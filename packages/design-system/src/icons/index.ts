@@ -54,6 +54,16 @@ export {
   CheckIcon,
   // Settings icon
   SettingsIcon,
+  // Navigation icons for modals
+  ChevronLeftIcon,
+  // Copy icons
+  CopyIcon,
+  // Sync conflict icons
+  RefreshIcon,
+  AlertIcon,
+  // Sync settings icons
+  CloudIcon,
+  LogOutIcon,
 } from './icons';
 
 export type { IconComponentProps } from './icons';
