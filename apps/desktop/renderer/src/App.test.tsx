@@ -100,6 +100,16 @@ beforeEach(() => {
     shell: {
       openExternal: vi.fn().mockResolvedValue({ success: true }),
     },
+    sync: {
+      getStatus: vi.fn().mockResolvedValue({ state: 'disabled' }),
+      getConfig: vi.fn().mockResolvedValue({ enabled: false }),
+      setConfig: vi.fn().mockResolvedValue({ success: true }),
+      getConflicts: vi.fn().mockResolvedValue([]),
+      resolveConflict: vi.fn().mockResolvedValue({ success: true }),
+      trigger: vi.fn().mockResolvedValue({ success: true }),
+      onStatusChange: vi.fn(() => () => {}),
+      onConflict: vi.fn(() => () => {}),
+    },
   };
 });
 

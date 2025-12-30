@@ -85,6 +85,11 @@ export function useSyncStatus(): UseSyncStatusResult {
    * Load initial sync state on mount.
    */
   const loadInitialState = useCallback(async () => {
+    // Guard: sync API may not be available in test environments
+    if (!window.scribe?.sync) {
+      return;
+    }
+
     try {
       const statusResult = await window.scribe.sync.getStatus();
 
@@ -117,6 +122,11 @@ export function useSyncStatus(): UseSyncStatusResult {
 
   // Subscribe to status changes
   useEffect(() => {
+    // Guard: sync API may not be available in test environments
+    if (!window.scribe?.sync?.onStatusChange) {
+      return () => {};
+    }
+
     const unsubscribe = window.scribe.sync.onStatusChange((newStatus: SyncStatus) => {
       setStatus(newStatus);
 
@@ -144,7 +154,7 @@ export function useSyncStatus(): UseSyncStatusResult {
    * Trigger a manual sync cycle.
    */
   const syncNow = useCallback(async () => {
-    if (!isEnabled) return;
+    if (!isEnabled || !window.scribe?.sync) return;
 
     try {
       setError(null);
@@ -162,6 +172,8 @@ export function useSyncStatus(): UseSyncStatusResult {
    * Resolve a sync conflict.
    */
   const resolveConflict = useCallback(async (noteId: string, resolution: ConflictResolution) => {
+    if (!window.scribe?.sync) return;
+
     try {
       await window.scribe.sync.resolveConflict(noteId, resolution);
       // Remove resolved conflict from local state
