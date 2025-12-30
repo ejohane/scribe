@@ -16,7 +16,7 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
 } from '@scribe/design-system';
-import type { NoteId } from '@scribe/shared';
+import type { NoteId, EditorContent } from '@scribe/shared';
 import * as styles from './TopToolbar.css';
 import { ShareMenu } from '../ShareMenu';
 import { SyncStatusIndicator } from '../Sync/SyncStatusIndicator';
@@ -44,10 +44,16 @@ export interface TopToolbarProps {
   isMouseActive?: boolean;
   /** Current note ID for share menu */
   currentNoteId?: NoteId;
+  /** Current note content for copy to clipboard */
+  currentNoteContent?: EditorContent;
   /** Callback when export completes successfully */
   onExportSuccess?: (filename: string) => void;
   /** Callback when export fails */
   onExportError?: (error: string) => void;
+  /** Callback when copy completes successfully */
+  onCopySuccess?: () => void;
+  /** Callback when copy fails */
+  onCopyError?: (error: string) => void;
   /** Controlled open state for ShareMenu */
   shareMenuOpen?: boolean;
   /** Callback when ShareMenu open state changes */
@@ -70,8 +76,11 @@ export function TopToolbar({
   onForward,
   isMouseActive = true,
   currentNoteId,
+  currentNoteContent,
   onExportSuccess,
   onExportError,
+  onCopySuccess,
+  onCopyError,
   shareMenuOpen,
   onShareMenuOpenChange,
   onConflictClick,
@@ -169,8 +178,11 @@ export function TopToolbar({
             <div className={styles.shareMenuContainer}>
               <ShareMenu
                 noteId={currentNoteId}
+                noteContent={currentNoteContent}
                 onExportSuccess={onExportSuccess}
                 onExportError={onExportError}
+                onCopySuccess={onCopySuccess}
+                onCopyError={onCopyError}
                 isOpen={shareMenuOpen}
                 onOpenChange={onShareMenuOpenChange}
               />

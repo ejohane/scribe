@@ -65,6 +65,7 @@ export {
   ChevronLeft as ChevronLeftIcon,
   // Copy icons
   Copy as CopyIcon,
+  ClipboardCopy as ClipboardCopyIcon,
   // Sync conflict icons
   RefreshCw as RefreshIcon,
   AlertTriangle as AlertIcon,

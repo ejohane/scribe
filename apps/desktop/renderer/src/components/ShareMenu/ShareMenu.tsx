@@ -22,8 +22,9 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { NoteId } from '@scribe/shared';
-import { FileTextIcon } from '@scribe/design-system';
+import type { NoteId, EditorContent, Note } from '@scribe/shared';
+import { extractMarkdown } from '@scribe/shared';
+import { ClipboardCopyIcon, FileTextIcon } from '@scribe/design-system';
 import * as styles from './ShareMenu.css';
 
 /**
@@ -53,10 +54,16 @@ function ShareIcon({ size = 16 }: { size?: number }) {
 export interface ShareMenuProps {
   /** ID of the note to share */
   noteId: NoteId;
+  /** Note content for copy operation (optional - copy is disabled without it) */
+  noteContent?: EditorContent;
   /** Callback when export completes successfully */
   onExportSuccess?: (filePath: string) => void;
   /** Callback when export fails */
   onExportError?: (error: string) => void;
+  /** Callback when copy completes successfully */
+  onCopySuccess?: () => void;
+  /** Callback when copy fails */
+  onCopyError?: (error: string) => void;
   /** Controlled open state (optional - if provided, component is controlled) */
   isOpen?: boolean;
   /** Callback when open state changes (required when isOpen is provided) */
@@ -100,8 +107,11 @@ interface MenuItem {
  */
 export function ShareMenu({
   noteId,
+  noteContent,
   onExportSuccess,
   onExportError,
+  onCopySuccess,
+  onCopyError,
   isOpen: controlledIsOpen,
   onOpenChange,
 }: ShareMenuProps) {
@@ -157,8 +167,51 @@ export function ShareMenu({
     }
   }, [noteId, onExportSuccess, onExportError, setIsOpen]);
 
+  /**
+   * Handle copy to clipboard as Markdown
+   */
+  const handleCopyMarkdown = useCallback(async () => {
+    if (!noteContent) {
+      onCopyError?.('No note content available');
+      return;
+    }
+
+    setIsOpen(false);
+
+    try {
+      // Create a minimal Note object for extractMarkdown
+      const note: Note = {
+        id: noteId,
+        content: noteContent,
+        title: '',
+        tags: [],
+        metadata: {
+          title: '',
+          tags: [],
+          links: [],
+          mentions: [],
+        },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const markdown = extractMarkdown(note, { includeFrontmatter: false });
+      await navigator.clipboard.writeText(markdown);
+      onCopySuccess?.();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to copy';
+      onCopyError?.(message);
+    }
+  }, [noteId, noteContent, onCopySuccess, onCopyError, setIsOpen]);
+
   // Define menu items (extensible for future export formats)
   const menuItems: MenuItem[] = [
+    {
+      id: 'copy-markdown',
+      label: 'Copy as Markdown',
+      icon: <ClipboardCopyIcon size={14} className={styles.menuItemIcon} aria-hidden="true" />,
+      action: handleCopyMarkdown,
+    },
     {
       id: 'export-markdown',
       label: 'Export to Markdown',

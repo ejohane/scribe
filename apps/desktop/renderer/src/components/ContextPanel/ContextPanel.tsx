@@ -64,6 +64,10 @@ export interface ContextPanelProps {
   onExportSuccess?: (filename: string) => void;
   /** Callback when export fails */
   onExportError?: (error: string) => void;
+  /** Callback when copy completes successfully */
+  onCopySuccess?: () => void;
+  /** Callback when copy fails */
+  onCopyError?: (error: string) => void;
   /** Callback when a widget operation fails (for showing toast notifications) */
   onError?: (message: string) => void;
   /** Controlled open state for ShareMenu */
@@ -82,6 +86,8 @@ export function ContextPanel({
   onClose,
   onExportSuccess,
   onExportError,
+  onCopySuccess,
+  onCopyError,
   onError,
   shareMenuOpen,
   onShareMenuOpenChange,
@@ -248,8 +254,11 @@ export function ContextPanel({
             {note && (
               <ShareMenu
                 noteId={note.id}
+                noteContent={note.content}
                 onExportSuccess={onExportSuccess}
                 onExportError={onExportError}
+                onCopySuccess={onCopySuccess}
+                onCopyError={onCopyError}
                 isOpen={shareMenuOpen}
                 onOpenChange={onShareMenuOpenChange}
               />
