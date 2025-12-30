@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.32.0](https://github.com/ejohane/scribe/compare/v1.31.0...v1.32.0) (2025-12-30)
+
+### Features
+
+* implement unified open experience (Cmd+O) ([10894e3](https://github.com/ejohane/scribe/commit/10894e371d82c161ee2a19fe35ee3a689a124e48)), closes [#56](https://github.com/ejohane/scribe/issues/56)
+
+### Bug Fixes
+
+* add recentOpens mock to CommandPalette and related tests ([5f08c7c](https://github.com/ejohane/scribe/commit/5f08c7c5f377e2ef176773a19dd0d87b4d1d2b06))
+* add recentOpens mock to useNoteState tests ([491d89a](https://github.com/ejohane/scribe/commit/491d89a8da295dfa604be8beac4e7d021b9a693d))
+
 ## [1.31.0](https://github.com/ejohane/scribe/compare/v1.30.0...v1.31.0) (2025-12-30)
 
 ### Features
