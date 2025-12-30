@@ -15,7 +15,7 @@ import { commandRegistry } from './commands/CommandRegistry';
 import { fuzzySearchCommands } from './commands/fuzzySearch';
 import type { Command, PaletteMode } from './commands/types';
 import type { GraphNode, NoteId } from '@scribe/shared';
-import { SYSTEM_NOTE_IDS } from '@scribe/shared';
+import { SYSTEM_NOTE_IDS, extractMarkdown } from '@scribe/shared';
 import { useNoteState } from './hooks/useNoteState';
 import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useToast } from './hooks/useToast';
@@ -118,6 +118,23 @@ function App() {
     setShareMenuOpen(true);
   }, []);
 
+  // Handle copy note as markdown via keyboard shortcut
+  const copyNoteAsMarkdown = useCallback(async () => {
+    if (!noteState.currentNote) {
+      showToast('No note content available', 'error');
+      return;
+    }
+
+    try {
+      const markdown = extractMarkdown(noteState.currentNote, { includeFrontmatter: false });
+      await navigator.clipboard.writeText(markdown);
+      showToast('Copied to clipboard');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to copy';
+      showToast(`Failed to copy: ${message}`, 'error');
+    }
+  }, [noteState.currentNote, showToast]);
+
   // Handle keyboard shortcuts
   useAppKeyboardShortcuts({
     isPaletteOpen: commandPalette.isOpen,
@@ -133,6 +150,7 @@ function App() {
     toggleContextPanel: contextPanel.toggle,
     hasCurrentNote: !!noteState.currentNote,
     openShareMenu,
+    copyNoteAsMarkdown,
   });
 
   // Display errors from noteState
@@ -208,6 +226,19 @@ function App() {
   const handleExportError = useCallback(
     (error: string) => {
       showToast(`Export failed: ${error}`, 'error');
+    },
+    [showToast]
+  );
+
+  // Handle copy success - show toast notification
+  const handleCopySuccess = useCallback(() => {
+    showToast('Copied to clipboard');
+  }, [showToast]);
+
+  // Handle copy error - show error toast notification
+  const handleCopyError = useCallback(
+    (error: string) => {
+      showToast(`Failed to copy: ${error}`, 'error');
     },
     [showToast]
   );
@@ -358,6 +389,8 @@ function App() {
             currentNoteId={noteState.currentNoteId ?? undefined}
             onExportSuccess={handleExportSuccess}
             onExportError={handleExportError}
+            onCopySuccess={handleCopySuccess}
+            onCopyError={handleCopyError}
             shareMenuOpen={!contextPanel.isOpen ? shareMenuOpen : undefined}
             onShareMenuOpenChange={!contextPanel.isOpen ? setShareMenuOpen : undefined}
             onConflictClick={handleOpenConflicts}
@@ -488,6 +521,8 @@ function App() {
             onClose={contextPanel.toggle}
             onExportSuccess={handleExportSuccess}
             onExportError={handleExportError}
+            onCopySuccess={handleCopySuccess}
+            onCopyError={handleCopyError}
             onError={handleProviderError}
             shareMenuOpen={contextPanel.isOpen ? shareMenuOpen : undefined}
             onShareMenuOpenChange={contextPanel.isOpen ? setShareMenuOpen : undefined}

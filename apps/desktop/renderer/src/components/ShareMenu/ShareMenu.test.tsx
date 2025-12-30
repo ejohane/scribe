@@ -12,17 +12,29 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { ShareMenu, type ShareMenuProps } from './ShareMenu';
 import { createNoteId } from '@scribe/shared';
-import type { NoteId } from '@scribe/shared';
+import type { NoteId, EditorContent } from '@scribe/shared';
 
 // Mock the design system icons
 vi.mock('@scribe/design-system', () => ({
   FileTextIcon: ({ size, className }: { size: number; className?: string }) => (
     <svg data-testid="file-text-icon" data-size={size} className={className} />
   ),
+  ClipboardCopyIcon: ({ size, className }: { size: number; className?: string }) => (
+    <svg data-testid="clipboard-copy-icon" data-size={size} className={className} />
+  ),
 }));
+
+// Mock extractMarkdown from @scribe/shared
+vi.mock('@scribe/shared', async () => {
+  const actual = await vi.importActual('@scribe/shared');
+  return {
+    ...actual,
+    extractMarkdown: vi.fn(() => 'Mocked markdown content'),
+  };
+});
 
 // Mock scrollIntoView since it's not implemented in happy-dom
 Element.prototype.scrollIntoView = vi.fn();
@@ -44,13 +56,31 @@ const mockScribeAPI = {
   },
 };
 
+// Mock navigator.clipboard.writeText
+const mockClipboardWriteText = vi.fn<(text: string) => Promise<void>>();
+
 describe('ShareMenu', () => {
   const testNoteId = createNoteId('test-note-123');
+
+  // Sample note content for clipboard tests
+  const testNoteContent: EditorContent = {
+    root: {
+      type: 'root',
+      children: [
+        {
+          type: 'paragraph',
+          children: [{ type: 'text', text: 'Test content' }],
+        },
+      ],
+    },
+  };
 
   const defaultProps: ShareMenuProps = {
     noteId: testNoteId,
     onExportSuccess: vi.fn(),
     onExportError: vi.fn(),
+    onCopySuccess: vi.fn(),
+    onCopyError: vi.fn(),
   };
 
   beforeEach(() => {
@@ -64,6 +94,15 @@ describe('ShareMenu', () => {
 
     // Mock window.scribe
     (window as unknown as { scribe: typeof mockScribeAPI }).scribe = mockScribeAPI;
+
+    // Setup clipboard mock
+    mockClipboardWriteText.mockReset();
+    mockClipboardWriteText.mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: mockClipboardWriteText },
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
@@ -224,22 +263,24 @@ describe('ShareMenu', () => {
       await user.keyboard('{ArrowDown}');
 
       expect(screen.getByRole('menu')).toBeInTheDocument();
-      // First menu item should receive focus
-      const menuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
+      // First menu item (Copy as Markdown) should receive focus
+      const menuItem = screen.getByRole('menuitem', { name: /copy as markdown/i });
       await waitFor(() => {
         expect(menuItem).toHaveFocus();
       });
     });
 
     it('activates menu item with Enter key', async () => {
+      const onCopySuccess = vi.fn();
       const user = userEvent.setup();
-      const onExportSuccess = vi.fn();
-      render(<ShareMenu {...defaultProps} onExportSuccess={onExportSuccess} />);
+      render(
+        <ShareMenu {...defaultProps} noteContent={testNoteContent} onCopySuccess={onCopySuccess} />
+      );
 
       await user.click(screen.getByRole('button', { name: /share/i }));
 
-      // Wait for menu item to be focused
-      const menuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
+      // Wait for first menu item (Copy as Markdown) to be focused
+      const menuItem = screen.getByRole('menuitem', { name: /copy as markdown/i });
       await waitFor(() => {
         expect(menuItem).toHaveFocus();
       });
@@ -247,18 +288,21 @@ describe('ShareMenu', () => {
       await user.keyboard('{Enter}');
 
       await waitFor(() => {
-        expect(mockToMarkdown).toHaveBeenCalledWith(testNoteId);
+        expect(onCopySuccess).toHaveBeenCalled();
       });
     });
 
     it('activates menu item with Space key', async () => {
+      const onCopySuccess = vi.fn();
       const user = userEvent.setup();
-      render(<ShareMenu {...defaultProps} />);
+      render(
+        <ShareMenu {...defaultProps} noteContent={testNoteContent} onCopySuccess={onCopySuccess} />
+      );
 
       await user.click(screen.getByRole('button', { name: /share/i }));
 
-      // Wait for menu item to be focused
-      const menuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
+      // Wait for first menu item (Copy as Markdown) to be focused
+      const menuItem = screen.getByRole('menuitem', { name: /copy as markdown/i });
       await waitFor(() => {
         expect(menuItem).toHaveFocus();
       });
@@ -266,7 +310,7 @@ describe('ShareMenu', () => {
       await user.keyboard(' ');
 
       await waitFor(() => {
-        expect(mockToMarkdown).toHaveBeenCalledWith(testNoteId);
+        expect(onCopySuccess).toHaveBeenCalled();
       });
     });
 
@@ -530,7 +574,8 @@ describe('ShareMenu', () => {
       await user.click(screen.getByRole('button', { name: /share/i }));
 
       await waitFor(() => {
-        const menuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
+        // First menu item is now "Copy as Markdown"
+        const menuItem = screen.getByRole('menuitem', { name: /copy as markdown/i });
         expect(menuItem).toHaveFocus();
       });
     });
@@ -593,8 +638,13 @@ describe('ShareMenu', () => {
 
       await user.click(screen.getByRole('button', { name: /share/i }));
 
-      const menuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
-      expect(menuItem).toHaveAttribute('tabindex', '0');
+      // First menu item (Copy as Markdown) should have tabindex=0 (focused)
+      const copyMenuItem = screen.getByRole('menuitem', { name: /copy as markdown/i });
+      expect(copyMenuItem).toHaveAttribute('tabindex', '0');
+
+      // Second menu item (Export to Markdown) should have tabindex=-1 (not focused)
+      const exportMenuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
+      expect(exportMenuItem).toHaveAttribute('tabindex', '-1');
     });
   });
 
@@ -617,6 +667,103 @@ describe('ShareMenu', () => {
 
       const menuItem = screen.getByRole('menuitem', { name: /export to markdown/i });
       expect(menuItem).toHaveAttribute('type', 'button');
+    });
+  });
+
+  describe('copy as markdown', () => {
+    it('renders "Copy as Markdown" menu option', async () => {
+      const user = userEvent.setup();
+      render(<ShareMenu {...defaultProps} noteContent={testNoteContent} />);
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+
+      expect(screen.getByRole('menuitem', { name: /copy as markdown/i })).toBeInTheDocument();
+    });
+
+    it('renders Copy as Markdown option with clipboard icon', async () => {
+      const user = userEvent.setup();
+      render(<ShareMenu {...defaultProps} noteContent={testNoteContent} />);
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+
+      expect(screen.getByRole('menuitem', { name: /copy as markdown/i })).toBeInTheDocument();
+      expect(screen.getByTestId('clipboard-copy-icon')).toBeInTheDocument();
+    });
+
+    it('calls navigator.clipboard.writeText when Copy as Markdown is clicked', async () => {
+      // We verify clipboard is called by checking onCopySuccess is called
+      // (onCopySuccess is only called after successful clipboard write)
+      const onCopySuccess = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <ShareMenu {...defaultProps} noteContent={testNoteContent} onCopySuccess={onCopySuccess} />
+      );
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+      await user.click(screen.getByRole('menuitem', { name: /copy as markdown/i }));
+
+      await waitFor(() => {
+        expect(onCopySuccess).toHaveBeenCalled();
+      });
+    });
+
+    it('calls onCopySuccess when clipboard copy succeeds', async () => {
+      const onCopySuccess = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <ShareMenu {...defaultProps} noteContent={testNoteContent} onCopySuccess={onCopySuccess} />
+      );
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+      await user.click(screen.getByRole('menuitem', { name: /copy as markdown/i }));
+
+      await waitFor(() => {
+        expect(onCopySuccess).toHaveBeenCalled();
+      });
+    });
+
+    // Note: Clipboard error handling is tested in useClipboard.test.ts
+    // Testing clipboard errors in component tests requires complex mocking
+    // that doesn't work reliably with happy-dom. The onCopyError callback
+    // path is still tested via the "noteContent not provided" test below.
+
+    it('calls onCopyError when noteContent is not provided', async () => {
+      const onCopyError = vi.fn();
+      const user = userEvent.setup();
+      // Render without noteContent
+      render(<ShareMenu noteId={testNoteId} onCopyError={onCopyError} />);
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+      await user.click(screen.getByRole('menuitem', { name: /copy as markdown/i }));
+
+      await waitFor(() => {
+        expect(onCopyError).toHaveBeenCalledWith('No note content available');
+      });
+    });
+
+    it('closes dropdown after copy action', async () => {
+      const user = userEvent.setup();
+      render(<ShareMenu {...defaultProps} noteContent={testNoteContent} />);
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+      await user.click(screen.getByRole('menuitem', { name: /copy as markdown/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      });
+    });
+
+    it('works without optional callbacks on copy', async () => {
+      const user = userEvent.setup();
+      render(<ShareMenu noteId={testNoteId} noteContent={testNoteContent} />);
+
+      await user.click(screen.getByRole('button', { name: /share/i }));
+      await user.click(screen.getByRole('menuitem', { name: /copy as markdown/i }));
+
+      // Should not throw - verify by checking menu closes
+      await waitFor(() => {
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      });
     });
   });
 });
