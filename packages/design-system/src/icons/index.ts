@@ -58,6 +58,7 @@ export {
   ChevronLeftIcon,
   // Copy icons
   CopyIcon,
+  ClipboardCopyIcon,
   // Sync conflict icons
   RefreshIcon,
   AlertIcon,

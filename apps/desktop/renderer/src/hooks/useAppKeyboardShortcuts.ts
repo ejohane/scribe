@@ -28,6 +28,8 @@ interface UseAppKeyboardShortcutsConfig {
   hasCurrentNote: boolean;
   /** Open the share menu */
   openShareMenu: () => void;
+  /** Copy current note as markdown */
+  copyNoteAsMarkdown: () => void;
 }
 
 /**
@@ -42,6 +44,7 @@ interface UseAppKeyboardShortcutsConfig {
  * - Cmd+J: Toggle left sidebar
  * - Cmd+L: Toggle right context panel
  * - Cmd+Shift+E: Open share menu (when note is visible)
+ * - Cmd+Shift+C: Copy note as markdown (when note is visible)
  *
  * @param config - Configuration for keyboard shortcut behavior
  */
@@ -60,6 +63,7 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
     toggleContextPanel,
     hasCurrentNote,
     openShareMenu,
+    copyNoteAsMarkdown,
   } = config;
 
   useEffect(() => {
@@ -125,6 +129,13 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
           openShareMenu();
         }
       }
+      // Cmd+Shift+C / Ctrl+Shift+C: Copy note as markdown (when note is visible)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        if (hasCurrentNote) {
+          copyNoteAsMarkdown();
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -143,5 +154,6 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
     toggleContextPanel,
     hasCurrentNote,
     openShareMenu,
+    copyNoteAsMarkdown,
   ]);
 }

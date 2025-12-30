@@ -18,6 +18,7 @@ describe('useAppKeyboardShortcuts', () => {
     toggleContextPanel: vi.fn(),
     hasCurrentNote: false,
     openShareMenu: vi.fn(),
+    copyNoteAsMarkdown: vi.fn(),
   });
 
   // Helper to create and dispatch keyboard events
@@ -290,6 +291,60 @@ describe('useAppKeyboardShortcuts', () => {
       });
 
       expect(config.openShareMenu).toHaveBeenCalled();
+    });
+  });
+
+  describe('Cmd+Shift+C (copy note as markdown)', () => {
+    it('copies note as markdown when note is visible', () => {
+      const config = createMockConfig();
+      config.hasCurrentNote = true;
+
+      renderHook(() => useAppKeyboardShortcuts(config));
+
+      act(() => {
+        dispatchKeyEvent('c', { metaKey: true, shiftKey: true });
+      });
+
+      expect(config.copyNoteAsMarkdown).toHaveBeenCalled();
+    });
+
+    it('does nothing when no note is visible', () => {
+      const config = createMockConfig();
+      config.hasCurrentNote = false;
+
+      renderHook(() => useAppKeyboardShortcuts(config));
+
+      act(() => {
+        dispatchKeyEvent('c', { metaKey: true, shiftKey: true });
+      });
+
+      expect(config.copyNoteAsMarkdown).not.toHaveBeenCalled();
+    });
+
+    it('works with uppercase C', () => {
+      const config = createMockConfig();
+      config.hasCurrentNote = true;
+
+      renderHook(() => useAppKeyboardShortcuts(config));
+
+      act(() => {
+        dispatchKeyEvent('C', { metaKey: true, shiftKey: true });
+      });
+
+      expect(config.copyNoteAsMarkdown).toHaveBeenCalled();
+    });
+
+    it('works with Ctrl+Shift+C', () => {
+      const config = createMockConfig();
+      config.hasCurrentNote = true;
+
+      renderHook(() => useAppKeyboardShortcuts(config));
+
+      act(() => {
+        dispatchKeyEvent('c', { ctrlKey: true, shiftKey: true });
+      });
+
+      expect(config.copyNoteAsMarkdown).toHaveBeenCalled();
     });
   });
 
