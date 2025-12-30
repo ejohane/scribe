@@ -20,6 +20,8 @@ import type {
   DailyNoteData,
   MeetingNoteData,
   ScribeAPI,
+  RecentOpenRecord,
+  RecentOpenEntityType,
 } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 import type { Command } from '../../commands/types';
@@ -178,6 +180,11 @@ export function setupScribeMock(overrides?: MockScribeAPI): void {
     search: {
       query: vi.fn().mockResolvedValue([]),
     },
+    recentOpens: {
+      getRecent: vi.fn().mockResolvedValue([]),
+      recordOpen: vi.fn().mockResolvedValue(undefined),
+      removeTracking: vi.fn().mockResolvedValue(undefined),
+    },
   };
 
   const mock: MockScribeAPI = overrides ? { ...defaultMock, ...overrides } : defaultMock;
@@ -190,3 +197,46 @@ export function setupScribeMock(overrides?: MockScribeAPI): void {
  */
 export const waitForDebounce = (): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, 200)); // 150ms debounce + buffer
+
+/**
+ * Create a RecentOpenRecord from a note.
+ * Determines entity type from note.type and uses updatedAt as openedAt.
+ */
+export function createRecentOpenRecord(note: Note): RecentOpenRecord {
+  let entityType: RecentOpenEntityType = 'note';
+  if (note.type === 'daily') entityType = 'daily';
+  else if (note.type === 'meeting') entityType = 'meeting';
+  else if (note.type === 'person') entityType = 'person';
+
+  return {
+    entityId: note.id,
+    entityType,
+    openedAt: note.updatedAt,
+  };
+}
+
+/**
+ * Create RecentOpenRecords from an array of notes.
+ * Useful for setting up recentOpens.getRecent mock in tests.
+ */
+export function createRecentOpenRecords(notes: Note[]): RecentOpenRecord[] {
+  return notes.map(createRecentOpenRecord);
+}
+
+/**
+ * Setup notes with corresponding recent opens for file-browse mode tests.
+ * This helper mocks both notes.list and recentOpens.getRecent in sync.
+ *
+ * @param notes - Notes to set up
+ * @param recentLimit - Number of most recent notes to include in recent opens (default: 10)
+ */
+export function setupNotesWithRecentOpens(notes: Note[], recentLimit = 10): void {
+  // Sort by updatedAt desc and take top N for recent opens
+  const recentNotes = [...notes].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, recentLimit);
+  const recentRecords = createRecentOpenRecords(recentNotes);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scribe = (window as any).scribe;
+  scribe.notes.list = vi.fn().mockResolvedValue(notes);
+  scribe.recentOpens.getRecent = vi.fn().mockResolvedValue(recentRecords);
+}

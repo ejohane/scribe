@@ -21,6 +21,7 @@ import {
   BASE_TIME,
   CSS,
   styles,
+  setupNotesWithRecentOpens,
 } from './CommandPalette.test-utils';
 
 describe('CommandPalette - File Browse Mode', () => {
@@ -44,7 +45,7 @@ describe('CommandPalette - File Browse Mode', () => {
         );
       }
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -94,7 +95,8 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      // Include all notes in recent opens (filtering of current note happens in component)
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -121,13 +123,22 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it("shows 'Loading...' while fetching notes", async () => {
-      // Create a promise we can control to simulate loading
+      // Create promises we can control to simulate loading
       let resolveNotes: (notes: Note[]) => void;
+      let resolveRecents: (
+        records: { entityId: string; entityType: string; openedAt: number }[]
+      ) => void;
       const notesPromise = new Promise<Note[]>((resolve) => {
         resolveNotes = resolve;
       });
+      const recentsPromise = new Promise<
+        { entityId: string; entityType: string; openedAt: number }[]
+      >((resolve) => {
+        resolveRecents = resolve;
+      });
 
       (window as any).scribe.notes.list = vi.fn().mockReturnValue(notesPromise);
+      (window as any).scribe.recentOpens.getRecent = vi.fn().mockReturnValue(recentsPromise);
 
       render(
         <CommandPalette
@@ -142,13 +153,13 @@ describe('CommandPalette - File Browse Mode', () => {
       // Should show loading state immediately
       expect(screen.getByText('Loading...')).toBeInTheDocument();
 
-      // Resolve the promise
-      resolveNotes!([
-        createMockNote({
-          id: 'note-1',
-          metadata: { title: 'Test Note', tags: [], links: [], mentions: [] },
-        }),
-      ]);
+      // Resolve both promises
+      const testNote = createMockNote({
+        id: 'note-1',
+        metadata: { title: 'Test Note', tags: [], links: [], mentions: [] },
+      });
+      resolveNotes!([testNote]);
+      resolveRecents!([{ entityId: testNote.id, entityType: 'note', openedAt: Date.now() }]);
 
       // Wait for loading to finish
       await waitFor(() => {
@@ -161,7 +172,7 @@ describe('CommandPalette - File Browse Mode', () => {
 
     it("shows 'No notes yet. Create one with ⌘N' for empty vault", async () => {
       // Return empty array for notes
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue([]);
+      setupNotesWithRecentOpens([]);
 
       render(
         <CommandPalette
@@ -197,7 +208,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -265,7 +276,7 @@ describe('CommandPalette - File Browse Mode', () => {
     };
 
     it('typing filters results via fuzzy search', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       const onNoteSelect = vi.fn();
 
@@ -304,7 +315,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('search is case-insensitive', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       render(
         <CommandPalette
@@ -333,7 +344,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('search is case-insensitive with uppercase query', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       render(
         <CommandPalette
@@ -371,7 +382,7 @@ describe('CommandPalette - File Browse Mode', () => {
         })
       );
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(manyNotes);
+      setupNotesWithRecentOpens(manyNotes);
 
       render(
         <CommandPalette
@@ -399,8 +410,8 @@ describe('CommandPalette - File Browse Mode', () => {
       });
     });
 
-    it("shows 'No results' when query matches nothing", async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+    it("shows 'Create new note' option when query matches nothing", async () => {
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       render(
         <CommandPalette
@@ -421,13 +432,14 @@ describe('CommandPalette - File Browse Mode', () => {
 
       await waitForDebounce();
 
+      // Should show "Create" option instead of "No results"
       await waitFor(() => {
-        expect(screen.getByText('No results')).toBeInTheDocument();
+        expect(screen.getByText('Create "xyz123nonexistent"')).toBeInTheDocument();
       });
     });
 
     it('clearing query returns to recent notes view', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       render(
         <CommandPalette
@@ -490,7 +502,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(notesWithUntitled);
+      setupNotesWithRecentOpens(notesWithUntitled);
 
       render(
         <CommandPalette
@@ -537,7 +549,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(testNotes);
+      setupNotesWithRecentOpens(testNotes);
 
       render(
         <CommandPalette
@@ -570,7 +582,7 @@ describe('CommandPalette - File Browse Mode', () => {
     it('search triggers after debounce (150ms)', async () => {
       vi.useFakeTimers();
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       render(
         <CommandPalette
@@ -614,7 +626,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('performs fuzzy matching via Fuse.js', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createSearchTestNotes());
+      setupNotesWithRecentOpens(createSearchTestNotes());
 
       render(
         <CommandPalette
@@ -664,7 +676,7 @@ describe('CommandPalette - File Browse Mode', () => {
 
     it('clicking note item opens note and closes palette', async () => {
       const mockNotes = createTestNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       const onNoteSelect = vi.fn();
       const onClose = vi.fn();
@@ -697,7 +709,7 @@ describe('CommandPalette - File Browse Mode', () => {
 
     it('clicking outside palette (overlay) closes palette', async () => {
       const mockNotes = createTestNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       const onNoteSelect = vi.fn();
       const onClose = vi.fn();
@@ -742,7 +754,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -778,7 +790,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -826,7 +838,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -871,7 +883,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -904,7 +916,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -997,7 +1009,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -1033,7 +1045,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -1077,7 +1089,7 @@ describe('CommandPalette - File Browse Mode', () => {
     ];
 
     it('delete icon is rendered on each note item', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
 
       render(
         <CommandPalette
@@ -1099,7 +1111,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('delete icon has correct aria-label', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
 
       render(
         <CommandPalette
@@ -1122,7 +1134,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('clicking delete icon opens confirmation screen', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
       const onModeChange = vi.fn();
 
       render(
@@ -1151,7 +1163,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('clicking delete icon does NOT open note (stopPropagation works)', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
       const onNoteSelect = vi.fn();
       const onClose = vi.fn();
 
@@ -1181,7 +1193,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('cancel from confirmation returns to file-browse mode', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
       const onModeChange = vi.fn();
 
       render(
@@ -1218,7 +1230,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('Escape from confirmation returns to file-browse mode', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
       const onModeChange = vi.fn();
 
       render(
@@ -1254,7 +1266,7 @@ describe('CommandPalette - File Browse Mode', () => {
     });
 
     it('delete icon has correct CSS class for styling', async () => {
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(createTestNotes());
+      setupNotesWithRecentOpens(createTestNotes());
 
       render(
         <CommandPalette
@@ -1284,7 +1296,7 @@ describe('CommandPalette - File Browse Mode', () => {
         }),
       ];
 
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(notesWithUntitled);
+      setupNotesWithRecentOpens(notesWithUntitled);
 
       render(
         <CommandPalette

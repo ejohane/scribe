@@ -16,6 +16,7 @@ import {
   createMockNote,
   mockCommands,
   setupScribeMock,
+  setupNotesWithRecentOpens,
   BASE_TIME,
   CSS,
   styles,
@@ -78,7 +79,7 @@ describe('CommandPalette - Mode Switching', () => {
           metadata: { title: 'Second Note', tags: [], links: [], mentions: [] },
         }),
       ];
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -556,7 +557,7 @@ describe('CommandPalette - Mode Switching', () => {
           metadata: { title: 'Note Three', tags: [], links: [], mentions: [] },
         }),
       ];
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       const { rerender } = render(
         <CommandPalette
