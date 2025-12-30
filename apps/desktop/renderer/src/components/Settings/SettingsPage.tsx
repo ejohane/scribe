@@ -12,6 +12,7 @@ import * as styles from './SettingsPage.css';
 import clsx from 'clsx';
 import { GeneralSettings } from './GeneralSettings';
 import { SyncSettings } from './SyncSettings';
+import { ChangelogSettings } from './ChangelogSettings';
 
 /** Available settings sections */
 export type SettingsSection = 'general' | 'sync' | 'changelog';
@@ -61,20 +62,6 @@ function SettingsSidebar({ activeSection, onSelect }: SettingsSidebarProps) {
         Changelog
       </button>
     </nav>
-  );
-}
-
-/**
- * Changelog settings section - placeholder
- */
-function ChangelogSettings() {
-  return (
-    <div className={styles.section}>
-      <h2 className={styles.sectionHeading}>Changelog</h2>
-      <p className={styles.sectionDescription}>
-        Release notes and version history will appear here in a future update.
-      </p>
-    </div>
   );
 }
 

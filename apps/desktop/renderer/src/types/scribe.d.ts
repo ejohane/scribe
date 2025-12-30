@@ -95,6 +95,13 @@ declare global {
   /** App version injected at build time by Vite */
   const __APP_VERSION__: string;
 
+  /**
+   * Release notes content bundled at build time from RELEASE_NOTES.md
+   * Contains user-friendly release notes in markdown format.
+   * @see apps/desktop/renderer/vite.config.ts - define.__RELEASE_NOTES__
+   */
+  const __RELEASE_NOTES__: string;
+
   interface Window {
     scribe: ScribeAPI;
   }

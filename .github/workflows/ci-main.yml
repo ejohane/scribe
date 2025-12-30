@@ -129,6 +129,9 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -145,6 +148,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Semantic Release
+        id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_AUTHOR_NAME: scribe-bot
@@ -152,4 +156,45 @@ jobs:
           GIT_COMMITTER_NAME: scribe-bot
           GIT_COMMITTER_EMAIL: bot@scribe.dev
           HUSKY: 0
-        run: bunx semantic-release
+        run: |
+          OUTPUT=$(bunx semantic-release 2>&1) || EXIT_CODE=$?
+          echo "$OUTPUT"
+
+          if echo "$OUTPUT" | grep -q "Published release"; then
+            echo "new_release_published=true" >> $GITHUB_OUTPUT
+            VERSION=$(echo "$OUTPUT" | grep -oP "Published release \K[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+            echo "new_release_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "::notice::Release published: v$VERSION"
+          else
+            echo "new_release_published=false" >> $GITHUB_OUTPUT
+            echo "::notice::No new release"
+          fi
+
+          exit ${EXIT_CODE:-0}
+
+  enhance-release-notes:
+    name: Enhance Release Notes
+    runs-on: ubuntu-latest
+    needs: [semantic-release]
+    if: needs.semantic-release.outputs.new_release_published == 'true'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: main
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Pull latest changes
+        run: git pull origin main
+
+      - name: Enhance release notes with AI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RELEASE_TAG: v${{ needs.semantic-release.outputs.new_release_version }}
+        run: bun run scripts/enhance-release-notes.ts
+        continue-on-error: true
