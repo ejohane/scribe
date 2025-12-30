@@ -5,9 +5,9 @@
  * Used by FileBrowsePanel, DeleteBrowsePanel, and PersonBrowsePanel.
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Fuse from 'fuse.js';
-import type { Note, NoteId } from '@scribe/shared';
+import type { Note, NoteId, RecentOpenRecord } from '@scribe/shared';
 import { MAX_SEARCH_RESULTS, SEARCH_DEBOUNCE_MS } from '../config';
 
 export interface UseFuzzySearchOptions<T> {
@@ -121,4 +121,88 @@ export function useRecentNotes(
         .slice(0, maxNotes),
     [allNotes, currentNoteId, maxNotes]
   );
+}
+
+interface UseRecentOpensOptions {
+  allNotes: Note[];
+  currentNoteId?: string | null;
+  limit?: number;
+}
+
+interface UseRecentOpensResult {
+  recentItems: Note[];
+  isLoading: boolean;
+  error: Error | null;
+  refresh: () => void;
+}
+
+/**
+ * Hook to fetch recently opened items across all entity types.
+ * Replaces the old useRecentNotes which sorted by updatedAt.
+ *
+ * @param allNotes - All notes loaded in the vault
+ * @param currentNoteId - ID of current note to exclude from results
+ * @param limit - Maximum number of items to fetch (default: 10)
+ */
+export function useRecentOpens({
+  allNotes,
+  currentNoteId,
+  limit = 10,
+}: UseRecentOpensOptions): UseRecentOpensResult {
+  const [recentRecords, setRecentRecords] = useState<RecentOpenRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Fetch recent open records from backend
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchRecent() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const records = await window.scribe.recentOpens.getRecent(limit);
+        if (!cancelled) {
+          setRecentRecords(records);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error('Failed to fetch recent opens'));
+          setRecentRecords([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchRecent();
+    return () => {
+      cancelled = true;
+    };
+  }, [limit, refreshKey]);
+
+  // Create a lookup map for O(1) note access
+  const notesById = useMemo(() => {
+    const map = new Map<string, Note>();
+    for (const note of allNotes) {
+      map.set(note.id, note);
+    }
+    return map;
+  }, [allNotes]);
+
+  // Enrich records with note data, filter orphans and current note
+  const recentItems = useMemo(() => {
+    return recentRecords
+      .map((record) => notesById.get(record.entityId))
+      .filter((note): note is Note => {
+        return note !== undefined && note.id !== currentNoteId;
+      });
+  }, [recentRecords, notesById, currentNoteId]);
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  return { recentItems, isLoading, error, refresh };
 }

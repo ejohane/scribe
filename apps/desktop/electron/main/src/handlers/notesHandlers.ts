@@ -224,6 +224,16 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
           deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
         }
 
+        // Step 5: Clean up recent opens tracking (best-effort, fire-and-forget)
+        try {
+          if (deps.recentOpensDb) {
+            deps.recentOpensDb.removeTracking(id);
+          }
+        } catch (cleanupError) {
+          // Log but don't fail the deletion
+          console.warn('Failed to clean up recent opens tracking:', cleanupError);
+        }
+
         return { success: true };
       } catch (error) {
         wrapError(error);

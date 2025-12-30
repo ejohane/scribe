@@ -7,6 +7,7 @@ import { SearchEngine } from '@scribe/engine-search';
 import { TaskIndex } from '@scribe/engine-core/node';
 import { loadSyncConfig, createSyncEngine } from '@scribe/engine-sync';
 import { createCredentialManager } from './sync/credential-manager.js';
+import { RecentOpensDatabase } from './database/recentOpensDb';
 import { setupAutoUpdater, setupDevUpdateHandlers } from './auto-updater';
 import {
   setupNotesHandlers,
@@ -24,6 +25,7 @@ import {
   setupVaultHandlers,
   setupSyncHandlers,
   setupSyncStatusForwarding,
+  setupRecentOpensHandlers,
   getVaultPath,
   type HandlerDependencies,
 } from './handlers';
@@ -42,6 +44,7 @@ const deps: HandlerDependencies = {
   searchEngine: null,
   taskIndex: null,
   syncEngine: null,
+  recentOpensDb: null,
 };
 
 /**
@@ -79,6 +82,11 @@ async function initializeEngine() {
     // Initialize task index (derived data stored in vault/derived)
     deps.taskIndex = new TaskIndex(path.join(vaultPath, 'derived'));
     await deps.taskIndex.load();
+
+    // Initialize recent opens database
+    const recentOpensDbPath = path.join(vaultPath, 'derived', 'recent_opens.sqlite3');
+    deps.recentOpensDb = new RecentOpensDatabase({ dbPath: recentOpensDbPath });
+    mainLogger.info('Recent opens database initialized');
 
     // Build initial graph, search index, and task index from loaded notes
     const notes = deps.vault.list();
@@ -168,6 +176,7 @@ function setupIPCHandlers() {
   setupDialogHandlers();
   setupVaultHandlers(deps);
   setupSyncHandlers(deps);
+  setupRecentOpensHandlers(deps);
 }
 
 /**
@@ -384,6 +393,16 @@ app.on('before-quit', async () => {
       mainLogger.debug('Sync engine shutdown successfully');
     } catch (error) {
       mainLogger.error('Failed to shutdown sync engine', { error });
+    }
+  }
+
+  // Close recent opens database
+  if (deps.recentOpensDb) {
+    try {
+      deps.recentOpensDb.close();
+      mainLogger.debug('Recent opens database closed successfully');
+    } catch (error) {
+      mainLogger.error('Failed to close recent opens database', { error });
     }
   }
 });

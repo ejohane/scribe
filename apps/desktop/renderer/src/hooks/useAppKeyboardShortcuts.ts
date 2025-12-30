@@ -6,8 +6,8 @@ interface UseAppKeyboardShortcutsConfig {
   isPaletteOpen: boolean;
   /** Set the palette mode */
   setPaletteMode: (mode: PaletteMode) => void;
-  /** Open the command palette */
-  openPalette: () => void;
+  /** Open the command palette (optionally in a specific mode) */
+  openPalette: (mode?: PaletteMode) => void;
   /** Create a new note */
   createNote: () => Promise<void>;
   /** Close the palette */
@@ -75,9 +75,8 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
           // If already open, switch to command mode
           setPaletteMode('command');
         } else {
-          // Open in command mode
-          setPaletteMode('command');
-          openPalette();
+          // Open directly in command mode
+          openPalette('command');
         }
       }
       // Cmd+O: open palette in file-browse mode
@@ -87,9 +86,8 @@ export function useAppKeyboardShortcuts(config: UseAppKeyboardShortcutsConfig): 
           // If already open, switch to file-browse mode
           setPaletteMode('file-browse');
         } else {
-          // Open in file-browse mode
-          setPaletteMode('file-browse');
-          openPalette();
+          // Open directly in file-browse mode
+          openPalette('file-browse');
         }
       }
       // Cmd+N: create new note

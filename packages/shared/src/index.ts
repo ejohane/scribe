@@ -108,6 +108,10 @@ export type {
   VaultCreateResult,
   VaultValidationResult,
   ScribeAPI,
+  // Recent Opens types
+  RecentOpenEntityType,
+  RecentOpenRecord,
+  RecentOpensAPI,
 } from './ipc-contract.js';
 
 // Date Utilities - consolidated date formatting, parsing, and comparison

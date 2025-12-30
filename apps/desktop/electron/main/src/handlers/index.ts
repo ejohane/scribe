@@ -49,6 +49,7 @@ export { setupExportHandlers } from './exportHandlers';
 export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';
 export { setupSyncHandlers, setupSyncStatusForwarding } from './syncHandlers';
+export { setupRecentOpensHandlers } from './recentOpensHandlers';
 
 export type { HandlerDependencies, AppConfig, Engines } from './types';
 export { withEngines } from './types';
