@@ -387,6 +387,7 @@ function App() {
             onForward={navigateForward}
             isMouseActive={isMouseActive}
             currentNoteId={noteState.currentNoteId ?? undefined}
+            currentNoteContent={noteState.currentNote?.content}
             onExportSuccess={handleExportSuccess}
             onExportError={handleExportError}
             onCopySuccess={handleCopySuccess}

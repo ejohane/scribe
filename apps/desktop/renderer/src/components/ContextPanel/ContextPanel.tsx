@@ -254,6 +254,7 @@ export function ContextPanel({
             {note && (
               <ShareMenu
                 noteId={note.id}
+                noteContent={note.content}
                 onExportSuccess={onExportSuccess}
                 onExportError={onExportError}
                 onCopySuccess={onCopySuccess}
