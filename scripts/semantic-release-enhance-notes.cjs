@@ -104,41 +104,44 @@ async function enhanceWithGemini(rawChangelog, version, apiKey) {
 }
 
 function buildPrompt(rawChangelog, version) {
-  return `You are writing release notes for Scribe, a note-taking app for macOS.
+  return `You are writing release notes for Scribe, a beautiful note-taking app for macOS. Your audience is regular users who just want to know what's new in simple terms.
 
 Here is the raw changelog generated from commits:
 
 ${rawChangelog}
 
-Transform this into user-friendly release notes. Start with this exact heading:
+Transform this into friendly, easy-to-read release notes.
+
+OUTPUT FORMAT (follow exactly):
 
 # What's New in v${version}
 
-Then include these sections (omit any that have no items):
+## TL;DR
+(One sentence summary of the most important change. Max 15 words. No jargon.)
 
 ## Highlights
-(1-3 most important user-facing changes, written in plain language)
+(If there are meaningful user-facing changes, list 1-3 bullet points explaining what users can now do differently. Use simple language like "You can now..." or "We fixed..." - if there's nothing meaningful for users, skip this section entirely.)
 
-## Features
-(new capabilities - rewrite commit messages to be user-friendly)
+## Technical Details
+(One short paragraph for developers/curious users. Include links to commits/issues here. If only internal changes, say something like "Internal improvements to [area]." Keep to 2-3 sentences max.)
 
-## Improvements
-(enhancements to existing features)
+CRITICAL RULES:
+1. NEVER just copy commit messages - translate them into plain English
+2. NEVER use words like "refactor", "enhance", "implement", "bundle", "integrate" - these are developer jargon
+3. The TL;DR must answer: "What does this update do for ME as a user?"
+4. If the release is purely internal/technical with no user-facing changes, the TL;DR should say "Bug fixes and performance improvements" or similar
+5. Skip the "Highlights" section entirely if there's nothing a regular user would care about
+6. Be honest - don't oversell minor changes
 
-## Bug Fixes
-(user-facing issues resolved - skip test fixes)
+EXAMPLES OF GOOD TL;DR:
+- "You can now see what changed in each version of Scribe."
+- "Fixed a crash when opening large notes."
+- "Bug fixes and performance improvements."
 
-## Under the Hood
-(internal changes like refactoring, tests, CI - keep very brief, 1-2 lines max)
-
-Guidelines:
-- Write for end users, not developers
-- Focus on WHAT changed and WHY it matters, not HOW
-- Use plain, friendly language
-- Keep "Under the Hood" minimal - users don't need test details
-- Preserve links to commits and issues where helpful
-- If a section has no items, omit it entirely
-- Be concise - aim for scannable release notes`;
+EXAMPLES OF BAD TL;DR (never do this):
+- "Bundle release notes in tagged commit by integrating enhancement"
+- "Add changelog view in settings with AI-enhanced release notes"
+- "Implement feature X with Y architecture"`;
 }
 
 function formatRawNotes(rawChangelog, version) {
