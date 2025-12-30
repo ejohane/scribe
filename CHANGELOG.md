@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.33.0](https://github.com/ejohane/scribe/compare/v1.32.0...v1.33.0) (2025-12-30)
+
+### Features
+
+* add changelog view in settings with AI-enhanced release notes ([0dd0de7](https://github.com/ejohane/scribe/commit/0dd0de77d83e829aaba868a5f5207238eabf8524)), closes [#61](https://github.com/ejohane/scribe/issues/61)
+
 ## [1.32.0](https://github.com/ejohane/scribe/compare/v1.31.0...v1.32.0) (2025-12-30)
 
 ### Features
