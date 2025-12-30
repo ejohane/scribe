@@ -1,8 +1,25 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Note, NoteId, EditorContent, NoteType } from '@scribe/shared';
-import { isSystemNoteId, getErrorMessage, logger } from '@scribe/shared';
+import type { Note, NoteId, EditorContent, NoteType, RecentOpenEntityType } from '@scribe/shared';
+import {
+  isSystemNoteId,
+  getErrorMessage,
+  logger,
+  isDailyNote,
+  isMeetingNote,
+  isPersonNote,
+} from '@scribe/shared';
 
 const log = logger.child('useNoteState');
+
+/**
+ * Determines the entity type for recent opens tracking from a Note object.
+ */
+function getEntityTypeFromNote(note: Note): RecentOpenEntityType {
+  if (isDailyNote(note)) return 'daily';
+  if (isMeetingNote(note)) return 'meeting';
+  if (isPersonNote(note)) return 'person';
+  return 'note';
+}
 
 /**
  * Partial note metadata that can be updated via the header UI
@@ -99,6 +116,12 @@ export function useNoteState(): UseNoteStateReturn {
 
       // Remember this as the last opened note
       await window.scribe.app.setLastOpenedNote(id);
+
+      // Record the open for recent opens tracking (fire-and-forget)
+      const entityType = getEntityTypeFromNote(note);
+      window.scribe.recentOpens
+        .recordOpen(id, entityType)
+        .catch((err) => log.warn('Failed to record recent open', { noteId: id, error: err }));
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load note'));
       log.error('Failed to load note', { noteId: id, error: getErrorMessage(err) });
@@ -242,6 +265,13 @@ export function useNoteState(): UseNoteStateReturn {
 
       // Remember this as the last opened note
       await window.scribe.app.setLastOpenedNote(newNote.id);
+
+      // Record the open (new notes are always 'note' type initially)
+      window.scribe.recentOpens
+        .recordOpen(newNote.id, 'note')
+        .catch((err) =>
+          log.warn('Failed to record recent open', { noteId: newNote.id, error: err })
+        );
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to create note'));
       log.error('Failed to create note', { error: getErrorMessage(err) });

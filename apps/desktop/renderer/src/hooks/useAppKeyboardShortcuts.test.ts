@@ -76,8 +76,9 @@ describe('useAppKeyboardShortcuts', () => {
         dispatchKeyEvent('k', { metaKey: true });
       });
 
-      expect(config.setPaletteMode).toHaveBeenCalledWith('command');
-      expect(config.openPalette).toHaveBeenCalled();
+      // When palette is closed, openPalette is called with mode directly
+      expect(config.openPalette).toHaveBeenCalledWith('command');
+      expect(config.setPaletteMode).not.toHaveBeenCalled();
     });
 
     it('switches to command mode when palette is already open', () => {
@@ -105,8 +106,9 @@ describe('useAppKeyboardShortcuts', () => {
         dispatchKeyEvent('k', { ctrlKey: true });
       });
 
-      expect(config.setPaletteMode).toHaveBeenCalledWith('command');
-      expect(config.openPalette).toHaveBeenCalled();
+      // When palette is closed, openPalette is called with mode directly
+      expect(config.openPalette).toHaveBeenCalledWith('command');
+      expect(config.setPaletteMode).not.toHaveBeenCalled();
     });
   });
 
@@ -121,8 +123,9 @@ describe('useAppKeyboardShortcuts', () => {
         dispatchKeyEvent('o', { metaKey: true });
       });
 
-      expect(config.setPaletteMode).toHaveBeenCalledWith('file-browse');
-      expect(config.openPalette).toHaveBeenCalled();
+      // When palette is closed, openPalette is called with mode directly
+      expect(config.openPalette).toHaveBeenCalledWith('file-browse');
+      expect(config.setPaletteMode).not.toHaveBeenCalled();
     });
 
     it('switches to file-browse mode when palette is already open', () => {

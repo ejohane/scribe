@@ -26,6 +26,53 @@ import type {
 import type { SyncStatus, SyncResult, SyncConflict, ConflictResolution } from './sync-types.js';
 
 // ============================================================================
+// Recent Opens Types
+// ============================================================================
+
+/** Entity types that can be tracked for recent opens */
+export type RecentOpenEntityType = 'note' | 'meeting' | 'person' | 'daily';
+
+/** Record of a recently opened entity */
+export interface RecentOpenRecord {
+  /** Unique identifier of the entity */
+  entityId: string;
+  /** Type of the entity */
+  entityType: RecentOpenEntityType;
+  /** Unix timestamp in milliseconds when the entity was last opened */
+  openedAt: number;
+}
+
+/** API for recent opens tracking */
+export interface RecentOpensAPI {
+  /**
+   * Record that an entity was opened.
+   * Performs an upsert: creates a new record or updates the timestamp if already tracked.
+   *
+   * @param entityId - Unique identifier of the entity
+   * @param entityType - Type of the entity being opened
+   * @returns Success status
+   */
+  recordOpen(entityId: string, entityType: RecentOpenEntityType): Promise<{ success: boolean }>;
+
+  /**
+   * Get the N most recently opened entities.
+   *
+   * @param limit - Maximum number of records to return (default: 10)
+   * @returns Array of recent open records sorted by openedAt descending
+   */
+  getRecent(limit?: number): Promise<RecentOpenRecord[]>;
+
+  /**
+   * Remove tracking for a deleted entity.
+   * Should be called when an entity is permanently deleted.
+   *
+   * @param entityId - Unique identifier of the entity to remove
+   * @returns Success status
+   */
+  removeTracking(entityId: string): Promise<{ success: boolean }>;
+}
+
+// ============================================================================
 // IPC Channel Names
 // ============================================================================
 
@@ -129,6 +176,11 @@ export const IPC_CHANNELS = {
   SYNC_ENABLE: 'sync:enable',
   SYNC_DISABLE: 'sync:disable',
   SYNC_STATUS_CHANGED: 'sync:statusChanged',
+
+  // Recent Opens
+  RECENT_OPENS_RECORD: 'recentOpens:record',
+  RECENT_OPENS_GET: 'recentOpens:get',
+  RECENT_OPENS_REMOVE: 'recentOpens:remove',
 } as const;
 
 // ============================================================================
@@ -721,4 +773,7 @@ export interface ScribeAPI {
 
   /** Sync API for multi-device synchronization */
   sync: SyncAPI;
+
+  /** Recent opens tracking */
+  recentOpens: RecentOpensAPI;
 }

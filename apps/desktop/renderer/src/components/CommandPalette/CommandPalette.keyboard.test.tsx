@@ -14,6 +14,7 @@ import {
   createMockNote,
   mockCommands,
   setupScribeMock,
+  setupNotesWithRecentOpens,
   BASE_TIME,
   CSS,
   styles,
@@ -57,7 +58,7 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
     it('Arrow Down highlights next item', async () => {
       const mockNotes = createSortedNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -94,7 +95,7 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
     it('Arrow Up highlights previous item', async () => {
       const mockNotes = createSortedNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -137,7 +138,7 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
     it('Enter on highlighted item opens note and closes palette', async () => {
       const mockNotes = createSortedNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       const onNoteSelect = vi.fn();
       const onClose = vi.fn();
@@ -174,7 +175,7 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
     it('keyboard navigation stops at upper boundary (does not wrap)', async () => {
       const mockNotes = createSortedNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette
@@ -206,7 +207,7 @@ describe('CommandPalette - Keyboard Navigation', () => {
 
     it('keyboard navigation stops at lower boundary (does not wrap)', async () => {
       const mockNotes = createSortedNotes();
-      (window as any).scribe.notes.list = vi.fn().mockResolvedValue(mockNotes);
+      setupNotesWithRecentOpens(mockNotes);
 
       render(
         <CommandPalette

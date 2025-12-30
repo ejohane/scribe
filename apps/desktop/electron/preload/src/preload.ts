@@ -6,6 +6,7 @@ import type {
   TaskChangeEvent,
   SyncStatus,
   ConflictResolution,
+  RecentOpenEntityType,
 } from '@scribe/shared';
 import { IPC_CHANNELS, type ScribeAPI } from '@scribe/shared';
 
@@ -188,6 +189,16 @@ const scribeAPI: ScribeAPI = {
         ipcRenderer.removeListener(IPC_CHANNELS.SYNC_STATUS_CHANGED, handler);
       };
     },
+  },
+
+  recentOpens: {
+    recordOpen: (entityId: string, entityType: RecentOpenEntityType) =>
+      ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_RECORD, entityId, entityType),
+
+    getRecent: (limit?: number) => ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_GET, limit),
+
+    removeTracking: (entityId: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_REMOVE, entityId),
   },
 };
 

@@ -4,6 +4,7 @@ import type { GraphEngine } from '@scribe/engine-graph';
 import type { SearchEngine } from '@scribe/engine-search';
 import type { TaskIndex } from '@scribe/engine-core/node';
 import type { SyncEngine } from '@scribe/engine-sync';
+import type { RecentOpensDatabase } from '../database/recentOpensDb';
 import { ScribeError } from '@scribe/shared';
 
 /**
@@ -18,6 +19,8 @@ export interface HandlerDependencies {
   mainWindow: BrowserWindow | null;
   /** Sync engine instance. Explicitly nullable - null when sync is disabled (default). */
   syncEngine: SyncEngine | null;
+  /** Recent opens database for tracking recently opened entities */
+  recentOpensDb: RecentOpensDatabase | null;
 }
 
 /**
