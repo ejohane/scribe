@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.30.0](https://github.com/ejohane/scribe/compare/v1.29.1...v1.30.0) (2025-12-30)
+
+### Features
+
+* implement sync engine foundation (Phase 0-1) ([f24a90c](https://github.com/ejohane/scribe/commit/f24a90c1b6209bf8e3c4c18fb4b70eda6e91d325)), closes [#54](https://github.com/ejohane/scribe/issues/54)
+
+### Bug Fixes
+
+* add sync API mock to tests and defensive guards to useSyncStatus ([bbbf254](https://github.com/ejohane/scribe/commit/bbbf254b69a9af9a083fabdd7f4f871f9b563e87))
+
 ## [1.29.1](https://github.com/ejohane/scribe/compare/v1.29.0...v1.29.1) (2025-12-27)
 
 ### Code Refactoring
