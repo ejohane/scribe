@@ -117,4 +117,52 @@ describe('ChangelogSettings', () => {
       expect(screen.queryByText('v2.0.0')).not.toBeInTheDocument();
     });
   });
+
+  describe('markdown link rendering', () => {
+    it('renders markdown links as clickable anchor elements', () => {
+      const notesWithLinks = `
+# What's New in v3.0.0
+
+## Bug Fixes
+- fix issue with parser ([abc123](https://github.com/example/commit/abc123))
+`;
+      render(<ChangelogSettings releaseNotes={notesWithLinks} />);
+
+      const link = screen.getByRole('link', { name: 'abc123' });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', 'https://github.com/example/commit/abc123');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('renders multiple links in single item', () => {
+      const notesWithMultipleLinks = `
+# What's New in v3.0.0
+
+## Features
+- add feature ([PR #1](https://github.com/example/pull/1)), closes [#2](https://github.com/example/issues/2)
+`;
+      render(<ChangelogSettings releaseNotes={notesWithMultipleLinks} />);
+
+      const prLink = screen.getByRole('link', { name: 'PR #1' });
+      const issueLink = screen.getByRole('link', { name: '#2' });
+
+      expect(prLink).toHaveAttribute('href', 'https://github.com/example/pull/1');
+      expect(issueLink).toHaveAttribute('href', 'https://github.com/example/issues/2');
+    });
+
+    it('preserves text around links', () => {
+      const notesWithTextAroundLinks = `
+# What's New in v3.0.0
+
+## Bug Fixes
+- fix parser issue ([abc](https://example.com)) for better results
+`;
+      render(<ChangelogSettings releaseNotes={notesWithTextAroundLinks} />);
+
+      expect(screen.getByText(/fix parser issue/)).toBeInTheDocument();
+      expect(screen.getByText(/for better results/)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'abc' })).toBeInTheDocument();
+    });
+  });
 });

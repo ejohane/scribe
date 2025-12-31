@@ -106,3 +106,11 @@ export const item = style({
     },
   },
 });
+
+export const link = style({
+  color: vars.color.accent,
+  textDecoration: 'none',
+  ':hover': {
+    textDecoration: 'underline',
+  },
+});

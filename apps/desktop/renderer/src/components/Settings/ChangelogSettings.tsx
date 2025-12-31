@@ -5,10 +5,49 @@
  * Current version is highlighted and expanded by default.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { Text, Surface } from '@scribe/design-system';
 import { parseReleaseNotes, isCurrentVersion } from '@/utils/parseReleaseNotes';
 import * as styles from './ChangelogSettings.css';
+
+/**
+ * Converts markdown links [text](url) to clickable anchor elements.
+ * Returns an array of strings and React elements.
+ */
+function renderMarkdownLinks(text: string): ReactNode[] {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Add text before the link
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    // Add the link element
+    const [, linkText, url] = match;
+    parts.push(
+      <a
+        key={`${url}-${match.index}`}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.link}
+      >
+        {linkText}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after last link
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
 
 interface ChangelogSettingsProps {
   /** Override release notes content (for testing) */
@@ -103,12 +142,12 @@ export function ChangelogSettings({ releaseNotes }: ChangelogSettingsProps) {
                   {release.sections.map((section) => (
                     <div key={section.title} className={styles.section}>
                       <Text size="sm" weight="medium" color="foregroundMuted" as="h3">
-                        {section.title}
+                        {renderMarkdownLinks(section.title)}
                       </Text>
                       <ul className={styles.itemList}>
                         {section.items.map((item, i) => (
                           <li key={i} className={styles.item}>
-                            <Text size="sm">{item}</Text>
+                            <Text size="sm">{renderMarkdownLinks(item)}</Text>
                           </li>
                         ))}
                       </ul>
