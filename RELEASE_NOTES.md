@@ -5,6 +5,17 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.33.3
+
+## [1.33.3](https://github.com/ejohane/scribe/compare/v1.33.2...v1.33.3) (2025-12-31)
+
+### Bug Fixes
+
+* render markdown links as clickable elements in changelog ([e36c40e](https://github.com/ejohane/scribe/commit/e36c40e5ed83ba63d10de4b019b0e5721e392987))
+
 ---
 
 # What's New in v1.33.2
