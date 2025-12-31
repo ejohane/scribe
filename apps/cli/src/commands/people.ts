@@ -9,6 +9,7 @@ import { createNoteId, validatePaginationOptions } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Register people commands on the program
@@ -57,6 +58,7 @@ export function registerPeopleCommands(program: Command): void {
             name: p.title,
             mentionCount: mentionCounts.get(p.id) || 0,
             lastMentioned: p.updatedAt,
+            url: getNoteUrl(p.id),
           })),
           total: personNotes.length,
         },
@@ -91,11 +93,13 @@ export function registerPeopleCommands(program: Command): void {
           person: {
             id: personNote.id,
             name: personNote.title,
+            url: getNoteUrl(personNote.id),
           },
           mentions: mentioningNotes.map((n) => ({
             id: n.id,
             title: n.title,
             type: n.type,
+            url: getNoteUrl(n.id),
           })),
           count: mentioningNotes.length,
         },

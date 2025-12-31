@@ -15,7 +15,13 @@ import {
 } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
-import { createEmptyContent } from '../node-builder.js';
+import {
+  createEmptyContent,
+  appendParagraphToContent,
+  appendTaskToContent,
+} from '../node-builder.js';
+import { resolveContentInput } from '../input.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Find a daily note for a specific date
@@ -87,6 +93,7 @@ export function registerDailyCommands(program: Command): void {
           note: {
             id: dailyNote.id,
             title: dailyNote.title,
+            url: getNoteUrl(dailyNote.id),
             content: {
               text: contentText,
               format: 'plain',
@@ -127,6 +134,7 @@ export function registerDailyCommands(program: Command): void {
               id: existingNote.id,
               title: existingNote.title,
               createdAt: new Date(existingNote.createdAt).toISOString(),
+              url: getNoteUrl(existingNote.id),
             },
             created: false,
           },
@@ -154,8 +162,134 @@ export function registerDailyCommands(program: Command): void {
             id: newNote.id,
             title: newNote.title,
             createdAt: new Date(newNote.createdAt).toISOString(),
+            url: getNoteUrl(newNote.id),
           },
           created: true,
+        },
+        globalOpts
+      );
+    });
+
+  // daily append <text>
+  daily
+    .command('append')
+    .description("Append text to today's daily note (creates if needed)")
+    .argument('<text>', 'Text to append (use - for stdin)')
+    .option('--date <date>', 'Target date in YYYY-MM-DD format (default: today)')
+    .option('--file <path>', 'Read content from file')
+    .action(async (text: string, options: { date?: string; file?: string }) => {
+      const globalOpts = program.opts() as GlobalOptions;
+      const ctx = await initializeContext(globalOpts);
+
+      // Default to today
+      const targetDate = options.date || formatDateYMD(new Date());
+
+      // Find or create daily note
+      const notes = ctx.vault.list();
+      let dailyNote = findDailyNoteForDate(notes, targetDate);
+      let created = false;
+
+      if (!dailyNote) {
+        // Create new daily note
+        const title = formatDateTitle(targetDate);
+        dailyNote = await ctx.vault.create({
+          title,
+          type: 'daily',
+          tags: [],
+          content: createEmptyContent(),
+          daily: {
+            date: targetDate,
+          },
+        });
+        created = true;
+      }
+
+      // Resolve input (supports stdin with '-' and file input)
+      const input = await resolveContentInput(text, options.file);
+
+      // Append paragraph
+      const updatedContent = appendParagraphToContent(dailyNote.content, input.text);
+
+      // Save note
+      await ctx.vault.save({ ...dailyNote, content: updatedContent });
+
+      output(
+        {
+          success: true,
+          date: targetDate,
+          note: {
+            id: dailyNote.id,
+            title: dailyNote.title,
+            url: getNoteUrl(dailyNote.id),
+          },
+          created,
+          appended: {
+            text: input.text,
+            source: input.source,
+          },
+        },
+        globalOpts
+      );
+    });
+
+  // daily add-task <text>
+  daily
+    .command('add-task')
+    .description("Add a task to today's daily note (creates if needed)")
+    .argument('<text>', 'Task text')
+    .option('--date <date>', 'Target date in YYYY-MM-DD format (default: today)')
+    .action(async (text: string, options: { date?: string }) => {
+      const globalOpts = program.opts() as GlobalOptions;
+      const ctx = await initializeContext(globalOpts);
+
+      // Default to today
+      const targetDate = options.date || formatDateYMD(new Date());
+
+      // Find or create daily note
+      const notes = ctx.vault.list();
+      let dailyNote = findDailyNoteForDate(notes, targetDate);
+      let created = false;
+
+      if (!dailyNote) {
+        // Create new daily note
+        const title = formatDateTitle(targetDate);
+        dailyNote = await ctx.vault.create({
+          title,
+          type: 'daily',
+          tags: [],
+          content: createEmptyContent(),
+          daily: {
+            date: targetDate,
+          },
+        });
+        created = true;
+      }
+
+      // Append task
+      const updatedContent = appendTaskToContent(dailyNote.content, text);
+
+      // Save note
+      await ctx.vault.save({ ...dailyNote, content: updatedContent });
+
+      // Generate task ID (noteId:nodeKey:hash)
+      const hash = text.slice(0, 8).replace(/\s/g, '');
+      const taskId = `${dailyNote.id}:task:${hash}`;
+
+      output(
+        {
+          success: true,
+          date: targetDate,
+          note: {
+            id: dailyNote.id,
+            title: dailyNote.title,
+            url: getNoteUrl(dailyNote.id),
+          },
+          created,
+          task: {
+            id: taskId,
+            text,
+            completed: false,
+          },
         },
         globalOpts
       );

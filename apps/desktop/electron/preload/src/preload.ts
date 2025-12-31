@@ -7,6 +7,7 @@ import type {
   SyncStatus,
   ConflictResolution,
   RecentOpenEntityType,
+  DeepLinkAction,
 } from '@scribe/shared';
 import { IPC_CHANNELS, type ScribeAPI } from '@scribe/shared';
 
@@ -199,6 +200,24 @@ const scribeAPI: ScribeAPI = {
 
     removeTracking: (entityId: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_REMOVE, entityId),
+  },
+
+  deepLink: {
+    onDeepLink: (callback: (action: DeepLinkAction) => void) => {
+      const handler = (_event: IpcRendererEvent, action: DeepLinkAction) => {
+        callback(action);
+      };
+      ipcRenderer.on(IPC_CHANNELS.DEEP_LINK_RECEIVED, handler);
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.DEEP_LINK_RECEIVED, handler);
+      };
+    },
+  },
+
+  raycast: {
+    install: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_INSTALL),
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_GET_STATUS),
+    openInRaycast: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_OPEN_IN_RAYCAST),
   },
 };
 

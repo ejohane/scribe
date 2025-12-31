@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, MenuItem } from 'electron';
 import path from 'path';
-import { createVaultPath, createNoteId } from '@scribe/shared';
+import { createVaultPath, createNoteId, IPC_CHANNELS } from '@scribe/shared';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
@@ -20,12 +20,16 @@ import {
   setupMeetingHandlers,
   setupTasksHandlers,
   setupCLIHandlers,
+  setupRaycastHandlers,
   setupExportHandlers,
   setupDialogHandlers,
   setupVaultHandlers,
   setupSyncHandlers,
   setupSyncStatusForwarding,
   setupRecentOpensHandlers,
+  parseDeepLink,
+  extractDeepLinkFromArgv,
+  registerProtocolHandler,
   getVaultPath,
   type HandlerDependencies,
 } from './handlers';
@@ -35,6 +39,111 @@ import { DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, TRAFFIC_LIGHT_POSITION } f
 // __filename and __dirname are provided by the build script banner
 
 const isDev = process.env.NODE_ENV === 'development';
+
+// ============================================================================
+// Single Instance Lock & Deep Link Handling
+// ============================================================================
+
+/**
+ * Pending deep link URL to be processed after app is ready.
+ * This is used when the app is launched via a deep link URL.
+ */
+let pendingDeepLinkUrl: string | null = null;
+
+/**
+ * Request single instance lock to prevent multiple app instances.
+ * This is required for proper deep link handling on Windows/Linux.
+ *
+ * When another instance is launched with a deep link URL, the existing
+ * instance receives the URL via the 'second-instance' event.
+ */
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // Another instance is already running - quit this one
+  mainLogger.info('Another instance is already running, quitting...');
+  app.quit();
+} else {
+  // Handle second-instance event (Windows/Linux deep links)
+  app.on('second-instance', (_event, argv, _workingDirectory) => {
+    mainLogger.debug('Second instance detected', { argv });
+
+    // Extract deep link URL from command line args
+    const deepLinkUrl = extractDeepLinkFromArgv(argv);
+    if (deepLinkUrl) {
+      handleDeepLink(deepLinkUrl);
+    }
+
+    // Focus the main window if it exists
+    if (deps.mainWindow) {
+      if (deps.mainWindow.isMinimized()) {
+        deps.mainWindow.restore();
+      }
+      deps.mainWindow.focus();
+    }
+  });
+}
+
+/**
+ * Handle macOS open-url event.
+ * This fires when the app is opened via a scribe:// URL.
+ *
+ * Note: On macOS, this can fire before app is ready if launched via URL.
+ * In that case, we store the URL and process it after ready.
+ */
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  mainLogger.debug('Received open-url event', { url });
+
+  if (app.isReady()) {
+    handleDeepLink(url);
+  } else {
+    // App not ready yet - store for later processing
+    pendingDeepLinkUrl = url;
+  }
+});
+
+/**
+ * Process a deep link URL and send it to the renderer.
+ *
+ * @param url - The scribe:// URL to process
+ */
+function handleDeepLink(url: string): void {
+  mainLogger.info('Processing deep link', { url });
+
+  const result = parseDeepLink(url);
+  if (!result.valid) {
+    mainLogger.warn('Invalid deep link URL', { url, action: result.action });
+    return;
+  }
+
+  // Send the parsed action to the renderer
+  if (deps.mainWindow && !deps.mainWindow.isDestroyed()) {
+    deps.mainWindow.webContents.send(IPC_CHANNELS.DEEP_LINK_RECEIVED, result.action);
+    mainLogger.debug('Sent deep link to renderer', { action: result.action });
+
+    // Ensure window is focused
+    if (deps.mainWindow.isMinimized()) {
+      deps.mainWindow.restore();
+    }
+    deps.mainWindow.focus();
+  } else {
+    // Window not ready yet - store for later
+    pendingDeepLinkUrl = url;
+    mainLogger.debug('Window not ready, storing deep link for later', { url });
+  }
+}
+
+/**
+ * Process any pending deep link that was received before the window was ready.
+ */
+function processPendingDeepLink(): void {
+  if (pendingDeepLinkUrl) {
+    mainLogger.debug('Processing pending deep link', { url: pendingDeepLinkUrl });
+    handleDeepLink(pendingDeepLinkUrl);
+    pendingDeepLinkUrl = null;
+  }
+}
 
 // Shared dependencies for all IPC handlers
 const deps: HandlerDependencies = {
@@ -172,6 +281,7 @@ function setupIPCHandlers() {
   setupMeetingHandlers(deps);
   setupTasksHandlers(deps);
   setupCLIHandlers(deps);
+  setupRaycastHandlers(deps);
   setupExportHandlers(deps);
   setupDialogHandlers();
   setupVaultHandlers(deps);
@@ -328,11 +438,20 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // Register as default protocol handler for scribe:// URLs
+  registerProtocolHandler();
+
   // Initialize engine before setting up IPC handlers
   await initializeEngine();
 
   setupIPCHandlers();
   createWindow();
+
+  // Process any deep link that was received before the window was ready
+  // Slight delay to ensure window is fully loaded
+  setTimeout(() => {
+    processPendingDeepLink();
+  }, 500);
 
   // Setup update handlers - production uses real auto-updater, dev uses stubs
   if (deps.mainWindow) {

@@ -109,17 +109,19 @@ describe('graph commands', () => {
       expect(mockGraphEngine.backlinks).toHaveBeenCalledWith(createNoteId('target-note'));
       expect(output).toHaveBeenCalledWith(
         expect.objectContaining({
-          note: { id: targetNote.id, title: targetNote.title },
+          note: expect.objectContaining({ id: targetNote.id, title: targetNote.title }),
           backlinks: expect.arrayContaining([
             expect.objectContaining({
               id: linkingNote1.id,
               title: linkingNote1.title,
               tags: ['#work'],
+              url: `scribe://note/${linkingNote1.id}`,
             }),
             expect.objectContaining({
               id: linkingNote2.id,
               title: linkingNote2.title,
               type: 'project',
+              url: `scribe://note/${linkingNote2.id}`,
             }),
           ]),
           count: 2,
@@ -138,7 +140,7 @@ describe('graph commands', () => {
 
       expect(output).toHaveBeenCalledWith(
         expect.objectContaining({
-          note: { id: targetNote.id, title: targetNote.title },
+          note: expect.objectContaining({ id: targetNote.id, title: targetNote.title }),
           backlinks: [],
           count: 0,
         }),
@@ -196,10 +198,18 @@ describe('graph commands', () => {
       expect(mockGraphEngine.outlinks).toHaveBeenCalledWith(createNoteId('source-note'));
       expect(output).toHaveBeenCalledWith(
         expect.objectContaining({
-          note: { id: sourceNote.id, title: sourceNote.title },
+          note: expect.objectContaining({ id: sourceNote.id, title: sourceNote.title }),
           outlinks: expect.arrayContaining([
-            expect.objectContaining({ id: linkedNote1.id, title: linkedNote1.title }),
-            expect.objectContaining({ id: linkedNote2.id, title: linkedNote2.title }),
+            expect.objectContaining({
+              id: linkedNote1.id,
+              title: linkedNote1.title,
+              url: `scribe://note/${linkedNote1.id}`,
+            }),
+            expect.objectContaining({
+              id: linkedNote2.id,
+              title: linkedNote2.title,
+              url: `scribe://note/${linkedNote2.id}`,
+            }),
           ]),
           count: 2,
         }),
@@ -251,10 +261,18 @@ describe('graph commands', () => {
       expect(mockGraphEngine.neighbors).toHaveBeenCalledWith(createNoteId('center'));
       expect(output).toHaveBeenCalledWith(
         expect.objectContaining({
-          note: { id: centerNote.id, title: centerNote.title },
+          note: expect.objectContaining({ id: centerNote.id, title: centerNote.title }),
           neighbors: expect.arrayContaining([
-            expect.objectContaining({ id: neighborNote1.id, direction: 'incoming' }),
-            expect.objectContaining({ id: neighborNote2.id, direction: 'outgoing' }),
+            expect.objectContaining({
+              id: neighborNote1.id,
+              direction: 'incoming',
+              url: `scribe://note/${neighborNote1.id}`,
+            }),
+            expect.objectContaining({
+              id: neighborNote2.id,
+              direction: 'outgoing',
+              url: `scribe://note/${neighborNote2.id}`,
+            }),
           ]),
           count: 2,
         }),
