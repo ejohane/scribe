@@ -91,7 +91,8 @@ describe('Calendar', () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       const onSelect = vi.fn();
-      render(<Calendar onSelect={onSelect} />);
+      // Use defaultMonth to ensure December 2025 is displayed regardless of system date
+      render(<Calendar onSelect={onSelect} defaultMonth={new Date(2025, 11, 1)} />);
 
       // Click on December 25th using the full aria-label pattern
       const day25 = screen.getByRole('button', { name: /December 25th/i });
@@ -136,7 +137,14 @@ describe('Calendar', () => {
       vi.useRealTimers();
       const user = userEvent.setup();
       const onSelect = vi.fn();
-      render(<Calendar selected={new Date(2025, 11, 25)} onSelect={onSelect} />);
+      // Use defaultMonth to ensure December 2025 is displayed regardless of system date
+      render(
+        <Calendar
+          selected={new Date(2025, 11, 25)}
+          onSelect={onSelect}
+          defaultMonth={new Date(2025, 11, 1)}
+        />
+      );
 
       // Click on a different date
       const day20 = screen.getByRole('button', { name: /December 20th/i });
@@ -207,7 +215,14 @@ describe('Calendar', () => {
       const onSelect = vi.fn();
       const disabledDates = [new Date(2025, 11, 25)];
 
-      render(<Calendar onSelect={onSelect} disabled={disabledDates} />);
+      // Use defaultMonth to ensure December 2025 is displayed regardless of system date
+      render(
+        <Calendar
+          onSelect={onSelect}
+          disabled={disabledDates}
+          defaultMonth={new Date(2025, 11, 1)}
+        />
+      );
 
       // Try to click on disabled date
       const day25Button = screen.getByRole('button', { name: /December 25th/i });
