@@ -89,6 +89,12 @@ export function useDeepLink(options: UseDeepLinkOptions): void {
   );
 
   useEffect(() => {
+    // Check if we're in an Electron environment with deep link support
+    if (!window.scribe?.deepLink?.onDeepLink) {
+      // Not in Electron or deep link API not available (e.g., in tests)
+      return;
+    }
+
     // Subscribe to deep link events from the main process
     const unsubscribe = window.scribe.deepLink.onDeepLink(handleDeepLink);
 
