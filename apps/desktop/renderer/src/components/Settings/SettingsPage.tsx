@@ -6,16 +6,23 @@
  */
 
 import { useState, useCallback } from 'react';
-import { CloseIcon, SettingsIcon, CalendarIcon, CloudIcon } from '@scribe/design-system';
+import {
+  CloseIcon,
+  SettingsIcon,
+  CalendarIcon,
+  CloudIcon,
+  CommandIcon,
+} from '@scribe/design-system';
 import { Overlay } from '@scribe/design-system';
 import * as styles from './SettingsPage.css';
 import clsx from 'clsx';
 import { GeneralSettings } from './GeneralSettings';
 import { SyncSettings } from './SyncSettings';
 import { ChangelogSettings } from './ChangelogSettings';
+import { IntegrationsSettings } from './IntegrationsSettings';
 
 /** Available settings sections */
-export type SettingsSection = 'general' | 'sync' | 'changelog';
+export type SettingsSection = 'general' | 'integrations' | 'sync' | 'changelog';
 
 export interface SettingsPageProps {
   /** Whether the settings page is open */
@@ -44,6 +51,14 @@ function SettingsSidebar({ activeSection, onSelect }: SettingsSidebarProps) {
       >
         <SettingsIcon size={18} />
         General
+      </button>
+      <button
+        className={clsx(styles.navItem, activeSection === 'integrations' && styles.navItemActive)}
+        onClick={() => onSelect('integrations')}
+        type="button"
+      >
+        <CommandIcon size={18} />
+        Integrations
       </button>
       <button
         className={clsx(styles.navItem, activeSection === 'sync' && styles.navItemActive)}
@@ -105,6 +120,7 @@ export function SettingsPage({ isOpen, onClose }: SettingsPageProps) {
 
           <main className={styles.main}>
             {activeSection === 'general' && <GeneralSettings />}
+            {activeSection === 'integrations' && <IntegrationsSettings />}
             {activeSection === 'sync' && <SyncSettings />}
             {activeSection === 'changelog' && <ChangelogSettings />}
           </main>

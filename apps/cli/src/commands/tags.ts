@@ -8,6 +8,7 @@ import { Command } from 'commander';
 import { validatePaginationOptions } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Sort field options for tags list
@@ -133,6 +134,7 @@ export function registerTagsCommands(program: Command): void {
             type: n.type ?? 'regular',
             tags: n.tags || [],
             updatedAt: new Date(n.updatedAt).toISOString(),
+            url: getNoteUrl(n.id),
           })),
           total,
           limit,

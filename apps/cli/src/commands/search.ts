@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { extractMarkdown } from '@scribe/shared';
 import { initializeContext, GlobalOptions } from '../context.js';
 import { output } from '../output.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 export function registerSearchCommand(program: Command): void {
   program
@@ -39,6 +40,7 @@ export function registerSearchCommand(program: Command): void {
           snippet,
           score: result.score,
           matches: [{ field: 'content', count: countMatches(plainText, query) }],
+          url: getNoteUrl(result.id),
         };
       });
 

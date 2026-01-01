@@ -11,8 +11,9 @@
     "dev:renderer": "cd renderer && bun run dev",
     "dev:main": "cd electron/main && bun run dev",
     "dev:preload": "cd electron/preload && bun run dev",
-    "build": "bun run build:renderer && bun run build:main && bun run build:preload && bun run build:cli",
+    "build": "bun run build:renderer && bun run build:main && bun run build:preload && bun run build:cli && bun run build:raycast",
     "build:cli": "cd ../cli && bun run build:binary && mkdir -p ../desktop/resources/bin && cp dist/scribe ../desktop/resources/bin/",
+    "build:raycast": "mkdir -p resources/raycast-extension && cp -r ../raycast/src ../raycast/package.json ../raycast/tsconfig.json ../raycast/assets resources/raycast-extension/",
     "build:renderer": "cd renderer && bun run build",
     "build:main": "cd electron/main && bun run build",
     "build:preload": "cd electron/preload && bun run build",
@@ -43,6 +44,7 @@
       "electron/preload/dist/**/*",
       "renderer/dist/**/*",
       "resources/bin/**/*",
+      "resources/raycast-extension/**/*",
       "!**/node_modules/**/*"
     ],
     "extraResources": [
@@ -51,6 +53,21 @@
         "to": "bin",
         "filter": [
           "**/*"
+        ]
+      },
+      {
+        "from": "resources/raycast-extension",
+        "to": "raycast-extension",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Scribe",
+        "schemes": [
+          "scribe"
         ]
       }
     ],

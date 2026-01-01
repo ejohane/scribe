@@ -48,6 +48,21 @@ export const VALID_NOTE_TYPES = ['regular', 'person', 'meeting'] as const;
 export type ValidNoteType = (typeof VALID_NOTE_TYPES)[number];
 
 // ============================================================================
+// URL Utilities
+// ============================================================================
+
+/**
+ * Generate the scribe:// URL for a note.
+ * This URL can be used to open the note in the Scribe desktop app.
+ *
+ * @param noteId - The note ID
+ * @returns The scribe:// URL for the note
+ */
+export function getNoteUrl(noteId: string): string {
+  return `scribe://note/${noteId}`;
+}
+
+// ============================================================================
 // Formatting Utilities
 // ============================================================================
 
@@ -63,6 +78,7 @@ export function formatNoteForList(note: Note) {
     createdAt: new Date(note.createdAt).toISOString(),
     updatedAt: new Date(note.updatedAt).toISOString(),
     linkCount: note.metadata?.links?.length || 0,
+    url: getNoteUrl(note.id),
   };
 }
 

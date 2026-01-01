@@ -8,7 +8,7 @@ import { Command } from 'commander';
 import type { Note } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
-import { fuzzyMatchScore, exactSubstringMatch } from './notes-helpers.js';
+import { fuzzyMatchScore, exactSubstringMatch, getNoteUrl } from './notes-helpers.js';
 
 /**
  * Options for the notes find command
@@ -76,6 +76,7 @@ export function registerNotesFindCommand(notes: Command, program: Command): void
         title: note.title,
         score: Math.round(score * 1000) / 1000, // Round to 3 decimal places
         type: note.type ?? 'regular',
+        url: getNoteUrl(note.id),
       }));
 
       output(

@@ -9,6 +9,7 @@ import { createNoteId } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Register the notes delete subcommand
@@ -44,7 +45,7 @@ export function registerNotesDeleteCommand(notes: Command, program: Command): vo
             code: 'HAS_BACKLINKS',
             noteId: id,
             backlinkCount,
-            backlinks: backlinks.map((n) => ({ id: n.id, title: n.title })),
+            backlinks: backlinks.map((n) => ({ id: n.id, title: n.title, url: getNoteUrl(n.id) })),
             hint: 'Use --force to delete anyway (backlinks will become broken)',
           },
           globalOpts

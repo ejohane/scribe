@@ -214,8 +214,8 @@ describe('notes-delete command', () => {
           noteId: 'target-note',
           backlinkCount: 2,
           backlinks: [
-            { id: 'linking-1', title: 'Linking Note 1' },
-            { id: 'linking-2', title: 'Linking Note 2' },
+            { id: 'linking-1', title: 'Linking Note 1', url: 'scribe://note/linking-1' },
+            { id: 'linking-2', title: 'Linking Note 2', url: 'scribe://note/linking-2' },
           ],
           hint: 'Use --force to delete anyway (backlinks will become broken)',
         }),

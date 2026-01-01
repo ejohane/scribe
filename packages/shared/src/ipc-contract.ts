@@ -26,6 +26,31 @@ import type {
 import type { SyncStatus, SyncResult, SyncConflict, ConflictResolution } from './sync-types.js';
 
 // ============================================================================
+// Deep Link Types
+// ============================================================================
+
+/**
+ * Types of deep link actions supported by Scribe.
+ */
+export type DeepLinkAction =
+  | { type: 'note'; noteId: string }
+  | { type: 'daily'; date?: string } // date is optional, defaults to today
+  | { type: 'search'; query: string }
+  | { type: 'unknown'; url: string };
+
+/**
+ * Result from parsing a deep link URL.
+ */
+export interface DeepLinkParseResult {
+  /** Whether the URL was successfully parsed */
+  valid: boolean;
+  /** The parsed action, or unknown if invalid */
+  action: DeepLinkAction;
+  /** The original URL */
+  originalUrl: string;
+}
+
+// ============================================================================
 // Recent Opens Types
 // ============================================================================
 
@@ -181,6 +206,14 @@ export const IPC_CHANNELS = {
   RECENT_OPENS_RECORD: 'recentOpens:record',
   RECENT_OPENS_GET: 'recentOpens:get',
   RECENT_OPENS_REMOVE: 'recentOpens:remove',
+
+  // Deep Links
+  DEEP_LINK_RECEIVED: 'deepLink:received',
+
+  // Raycast Extension
+  RAYCAST_INSTALL: 'raycast:install',
+  RAYCAST_GET_STATUS: 'raycast:getStatus',
+  RAYCAST_OPEN_IN_RAYCAST: 'raycast:openInRaycast',
 } as const;
 
 // ============================================================================
@@ -711,6 +744,76 @@ export interface SyncAPI {
   onStatusChange(callback: (status: SyncStatus) => void): () => void;
 }
 
+/**
+ * Deep Link API for handling scribe:// URLs
+ */
+export interface DeepLinkAPI {
+  /**
+   * Subscribe to deep link events.
+   * Called when the app receives a scribe:// URL.
+   *
+   * @param callback - Function called with the parsed deep link action
+   * @returns Unsubscribe function for cleanup
+   */
+  onDeepLink(callback: (action: DeepLinkAction) => void): () => void;
+}
+
+// ============================================================================
+// Raycast Extension Types
+// ============================================================================
+
+/**
+ * Result of a Raycast extension installation operation.
+ */
+export interface RaycastInstallResult {
+  /** Whether the operation succeeded */
+  success: boolean;
+  /** Human-readable message describing the result */
+  message: string;
+  /** Error details if failed */
+  error?: string;
+}
+
+/**
+ * Status of the Raycast extension installation.
+ */
+export interface RaycastStatus {
+  /** Whether Raycast app is installed on the system */
+  raycastInstalled: boolean;
+  /** Whether the Scribe CLI is installed (required for extension) */
+  cliInstalled: boolean;
+  /** Whether the extension source is bundled with this app */
+  extensionBundled: boolean;
+  /** Whether the extension has been copied to user directory */
+  extensionInstalled: boolean;
+  /** Whether npm dependencies have been installed */
+  dependenciesInstalled: boolean;
+  /** Path where extension is/will be installed */
+  installPath: string;
+}
+
+/**
+ * Raycast Extension API for managing the Scribe Raycast extension
+ */
+export interface RaycastAPI {
+  /**
+   * Install the Raycast extension.
+   * Copies bundled source to user directory, runs npm install, and opens Raycast import.
+   */
+  install(): Promise<RaycastInstallResult>;
+
+  /**
+   * Get detailed status of the Raycast extension installation.
+   */
+  getStatus(): Promise<RaycastStatus>;
+
+  /**
+   * Open Raycast with the extension import URL.
+   * Used after installation to trigger the Raycast import flow.
+   */
+  openInRaycast(): Promise<RaycastInstallResult>;
+}
+
 // ============================================================================
 // Complete Scribe API Interface
 // ============================================================================
@@ -776,4 +879,10 @@ export interface ScribeAPI {
 
   /** Recent opens tracking */
   recentOpens: RecentOpensAPI;
+
+  /** Deep link handling for scribe:// URLs */
+  deepLink: DeepLinkAPI;
+
+  /** Raycast extension management */
+  raycast: RaycastAPI;
 }
