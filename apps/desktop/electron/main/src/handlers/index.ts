@@ -50,6 +50,13 @@ export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';
 export { setupSyncHandlers, setupSyncStatusForwarding } from './syncHandlers';
 export { setupRecentOpensHandlers } from './recentOpensHandlers';
+export {
+  parseDeepLink,
+  extractDeepLinkFromArgv,
+  registerProtocolHandler,
+  DEEP_LINK_PROTOCOL,
+} from './deepLinkHandlers';
+export { setupRaycastHandlers } from './raycastHandlers';
 
 export type { HandlerDependencies, AppConfig, Engines } from './types';
 export { withEngines } from './types';

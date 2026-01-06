@@ -28,6 +28,7 @@ import { useHistoryEntries } from './hooks/useHistoryEntries';
 import { useAppCommands } from './hooks/useAppCommands';
 import { useAppKeyboardShortcuts } from './hooks/useAppKeyboardShortcuts';
 import { useSettingsPage } from './hooks/useSettingsPage';
+import { useDeepLink } from './hooks/useDeepLink';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 import { EditorCommandProvider } from './components/Editor/EditorCommandContext';
@@ -234,6 +235,41 @@ function App() {
   const handleCopySuccess = useCallback(() => {
     showToast('Copied to clipboard');
   }, [showToast]);
+
+  // Handle deep link search - open command palette in command mode
+  // The search functionality is available through the command palette
+  const handleDeepLinkSearch = useCallback(
+    (query: string) => {
+      // Open command palette - search is handled within the palette
+      commandPalette.open('command');
+      // Note: Future enhancement could pre-populate search query
+      console.log('[DeepLink] Search requested with query:', query);
+      showToast(`Search: ${query}`);
+    },
+    [commandPalette, showToast]
+  );
+
+  // Handle deep link navigation to daily note with optional date
+  const handleDeepLinkDaily = useCallback(
+    async (date?: Date) => {
+      try {
+        const dailyNote = await window.scribe.daily.getOrCreate(date);
+        navigateToNote(dailyNote.id);
+      } catch (error) {
+        showToast('Failed to open daily note', 'error');
+        console.error('Failed to navigate to daily note:', error);
+      }
+    },
+    [navigateToNote, showToast]
+  );
+
+  // Subscribe to deep link events
+  useDeepLink({
+    navigateToNote,
+    navigateToDaily: handleDeepLinkDaily,
+    openSearch: handleDeepLinkSearch,
+    showError: (message) => showToast(message, 'error'),
+  });
 
   // Handle copy error - show error toast notification
   const handleCopyError = useCallback(

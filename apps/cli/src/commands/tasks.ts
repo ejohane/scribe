@@ -10,6 +10,7 @@ import { createNoteId, validatePaginationOptions } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { CLIError, ErrorCode } from '../errors.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Status filter values for tasks list
@@ -45,6 +46,7 @@ function formatTaskForList(task: Task, noteTitle: string) {
     priority: task.priority,
     noteId: task.noteId,
     noteTitle,
+    noteUrl: getNoteUrl(task.noteId),
     createdAt: new Date(task.createdAt).toISOString(),
     ...(task.completedAt && { completedAt: new Date(task.completedAt).toISOString() }),
   };

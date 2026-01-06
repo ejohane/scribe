@@ -11,6 +11,7 @@ import { createNoteId, extractMarkdown } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Register the notes export subcommand
@@ -47,7 +48,7 @@ export function registerNotesExportCommand(notes: Command, program: Command): vo
         output(
           {
             success: true,
-            note: { id: note.id, title: note.title },
+            note: { id: note.id, title: note.title, url: getNoteUrl(note.id) },
             outputPath,
           },
           globalOpts

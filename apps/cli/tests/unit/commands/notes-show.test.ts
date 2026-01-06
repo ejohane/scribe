@@ -293,8 +293,8 @@ describe('notes-show command', () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             links: [
-              { id: 'linked-1', title: 'Linked Note 1' },
-              { id: 'linked-2', title: 'Linked Note 2' },
+              { id: 'linked-1', title: 'Linked Note 1', url: 'scribe://note/linked-1' },
+              { id: 'linked-2', title: 'Linked Note 2', url: 'scribe://note/linked-2' },
             ],
           }),
         }),
@@ -317,8 +317,8 @@ describe('notes-show command', () => {
         expect.objectContaining({
           metadata: expect.objectContaining({
             backlinks: [
-              { id: 'backlink-1', title: 'Backlink Note 1' },
-              { id: 'backlink-2', title: 'Backlink Note 2' },
+              { id: 'backlink-1', title: 'Backlink Note 1', url: 'scribe://note/backlink-1' },
+              { id: 'backlink-2', title: 'Backlink Note 2', url: 'scribe://note/backlink-2' },
             ],
           }),
         }),

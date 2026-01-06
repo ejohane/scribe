@@ -112,6 +112,18 @@ export type {
   RecentOpenEntityType,
   RecentOpenRecord,
   RecentOpensAPI,
+  // Deep Link types
+  DeepLinkAction,
+  DeepLinkParseResult,
+  DeepLinkAPI,
+  // CLI types
+  CLIInstallResult,
+  CLIStatus,
+  CLIAPI,
+  // Raycast types
+  RaycastInstallResult,
+  RaycastStatus,
+  RaycastAPI,
 } from './ipc-contract.js';
 
 // Date Utilities - consolidated date formatting, parsing, and comparison

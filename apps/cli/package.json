@@ -11,7 +11,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "bun src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --sourcemap",
+    "build": "bun build src/index.ts --outdir dist --sourcemap --target bun",
     "build:binary": "bun build ./src/index.ts --compile --outfile dist/scribe",
     "build:binary:darwin-arm64": "bun build ./src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/scribe-darwin-arm64",
     "build:binary:darwin-x64": "bun build ./src/index.ts --compile --target=bun-darwin-x64 --outfile dist/scribe-darwin-x64",

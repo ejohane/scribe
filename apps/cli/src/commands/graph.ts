@@ -3,6 +3,7 @@ import { createNoteId } from '@scribe/shared';
 import { initializeContext, GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 export function registerGraphCommands(program: Command): void {
   const graph = program.command('graph').description('Graph operations');
@@ -30,12 +31,13 @@ export function registerGraphCommands(program: Command): void {
 
       output(
         {
-          note: { id: note.id, title: note.title },
+          note: { id: note.id, title: note.title, url: getNoteUrl(note.id) },
           backlinks: backlinks.map((n) => ({
             id: n.id,
             title: n.title,
             type: n.type,
             tags: n.tags || [],
+            url: getNoteUrl(n.id),
           })),
           count: backlinks.length,
         },
@@ -66,12 +68,13 @@ export function registerGraphCommands(program: Command): void {
 
       output(
         {
-          note: { id: note.id, title: note.title },
+          note: { id: note.id, title: note.title, url: getNoteUrl(note.id) },
           outlinks: outlinks.map((n) => ({
             id: n.id,
             title: n.title,
             type: n.type,
             tags: n.tags || [],
+            url: getNoteUrl(n.id),
           })),
           count: outlinks.length,
         },
@@ -103,7 +106,7 @@ export function registerGraphCommands(program: Command): void {
 
       output(
         {
-          note: { id: note.id, title: note.title },
+          note: { id: note.id, title: note.title, url: getNoteUrl(note.id) },
           neighbors: neighbors.map((n) => {
             const isIncoming = backlinksSet.has(n.id);
             const isOutgoing = outlinksSet.has(n.id);
@@ -114,6 +117,7 @@ export function registerGraphCommands(program: Command): void {
               title: n.title,
               direction,
               type: 'link',
+              url: getNoteUrl(n.id),
             };
           }),
           count: neighbors.length,
@@ -148,7 +152,7 @@ export function registerGraphCommands(program: Command): void {
         .slice(0, 5)
         .map(([id, count]) => {
           const note = ctx.vault.read(createNoteId(id));
-          return { id, title: note.title, linkCount: count };
+          return { id, title: note.title, linkCount: count, url: getNoteUrl(id) };
         });
 
       // Count orphans

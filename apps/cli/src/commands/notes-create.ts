@@ -17,6 +17,7 @@ import {
   createInitialContent,
   createEmptyContent,
 } from '../node-builder.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Register the notes create subcommand
@@ -66,6 +67,7 @@ export function registerNotesCreateCommand(notes: Command, program: Command): vo
             tags: note.tags || [],
             createdAt: new Date(note.createdAt).toISOString(),
             updatedAt: new Date(note.updatedAt).toISOString(),
+            url: getNoteUrl(note.id),
           },
         },
         globalOpts
@@ -111,6 +113,7 @@ export function registerNotesAppendCommand(notes: Command, program: Command): vo
             id: note.id,
             title: note.title,
             updatedAt: new Date().toISOString(),
+            url: getNoteUrl(note.id),
           },
         },
         globalOpts
@@ -157,6 +160,7 @@ export function registerNotesAddTaskCommand(notes: Command, program: Command): v
             completed: false,
             noteId: id,
             noteTitle: note.title,
+            noteUrl: getNoteUrl(id),
           },
         },
         globalOpts

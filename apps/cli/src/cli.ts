@@ -13,6 +13,7 @@ import { registerCompletionCommand } from './commands/completion.js';
 import { registerDailyCommands } from './commands/daily.js';
 import { registerGraphCommands } from './commands/graph.js';
 import { registerNotesCommands } from './commands/notes.js';
+import { registerOpenCommand } from './commands/open.js';
 import { registerPeopleCommands } from './commands/people.js';
 import { registerSearchCommand } from './commands/search.js';
 import { registerTagsCommands } from './commands/tags.js';
@@ -104,6 +105,7 @@ export function createCLI(): Command {
 
   // Register implemented commands
   registerNotesCommands(program);
+  registerOpenCommand(program);
   registerPeopleCommands(program);
   registerSearchCommand(program);
   registerGraphCommands(program);

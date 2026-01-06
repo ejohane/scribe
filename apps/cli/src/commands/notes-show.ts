@@ -9,6 +9,7 @@ import { createNoteId, extractMarkdown } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
+import { getNoteUrl } from './notes-helpers.js';
 
 /**
  * Register the notes show subcommand
@@ -47,14 +48,15 @@ export function registerNotesShowCommand(notes: Command, program: Command): void
           tags: note.tags || [],
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
+          url: getNoteUrl(note.id),
           content: {
             text: contentText,
             format: 'plain',
             ...(options.includeRaw && { raw: note.content }),
           },
           metadata: {
-            links: outlinks.map((n) => ({ id: n.id, title: n.title })),
-            backlinks: backlinks.map((n) => ({ id: n.id, title: n.title })),
+            links: outlinks.map((n) => ({ id: n.id, title: n.title, url: getNoteUrl(n.id) })),
+            backlinks: backlinks.map((n) => ({ id: n.id, title: n.title, url: getNoteUrl(n.id) })),
           },
         },
         globalOpts

@@ -88,7 +88,8 @@ describe('Calendar', () => {
   describe('selection', () => {
     it('calls onSelect when date is clicked', async () => {
       const onSelect = vi.fn();
-      render(<Calendar onSelect={onSelect} />);
+      // Use defaultMonth to ensure December 2025 is displayed regardless of system date
+      render(<Calendar onSelect={onSelect} defaultMonth={new Date(2025, 11, 1)} />);
 
       // Use real timers for click tests to avoid timeout issues
       vi.useRealTimers();
@@ -130,7 +131,14 @@ describe('Calendar', () => {
 
     it('allows clicking a different date to change selection', async () => {
       const onSelect = vi.fn();
-      render(<Calendar selected={new Date(2025, 11, 25)} onSelect={onSelect} />);
+      // Use defaultMonth to ensure December 2025 is displayed regardless of system date
+      render(
+        <Calendar
+          selected={new Date(2025, 11, 25)}
+          onSelect={onSelect}
+          defaultMonth={new Date(2025, 11, 1)}
+        />
+      );
 
       // Use real timers for click tests to avoid timeout issues
       vi.useRealTimers();
@@ -198,7 +206,14 @@ describe('Calendar', () => {
       const onSelect = vi.fn();
       const disabledDates = [new Date(2025, 11, 25)];
 
-      render(<Calendar onSelect={onSelect} disabled={disabledDates} />);
+      // Use defaultMonth to ensure December 2025 is displayed regardless of system date
+      render(
+        <Calendar
+          onSelect={onSelect}
+          disabled={disabledDates}
+          defaultMonth={new Date(2025, 11, 1)}
+        />
+      );
 
       // Use real timers for click tests to avoid timeout issues
       vi.useRealTimers();

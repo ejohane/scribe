@@ -10,7 +10,7 @@ import { createNoteId } from '@scribe/shared';
 import { initializeContext, type GlobalOptions } from '../context.js';
 import { output } from '../output.js';
 import { noteNotFound } from '../errors.js';
-import { VALID_NOTE_TYPES, type ValidNoteType, parseTags } from './notes-helpers.js';
+import { VALID_NOTE_TYPES, type ValidNoteType, parseTags, getNoteUrl } from './notes-helpers.js';
 
 /**
  * Options for the notes update command
@@ -147,6 +147,7 @@ export function registerNotesUpdateCommand(notes: Command, program: Command): vo
             type: newType ?? 'regular',
             tags: newTags,
             updatedAt,
+            url: getNoteUrl(note.id),
           },
           changes,
         },

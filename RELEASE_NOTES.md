@@ -5,6 +5,29 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+
+---
+
+# What's New in v1.33.4
+
+## [1.33.4](https://github.com/ejohane/scribe/compare/v1.33.3...v1.33.4) (2026-01-01)
+
+### Bug Fixes
+
+* add guard for deep link hook in non-Electron environments ([52884e1](https://github.com/ejohane/scribe/commit/52884e1a7acac1971b6e3120ff0db4bf0a642962))
+* use defaultMonth in Calendar tests to avoid date-dependent failures ([5ea020a](https://github.com/ejohane/scribe/commit/5ea020a263a4d9748806d99830cfd4103c50d873))
+
+---
+
+# What's New in v1.33.3
+
+## [1.33.3](https://github.com/ejohane/scribe/compare/v1.33.2...v1.33.3) (2025-12-31)
+
+### Bug Fixes
+
+* render markdown links as clickable elements in changelog ([e36c40e](https://github.com/ejohane/scribe/commit/e36c40e5ed83ba63d10de4b019b0e5721e392987))
+
 ---
 
 # What's New in v1.33.2
