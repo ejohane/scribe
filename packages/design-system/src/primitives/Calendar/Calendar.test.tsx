@@ -5,19 +5,19 @@
  * Tests cover rendering, navigation, selection, disabled dates.
  */
 
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Calendar } from './Calendar';
 
 describe('Calendar', () => {
   // Use fake timers to ensure consistent date-based tests
-  beforeAll(() => {
+  beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-12-18T12:00:00'));
   });
 
-  afterAll(() => {
+  afterEach(() => {
     vi.useRealTimers();
   });
 
@@ -87,11 +87,12 @@ describe('Calendar', () => {
 
   describe('selection', () => {
     it('calls onSelect when date is clicked', async () => {
+      const onSelect = vi.fn();
+      render(<Calendar onSelect={onSelect} />);
+
       // Use real timers for click tests to avoid timeout issues
       vi.useRealTimers();
       const user = userEvent.setup();
-      const onSelect = vi.fn();
-      render(<Calendar onSelect={onSelect} />);
 
       // Click on December 25th using the full aria-label pattern
       const day25 = screen.getByRole('button', { name: /December 25th/i });
@@ -106,10 +107,6 @@ describe('Calendar', () => {
       expect(selectedDate.getFullYear()).toBe(2025);
       expect(selectedDate.getMonth()).toBe(11); // December is month 11
       expect(selectedDate.getDate()).toBe(25);
-
-      // Restore fake timers
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2025-12-18T12:00:00'));
     });
 
     it('highlights the selected date with selected class', () => {
@@ -132,11 +129,12 @@ describe('Calendar', () => {
     });
 
     it('allows clicking a different date to change selection', async () => {
+      const onSelect = vi.fn();
+      render(<Calendar selected={new Date(2025, 11, 25)} onSelect={onSelect} />);
+
       // Use real timers for click tests to avoid timeout issues
       vi.useRealTimers();
       const user = userEvent.setup();
-      const onSelect = vi.fn();
-      render(<Calendar selected={new Date(2025, 11, 25)} onSelect={onSelect} />);
 
       // Click on a different date
       const day20 = screen.getByRole('button', { name: /December 20th/i });
@@ -147,10 +145,6 @@ describe('Calendar', () => {
       const selectedDate = onSelect.mock.calls[0][0] as Date;
       expect(selectedDate).toBeInstanceOf(Date);
       expect(selectedDate.getDate()).toBe(20);
-
-      // Restore fake timers
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2025-12-18T12:00:00'));
     });
   });
 
@@ -201,13 +195,14 @@ describe('Calendar', () => {
     });
 
     it('does not call onSelect for disabled dates', async () => {
-      // Use real timers for click tests to avoid timeout issues
-      vi.useRealTimers();
-      const user = userEvent.setup();
       const onSelect = vi.fn();
       const disabledDates = [new Date(2025, 11, 25)];
 
       render(<Calendar onSelect={onSelect} disabled={disabledDates} />);
+
+      // Use real timers for click tests to avoid timeout issues
+      vi.useRealTimers();
+      const user = userEvent.setup();
 
       // Try to click on disabled date
       const day25Button = screen.getByRole('button', { name: /December 25th/i });
@@ -215,10 +210,6 @@ describe('Calendar', () => {
 
       // onSelect should NOT have been called
       expect(onSelect).not.toHaveBeenCalled();
-
-      // Restore fake timers
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2025-12-18T12:00:00'));
     });
   });
 
