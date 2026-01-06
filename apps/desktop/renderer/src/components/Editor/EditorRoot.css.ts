@@ -65,6 +65,10 @@ export const editorTextUnderline = style({
   textDecoration: 'underline',
 });
 
+export const editorTextStrikethrough = style({
+  textDecoration: 'line-through',
+});
+
 // Loading and error states
 export const editorLoading = style({
   display: 'flex',

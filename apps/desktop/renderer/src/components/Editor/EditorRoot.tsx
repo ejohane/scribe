@@ -103,6 +103,7 @@ const editorConfig = {
       bold: styles.editorTextBold,
       italic: styles.editorTextItalic,
       underline: styles.editorTextUnderline,
+      strikethrough: styles.editorTextStrikethrough,
     },
     list: {
       nested: {
