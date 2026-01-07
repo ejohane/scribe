@@ -14,6 +14,7 @@ import {
   convertBlockNode,
   convertContentToMarkdown,
   convertHeading,
+  convertImage,
   convertList,
   convertListItem,
   convertTable,
@@ -392,6 +393,72 @@ describe('block-converters', () => {
       };
       const result = extractTableRow(node);
       expect(result).toEqual(['Valid']);
+    });
+  });
+
+  describe('convertImage', () => {
+    it('converts image node to markdown syntax', () => {
+      const node = {
+        type: 'image',
+        assetId: 'abc123',
+        alt: 'A beautiful sunset',
+        ext: 'jpg',
+      };
+      const result = convertImage(node);
+      expect(result).toBe('![A beautiful sunset](./assets/abc123.jpg)');
+    });
+
+    it('handles empty alt text', () => {
+      const node = {
+        type: 'image',
+        assetId: 'img456',
+        alt: '',
+        ext: 'png',
+      };
+      const result = convertImage(node);
+      expect(result).toBe('![](./assets/img456.png)');
+    });
+
+    it('escapes brackets in alt text', () => {
+      const node = {
+        type: 'image',
+        assetId: 'xyz789',
+        alt: 'Image with [brackets] in text',
+        ext: 'webp',
+      };
+      const result = convertImage(node);
+      expect(result).toBe('![Image with \\[brackets\\] in text](./assets/xyz789.webp)');
+    });
+
+    it('handles missing alt text (undefined)', () => {
+      const node = {
+        type: 'image',
+        assetId: 'noalt',
+        ext: 'gif',
+      };
+      const result = convertImage(node);
+      expect(result).toBe('![](./assets/noalt.gif)');
+    });
+
+    it('defaults to png extension when ext is missing', () => {
+      const node = {
+        type: 'image',
+        assetId: 'noext',
+        alt: 'No extension',
+      };
+      const result = convertImage(node);
+      expect(result).toBe('![No extension](./assets/noext.png)');
+    });
+
+    it('is called correctly via convertBlockNode', () => {
+      const node = {
+        type: 'image',
+        assetId: 'block123',
+        alt: 'Test image',
+        ext: 'jpeg',
+      };
+      const result = convertBlockNode(node);
+      expect(result).toBe('![Test image](./assets/block123.jpeg)');
     });
   });
 });

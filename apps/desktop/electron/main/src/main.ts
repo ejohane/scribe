@@ -27,6 +27,8 @@ import {
   setupSyncHandlers,
   setupSyncStatusForwarding,
   setupRecentOpensHandlers,
+  setupAssetHandlers,
+  registerAssetProtocol,
   parseDeepLink,
   extractDeepLinkFromArgv,
   registerProtocolHandler,
@@ -158,8 +160,9 @@ const deps: HandlerDependencies = {
 
 /**
  * Initialize the vault and load notes
+ * @returns The initialized vault path (VaultPath branded type)
  */
-async function initializeEngine() {
+async function initializeEngine(): Promise<import('@scribe/shared').VaultPath> {
   try {
     // Load configured vault path (or default)
     const configuredPath = await getVaultPath();
@@ -260,6 +263,8 @@ async function initializeEngine() {
       deps.syncEngine = null;
       mainLogger.error('Error loading sync config', { error: syncConfigResult.error });
     }
+
+    return vaultPath;
   } catch (error) {
     mainLogger.error('Failed to initialize engine', { error });
     throw error;
@@ -442,9 +447,13 @@ app.whenReady().then(async () => {
   registerProtocolHandler();
 
   // Initialize engine before setting up IPC handlers
-  await initializeEngine();
+  const vaultPath = await initializeEngine();
+
+  // Register custom protocol for serving asset files securely
+  registerAssetProtocol(vaultPath);
 
   setupIPCHandlers();
+  setupAssetHandlers(vaultPath);
   createWindow();
 
   // Process any deep link that was received before the window was ready

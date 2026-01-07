@@ -13,6 +13,8 @@ import {
   getNotesDir,
   getNoteFilePath,
   getQuarantineDir,
+  getAssetsDir,
+  getAssetFilePath,
 } from './vault.js';
 
 describe('Vault Initialization', () => {
@@ -56,6 +58,14 @@ describe('Vault Initialization', () => {
       expect(stats.isDirectory()).toBe(true);
     });
 
+    it('should create assets subdirectory', async () => {
+      await initializeVault(vaultPath);
+
+      const assetsDir = path.join(vaultPath, 'assets');
+      const stats = await fs.stat(assetsDir);
+      expect(stats.isDirectory()).toBe(true);
+    });
+
     it('should be idempotent - calling multiple times succeeds', async () => {
       await initializeVault(vaultPath);
       await initializeVault(vaultPath);
@@ -69,6 +79,9 @@ describe('Vault Initialization', () => {
 
       const quarantineStats = await fs.stat(path.join(vaultPath, 'quarantine'));
       expect(quarantineStats.isDirectory()).toBe(true);
+
+      const assetsStats = await fs.stat(path.join(vaultPath, 'assets'));
+      expect(assetsStats.isDirectory()).toBe(true);
     });
 
     it('should create nested directories recursively', async () => {
@@ -125,9 +138,10 @@ describe('Vault Initialization', () => {
     });
 
     it('should return false when notes subdirectory is missing', async () => {
-      // Create vault directory but only quarantine subdirectory
+      // Create vault directory but only quarantine and assets subdirectories
       await fs.mkdir(vaultPath, { recursive: true });
       await fs.mkdir(path.join(vaultPath, 'quarantine'), { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'assets'), { recursive: true });
 
       const isValid = await isValidVault(vaultPath);
 
@@ -135,9 +149,21 @@ describe('Vault Initialization', () => {
     });
 
     it('should return false when quarantine subdirectory is missing', async () => {
-      // Create vault directory but only notes subdirectory
+      // Create vault directory but only notes and assets subdirectories
       await fs.mkdir(vaultPath, { recursive: true });
       await fs.mkdir(path.join(vaultPath, 'notes'), { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'assets'), { recursive: true });
+
+      const isValid = await isValidVault(vaultPath);
+
+      expect(isValid).toBe(false);
+    });
+
+    it('should return false when assets subdirectory is missing', async () => {
+      // Create vault directory but only notes and quarantine subdirectories
+      await fs.mkdir(vaultPath, { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'notes'), { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'quarantine'), { recursive: true });
 
       const isValid = await isValidVault(vaultPath);
 
@@ -156,6 +182,7 @@ describe('Vault Initialization', () => {
     it('should return false when notes is a file, not a directory', async () => {
       await fs.mkdir(vaultPath, { recursive: true });
       await fs.mkdir(path.join(vaultPath, 'quarantine'), { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'assets'), { recursive: true });
       // Create notes as a file instead of a directory
       await fs.writeFile(path.join(vaultPath, 'notes'), 'not a directory', 'utf-8');
 
@@ -167,8 +194,21 @@ describe('Vault Initialization', () => {
     it('should return false when quarantine is a file, not a directory', async () => {
       await fs.mkdir(vaultPath, { recursive: true });
       await fs.mkdir(path.join(vaultPath, 'notes'), { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'assets'), { recursive: true });
       // Create quarantine as a file instead of a directory
       await fs.writeFile(path.join(vaultPath, 'quarantine'), 'not a directory', 'utf-8');
+
+      const isValid = await isValidVault(vaultPath);
+
+      expect(isValid).toBe(false);
+    });
+
+    it('should return false when assets is a file, not a directory', async () => {
+      await fs.mkdir(vaultPath, { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'notes'), { recursive: true });
+      await fs.mkdir(path.join(vaultPath, 'quarantine'), { recursive: true });
+      // Create assets as a file instead of a directory
+      await fs.writeFile(path.join(vaultPath, 'assets'), 'not a directory', 'utf-8');
 
       const isValid = await isValidVault(vaultPath);
 
@@ -268,6 +308,75 @@ describe('Vault Initialization', () => {
     });
   });
 
+  describe('getAssetsDir', () => {
+    it('should return the correct assets directory path', () => {
+      const assetsDir = getAssetsDir(vaultPath);
+
+      expect(assetsDir).toBe(path.join(vaultPath, 'assets'));
+    });
+
+    it('should work with different vault paths', () => {
+      const customVaultPath = createVaultPath('/custom/vault/path');
+
+      const assetsDir = getAssetsDir(customVaultPath);
+
+      expect(assetsDir).toBe('/custom/vault/path/assets');
+    });
+
+    it('should handle paths with special characters', () => {
+      const specialPath = createVaultPath('/path with spaces/vault');
+
+      const assetsDir = getAssetsDir(specialPath);
+
+      expect(assetsDir).toBe('/path with spaces/vault/assets');
+    });
+  });
+
+  describe('getAssetFilePath', () => {
+    it('should return the correct asset file path', () => {
+      const assetFilePath = getAssetFilePath(vaultPath, 'asset-123', 'png');
+
+      expect(assetFilePath).toBe(path.join(vaultPath, 'assets', 'asset-123.png'));
+    });
+
+    it('should handle different asset IDs and extensions', () => {
+      const assetFilePath = getAssetFilePath(vaultPath, 'abc-def-ghi', 'jpg');
+
+      expect(assetFilePath).toBe(path.join(vaultPath, 'assets', 'abc-def-ghi.jpg'));
+    });
+
+    it('should work with UUID-style asset IDs', () => {
+      const assetId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+      const assetFilePath = getAssetFilePath(vaultPath, assetId, 'webp');
+
+      expect(assetFilePath).toBe(path.join(vaultPath, 'assets', `${assetId}.webp`));
+    });
+
+    it('should handle different file extensions', () => {
+      const assetId = 'test-asset';
+
+      expect(getAssetFilePath(vaultPath, assetId, 'png')).toBe(
+        path.join(vaultPath, 'assets', 'test-asset.png')
+      );
+      expect(getAssetFilePath(vaultPath, assetId, 'jpg')).toBe(
+        path.join(vaultPath, 'assets', 'test-asset.jpg')
+      );
+      expect(getAssetFilePath(vaultPath, assetId, 'gif')).toBe(
+        path.join(vaultPath, 'assets', 'test-asset.gif')
+      );
+      expect(getAssetFilePath(vaultPath, assetId, 'webp')).toBe(
+        path.join(vaultPath, 'assets', 'test-asset.webp')
+      );
+    });
+
+    it('should handle asset IDs with special characters', () => {
+      const assetId = 'asset_with_underscores';
+      const assetFilePath = getAssetFilePath(vaultPath, assetId, 'png');
+
+      expect(assetFilePath).toBe(path.join(vaultPath, 'assets', 'asset_with_underscores.png'));
+    });
+  });
+
   describe('Error Handling', () => {
     it('should throw when initializing in a read-only parent directory', async () => {
       // Create a read-only directory
@@ -360,6 +469,7 @@ describe('Vault Initialization', () => {
       // Verify we can get all expected paths
       const notesDir = getNotesDir(result);
       const quarantineDir = getQuarantineDir(result);
+      const assetsDir = getAssetsDir(result);
 
       // Verify these directories exist
       const notesDirStats = await fs.stat(notesDir);
@@ -368,12 +478,23 @@ describe('Vault Initialization', () => {
       const quarantineDirStats = await fs.stat(quarantineDir);
       expect(quarantineDirStats.isDirectory()).toBe(true);
 
+      const assetsDirStats = await fs.stat(assetsDir);
+      expect(assetsDirStats.isDirectory()).toBe(true);
+
       // Verify we can write to the notes directory
       const testNotePath = getNoteFilePath(result, 'test-note');
       await fs.writeFile(testNotePath, '{"test": "data"}', 'utf-8');
 
       const noteContent = await fs.readFile(testNotePath, 'utf-8');
       expect(noteContent).toBe('{"test": "data"}');
+
+      // Verify we can write to the assets directory
+      const testAssetPath = getAssetFilePath(result, 'test-asset', 'png');
+      const testAssetData = Buffer.from([0x89, 0x50, 0x4e, 0x47]); // PNG header
+      await fs.writeFile(testAssetPath, testAssetData);
+
+      const assetContent = await fs.readFile(testAssetPath);
+      expect(assetContent).toEqual(testAssetData);
     });
 
     it('should allow parallel initialization of different vaults', async () => {

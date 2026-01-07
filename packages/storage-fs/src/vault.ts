@@ -18,7 +18,7 @@ const DEFAULT_VAULT_PATH = createVaultPath(path.join(homedir(), 'Scribe', 'vault
 /**
  * Vault subdirectories
  */
-const VAULT_SUBDIRS = ['notes', 'quarantine'] as const;
+const VAULT_SUBDIRS = ['notes', 'quarantine', 'assets'] as const;
 
 /**
  * Initialize vault directory structure
@@ -102,4 +102,26 @@ export function getNoteFilePath(vaultPath: VaultPath, noteId: string): string {
  */
 export function getQuarantineDir(vaultPath: VaultPath): string {
   return path.join(vaultPath, 'quarantine');
+}
+
+/**
+ * Get the assets directory path
+ *
+ * @param vaultPath - Path to vault
+ * @returns Path to assets directory
+ */
+export function getAssetsDir(vaultPath: VaultPath): string {
+  return path.join(vaultPath, 'assets');
+}
+
+/**
+ * Get the path to an asset file
+ *
+ * @param vaultPath - Path to vault
+ * @param assetId - Asset UUID
+ * @param ext - File extension (without dot)
+ * @returns Full path to asset file
+ */
+export function getAssetFilePath(vaultPath: VaultPath, assetId: string, ext: string): string {
+  return path.join(getAssetsDir(vaultPath), `${assetId}.${ext}`);
 }

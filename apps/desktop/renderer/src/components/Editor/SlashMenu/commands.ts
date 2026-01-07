@@ -12,6 +12,7 @@ import { $createQuoteNode } from '@lexical/rich-text';
 import { $createCollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode';
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND } from '@lexical/list';
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
+import { INSERT_IMAGE_COMMAND } from '../plugins/ImagePlugin';
 
 export interface SlashCommand {
   id: string;
@@ -135,6 +136,16 @@ export const slashCommands: SlashCommand[] = [
         columns: '2',
         includeHeaders: { rows: true, columns: false },
       });
+    },
+  },
+  {
+    id: 'image',
+    label: 'Image',
+    description: 'Insert an image from file',
+    keywords: ['image', 'picture', 'photo', 'screenshot', 'img'],
+    section: 'formatting',
+    execute: (editor) => {
+      editor.dispatchCommand(INSERT_IMAGE_COMMAND, undefined);
     },
   },
 ];

@@ -219,6 +219,14 @@ const scribeAPI: ScribeAPI = {
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_GET_STATUS),
     openInRaycast: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_OPEN_IN_RAYCAST),
   },
+
+  assets: {
+    save: (data: ArrayBuffer, mimeType: string, filename?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.ASSETS_SAVE, data, mimeType, filename),
+    load: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_LOAD, assetId),
+    delete: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_DELETE, assetId),
+    getPath: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_GET_PATH, assetId),
+  },
 };
 
 // Expose the API to the renderer via contextBridge

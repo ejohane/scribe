@@ -94,6 +94,9 @@ export function convertBlockNode(node: LexicalNode): string | null {
     case 'table':
       return convertTable(node);
 
+    case 'image':
+      return convertImage(node);
+
     default:
       // For unknown block types, try to extract inline content
       if (node.children) {
@@ -354,4 +357,28 @@ export function extractTableRow(rowNode: LexicalNode): string[] {
   }
 
   return cells;
+}
+
+/**
+ * Escape alt text for markdown (brackets need escaping).
+ *
+ * @param text - The alt text to escape
+ * @returns Escaped alt text safe for markdown image syntax
+ */
+function escapeMarkdownAlt(text: string): string {
+  return text.replace(/\]/g, '\\]').replace(/\[/g, '\\[');
+}
+
+/**
+ * Convert an image node to Markdown.
+ *
+ * @param node - The image node with assetId, alt, and ext properties
+ * @returns Markdown image string (e.g., "![alt](./assets/id.ext)")
+ */
+export function convertImage(node: LexicalNode): string {
+  const assetId = (node as { assetId?: string }).assetId || '';
+  const alt = (node as { alt?: string }).alt || '';
+  const ext = (node as { ext?: string }).ext || 'png';
+
+  return `![${escapeMarkdownAlt(alt)}](./assets/${assetId}.${ext})`;
 }
