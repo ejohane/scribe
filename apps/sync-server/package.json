@@ -22,7 +22,7 @@
     "@cloudflare/workers-types": "^4.20241127.0",
     "@scribe/eslint-config": "workspace:*",
     "typescript": "^5.7.0",
-    "vitest": "^2.1.0",
-    "wrangler": "^3.91.0"
+    "vitest": "^4.0.16",
+    "wrangler": "^4.54.0"
   }
 }
