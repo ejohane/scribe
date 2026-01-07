@@ -129,6 +129,7 @@ export const IPC_CHANNELS = {
 
   // Shell
   SHELL_OPEN_EXTERNAL: 'shell:openExternal',
+  SHELL_SHOW_ITEM_IN_FOLDER: 'shell:showItemInFolder',
 
   // App
   APP_OPEN_DEV_TOOLS: 'app:openDevTools',
@@ -214,6 +215,12 @@ export const IPC_CHANNELS = {
   RAYCAST_INSTALL: 'raycast:install',
   RAYCAST_GET_STATUS: 'raycast:getStatus',
   RAYCAST_OPEN_IN_RAYCAST: 'raycast:openInRaycast',
+
+  // Assets
+  ASSETS_SAVE: 'assets:save',
+  ASSETS_LOAD: 'assets:load',
+  ASSETS_DELETE: 'assets:delete',
+  ASSETS_GET_PATH: 'assets:getPath',
 } as const;
 
 // ============================================================================
@@ -336,6 +343,14 @@ export interface ShellAPI {
    * Only http:// and https:// URLs are allowed for security.
    */
   openExternal(url: string): Promise<SuccessResponse>;
+
+  /**
+   * Show a file in the system's file manager (Finder on macOS).
+   * Opens the containing folder with the file selected.
+   *
+   * @param path - Absolute path to the file to reveal
+   */
+  showItemInFolder(path: string): Promise<SuccessResponse>;
 }
 
 /**
@@ -759,6 +774,59 @@ export interface DeepLinkAPI {
 }
 
 // ============================================================================
+// Asset Types
+// ============================================================================
+
+/**
+ * Result of an asset save operation
+ */
+export interface AssetSaveResult {
+  /** Whether the save succeeded */
+  success: boolean;
+  /** The generated asset ID (UUID) if successful */
+  assetId?: string;
+  /** The file extension (e.g., "png", "jpg") if successful */
+  ext?: string;
+  /** Error message if save failed */
+  error?: string;
+}
+
+/**
+ * Assets API for binary asset management (images)
+ */
+export interface AssetsAPI {
+  /**
+   * Save a binary asset to the vault.
+   * @param data - The binary data to save
+   * @param mimeType - MIME type of the asset (e.g., "image/png")
+   * @param filename - Optional original filename for extension detection
+   * @returns Result containing the generated asset ID and extension
+   */
+  save(data: ArrayBuffer, mimeType: string, filename?: string): Promise<AssetSaveResult>;
+
+  /**
+   * Load a binary asset from the vault.
+   * @param assetId - The asset ID (with or without extension)
+   * @returns The binary data, or null if not found
+   */
+  load(assetId: string): Promise<ArrayBuffer | null>;
+
+  /**
+   * Delete an asset from the vault.
+   * @param assetId - The asset ID to delete
+   * @returns Whether the deletion succeeded
+   */
+  delete(assetId: string): Promise<boolean>;
+
+  /**
+   * Get the absolute file path for an asset.
+   * @param assetId - The asset ID
+   * @returns The absolute path to the asset file, or null if not found
+   */
+  getPath(assetId: string): Promise<string | null>;
+}
+
+// ============================================================================
 // Raycast Extension Types
 // ============================================================================
 
@@ -885,4 +953,7 @@ export interface ScribeAPI {
 
   /** Raycast extension management */
   raycast: RaycastAPI;
+
+  /** Binary asset management (images) */
+  assets: AssetsAPI;
 }

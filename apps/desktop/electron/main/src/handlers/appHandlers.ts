@@ -230,6 +230,23 @@ export function setupAppHandlers(deps: HandlerDependencies): void {
   });
 
   /**
+   * IPC: `shell:showItemInFolder`
+   *
+   * Opens the system's file manager with the specified file selected.
+   * On macOS, this opens Finder with the file highlighted.
+   *
+   * @param filePath - The absolute path to the file to reveal
+   * @returns `{ success: true }`
+   *
+   * @security
+   * This only reveals existing files; it cannot execute arbitrary commands.
+   */
+  ipcMain.handle('shell:showItemInFolder', async (_event, filePath: string) => {
+    shell.showItemInFolder(filePath);
+    return { success: true };
+  });
+
+  /**
    * IPC: `app:relaunch`
    *
    * Relaunches the application. Used for vault switching and updates

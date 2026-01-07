@@ -49,6 +49,8 @@ const scribeAPI: ScribeAPI = {
 
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SHELL_OPEN_EXTERNAL, url),
+    showItemInFolder: (path: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER, path),
   },
 
   app: {
@@ -218,6 +220,14 @@ const scribeAPI: ScribeAPI = {
     install: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_INSTALL),
     getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_GET_STATUS),
     openInRaycast: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_OPEN_IN_RAYCAST),
+  },
+
+  assets: {
+    save: (data: ArrayBuffer, mimeType: string, filename?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.ASSETS_SAVE, data, mimeType, filename),
+    load: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_LOAD, assetId),
+    delete: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_DELETE, assetId),
+    getPath: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_GET_PATH, assetId),
   },
 };
 

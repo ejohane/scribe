@@ -46,6 +46,8 @@ import { FocusNodePlugin } from './plugins/FocusNodePlugin';
 import { CheckListShortcutPlugin } from './plugins/CheckListShortcutPlugin';
 import { CollapsibleHeadingNode } from './plugins/CollapsibleHeadingNode';
 import { CollapsibleHeadingPlugin } from './plugins/CollapsibleHeadingPlugin';
+import { ImageNode } from './plugins/ImageNode';
+import { ImagePlugin } from './plugins/ImagePlugin';
 import { SelectionToolbarPlugin } from './SelectionToolbar';
 import { SlashMenuPlugin } from './SlashMenu';
 import { FindReplacePlugin } from './FindReplace';
@@ -147,6 +149,7 @@ const editorConfig = {
     TableRowNode,
     TableCellNode,
     MarkNode,
+    ImageNode,
   ],
 };
 
@@ -218,6 +221,8 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <SelectionToolbarPlugin />
           {/* Slash command menu */}
           <SlashMenuPlugin />
+          {/* Image paste/drop support */}
+          <ImagePlugin />
         </div>
       </LexicalComposer>
     </div>

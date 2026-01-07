@@ -124,6 +124,9 @@ export type {
   RaycastInstallResult,
   RaycastStatus,
   RaycastAPI,
+  // Asset types
+  AssetSaveResult,
+  AssetsAPI,
 } from './ipc-contract.js';
 
 // Date Utilities - consolidated date formatting, parsing, and comparison

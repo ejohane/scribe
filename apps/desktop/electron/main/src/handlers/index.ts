@@ -20,6 +20,7 @@
  * | {@link setupCLIHandlers} | `cli:*` | CLI installation and management |
  * | {@link setupExportHandlers} | `export:*` | Export notes to external formats |
  * | {@link setupSyncHandlers} | `sync:*` | Multi-device sync operations |
+ * | {@link setupAssetHandlers} | `assets:*` | Binary asset management (images) |
  *
  * ## IPC Channel Naming Convention
  *
@@ -57,6 +58,7 @@ export {
   DEEP_LINK_PROTOCOL,
 } from './deepLinkHandlers';
 export { setupRaycastHandlers } from './raycastHandlers';
+export { setupAssetHandlers, registerAssetProtocol } from './assetHandlers';
 
 export type { HandlerDependencies, AppConfig, Engines } from './types';
 export { withEngines } from './types';

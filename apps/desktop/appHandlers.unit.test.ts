@@ -311,16 +311,28 @@ describe('appHandlers.ts loadConfig Contract', () => {
     expect(content).toContain('catch (error: unknown)');
   });
 
-  it('should log warnings with [config] prefix', async () => {
+  it('should have shell:showItemInFolder handler', async () => {
     const content = await fs.readFile(
       new URL('./electron/main/src/handlers/appHandlers.ts', import.meta.url),
       'utf-8'
     );
 
-    // All console.warn calls should use [config] prefix for searchability
-    const warnLines = content
-      .split('\n')
-      .filter((line) => line.includes('console.warn') && line.includes('config'));
+    // Verify the handler is registered
+    expect(content).toContain("ipcMain.handle('shell:showItemInFolder'");
+    // Verify it uses shell.showItemInFolder
+    expect(content).toContain('shell.showItemInFolder(filePath)');
+    // Verify it returns success
+    expect(content).toContain('return { success: true }');
+  });
+
+  it('should log warnings with configLogger', async () => {
+    const content = await fs.readFile(
+      new URL('./electron/main/src/handlers/appHandlers.ts', import.meta.url),
+      'utf-8'
+    );
+
+    // All warning calls should use configLogger for searchability
+    const warnLines = content.split('\n').filter((line) => line.includes('configLogger.warn'));
     expect(warnLines.length).toBeGreaterThanOrEqual(3); // At least 3 warning cases
   });
 
