@@ -95,3 +95,35 @@ export const resizeHandle = style({
     },
   },
 });
+
+export const clickableImage = style({
+  cursor: 'zoom-in',
+});
+
+export const lightboxOverlay = style({
+  position: 'fixed',
+  inset: 0,
+  zIndex: vars.zIndex.modal,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  cursor: 'zoom-out',
+});
+
+export const lightboxImage = style({
+  maxWidth: '90vw',
+  maxHeight: '90vh',
+  objectFit: 'contain',
+  borderRadius: vars.radius.md,
+  boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)',
+});
+
+export const lightboxCloseHint = style({
+  position: 'absolute',
+  top: vars.spacing['4'],
+  right: vars.spacing['4'],
+  color: 'rgba(255, 255, 255, 0.7)',
+  fontSize: vars.typography.size.sm,
+  pointerEvents: 'none',
+});

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getNodeByKey } from 'lexical';
 import { $isImageNode, type ImageComponentProps } from './ImageNode';
 import { createLogger } from '@scribe/shared';
 import * as styles from './ImageComponent.css';
+import clsx from 'clsx';
 
 const log = createLogger({ prefix: 'ImageComponent' });
 
@@ -24,6 +26,9 @@ export default function ImageComponent({
     width: number;
     height: number;
   } | null>(null);
+
+  // Fullscreen lightbox state
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Resize state
   const [isResizing, setIsResizing] = useState(false);
@@ -138,6 +143,49 @@ export default function ImageComponent({
     };
   }, [isResizing, resizeStart, editor, nodeKey, currentDimensions]);
 
+  // Handle image click to open fullscreen
+  const handleImageClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't open fullscreen if resizing
+      if (isResizing) return;
+      e.stopPropagation();
+      setIsFullscreen(true);
+    },
+    [isResizing]
+  );
+
+  // Handle closing fullscreen
+  const handleCloseLightbox = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  // Handle keyboard navigation in lightbox
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isFullscreen]);
+
   const displayWidth = currentDimensions.width || width || naturalDimensions?.width;
   const displayHeight = currentDimensions.height || height || naturalDimensions?.height;
 
@@ -164,20 +212,43 @@ export default function ImageComponent({
   }
 
   return (
-    <div ref={containerRef} className={styles.imageContainer} style={{ position: 'relative' }}>
-      <img
-        className={styles.image}
-        src={imageSrc!}
-        alt={alt}
-        width={displayWidth}
-        height={displayHeight}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-        draggable={false}
-      />
-      {loadingState === 'loaded' && (
-        <div className={styles.resizeHandle} onMouseDown={handleResizeStart} />
-      )}
-    </div>
+    <>
+      <div ref={containerRef} className={styles.imageContainer} style={{ position: 'relative' }}>
+        <img
+          className={clsx(styles.image, styles.clickableImage)}
+          src={imageSrc!}
+          alt={alt}
+          width={displayWidth}
+          height={displayHeight}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          onClick={handleImageClick}
+          draggable={false}
+        />
+        {loadingState === 'loaded' && (
+          <div className={styles.resizeHandle} onMouseDown={handleResizeStart} />
+        )}
+      </div>
+
+      {isFullscreen &&
+        createPortal(
+          <div
+            className={styles.lightboxOverlay}
+            onClick={handleCloseLightbox}
+            role="dialog"
+            aria-modal="true"
+            aria-label={alt || 'Image preview'}
+          >
+            <span className={styles.lightboxCloseHint}>Press Esc or click to close</span>
+            <img
+              className={styles.lightboxImage}
+              src={imageSrc!}
+              alt={alt}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
