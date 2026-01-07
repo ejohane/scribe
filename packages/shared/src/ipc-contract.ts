@@ -129,6 +129,7 @@ export const IPC_CHANNELS = {
 
   // Shell
   SHELL_OPEN_EXTERNAL: 'shell:openExternal',
+  SHELL_SHOW_ITEM_IN_FOLDER: 'shell:showItemInFolder',
 
   // App
   APP_OPEN_DEV_TOOLS: 'app:openDevTools',
@@ -342,6 +343,14 @@ export interface ShellAPI {
    * Only http:// and https:// URLs are allowed for security.
    */
   openExternal(url: string): Promise<SuccessResponse>;
+
+  /**
+   * Show a file in the system's file manager (Finder on macOS).
+   * Opens the containing folder with the file selected.
+   *
+   * @param path - Absolute path to the file to reveal
+   */
+  showItemInFolder(path: string): Promise<SuccessResponse>;
 }
 
 /**

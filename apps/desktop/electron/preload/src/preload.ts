@@ -49,6 +49,8 @@ const scribeAPI: ScribeAPI = {
 
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SHELL_OPEN_EXTERNAL, url),
+    showItemInFolder: (path: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER, path),
   },
 
   app: {
