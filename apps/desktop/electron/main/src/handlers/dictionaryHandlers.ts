@@ -27,7 +27,7 @@
  */
 
 import { ipcMain } from 'electron';
-import { HandlerDependencies, requireMainWindow } from './types';
+import { HandlerDependencies, requireWindowManager } from './types';
 
 /**
  * Setup IPC handlers for spellcheck dictionary management.
@@ -53,7 +53,11 @@ export function setupDictionaryHandlers(deps: HandlerDependencies): void {
    * @throws Error if word is empty or whitespace-only
    */
   ipcMain.handle('dictionary:addWord', async (_event, word: string) => {
-    const mainWindow = requireMainWindow(deps);
+    const windowManager = requireWindowManager(deps);
+    const mainWindow = windowManager.getMainWindow();
+    if (!mainWindow) {
+      throw new Error('No window available');
+    }
     if (!word?.trim()) {
       throw new Error('Word is required');
     }
@@ -72,7 +76,11 @@ export function setupDictionaryHandlers(deps: HandlerDependencies): void {
    * @throws Error if word is empty or whitespace-only
    */
   ipcMain.handle('dictionary:removeWord', async (_event, word: string) => {
-    const mainWindow = requireMainWindow(deps);
+    const windowManager = requireWindowManager(deps);
+    const mainWindow = windowManager.getMainWindow();
+    if (!mainWindow) {
+      throw new Error('No window available');
+    }
     if (!word?.trim()) {
       throw new Error('Word is required');
     }
@@ -88,7 +96,11 @@ export function setupDictionaryHandlers(deps: HandlerDependencies): void {
    * @returns `string[]` - Array of language codes (e.g., ['en-US', 'de-DE'])
    */
   ipcMain.handle('dictionary:getLanguages', async () => {
-    const mainWindow = requireMainWindow(deps);
+    const windowManager = requireWindowManager(deps);
+    const mainWindow = windowManager.getMainWindow();
+    if (!mainWindow) {
+      throw new Error('No window available');
+    }
     return mainWindow.webContents.session.getSpellCheckerLanguages();
   });
 
@@ -103,7 +115,11 @@ export function setupDictionaryHandlers(deps: HandlerDependencies): void {
    * @throws Error if languages is not an array
    */
   ipcMain.handle('dictionary:setLanguages', async (_event, languages: string[]) => {
-    const mainWindow = requireMainWindow(deps);
+    const windowManager = requireWindowManager(deps);
+    const mainWindow = windowManager.getMainWindow();
+    if (!mainWindow) {
+      throw new Error('No window available');
+    }
     if (!Array.isArray(languages)) {
       throw new Error('Languages must be an array');
     }
@@ -119,7 +135,11 @@ export function setupDictionaryHandlers(deps: HandlerDependencies): void {
    * @returns `string[]` - Array of available language codes
    */
   ipcMain.handle('dictionary:getAvailableLanguages', async () => {
-    const mainWindow = requireMainWindow(deps);
+    const windowManager = requireWindowManager(deps);
+    const mainWindow = windowManager.getMainWindow();
+    if (!mainWindow) {
+      throw new Error('No window available');
+    }
     return mainWindow.webContents.session.availableSpellCheckerLanguages;
   });
 }

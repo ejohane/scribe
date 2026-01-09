@@ -221,6 +221,14 @@ export const IPC_CHANNELS = {
   ASSETS_LOAD: 'assets:load',
   ASSETS_DELETE: 'assets:delete',
   ASSETS_GET_PATH: 'assets:getPath',
+
+  // Window Management
+  WINDOW_NEW: 'window:new',
+  WINDOW_OPEN_NOTE: 'window:openNote',
+  WINDOW_GET_ID: 'window:getId',
+  WINDOW_CLOSE: 'window:close',
+  WINDOW_FOCUS: 'window:focus',
+  WINDOW_REPORT_CURRENT_NOTE: 'window:reportCurrentNote',
 } as const;
 
 // ============================================================================
@@ -882,6 +890,50 @@ export interface RaycastAPI {
   openInRaycast(): Promise<RaycastInstallResult>;
 }
 
+/**
+ * API for window management operations.
+ * Enables multi-window support in Scribe.
+ */
+export interface WindowAPI {
+  /**
+   * Opens a new empty window.
+   * The new window will show the default view (last opened note or empty state).
+   */
+  'new'(): Promise<void>;
+
+  /**
+   * Opens a specific note in a new window.
+   * @param noteId - The ID of the note to open
+   */
+  openNote(noteId: string): Promise<void>;
+
+  /**
+   * Gets the ID of the current window.
+   * Useful for window-specific operations or tracking.
+   * @returns The Electron BrowserWindow ID
+   */
+  getId(): Promise<number>;
+
+  /**
+   * Closes the current window.
+   * On macOS, closing the last window leaves the app running.
+   * On Windows/Linux, closing the last window quits the app.
+   */
+  close(): Promise<void>;
+
+  /**
+   * Brings the current window to the front and focuses it.
+   */
+  focus(): Promise<void>;
+
+  /**
+   * Reports the current note ID being viewed in this window.
+   * Used for smart deep link routing to find windows with specific notes.
+   * @param noteId - The note ID currently being viewed (null if no note)
+   */
+  reportCurrentNote(noteId: string | null): Promise<{ success: boolean }>;
+}
+
 // ============================================================================
 // Complete Scribe API Interface
 // ============================================================================
@@ -956,4 +1008,7 @@ export interface ScribeAPI {
 
   /** Binary asset management (images) */
   assets: AssetsAPI;
+
+  /** Window management for multi-window support */
+  window: WindowAPI;
 }

@@ -1,10 +1,10 @@
-import type { BrowserWindow } from 'electron';
 import type { FileSystemVault } from '@scribe/storage-fs';
 import type { GraphEngine } from '@scribe/engine-graph';
 import type { SearchEngine } from '@scribe/engine-search';
 import type { TaskIndex } from '@scribe/engine-core/node';
 import type { SyncEngine } from '@scribe/engine-sync';
 import type { RecentOpensDatabase } from '../database/recentOpensDb';
+import type { WindowManager } from '../window-manager';
 import { ScribeError } from '@scribe/shared';
 
 /**
@@ -16,7 +16,7 @@ export interface HandlerDependencies {
   graphEngine: GraphEngine | null;
   searchEngine: SearchEngine | null;
   taskIndex: TaskIndex | null;
-  mainWindow: BrowserWindow | null;
+  windowManager: WindowManager | null;
   /** Sync engine instance. Explicitly nullable - null when sync is disabled (default). */
   syncEngine: SyncEngine | null;
   /** Recent opens database for tracking recently opened entities */
@@ -73,13 +73,13 @@ export function requireTaskIndex(deps: HandlerDependencies): TaskIndex {
 }
 
 /**
- * Helper to get a guaranteed non-null mainWindow, throwing if not available.
+ * Helper to get a guaranteed non-null windowManager, throwing if not initialized.
  */
-export function requireMainWindow(deps: HandlerDependencies): BrowserWindow {
-  if (!deps.mainWindow) {
-    throw new Error('Main window not available');
+export function requireWindowManager(deps: HandlerDependencies): WindowManager {
+  if (!deps.windowManager) {
+    throw new Error('WindowManager not initialized');
   }
-  return deps.mainWindow;
+  return deps.windowManager;
 }
 
 /**

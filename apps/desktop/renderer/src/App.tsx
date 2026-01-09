@@ -29,6 +29,7 @@ import { useAppCommands } from './hooks/useAppCommands';
 import { useAppKeyboardShortcuts } from './hooks/useAppKeyboardShortcuts';
 import { useSettingsPage } from './hooks/useSettingsPage';
 import { useDeepLink } from './hooks/useDeepLink';
+import { useInitialNote } from './hooks/useInitialNote';
 import { WikiLinkProvider } from './components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from './components/Editor/plugins/PersonMentionContext';
 import { EditorCommandProvider } from './components/Editor/EditorCommandContext';
@@ -40,6 +41,9 @@ import type { SyncConflict, ConflictResolution } from '@scribe/shared';
 function App() {
   // Note state management
   const noteState = useNoteState();
+
+  // Handle initial note from URL params (multi-window support)
+  useInitialNote(noteState.loadNote);
 
   // Navigation history for wiki-link back/forward navigation
   const {

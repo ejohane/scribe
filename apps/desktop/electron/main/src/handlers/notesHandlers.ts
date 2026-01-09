@@ -178,7 +178,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
         // Step 4: Re-index tasks for this note and broadcast changes
         const taskChanges = engines.taskIndex.indexNote(note);
         if (taskChanges.length > 0) {
-          deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
+          deps.windowManager?.broadcast('tasks:changed', taskChanges);
         }
 
         return { success: true };
@@ -221,7 +221,7 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
         // Step 4: Remove tasks for this note and broadcast changes
         const taskChanges = engines.taskIndex.removeNote(id);
         if (taskChanges.length > 0) {
-          deps.mainWindow?.webContents.send('tasks:changed', taskChanges);
+          deps.windowManager?.broadcast('tasks:changed', taskChanges);
         }
 
         // Step 5: Clean up recent opens tracking (best-effort, fire-and-forget)

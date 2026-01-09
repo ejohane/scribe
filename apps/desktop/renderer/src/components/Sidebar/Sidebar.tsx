@@ -9,7 +9,7 @@
  * - Draggable resize handle on the right edge
  */
 
-import { useCallback, type CSSProperties } from 'react';
+import { useCallback, useState, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import type { NoteId } from '@scribe/shared';
 import {
@@ -22,6 +22,7 @@ import {
 } from '@scribe/design-system';
 import { HistoryListItem } from './HistoryListItem';
 import { ResizeHandle } from '../ResizeHandle';
+import { NoteContextMenu } from '../NoteContextMenu';
 import * as styles from './Sidebar.css';
 import { sidebarWidth } from './Sidebar.css';
 
@@ -85,6 +86,11 @@ export function Sidebar({
   onBack,
   onForward,
 }: SidebarProps) {
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ noteId: NoteId; x: number; y: number } | null>(
+    null
+  );
+
   // Handle resize from the drag handle
   const handleResize = useCallback(
     (delta: number) => {
@@ -94,6 +100,12 @@ export function Sidebar({
     },
     [width, onWidthChange]
   );
+
+  // Handle context menu on history items
+  const handleContextMenu = useCallback((e: React.MouseEvent, noteId: NoteId) => {
+    e.preventDefault();
+    setContextMenu({ noteId, x: e.clientX, y: e.clientY });
+  }, []);
 
   // Set CSS custom property for dynamic width
   // sidebarWidth is 'var(--name)', extract just '--name' for inline style property
@@ -191,6 +203,7 @@ export function Sidebar({
                     position={originalIndex + 1}
                     isCurrent={originalIndex === currentHistoryIndex}
                     onSelect={() => onSelectHistoryEntry(originalIndex)}
+                    onContextMenu={(e) => handleContextMenu(e, entry.id)}
                   />
                 );
               })
@@ -213,6 +226,15 @@ export function Sidebar({
       </div>
       {/* Resize handle on the right edge - outside sidebarInner to avoid overflow clipping */}
       {isOpen && onWidthChange && <ResizeHandle position="right" onResize={handleResize} />}
+
+      {/* Context menu for note actions */}
+      {contextMenu && (
+        <NoteContextMenu
+          noteId={contextMenu.noteId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </aside>
   );
 }

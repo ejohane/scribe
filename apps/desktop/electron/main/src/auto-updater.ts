@@ -1,6 +1,7 @@
 import { autoUpdater } from 'electron-updater';
-import { BrowserWindow, ipcMain, app } from 'electron';
+import { ipcMain, app } from 'electron';
 import { createLogger, getErrorMessage } from '@scribe/shared';
+import { WindowManager } from './window-manager';
 
 const log = createLogger({ prefix: 'auto-updater' });
 
@@ -24,27 +25,27 @@ autoUpdater.autoInstallOnAppQuit = true;
  * - Schedules an initial update check after a delay (to avoid blocking startup)
  * - Establishes periodic update checks every hour
  *
- * @param mainWindow - The main BrowserWindow to send update events to
+ * @param windowManager - The WindowManager to broadcast update events to all windows
  */
-export function setupAutoUpdater(mainWindow: BrowserWindow): void {
+export function setupAutoUpdater(windowManager: WindowManager): void {
   // Event handlers - forward to renderer
   autoUpdater.on('checking-for-update', () => {
-    mainWindow.webContents.send('update:checking');
+    windowManager.broadcast('update:checking');
   });
 
   autoUpdater.on('update-available', (info) => {
-    mainWindow.webContents.send('update:available', {
+    windowManager.broadcast('update:available', {
       version: info.version,
       releaseDate: info.releaseDate,
     });
   });
 
   autoUpdater.on('update-not-available', () => {
-    mainWindow.webContents.send('update:not-available');
+    windowManager.broadcast('update:not-available');
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    mainWindow.webContents.send('update:downloaded', {
+    windowManager.broadcast('update:downloaded', {
       version: info.version,
       releaseDate: info.releaseDate,
     });
@@ -55,7 +56,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow): void {
       error: getErrorMessage(err),
       currentVersion: app.getVersion(),
     });
-    mainWindow.webContents.send('update:error', {
+    windowManager.broadcast('update:error', {
       message: err.message,
     });
   });
@@ -143,16 +144,16 @@ export function getAutoUpdaterTimerState(): {
  * This function registers the IPC handlers so the UI doesn't error, but
  * immediately sends an "update:not-available" message to indicate no updates.
  *
- * @param mainWindow - The main BrowserWindow to send update events to
+ * @param windowManager - The WindowManager to broadcast update events to all windows
  */
-export function setupDevUpdateHandlers(mainWindow: BrowserWindow): void {
+export function setupDevUpdateHandlers(windowManager: WindowManager): void {
   // IPC handlers that simulate the update flow
   ipcMain.handle('update:check', async () => {
     // Simulate the checking -> not-available flow
-    mainWindow.webContents.send('update:checking');
+    windowManager.broadcast('update:checking');
     // Small delay to show the "Checking..." state
     setTimeout(() => {
-      mainWindow.webContents.send('update:not-available');
+      windowManager.broadcast('update:not-available');
     }, 500);
   });
 

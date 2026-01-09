@@ -33,7 +33,7 @@
  * @module handlers/syncHandlers
  */
 
-import { ipcMain, type BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@scribe/shared';
 import type { SyncStatus, SyncResult, SyncConflict, ConflictResolution } from '@scribe/shared';
 import type { HandlerDependencies } from './types.js';
@@ -177,34 +177,28 @@ export function setupSyncHandlers(deps: HandlerDependencies): void {
 /**
  * Setup sync status change forwarding to renderer.
  *
- * Subscribes to SyncEngine status changes and forwards them to the
- * renderer process via IPC. This enables the UI to react to sync
- * state changes in real-time.
+ * Subscribes to SyncEngine status changes and forwards them to all
+ * windows via WindowManager.broadcast(). This enables the UI to react
+ * to sync state changes in real-time across all windows.
  *
- * @param deps - Handler dependencies (syncEngine may be null)
- * @param mainWindow - The main browser window to send events to
+ * @param deps - Handler dependencies (syncEngine and windowManager may be null)
  * @returns Cleanup function to unsubscribe from status changes
  *
  * @example
  * ```typescript
  * // In main process setup
- * const cleanup = setupSyncStatusForwarding(deps, mainWindow);
+ * const cleanup = setupSyncStatusForwarding(deps);
  *
  * // On app shutdown
  * cleanup();
  * ```
  */
-export function setupSyncStatusForwarding(
-  deps: HandlerDependencies,
-  mainWindow: BrowserWindow
-): () => void {
-  if (!deps.syncEngine) {
+export function setupSyncStatusForwarding(deps: HandlerDependencies): () => void {
+  if (!deps.syncEngine || !deps.windowManager) {
     return () => {}; // No-op cleanup
   }
 
   return deps.syncEngine.onStatusChange((status) => {
-    if (!mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC_CHANNELS.SYNC_STATUS_CHANGED, status);
-    }
+    deps.windowManager!.broadcast(IPC_CHANNELS.SYNC_STATUS_CHANGED, status);
   });
 }

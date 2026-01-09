@@ -9,10 +9,22 @@ import type {
   RecentOpenEntityType,
   DeepLinkAction,
 } from '@scribe/shared';
-import { IPC_CHANNELS, type ScribeAPI } from '@scribe/shared';
+import { IPC_CHANNELS, type ScribeAPI, type WindowAPI } from '@scribe/shared';
 
 // Re-import SyncStatus for the event handler type annotation
 type IpcRendererEvent = Electron.IpcRendererEvent;
+
+// Create window API separately to handle the 'new' reserved keyword
+const windowAPI: WindowAPI = {
+  new: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_NEW),
+  openNote: (noteId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.WINDOW_OPEN_NOTE, noteId),
+  getId: (): Promise<number> => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_GET_ID),
+  close: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_CLOSE),
+  focus: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_FOCUS),
+  reportCurrentNote: (noteId: string | null): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.WINDOW_REPORT_CURRENT_NOTE, noteId),
+};
 
 /**
  * Scribe API implementation exposed to the renderer process.
@@ -229,6 +241,8 @@ const scribeAPI: ScribeAPI = {
     delete: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_DELETE, assetId),
     getPath: (assetId: string) => ipcRenderer.invoke(IPC_CHANNELS.ASSETS_GET_PATH, assetId),
   },
+
+  window: windowAPI,
 };
 
 // Expose the API to the renderer via contextBridge

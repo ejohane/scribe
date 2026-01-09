@@ -127,6 +127,8 @@ export type {
   // Asset types
   AssetSaveResult,
   AssetsAPI,
+  // Window management types
+  WindowAPI,
 } from './ipc-contract.js';
 
 // Date Utilities - consolidated date formatting, parsing, and comparison

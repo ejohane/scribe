@@ -193,7 +193,7 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
         } catch {
           // Task's note was deleted - remove from index
           const changes = engines.taskIndex.removeNote(task.noteId);
-          deps.mainWindow?.webContents.send('tasks:changed', changes);
+          deps.windowManager?.broadcast('tasks:changed', changes);
           return { success: false, error: 'Note not found' };
         }
 
@@ -211,7 +211,7 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
           const removeChanges = engines.taskIndex.removeNote(task.noteId);
           const addChanges = engines.taskIndex.indexNote(note);
           const allChanges = [...removeChanges, ...addChanges];
-          deps.mainWindow?.webContents.send('tasks:changed', allChanges);
+          deps.windowManager?.broadcast('tasks:changed', allChanges);
           return { success: false, error: 'Task no longer exists in note' };
         }
 
@@ -230,13 +230,13 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
           changes,
         });
 
-        if (changes.length > 0 && deps.mainWindow) {
-          deps.mainWindow.webContents.send('tasks:changed', changes);
+        if (changes.length > 0 && deps.windowManager) {
+          deps.windowManager.broadcast('tasks:changed', changes);
           tasksLogger.debug('Sent tasks:changed event');
         } else if (changes.length === 0) {
           tasksLogger.warn('No changes detected after task toggle', { taskId });
-        } else if (!deps.mainWindow) {
-          tasksLogger.warn('mainWindow not available for task toggle event');
+        } else if (!deps.windowManager) {
+          tasksLogger.warn('windowManager not available for task toggle event');
         }
 
         const updatedTask = engines.taskIndex.get(taskId);
@@ -293,7 +293,7 @@ export function setupTasksHandlers(deps: HandlerDependencies): void {
   ipcMain.handle('tasks:reorder', async (_, { taskIds }: { taskIds: string[] }) => {
     const taskIndex = requireTaskIndex(deps);
     taskIndex.reorder(taskIds);
-    deps.mainWindow?.webContents.send('tasks:changed', [{ type: 'reordered', taskIds }]);
+    deps.windowManager?.broadcast('tasks:changed', [{ type: 'reordered', taskIds }]);
     return { success: true };
   });
 }

@@ -7,6 +7,7 @@
  * - Visual distinction for current position
  */
 
+import type { MouseEvent } from 'react';
 import clsx from 'clsx';
 import * as styles from './HistoryListItem.css';
 
@@ -19,12 +20,21 @@ export interface HistoryListItemProps {
   isCurrent: boolean;
   /** Callback when item is selected */
   onSelect: () => void;
+  /** Callback when item is right-clicked */
+  onContextMenu?: (e: MouseEvent) => void;
 }
 
-export function HistoryListItem({ title, position, isCurrent, onSelect }: HistoryListItemProps) {
+export function HistoryListItem({
+  title,
+  position,
+  isCurrent,
+  onSelect,
+  onContextMenu,
+}: HistoryListItemProps) {
   return (
     <div
       onClick={onSelect}
+      onContextMenu={onContextMenu}
       className={clsx(
         styles.historyItem,
         isCurrent ? styles.historyItemActive : styles.historyItemInactive

@@ -1,6 +1,7 @@
-import { app, BrowserWindow, Menu, MenuItem } from 'electron';
+import { app } from 'electron';
 import path from 'path';
 import { createVaultPath, createNoteId, IPC_CHANNELS } from '@scribe/shared';
+import { WindowManager } from './window-manager';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
@@ -29,6 +30,7 @@ import {
   setupRecentOpensHandlers,
   setupAssetHandlers,
   registerAssetProtocol,
+  setupWindowHandlers,
   parseDeepLink,
   extractDeepLinkFromArgv,
   registerProtocolHandler,
@@ -36,7 +38,7 @@ import {
   type HandlerDependencies,
 } from './handlers';
 import { mainLogger } from './logger';
-import { DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, TRAFFIC_LIGHT_POSITION } from './constants';
+import { setupApplicationMenu } from './menu';
 
 // __filename and __dirname are provided by the build script banner
 
@@ -74,16 +76,37 @@ if (!gotTheLock) {
     const deepLinkUrl = extractDeepLinkFromArgv(argv);
     if (deepLinkUrl) {
       handleDeepLink(deepLinkUrl);
-    }
-
-    // Focus the main window if it exists
-    if (deps.mainWindow) {
-      if (deps.mainWindow.isMinimized()) {
-        deps.mainWindow.restore();
-      }
-      deps.mainWindow.focus();
+    } else {
+      // No deep link - focus existing window or create new
+      focusOrCreateWindow();
     }
   });
+}
+
+/**
+ * Focus an existing window or create a new one if none exist.
+ * Used when a second instance is launched without a deep link.
+ */
+function focusOrCreateWindow(): void {
+  if (!deps.windowManager) return;
+
+  // Try to find and focus an existing window
+  const windows = deps.windowManager.getAllWindows();
+
+  if (windows.length > 0) {
+    // Focus the most recently focused window, or first available
+    const focused = deps.windowManager.getFocusedWindow();
+    const target = focused ?? windows[0];
+
+    if (target.isMinimized()) {
+      target.restore();
+    }
+    target.show();
+    target.focus();
+  } else {
+    // No windows exist - create one
+    deps.windowManager.createWindow();
+  }
 }
 
 /**
@@ -106,7 +129,26 @@ app.on('open-url', (event, url) => {
 });
 
 /**
- * Process a deep link URL and send it to the renderer.
+ * Focus a window by restoring it if minimized and bringing it to front.
+ *
+ * @param win - The BrowserWindow to focus
+ */
+function focusWindow(win: import('electron').BrowserWindow): void {
+  if (win.isMinimized()) {
+    win.restore();
+  }
+  win.show();
+  win.focus();
+}
+
+/**
+ * Process a deep link URL and send it to the appropriate window.
+ *
+ * Smart routing logic:
+ * 1. If the deep link is for a specific note that's already open in a window,
+ *    focus that window and send the deep link to it only.
+ * 2. Otherwise, send to the focused window or the first available window.
+ * 3. If no windows exist, store the URL for later processing.
  *
  * @param url - The scribe:// URL to process
  */
@@ -119,20 +161,60 @@ function handleDeepLink(url: string): void {
     return;
   }
 
-  // Send the parsed action to the renderer
-  if (deps.mainWindow && !deps.mainWindow.isDestroyed()) {
-    deps.mainWindow.webContents.send(IPC_CHANNELS.DEEP_LINK_RECEIVED, result.action);
-    mainLogger.debug('Sent deep link to renderer', { action: result.action });
-
-    // Ensure window is focused
-    if (deps.mainWindow.isMinimized()) {
-      deps.mainWindow.restore();
-    }
-    deps.mainWindow.focus();
-  } else {
-    // Window not ready yet - store for later
+  // Check if we have any windows to route to
+  if (!deps.windowManager || deps.windowManager.getWindowCount() === 0) {
+    // No windows yet - store for later processing
     pendingDeepLinkUrl = url;
-    mainLogger.debug('Window not ready, storing deep link for later', { url });
+    mainLogger.debug('No windows available, storing deep link for later', { url });
+    return;
+  }
+
+  // Extract note ID if this is a note-specific deep link
+  const noteId = result.action.type === 'note' ? result.action.noteId : null;
+
+  if (noteId) {
+    // Check if the note is already open in a window
+    const existingWindow = deps.windowManager.findWindowWithNote(noteId);
+
+    if (existingWindow) {
+      // Focus the existing window and send the deep link to it
+      focusWindow(existingWindow);
+      existingWindow.webContents.send(IPC_CHANNELS.DEEP_LINK_RECEIVED, result.action);
+      mainLogger.debug('Routed deep link to existing window with note', {
+        action: result.action,
+        windowId: existingWindow.id,
+      });
+      return;
+    }
+  }
+
+  // Note not open anywhere (or not a note link) - send to focused or first available window
+  const focusedWindow = deps.windowManager.getFocusedWindow();
+  const allWindows = deps.windowManager.getAllWindows();
+  const targetWindow = focusedWindow || allWindows[0];
+
+  if (targetWindow && !targetWindow.isDestroyed()) {
+    focusWindow(targetWindow);
+    targetWindow.webContents.send(IPC_CHANNELS.DEEP_LINK_RECEIVED, result.action);
+    mainLogger.debug('Routed deep link to target window', {
+      action: result.action,
+      windowId: targetWindow.id,
+      wasFocused: targetWindow === focusedWindow,
+    });
+  } else {
+    // No valid windows - create one with the note if applicable
+    if (noteId) {
+      deps.windowManager.createWindow({ noteId });
+      mainLogger.debug('Created new window for deep link', { noteId });
+    } else {
+      // For non-note deep links (daily, search), create window and queue the action
+      const newWindow = deps.windowManager.createWindow();
+      // Wait for window to be ready before sending the action
+      newWindow.webContents.once('did-finish-load', () => {
+        newWindow.webContents.send(IPC_CHANNELS.DEEP_LINK_RECEIVED, result.action);
+      });
+      mainLogger.debug('Created new window for deep link action', { action: result.action });
+    }
   }
 }
 
@@ -149,7 +231,7 @@ function processPendingDeepLink(): void {
 
 // Shared dependencies for all IPC handlers
 const deps: HandlerDependencies = {
-  mainWindow: null,
+  windowManager: null,
   vault: null,
   graphEngine: null,
   searchEngine: null,
@@ -292,154 +374,26 @@ function setupIPCHandlers() {
   setupVaultHandlers(deps);
   setupSyncHandlers(deps);
   setupRecentOpensHandlers(deps);
+  setupWindowHandlers(deps);
 }
 
 /**
- * Create and configure the main application window.
+ * Create and configure a new application window.
  *
- * This function initializes the BrowserWindow with security-hardened settings,
- * loads the renderer process, and sets up the native context menu for spell-check
- * and editing operations.
+ * Delegates to WindowManager which handles:
+ * - BrowserWindow creation with security-hardened settings
+ * - Renderer loading (dev server or bundled files)
+ * - Context menu setup for spell-check and editing operations
  *
- * ## Window Configuration
- *
- * - **Dimensions**: Uses DEFAULT_WINDOW_WIDTH (1200) and DEFAULT_WINDOW_HEIGHT (800)
- *   as comfortable defaults for note-taking. These can be resized by the user.
- *
- * - **Title Bar**: Uses macOS-native `hiddenInset` style with custom traffic light
- *   positioning (TRAFFIC_LIGHT_POSITION) to blend with our custom UI while keeping
- *   native window controls accessible.
- *
- * - **Platform Icons**: Windows requires explicit .ico file; macOS uses dock icon
- *   (set separately); Linux uses the .desktop file configuration.
- *
- * ## Security Settings (webPreferences)
- *
- * - **nodeIntegration: false** - Prevents renderer process from accessing Node.js
- *   APIs directly. This is a critical security measure that prevents XSS attacks
- *   from accessing the filesystem or executing system commands.
- *
- * - **contextIsolation: true** - Runs preload script in isolated context, preventing
- *   the renderer from tampering with the preload script's privileged APIs. Works
- *   with contextBridge to expose only specific, controlled APIs.
- *
- * - **spellcheck: true** - Enables Chromium's built-in spell-checking. Dictionary
- *   management is handled via session.addWordToSpellCheckerDictionary() in the
- *   context menu handler.
- *
- * - **preload**: Points to the preload script that bridges main and renderer
- *   processes via contextBridge.exposeInMainWorld().
- *
- * ## Context Menu Behavior
- *
- * The context menu adapts to the current content:
- *
- * 1. **Misspelled words**: Shows dictionary suggestions, "Add to Dictionary" option
- * 2. **Editable fields**: Cut, Copy, Paste actions
- * 3. **Selected text (non-editable)**: Copy action only
- * 4. **No selection**: No menu shown
- *
- * ## Lifecycle
- *
- * - Window reference is stored in `deps.mainWindow` for IPC handler access
- * - Reference is nulled on 'closed' event to allow garbage collection
- * - In dev mode: loads from Vite dev server (localhost:5173) with DevTools open
- * - In production: loads from bundled renderer/dist/index.html
- *
- * @sideeffects
- * - Sets `deps.mainWindow` to the created BrowserWindow instance
- * - Opens DevTools in development mode
- * - Registers 'closed' and 'context-menu' event listeners
+ * @param noteId - Optional note ID to open in the new window
+ * @returns The created BrowserWindow instance
+ * @throws Error if WindowManager is not initialized
  */
-function createWindow() {
-  // Set window icon for Windows (macOS uses dock icon, Linux uses desktop file)
-  const iconPath =
-    process.platform === 'win32' ? path.join(__dirname, '../../../build/icon.ico') : undefined;
-
-  deps.mainWindow = new BrowserWindow({
-    width: DEFAULT_WINDOW_WIDTH,
-    height: DEFAULT_WINDOW_HEIGHT,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: TRAFFIC_LIGHT_POSITION,
-    icon: iconPath,
-    webPreferences: {
-      // Security: Disable Node.js integration to prevent XSS from accessing system
-      nodeIntegration: false,
-      // Security: Isolate preload context to protect privileged APIs
-      contextIsolation: true,
-      // Enable Chromium spell-check with custom dictionary support
-      spellcheck: true,
-      // Bridge to renderer via contextBridge.exposeInMainWorld()
-      preload: path.join(__dirname, '../../preload/dist/preload.js'),
-    },
-  });
-
-  // Load the renderer
-  if (isDev) {
-    // In development, load from Vite dev server
-    deps.mainWindow.loadURL('http://localhost:5173');
-    deps.mainWindow.webContents.openDevTools();
-  } else {
-    // In production, load from built files
-    // __dirname is electron/main/dist, so we need to go up 3 levels to reach renderer/dist
-    deps.mainWindow.loadFile(path.join(__dirname, '../../../renderer/dist/index.html'));
+function createWindow(noteId?: string) {
+  if (!deps.windowManager) {
+    throw new Error('WindowManager not initialized');
   }
-
-  deps.mainWindow.on('closed', () => {
-    deps.mainWindow = null;
-  });
-
-  // Setup context menu for spellcheck and editing operations
-  deps.mainWindow.webContents.on('context-menu', (_event, params) => {
-    const menu = new Menu();
-
-    // Add spelling suggestions if there's a misspelled word
-    if (params.misspelledWord) {
-      // Add spelling suggestions
-      for (const suggestion of params.dictionarySuggestions) {
-        menu.append(
-          new MenuItem({
-            label: suggestion,
-            click: () => deps.mainWindow?.webContents.replaceMisspelling(suggestion),
-          })
-        );
-      }
-
-      // Add separator after suggestions (if any)
-      if (params.dictionarySuggestions.length > 0) {
-        menu.append(new MenuItem({ type: 'separator' }));
-      }
-
-      // Add "Add to Dictionary" option
-      menu.append(
-        new MenuItem({
-          label: 'Add to Dictionary',
-          click: () =>
-            deps.mainWindow?.webContents.session.addWordToSpellCheckerDictionary(
-              params.misspelledWord
-            ),
-        })
-      );
-
-      // Add separator before edit operations
-      menu.append(new MenuItem({ type: 'separator' }));
-    }
-
-    // Standard editing actions for editable fields
-    if (params.isEditable) {
-      menu.append(new MenuItem({ role: 'cut' }));
-      menu.append(new MenuItem({ role: 'copy' }));
-      menu.append(new MenuItem({ role: 'paste' }));
-    } else if (params.selectionText) {
-      // For non-editable text with selection, only show copy
-      menu.append(new MenuItem({ role: 'copy' }));
-    }
-
-    // Only show menu if there are items
-    if (menu.items.length > 0) {
-      menu.popup();
-    }
-  });
+  return deps.windowManager.createWindow({ noteId });
 }
 
 app.whenReady().then(async () => {
@@ -454,6 +408,18 @@ app.whenReady().then(async () => {
 
   setupIPCHandlers();
   setupAssetHandlers(vaultPath);
+
+  // Initialize WindowManager before creating the first window
+  deps.windowManager = new WindowManager({
+    isDev,
+    preloadPath: path.join(__dirname, '../../preload/dist/preload.js'),
+    rendererPath: path.join(__dirname, '../../../renderer/dist/index.html'),
+    devServerUrl: 'http://localhost:5173',
+  });
+
+  // Setup application menu with File > New Window
+  setupApplicationMenu(deps.windowManager);
+
   createWindow();
 
   // Process any deep link that was received before the window was ready
@@ -463,16 +429,16 @@ app.whenReady().then(async () => {
   }, 500);
 
   // Setup update handlers - production uses real auto-updater, dev uses stubs
-  if (deps.mainWindow) {
+  if (deps.windowManager) {
     if (isDev) {
-      setupDevUpdateHandlers(deps.mainWindow);
+      setupDevUpdateHandlers(deps.windowManager);
     } else {
-      setupAutoUpdater(deps.mainWindow);
+      setupAutoUpdater(deps.windowManager);
     }
-
-    // Setup sync status forwarding to renderer (if sync is enabled)
-    setupSyncStatusForwarding(deps, deps.mainWindow);
   }
+
+  // Setup sync status forwarding to renderer (if sync is enabled)
+  setupSyncStatusForwarding(deps);
 
   // On macOS, set the dock icon explicitly (needed for dev mode, production uses bundled icon)
   if (process.platform === 'darwin' && app.dock) {
@@ -490,7 +456,7 @@ app.whenReady().then(async () => {
   }
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (deps.windowManager?.getWindowCount() === 0) {
       createWindow();
     }
   });

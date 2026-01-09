@@ -36,7 +36,7 @@ import * as fs from 'node:fs/promises';
 import path from 'path';
 import { homedir } from 'node:os';
 import type { NoteId } from '@scribe/shared';
-import { HandlerDependencies, AppConfig, requireMainWindow } from './types';
+import { HandlerDependencies, AppConfig, requireWindowManager } from './types';
 import { configLogger } from '../logger';
 
 const CONFIG_DIR = path.join(homedir(), 'Scribe');
@@ -147,8 +147,11 @@ export function setupAppHandlers(deps: HandlerDependencies): void {
    * @throws Error if main window is not available
    */
   ipcMain.handle('app:openDevTools', async () => {
-    const mainWindow = requireMainWindow(deps);
-    mainWindow.webContents.openDevTools();
+    const windowManager = requireWindowManager(deps);
+    const focusedWindow = windowManager.getFocusedWindow();
+    if (focusedWindow) {
+      focusedWindow.webContents.openDevTools();
+    }
     return { success: true };
   });
 

@@ -103,6 +103,11 @@ export function useNoteState(): UseNoteStateReturn {
       setCurrentNoteId(id);
       setError(null);
       setIsLoading(false);
+
+      // Report null for system notes (they're not real notes)
+      window.scribe.window
+        .reportCurrentNote(null)
+        .catch((err) => log.warn('Failed to report current note', { error: err }));
       return;
     }
 
@@ -116,6 +121,11 @@ export function useNoteState(): UseNoteStateReturn {
 
       // Remember this as the last opened note
       await window.scribe.app.setLastOpenedNote(id);
+
+      // Report the current note to the main process for smart deep link routing
+      window.scribe.window
+        .reportCurrentNote(id)
+        .catch((err) => log.warn('Failed to report current note', { noteId: id, error: err }));
 
       // Record the open for recent opens tracking (fire-and-forget)
       const entityType = getEntityTypeFromNote(note);
@@ -265,6 +275,13 @@ export function useNoteState(): UseNoteStateReturn {
 
       // Remember this as the last opened note
       await window.scribe.app.setLastOpenedNote(newNote.id);
+
+      // Report the current note to the main process for smart deep link routing
+      window.scribe.window
+        .reportCurrentNote(newNote.id)
+        .catch((err) =>
+          log.warn('Failed to report current note', { noteId: newNote.id, error: err })
+        );
 
       // Record the open (new notes are always 'note' type initially)
       window.scribe.recentOpens
