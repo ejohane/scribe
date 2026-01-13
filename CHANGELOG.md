@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.36.0](https://github.com/ejohane/scribe/compare/v1.35.0...v1.36.0) (2026-01-13)
+
+### Features
+
+* simplify templates to start as blank pages ([2de103e](https://github.com/ejohane/scribe/commit/2de103e2bf804cde4857ea6140389f339bba7f41))
+
+### Bug Fixes
+
+* update remaining integration tests for blank page templates ([a999525](https://github.com/ejohane/scribe/commit/a9995256440216ad09bbd5924a8cdb453b4c2add))
+
 ## [1.35.0](https://github.com/ejohane/scribe/compare/v1.34.0...v1.35.0) (2026-01-13)
 
 ### Features
