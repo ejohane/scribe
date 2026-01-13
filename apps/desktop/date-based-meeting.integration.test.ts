@@ -359,13 +359,14 @@ describe('Meeting Creation with Date Selection', () => {
         date: futureDate,
       });
 
-      // Verify content has the three sections
+      // Verify content is a blank page with single empty paragraph
       const children = note.content.root.children;
-      expect(children.length).toBe(6); // 3 headings + 3 lists
+      expect(children.length).toBe(1);
 
-      // Check headings exist
-      const headings = children.filter((c: { type: string }) => c.type === 'heading');
-      expect(headings).toHaveLength(3);
+      // First child should be an empty paragraph
+      const firstChild = children[0] as { type: string; children: unknown[] };
+      expect(firstChild.type).toBe('paragraph');
+      expect(firstChild.children).toEqual([]);
     });
 
     it('should initialize meeting with empty attendees for any date', async () => {
