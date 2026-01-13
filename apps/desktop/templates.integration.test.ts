@@ -270,18 +270,17 @@ describe('Templates Feature Integration Tests', () => {
         expect(dailyNote.daily.date).toBe(dateStr);
       });
 
-      it('should create daily note with empty bullet list (no H1)', async () => {
+      it('should create daily note with empty paragraph (blank page)', async () => {
         const dailyNote = await dailyGetOrCreate(vault, graphEngine, searchEngine);
 
         // Verify content structure
         const rootChildren = dailyNote.content.root.children;
         expect(rootChildren.length).toBe(1);
 
-        // First child should be a bullet list, not a heading
+        // First child should be an empty paragraph
         const firstChild = rootChildren[0] as any;
-        expect(firstChild.type).toBe('list');
-        expect(firstChild.listType).toBe('bullet');
-        expect(firstChild.type).not.toBe('heading');
+        expect(firstChild.type).toBe('paragraph');
+        expect(firstChild.children).toEqual([]);
       });
 
       it('should store title as MM-dd-yyyy date format', async () => {
@@ -404,33 +403,18 @@ describe('Templates Feature Integration Tests', () => {
         expect(meeting.content.type).toBe('meeting');
       });
 
-      it('should create meeting content with H3 sections and bullet lists (no H1)', async () => {
+      it('should create meeting content with empty paragraph (blank page)', async () => {
         const meeting = await meetingCreate(vault, graphEngine, searchEngine, 'Project Sync');
 
         const rootChildren = meeting.content.root.children;
 
-        // Should have 6 children: H3, list, H3, list, H3, list
-        expect(rootChildren.length).toBe(6);
+        // Should have 1 child: empty paragraph
+        expect(rootChildren.length).toBe(1);
 
-        // Verify section structure
-        const sections = ['Pre-Read', 'Notes', 'Action Items'];
-        for (let i = 0; i < 3; i++) {
-          const heading = rootChildren[i * 2] as any;
-          const list = rootChildren[i * 2 + 1] as any;
-
-          expect(heading.type).toBe('heading');
-          expect(heading.tag).toBe('h3');
-          expect(heading.children[0].text).toBe(sections[i]);
-
-          expect(list.type).toBe('list');
-          expect(list.listType).toBe('bullet');
-        }
-
-        // No H1 heading
-        const hasH1 = rootChildren.some(
-          (child: any) => child.type === 'heading' && child.tag === 'h1'
-        );
-        expect(hasH1).toBe(false);
+        // First child should be an empty paragraph
+        const firstChild = rootChildren[0] as any;
+        expect(firstChild.type).toBe('paragraph');
+        expect(firstChild.children).toEqual([]);
       });
 
       it('should require a title for meeting creation', async () => {

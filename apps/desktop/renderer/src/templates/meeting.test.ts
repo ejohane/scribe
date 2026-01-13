@@ -3,32 +3,10 @@ import { createMeetingContent, meetingTemplate } from './meeting';
 
 describe('meetingTemplate', () => {
   describe('createMeetingContent', () => {
-    it('creates content with 3 H3 sections', () => {
+    it('creates content with empty paragraph (blank page)', () => {
       const content = createMeetingContent();
-      const headings = content.root.children.filter(
-        (child: any) => child.type === 'heading' && child.tag === 'h3'
-      );
-      expect(headings).toHaveLength(3);
-    });
-
-    it('has Pre-Read, Notes, Action Items sections in order', () => {
-      const content = createMeetingContent();
-      const headingTexts = content.root.children
-        .filter((child: any) => child.type === 'heading')
-        .map((h: any) => h.children[0].text);
-      expect(headingTexts).toEqual(['Pre-Read', 'Notes', 'Action Items']);
-    });
-
-    it('each section is followed by a bullet list', () => {
-      const content = createMeetingContent();
-      const children = content.root.children;
-      // Pattern: heading, list, heading, list, heading, list
-      expect((children[0] as any).type).toBe('heading');
-      expect((children[1] as any).type).toBe('list');
-      expect((children[2] as any).type).toBe('heading');
-      expect((children[3] as any).type).toBe('list');
-      expect((children[4] as any).type).toBe('heading');
-      expect((children[5] as any).type).toBe('list');
+      expect(content.root.children).toHaveLength(1);
+      expect((content.root.children[0] as any).type).toBe('paragraph');
     });
 
     it('has type: meeting on content', () => {
@@ -36,12 +14,10 @@ describe('meetingTemplate', () => {
       expect(content.type).toBe('meeting');
     });
 
-    it('has no H1 heading', () => {
+    it('has no heading', () => {
       const content = createMeetingContent();
-      const hasH1 = content.root.children.some(
-        (child: any) => child.type === 'heading' && child.tag === 'h1'
-      );
-      expect(hasH1).toBe(false);
+      const hasHeading = content.root.children.some((child: any) => child.type === 'heading');
+      expect(hasHeading).toBe(false);
     });
   });
 

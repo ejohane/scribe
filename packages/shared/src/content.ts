@@ -36,11 +36,10 @@ export function createEmptyContent(): EditorContent {
 }
 
 /**
- * Creates initial content for daily notes: a single empty bullet list.
- * Daily notes start with a bullet list for quick capture.
+ * Creates initial content for daily notes: a blank page.
  * No H1 heading - title is displayed in the header only.
  *
- * @returns EditorContent with a bullet list containing one empty item
+ * @returns EditorContent with an empty paragraph
  *
  * @example
  * const content = createDailyContent();
@@ -51,18 +50,8 @@ export function createDailyContent(): EditorContent {
     root: {
       children: [
         {
-          type: 'list',
-          listType: 'bullet',
-          children: [
-            {
-              type: 'listitem',
-              children: [],
-              direction: null,
-              format: '',
-              indent: 0,
-              version: 1,
-            },
-          ],
+          type: 'paragraph',
+          children: [],
           direction: null,
           format: '',
           indent: 0,
@@ -123,11 +112,10 @@ function emptyBulletList(): Record<string, unknown> {
 }
 
 /**
- * Creates initial content for meeting notes.
- * Structure: Pre-Read (H3 + bullets), Notes (H3 + bullets), Action Items (H3 + bullets)
+ * Creates initial content for meeting notes: a blank page.
  * No H1 heading - title is displayed in the header only.
  *
- * @returns EditorContent with meeting template structure
+ * @returns EditorContent with an empty paragraph
  *
  * @example
  * const content = createMeetingContent();
@@ -137,12 +125,14 @@ export function createMeetingContent(): EditorContent {
   return {
     root: {
       children: [
-        createH3('Pre-Read'),
-        emptyBulletList(),
-        createH3('Notes'),
-        emptyBulletList(),
-        createH3('Action Items'),
-        emptyBulletList(),
+        {
+          type: 'paragraph',
+          children: [],
+          direction: null,
+          format: '',
+          indent: 0,
+          version: 1,
+        },
       ],
       type: 'root',
       format: '',
