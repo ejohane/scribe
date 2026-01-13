@@ -60,6 +60,7 @@ describe('useNoteState', () => {
   let mockGetLastOpenedNote: ReturnType<typeof vi.fn>;
   let mockSetLastOpenedNote: ReturnType<typeof vi.fn>;
   let mockRecordOpen: ReturnType<typeof vi.fn>;
+  let mockReportCurrentNote: ReturnType<typeof vi.fn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -71,6 +72,7 @@ describe('useNoteState', () => {
     mockGetLastOpenedNote = vi.fn();
     mockSetLastOpenedNote = vi.fn();
     mockRecordOpen = vi.fn().mockResolvedValue(undefined);
+    mockReportCurrentNote = vi.fn().mockResolvedValue({ success: true });
 
     // Suppress console.error during tests
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -89,6 +91,9 @@ describe('useNoteState', () => {
       },
       recentOpens: {
         recordOpen: mockRecordOpen,
+      },
+      window: {
+        reportCurrentNote: mockReportCurrentNote,
       },
     } as unknown as typeof window.scribe;
   });
