@@ -174,10 +174,10 @@ describe('dailyTemplate', () => {
   });
 
   describe('createDailyContent', () => {
-    it('creates content with empty bullet list', () => {
+    it('creates content with empty paragraph (blank page)', () => {
       const content = createDailyContent();
       expect(content.root.children).toHaveLength(1);
-      expect((content.root.children[0] as { type: string }).type).toBe('list');
+      expect((content.root.children[0] as { type: string }).type).toBe('paragraph');
     });
 
     it('has type: daily on content', () => {
@@ -185,14 +185,12 @@ describe('dailyTemplate', () => {
       expect(content.type).toBe('daily');
     });
 
-    it('has no H1 heading', () => {
+    it('has no heading', () => {
       const content = createDailyContent();
-      const hasH1 = content.root.children.some(
-        (child) =>
-          (child as { type: string; tag?: string }).type === 'heading' &&
-          (child as { type: string; tag?: string }).tag === 'h1'
+      const hasHeading = content.root.children.some(
+        (child) => (child as { type: string }).type === 'heading'
       );
-      expect(hasH1).toBe(false);
+      expect(hasHeading).toBe(false);
     });
   });
 

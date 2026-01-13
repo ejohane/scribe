@@ -83,31 +83,21 @@ describe('content', () => {
       expect(content.root.version).toBe(1);
     });
 
-    it('includes a bullet list as first child', () => {
+    it('includes single empty paragraph as child', () => {
       const content = createDailyContent();
       expect(content.root.children).toHaveLength(1);
-      const list = content.root.children[0] as Record<string, unknown>;
-      expect(list.type).toBe('list');
-      expect(list.listType).toBe('bullet');
+      const paragraph = content.root.children[0] as Record<string, unknown>;
+      expect(paragraph.type).toBe('paragraph');
     });
 
-    it('list contains one empty list item', () => {
+    it('paragraph has correct structure', () => {
       const content = createDailyContent();
-      const list = content.root.children[0] as Record<string, unknown>;
-      const children = list.children as Record<string, unknown>[];
-      expect(children).toHaveLength(1);
-      expect(children[0].type).toBe('listitem');
-      expect(children[0].children).toEqual([]);
-    });
-
-    it('list item has correct Lexical properties', () => {
-      const content = createDailyContent();
-      const list = content.root.children[0] as Record<string, unknown>;
-      const listItem = (list.children as Record<string, unknown>[])[0];
-      expect(listItem.direction).toBeNull();
-      expect(listItem.format).toBe('');
-      expect(listItem.indent).toBe(0);
-      expect(listItem.version).toBe(1);
+      const paragraph = content.root.children[0] as Record<string, unknown>;
+      expect(paragraph.children).toEqual([]);
+      expect(paragraph.format).toBe('');
+      expect(paragraph.indent).toBe(0);
+      expect(paragraph.direction).toBeNull();
+      expect(paragraph.version).toBe(1);
     });
 
     it('sets type property to daily', () => {
@@ -119,13 +109,11 @@ describe('content', () => {
       const content1 = createDailyContent();
       const content2 = createDailyContent();
 
-      // Modify content1's list
-      const list1 = content1.root.children[0] as Record<string, unknown>;
-      (list1.children as unknown[]).push({ type: 'listitem' });
+      // Modify content1
+      (content1.root.children[0] as Record<string, unknown>).testProp = 'modified';
 
       // content2 should not be affected
-      const list2 = content2.root.children[0] as Record<string, unknown>;
-      expect(list2.children).toHaveLength(1);
+      expect((content2.root.children[0] as Record<string, unknown>).testProp).toBeUndefined();
     });
   });
 
@@ -143,76 +131,21 @@ describe('content', () => {
       expect(content.root.version).toBe(1);
     });
 
-    it('includes six children (3 headings + 3 lists)', () => {
+    it('includes single empty paragraph as child', () => {
       const content = createMeetingContent();
-      expect(content.root.children).toHaveLength(6);
+      expect(content.root.children).toHaveLength(1);
+      const paragraph = content.root.children[0] as Record<string, unknown>;
+      expect(paragraph.type).toBe('paragraph');
     });
 
-    it('has Pre-Read section', () => {
+    it('paragraph has correct structure', () => {
       const content = createMeetingContent();
-      const heading = content.root.children[0] as Record<string, unknown>;
-      expect(heading.type).toBe('heading');
-      expect(heading.tag).toBe('h3');
-
-      const textNode = (heading.children as Record<string, unknown>[])[0];
-      expect(textNode.type).toBe('text');
-      expect(textNode.text).toBe('Pre-Read');
-    });
-
-    it('has Notes section', () => {
-      const content = createMeetingContent();
-      const heading = content.root.children[2] as Record<string, unknown>;
-      expect(heading.type).toBe('heading');
-      expect(heading.tag).toBe('h3');
-
-      const textNode = (heading.children as Record<string, unknown>[])[0];
-      expect(textNode.text).toBe('Notes');
-    });
-
-    it('has Action Items section', () => {
-      const content = createMeetingContent();
-      const heading = content.root.children[4] as Record<string, unknown>;
-      expect(heading.type).toBe('heading');
-      expect(heading.tag).toBe('h3');
-
-      const textNode = (heading.children as Record<string, unknown>[])[0];
-      expect(textNode.text).toBe('Action Items');
-    });
-
-    it('each section followed by bullet list', () => {
-      const content = createMeetingContent();
-
-      // Indices 1, 3, 5 should be bullet lists
-      for (const idx of [1, 3, 5]) {
-        const list = content.root.children[idx] as Record<string, unknown>;
-        expect(list.type).toBe('list');
-        expect(list.listType).toBe('bullet');
-      }
-    });
-
-    it('bullet lists have one empty item', () => {
-      const content = createMeetingContent();
-
-      for (const idx of [1, 3, 5]) {
-        const list = content.root.children[idx] as Record<string, unknown>;
-        const items = list.children as Record<string, unknown>[];
-        expect(items).toHaveLength(1);
-        expect(items[0].type).toBe('listitem');
-        expect(items[0].children).toEqual([]);
-      }
-    });
-
-    it('headings have correct text node structure', () => {
-      const content = createMeetingContent();
-      const heading = content.root.children[0] as Record<string, unknown>;
-      const textNode = (heading.children as Record<string, unknown>[])[0];
-
-      expect(textNode.type).toBe('text');
-      expect(textNode.format).toBe(0);
-      expect(textNode.mode).toBe('normal');
-      expect(textNode.style).toBe('');
-      expect(textNode.detail).toBe(0);
-      expect(textNode.version).toBe(1);
+      const paragraph = content.root.children[0] as Record<string, unknown>;
+      expect(paragraph.children).toEqual([]);
+      expect(paragraph.format).toBe('');
+      expect(paragraph.indent).toBe(0);
+      expect(paragraph.direction).toBeNull();
+      expect(paragraph.version).toBe(1);
     });
 
     it('sets type property to meeting', () => {
@@ -225,10 +158,10 @@ describe('content', () => {
       const content2 = createMeetingContent();
 
       // Modify content1
-      content1.root.children.pop();
+      (content1.root.children[0] as Record<string, unknown>).testProp = 'modified';
 
       // content2 should not be affected
-      expect(content2.root.children).toHaveLength(6);
+      expect((content2.root.children[0] as Record<string, unknown>).testProp).toBeUndefined();
     });
   });
 
