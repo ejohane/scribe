@@ -42,14 +42,17 @@ Scribe currently follows a **local-first Electron architecture**:
 
 ## Proposed Architecture
 
-### High-Level Design
+### High-Level Design (Local-First)
+
+The primary deployment model is **local-first**: all components run on the user's machine as a packaged application. Cloud deployment is optional for remote sync/collaboration.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENTS                                          │
+│                         USER'S LOCAL MACHINE                                  │
+│                                                                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
 │  │  Electron   │  │    Web      │  │   Mobile    │  │    CLI      │         │
-│  │   Client    │  │   Client    │  │   Client    │  │   Client    │         │
+│  │   Client    │  │ (browser)   │  │   Client    │  │   Client    │         │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
 │         │                │                │                │                  │
 │         └────────────────┴────────────────┴────────────────┘                  │
@@ -59,40 +62,66 @@ Scribe currently follows a **local-first Electron architecture**:
 │                    │  - HTTP/REST (CRUD)         │                           │
 │                    │  - WebSocket (real-time)    │                           │
 │                    │  - Yjs provider (CRDT)      │                           │
-│                    │  - Local cache (offline)    │                           │
 │                    │  - Plugin runtime (client)  │                           │
 │                    └──────────────┬──────────────┘                           │
-└───────────────────────────────────┼───────────────────────────────────────────┘
-                                    │ HTTPS / WSS
-┌───────────────────────────────────┼───────────────────────────────────────────┐
-│                              SERVER                                           │
-│                    ┌──────────────┴──────────────┐                           │
-│                    │       API GATEWAY           │                           │
-│                    │  - Authentication           │                           │
-│                    │  - Rate limiting            │                           │
-│                    │  - Request routing          │                           │
-│                    └──────────────┬──────────────┘                           │
 │                                   │                                           │
-│    ┌──────────────────────────────┼──────────────────────────────────────┐   │
-│    │                         SERVICES                                     │   │
-│    │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │   │
-│    │  │  Document  │  │   Graph    │  │   Search   │  │   Collab   │    │   │
-│    │  │  Service   │  │  Service   │  │  Service   │  │  Service   │    │   │
-│    │  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │   │
-│    │  ┌────────────┐  ┌────────────┐  ┌────────────┐                    │   │
-│    │  │   Task     │  │  Plugin    │  │   Auth     │                    │   │
-│    │  │  Service   │  │  Service   │  │  Service   │                    │   │
-│    │  └────────────┘  └────────────┘  └────────────┘                    │   │
-│    └──────────────────────────────┬──────────────────────────────────────┘   │
+│                         localhost:PORT (or IPC)                               │
 │                                   │                                           │
-│    ┌──────────────────────────────┼──────────────────────────────────────┐   │
-│    │                        DATA LAYER                                    │   │
-│    │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │   │
-│    │  │ PostgreSQL │  │   Redis    │  │ Yjs State  │  │   S3/R2    │    │   │
-│    │  │ (Documents)│  │  (Cache)   │  │  (CRDT)    │  │  (Assets)  │    │   │
-│    │  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │   │
-│    └─────────────────────────────────────────────────────────────────────┘   │
+│  ┌────────────────────────────────┴────────────────────────────────────────┐ │
+│  │                    LOCAL SERVER (Node.js process)                        │ │
+│  │                                                                          │ │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐        │ │
+│  │  │  Document  │  │   Graph    │  │   Search   │  │   Collab   │        │ │
+│  │  │  Service   │  │  Service   │  │  Service   │  │  Service   │        │ │
+│  │  └────────────┘  └────────────┘  └────────────┘  └────────────┘        │ │
+│  │  ┌────────────┐  ┌────────────┐                                        │ │
+│  │  │   Task     │  │  Plugin    │   (Auth optional for local)            │ │
+│  │  │  Service   │  │  Service   │                                        │ │
+│  │  └────────────┘  └────────────┘                                        │ │
+│  └──────────────────────────────┬───────────────────────────────────────────┘ │
+│                                 │                                             │
+│  ┌──────────────────────────────┴───────────────────────────────────────────┐ │
+│  │                         DATA LAYER (Local Files)                          │ │
+│  │                                                                           │ │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │ │
+│  │  │   JSON Files    │  │     SQLite      │  │   Local Assets  │          │ │
+│  │  │ /vault/notes/   │  │  (FTS5 search,  │  │  /vault/assets/ │          │ │
+│  │  │ (source of      │  │   graph index,  │  │                 │          │ │
+│  │  │  truth)         │  │   Yjs state)    │  │                 │          │ │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘          │ │
+│  └───────────────────────────────────────────────────────────────────────────┘ │
 └───────────────────────────────────────────────────────────────────────────────┘
+
+                              ▲ (Optional)
+                              │ Cloud Sync
+                              ▼
+                    ┌─────────────────────┐
+                    │   CLOUD (Optional)  │
+                    │  - Remote sync      │
+                    │  - Cross-device     │
+                    │  - Team collab      │
+                    └─────────────────────┘
+```
+
+### Server Process Lifecycle
+
+The local server can run in several modes:
+
+1. **Embedded in Electron** (simplest) - Server runs in Electron main process
+2. **Background daemon** - Standalone process, survives app restarts
+3. **First-client-wins** - First client to start becomes the server
+
+```typescript
+// Example: Electron main process starts local server
+const server = await createLocalServer({
+  port: 0, // Auto-assign available port
+  vaultPath: '/path/to/vault',
+});
+
+// Other clients connect via discovered port
+const client = new ScribeClient({
+  serverUrl: `ws://localhost:${server.port}`,
+});
 ```
 
 ---
@@ -132,7 +161,9 @@ interface DocumentService {
 }
 ```
 
-**Storage**: PostgreSQL with JSONB for note content (preserves Lexical JSON structure)
+**Storage**:
+- **Primary**: JSON files in `/vault/notes/` (human-readable, git-friendly)
+- **Index**: SQLite with metadata, timestamps, and note type for fast queries
 
 #### 1.3 Graph Service
 Evolved from `engine-graph`:
@@ -149,7 +180,7 @@ interface GraphService {
 }
 ```
 
-**Storage**: PostgreSQL (can migrate to graph DB like Neo4j later if needed)
+**Storage**: SQLite tables for edges (note_id, linked_note_id, link_type) with indexes for fast traversal
 
 #### 1.4 Search Service
 Evolved from `engine-search`:
@@ -162,10 +193,24 @@ interface SearchService {
 }
 ```
 
-**Options**:
-- **PostgreSQL Full-Text Search**: Simple, built-in, good for most cases
-- **Elasticsearch/Typesense**: Better for large vaults, advanced features
-- **Meilisearch**: Good balance of features and simplicity
+**Storage**: SQLite FTS5 (Full-Text Search) virtual tables
+
+**Why SQLite FTS5?**
+- Built into SQLite, no external dependencies
+- Excellent performance for local datasets
+- Supports ranking, snippets, and highlighting
+- Prefix matching for autocomplete
+- Already proven in current FlexSearch can be replaced incrementally
+
+```sql
+-- Example FTS5 schema
+CREATE VIRTUAL TABLE notes_fts USING fts5(
+  title,
+  content,
+  tags,
+  content_rowid=note_rowid
+);
+```
 
 #### 1.5 Collaboration Service (NEW)
 Real-time collaborative editing:
@@ -483,17 +528,72 @@ Client                          Server
 
 ### 6. Technology Choices
 
-| Component | Recommended | Alternatives |
-|-----------|-------------|--------------|
-| Server Runtime | Node.js (Fastify) | Cloudflare Workers, Deno |
-| API Layer | tRPC or REST + WebSocket | GraphQL |
-| Database | PostgreSQL | SQLite (small scale) |
-| Cache | Redis | In-memory |
-| Real-time | Yjs | Automerge, OT (ShareDB) |
-| Search | PostgreSQL FTS | Meilisearch, Typesense |
-| Plugin Sandbox | V8 Isolates | WebAssembly |
-| Assets | S3/R2 | Local FS (dev) |
-| Auth | JWT + OAuth2 | Session-based |
+#### Local-First Deployment (Primary Target)
+
+The architecture is designed to run **entirely on the user's local machine** as a packaged app. This means:
+
+- No cloud infrastructure required
+- User owns their data completely
+- Works offline by default
+- Multiple local clients connect to a local server process
+
+| Component | Recommended | Notes |
+|-----------|-------------|-------|
+| Server Runtime | Node.js (embedded) | Runs as background process or within Electron main |
+| API Layer | tRPC or REST + WebSocket | Local IPC or localhost:PORT |
+| Database | **SQLite** (better-sqlite3) | Embedded, no separate server, already in use |
+| Document Storage | **JSON files** (current) | Human-readable, git-friendly, backward compatible |
+| Search | **SQLite FTS5** | Built-in full-text search extension |
+| Cache | In-memory (LRU) | No Redis needed for local |
+| Real-time | Yjs | CRDT for conflict-free collaboration |
+| Plugin Sandbox | V8 Isolates | `isolated-vm` package |
+| Assets | Local filesystem | `/vault/assets/` |
+| Auth | Local token or none | Optional for multi-user households |
+
+#### Optional Cloud Deployment
+
+For users who want cloud sync or true remote collaboration:
+
+| Component | Cloud Option |
+|-----------|--------------|
+| Server Runtime | Cloudflare Workers, Fly.io, Railway |
+| Database | Turso (SQLite edge), PlanetScale, Neon |
+| Real-time | Cloudflare Durable Objects, PartyKit |
+| Assets | R2, S3 |
+| Auth | JWT + OAuth2 |
+
+#### Why SQLite + JSON Files (Hybrid Approach)
+
+This hybrid preserves the best of both worlds:
+
+**JSON Files for Documents:**
+- Human-readable (can open in any editor)
+- Git-friendly (version control your notes)
+- Backward compatible with current vaults
+- Easy backup (just copy the folder)
+- No migration needed from current architecture
+
+**SQLite for Indexes & State:**
+- Fast queries (metadata, tags, links)
+- FTS5 for full-text search
+- Graph relationship indexes
+- Yjs document state persistence
+- Sync queue and conflict tracking
+- WAL mode for concurrent reads
+
+```
+/vault/
+├── notes/
+│   ├── {noteId}.json          # Source of truth (human-readable)
+│   └── ...
+├── assets/
+│   └── {hash}.{ext}           # Binary assets
+├── .scribe/
+│   ├── config.json            # User settings
+│   ├── index.sqlite3          # Metadata, search, graph indexes
+│   ├── collab.sqlite3         # Yjs document state (optional)
+│   └── sync.sqlite3           # Sync state (existing)
+```
 
 ---
 
