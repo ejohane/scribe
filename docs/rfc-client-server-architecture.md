@@ -103,26 +103,127 @@ The primary deployment model is **local-first**: all components run on the user'
                     └─────────────────────┘
 ```
 
-### Server Process Lifecycle
+### Server Process Lifecycle: Background Daemon
 
-The local server can run in several modes:
+The server runs as a **background daemon** - a standalone process independent of any client. This provides:
 
-1. **Embedded in Electron** (simplest) - Server runs in Electron main process
-2. **Background daemon** - Standalone process, survives app restarts
-3. **First-client-wins** - First client to start becomes the server
+- **Persistence** - Server survives client restarts
+- **Multi-client** - Any number of clients can connect/disconnect
+- **Reliability** - Clients don't need to coordinate who "owns" the server
+- **Clean separation** - Server and client codebases are fully decoupled
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER'S MACHINE                            │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                 SCRIBE DAEMON (scribed)                   │   │
+│  │                                                           │   │
+│  │   • Runs on localhost:PORT                               │   │
+│  │   • Started on login (launchd/systemd) or manually       │   │
+│  │   • Manages vault access and file locking                │   │
+│  │   • Survives client restarts                             │   │
+│  │   • Writes port/status to ~/.scribe/daemon.json          │   │
+│  │                                                           │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              ▲                                   │
+│                              │ localhost:PORT                    │
+│            ┌─────────────────┼─────────────────┐                │
+│            │                 │                 │                │
+│       ┌────┴────┐      ┌────┴────┐      ┌────┴────┐            │
+│       │Electron │      │ Browser │      │   CLI   │            │
+│       │  App    │      │   Tab   │      │         │            │
+│       └─────────┘      └─────────┘      └─────────┘            │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+#### Daemon Management
+
+**Daemon Info File** (`~/.scribe/daemon.json`):
+```json
+{
+  "pid": 12345,
+  "port": 47832,
+  "vaultPath": "/Users/me/Documents/vault",
+  "startedAt": "2024-01-15T10:30:00Z",
+  "version": "1.0.0"
+}
+```
+
+**CLI Commands**:
+```bash
+# Start daemon (if not running)
+scribe daemon start [--vault /path/to/vault]
+
+# Stop daemon
+scribe daemon stop
+
+# Check status
+scribe daemon status
+
+# Restart with different vault
+scribe daemon restart --vault /path/to/other-vault
+```
+
+**Startup Options**:
+1. **Manual** - User runs `scribe daemon start`
+2. **On login** - launchd (macOS) / systemd (Linux) / Task Scheduler (Windows)
+3. **On-demand** - First client starts daemon if not running
+
+#### Client Connection Flow
 
 ```typescript
-// Example: Electron main process starts local server
-const server = await createLocalServer({
-  port: 0, // Auto-assign available port
-  vaultPath: '/path/to/vault',
+// Client SDK handles daemon discovery automatically
+const client = new ScribeClient({
+  // No URL needed - SDK reads from ~/.scribe/daemon.json
 });
 
-// Other clients connect via discovered port
+await client.connect(); // Throws if daemon not running
+
+// Or with auto-start
 const client = new ScribeClient({
-  serverUrl: `ws://localhost:${server.port}`,
+  autoStartDaemon: true, // Start daemon if not running
 });
 ```
+
+**Connection sequence**:
+1. Client reads `~/.scribe/daemon.json`
+2. If file missing or stale → optionally start daemon
+3. Connect to `ws://localhost:{port}`
+4. Authenticate (local token from daemon.json)
+5. Ready for API calls
+
+#### Multi-Vault Support
+
+Each vault gets its own daemon instance:
+
+```
+~/.scribe/
+├── daemon.json           # Default/active vault daemon
+└── daemons/
+    ├── vault-abc123.json # Daemon for vault at /path/a
+    └── vault-def456.json # Daemon for vault at /path/b
+```
+
+Clients specify which vault to connect to:
+```typescript
+const client = new ScribeClient({
+  vaultPath: '/path/to/specific/vault',
+});
+```
+
+#### Daemon Responsibilities
+
+| Responsibility | Description |
+|----------------|-------------|
+| **API Server** | HTTP + WebSocket on localhost |
+| **File Locking** | Exclusive access to vault files |
+| **Index Management** | SQLite FTS5, graph indexes |
+| **Collaboration** | Yjs document state, presence |
+| **Plugin Host** | Server-side plugin execution |
+| **File Watching** | Detect external changes to vault |
+| **Graceful Shutdown** | Save state, release locks on SIGTERM |
 
 ---
 
