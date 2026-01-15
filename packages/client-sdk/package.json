@@ -15,7 +15,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@trpc/client": "^10.45.4"
+    "@trpc/client": "^11.8.1"
   },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
