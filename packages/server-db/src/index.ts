@@ -90,3 +90,6 @@ export {
   getLatestVersion,
   type MigrationDefinition,
 } from './migrations/index.js';
+
+// Repository exports
+export { NotesRepository, type NoteFilter } from './repositories/index.js';
