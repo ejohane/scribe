@@ -7,6 +7,15 @@
 
 export const VERSION = '0.1.0';
 
+// Container exports
+export {
+  createServices,
+  destroyServices,
+  createTestServices,
+  type ServiceConfig,
+  type Services,
+} from './container.js';
+
 // Service exports
 export {
   DocumentService,
@@ -17,6 +26,21 @@ export {
   type LinkInfo,
   type TagInfo,
   type GraphStats,
+  SearchService,
+  type SearchServiceDeps,
+  type SearchQuery,
+  type SearchFilters,
+  type SearchOptions,
+  type SearchResult,
+  type SearchResultNote,
+  type MatchLocation,
+  type SearchSuggestion,
+  type ReindexResult,
+  CollaborationService,
+  type CollaborationServiceDeps,
+  type CollabSession,
+  type CollabUpdate,
+  type UpdateHandler,
 } from './services/index.js';
 
 // Error exports
