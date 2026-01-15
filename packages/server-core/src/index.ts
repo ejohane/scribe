@@ -8,7 +8,16 @@
 export const VERSION = '0.1.0';
 
 // Service exports
-export { DocumentService, type DocumentServiceDeps } from './services/index.js';
+export {
+  DocumentService,
+  type DocumentServiceDeps,
+  GraphService,
+  type GraphServiceDeps,
+  type GraphNode,
+  type LinkInfo,
+  type TagInfo,
+  type GraphStats,
+} from './services/index.js';
 
 // Error exports
 export {
