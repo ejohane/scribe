@@ -12,6 +12,17 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.38.0
+
+## [1.38.0](https://github.com/ejohane/scribe/compare/v1.37.0...v1.38.0) (2026-01-15)
+
+### Features
+
+* configure package.json for all new client-server packages ([760aa81](https://github.com/ejohane/scribe/commit/760aa8180e8684e14b525ce0726a18674491b8ad))
+
 ---
 
 # What's New in v1.37.0
