@@ -7,6 +7,29 @@
 
 export const VERSION = '0.1.0';
 
+// Database class and configuration exports
+export { ScribeDatabase, type AppliedMigration } from './database.js';
+export {
+  type DatabaseConfig,
+  DEFAULT_CONFIG,
+  DEFAULT_DB_FILENAME,
+  DEFAULT_SCRIBE_DIR,
+  getDefaultDatabasePath,
+  validateConfig,
+  mergeConfig,
+} from './config.js';
+
+// Error exports
+export {
+  DatabaseError,
+  InitializationError,
+  MigrationError,
+  QueryError,
+  isDatabaseError,
+  wrapError,
+  type DatabaseErrorCode,
+} from './errors.js';
+
 // Schema exports
 export {
   PRAGMAS,
