@@ -100,4 +100,9 @@ export {
   type LinkWithSourceTitle,
   TagsRepository,
   type TagWithCount,
+  SearchRepository,
+  type SearchOptions,
 } from './repositories/index.js';
+
+// Utility exports
+export { extractTextFromLexical, extractTextFromLexicalJson } from './utils.js';

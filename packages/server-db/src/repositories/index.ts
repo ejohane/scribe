@@ -11,3 +11,4 @@ export {
   type LinkWithSourceTitle,
 } from './links.repository.js';
 export { TagsRepository, type TagWithCount } from './tags.repository.js';
+export { SearchRepository, type SearchOptions } from './search.repository.js';
