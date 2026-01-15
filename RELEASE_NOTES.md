@@ -11,6 +11,17 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.37.0
+
+## [1.37.0](https://github.com/ejohane/scribe/compare/v1.36.0...v1.37.0) (2026-01-15)
+
+### Features
+
+* create new package directory structure for client-server architecture ([efd332f](https://github.com/ejohane/scribe/commit/efd332f3a7bb5ca01f8ec6bce090559a8f8a90e7))
+
 ---
 
 # What's New in v1.36.0
