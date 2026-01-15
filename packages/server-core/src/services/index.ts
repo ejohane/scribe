@@ -23,3 +23,10 @@ export {
   type SearchSuggestion,
   type ReindexResult,
 } from './search.service.js';
+export {
+  CollaborationService,
+  type CollaborationServiceDeps,
+  type CollabSession,
+  type CollabUpdate,
+  type UpdateHandler,
+} from './collaboration.service.js';

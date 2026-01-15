@@ -18,6 +18,7 @@
     "@scribe/server-db": "workspace:*",
     "@trpc/server": "^10.45.4",
     "nanoid": "^5.0.9",
+    "yjs": "^13.6.29",
     "zod": "^3.24.2"
   },
   "devDependencies": {
