@@ -92,4 +92,12 @@ export {
 } from './migrations/index.js';
 
 // Repository exports
-export { NotesRepository, type NoteFilter } from './repositories/index.js';
+export {
+  NotesRepository,
+  type NoteFilter,
+  LinksRepository,
+  type LinkWithTargetTitle,
+  type LinkWithSourceTitle,
+  TagsRepository,
+  type TagWithCount,
+} from './repositories/index.js';
