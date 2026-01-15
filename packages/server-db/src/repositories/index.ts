@@ -12,3 +12,5 @@ export {
 } from './links.repository.js';
 export { TagsRepository, type TagWithCount } from './tags.repository.js';
 export { SearchRepository, type SearchOptions } from './search.repository.js';
+export { YjsStateRepository } from './yjs-state.repository.js';
+export { SnapshotsRepository, type SnapshotFilter } from './snapshots.repository.js';
