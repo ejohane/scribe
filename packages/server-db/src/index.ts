@@ -8,7 +8,12 @@
 export const VERSION = '0.1.0';
 
 // Database class and configuration exports
-export { ScribeDatabase, type AppliedMigration } from './database.js';
+export { ScribeDatabase } from './database.js';
+export {
+  MigrationRunner,
+  type AppliedMigration,
+  type MigrationResult,
+} from './migration-runner.js';
 export {
   type DatabaseConfig,
   DEFAULT_CONFIG,

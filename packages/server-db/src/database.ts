@@ -10,18 +10,12 @@ import type { Database as DatabaseType } from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { type DatabaseConfig, mergeConfig, validateConfig } from './config.js';
-import { DatabaseError, InitializationError, MigrationError, wrapError } from './errors.js';
-import { migrations, type MigrationDefinition } from './migrations/index.js';
-import { TABLE_NAMES } from './schema.js';
+import { DatabaseError, InitializationError, wrapError } from './errors.js';
+import { MigrationRunner, type AppliedMigration } from './migration-runner.js';
+import { migrations } from './migrations/index.js';
 
-/**
- * Information about a successfully applied migration
- */
-export interface AppliedMigration {
-  name: string;
-  version: number;
-  appliedAt: string;
-}
+// Re-export AppliedMigration from migration-runner
+export type { AppliedMigration } from './migration-runner.js';
 
 /**
  * ScribeDatabase - Database connection and initialization manager.
@@ -151,66 +145,23 @@ export class ScribeDatabase {
   }
 
   /**
-   * Run any pending migrations.
+   * Run any pending migrations using MigrationRunner.
    *
    * Migrations are run in order and tracked in the _migrations table.
    * Each migration is run in a transaction for atomicity.
    */
   private runMigrations(): void {
-    // Ensure migrations table exists
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${TABLE_NAMES.migrations} (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE,
-        applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-      )
-    `);
-
-    // Get already applied migrations
-    const appliedMigrations = this.db
-      .prepare(`SELECT name FROM ${TABLE_NAMES.migrations}`)
-      .all() as { name: string }[];
-    const appliedNames = new Set(appliedMigrations.map((m) => m.name));
-
-    // Apply pending migrations
-    for (const migration of migrations) {
-      if (appliedNames.has(migration.name)) {
-        continue;
-      }
-
-      this.applyMigration(migration);
-    }
+    const runner = new MigrationRunner(this.db);
+    runner.run(migrations);
   }
 
   /**
-   * Apply a single migration in a transaction.
-   * Note: PRAGMAs are applied outside the transaction as they cannot be run in a transaction.
+   * Get the MigrationRunner for advanced migration operations.
+   *
+   * @returns A new MigrationRunner instance
    */
-  private applyMigration(migration: MigrationDefinition): void {
-    try {
-      // Apply pragmas OUTSIDE of transaction (PRAGMAs can't be run in transactions)
-      // Skip pragmas since they're already applied in configurePragmas()
-      // The migration pragmas are for informational purposes and initial setup
-
-      // Execute migration SQL and record it in a transaction for atomicity
-      const runMigration = this.db.transaction(() => {
-        // Execute migration SQL
-        this.db.exec(migration.up);
-
-        // Record migration
-        this.db
-          .prepare(`INSERT INTO ${TABLE_NAMES.migrations} (id, name) VALUES (@version, @name)`)
-          .run({ version: migration.version, name: migration.name });
-      });
-
-      runMigration();
-    } catch (error) {
-      throw new MigrationError(
-        `Failed to apply migration: ${migration.name}`,
-        migration.name,
-        error as Error
-      );
-    }
+  getMigrationRunner(): MigrationRunner {
+    return new MigrationRunner(this.db);
   }
 
   /**
@@ -258,20 +209,8 @@ export class ScribeDatabase {
    * @returns Array of applied migration info
    */
   getAppliedMigrations(): AppliedMigration[] {
-    try {
-      const rows = this.db
-        .prepare(`SELECT id, name, applied_at FROM ${TABLE_NAMES.migrations} ORDER BY id`)
-        .all() as { id: number; name: string; applied_at: string }[];
-
-      return rows.map((row) => ({
-        name: row.name,
-        version: row.id,
-        appliedAt: row.applied_at,
-      }));
-    } catch {
-      // Table may not exist yet
-      return [];
-    }
+    const runner = new MigrationRunner(this.db);
+    return runner.getAppliedMigrations();
   }
 
   /**
