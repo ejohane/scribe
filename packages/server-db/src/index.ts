@@ -102,6 +102,9 @@ export {
   type TagWithCount,
   SearchRepository,
   type SearchOptions,
+  YjsStateRepository,
+  SnapshotsRepository,
+  type SnapshotFilter,
 } from './repositories/index.js';
 
 // Utility exports
