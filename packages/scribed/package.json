@@ -1,0 +1,33 @@
+{
+  "name": "@scribe/scribed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "scribed": "./dist/cli.js"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm",
+    "dev": "tsup src/cli.ts --format esm --watch",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@scribe/collab": "workspace:*",
+    "@scribe/server-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@scribe/eslint-config": "workspace:*",
+    "@scribe/tsconfig": "workspace:*",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
