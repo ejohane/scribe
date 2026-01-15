@@ -11,3 +11,15 @@ export {
   type TagInfo,
   type GraphStats,
 } from './graph.service.js';
+export {
+  SearchService,
+  type SearchServiceDeps,
+  type SearchQuery,
+  type SearchFilters,
+  type SearchOptions,
+  type SearchResult,
+  type SearchResultNote,
+  type MatchLocation,
+  type SearchSuggestion,
+  type ReindexResult,
+} from './search.service.js';
