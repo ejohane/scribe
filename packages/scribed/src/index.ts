@@ -5,4 +5,46 @@
  * Provides API endpoints for document management, graph operations, search, and collaboration.
  */
 
-export const VERSION = '0.0.0';
+export const VERSION = '0.1.0';
+
+// Daemon exports
+export {
+  Daemon,
+  getExistingDaemon,
+  getDaemonInfoPath,
+  type DaemonConfig,
+  type DaemonInfo,
+  type HealthResponse,
+} from './daemon.js';
+
+// Discovery exports
+export {
+  discoverDaemon,
+  waitForDaemon,
+  getTrpcUrl,
+  getWebSocketUrl,
+  getHealthUrl,
+  type DiscoverOptions,
+  type DiscoveryResult,
+} from './discovery.js';
+
+// WebSocket server exports
+export {
+  YjsWebSocketServer,
+  type YjsWebSocketServerConfig,
+  type ClientMessage,
+  type ServerMessage,
+  type JoinMessage,
+  type LeaveMessage,
+  type SyncUpdateMessage,
+  type JoinedMessage,
+  type SyncStateMessage,
+  type BroadcastUpdateMessage,
+  type ErrorMessage,
+  encodeBytes,
+  decodeBytes,
+  encodeServerMessage,
+  parseClientMessage,
+  isClientMessage,
+  isServerMessage,
+} from './ws/index.js';

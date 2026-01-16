@@ -10,7 +10,7 @@ This document captures the decisions and outputs from **Step 1** (defining the g
 
 Scribe is a:
 
-- **Single-product experience** initially focused on a **desktop React/Electron app**.
+- **Single-product experience** initially focused on a **desktop React application**.
 - Future roadmap includes a **React Native mobile app**, sharing foundations but allowing platform-specific primitives.
 - **Single-designer/engineer environment**, prioritizing speed, flexibility, and craftsmanship.
 

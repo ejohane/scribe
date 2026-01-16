@@ -79,13 +79,18 @@ export const nodeConfig = mergeConfig(
  *
  * Packages using this:
  * - @scribe/design-system
+ * - @scribe/editor
+ * - @scribe/collab
+ * - @scribe/web
  */
 export const happyDomConfig = mergeConfig(
   baseConfig,
   defineConfig({
     test: {
       environment: 'happy-dom',
+      include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
       coverage: {
+        include: ['src/**/*.ts', 'src/**/*.tsx'],
         exclude: ['node_modules/', 'src/test/', '**/*.d.ts', '**/*.config.*', '**/dist/'],
       },
     },

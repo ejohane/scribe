@@ -1,0 +1,421 @@
+/**
+ * Scribe Editor Styles
+ *
+ * Provides styling for the Lexical editor components.
+ * These classes are mapped via the editorTheme configuration.
+ */
+
+/* Editor container */
+.scribe-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
+    'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+
+.scribe-editor-content {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+}
+
+.scribe-editor-input {
+  padding: 16px;
+  outline: none;
+  min-height: 100%;
+}
+
+.scribe-editor-input:focus {
+  outline: none;
+}
+
+.scribe-editor-placeholder {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  color: #999;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Paragraphs */
+.scribe-p {
+  margin: 0 0 0.5em 0;
+}
+
+/* Headings */
+.scribe-h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 0.67em 0;
+  line-height: 1.2;
+}
+
+.scribe-h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 0.83em 0;
+  line-height: 1.3;
+}
+
+.scribe-h3 {
+  font-size: 1.17em;
+  font-weight: 600;
+  margin: 1em 0;
+  line-height: 1.4;
+}
+
+.scribe-h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 1.33em 0;
+}
+
+.scribe-h5 {
+  font-size: 0.83em;
+  font-weight: 600;
+  margin: 1.67em 0;
+}
+
+.scribe-h6 {
+  font-size: 0.67em;
+  font-weight: 600;
+  margin: 2.33em 0;
+}
+
+/* Text formatting */
+.scribe-bold {
+  font-weight: 700;
+}
+
+.scribe-italic {
+  font-style: italic;
+}
+
+.scribe-underline {
+  text-decoration: underline;
+}
+
+.scribe-strikethrough {
+  text-decoration: line-through;
+}
+
+.scribe-subscript {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+.scribe-superscript {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.scribe-code-inline {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  background-color: #f0f0f0;
+  padding: 0.125em 0.25em;
+  border-radius: 3px;
+}
+
+/* Lists */
+.scribe-list-ol {
+  margin: 0 0 0.5em 0;
+  padding-left: 1.5em;
+  list-style-type: decimal;
+}
+
+.scribe-list-ul {
+  margin: 0 0 0.5em 0;
+  padding-left: 1.5em;
+  list-style-type: disc;
+}
+
+.scribe-list-item {
+  margin: 0.25em 0;
+}
+
+.scribe-nested-list-item {
+  list-style-type: none;
+}
+
+.scribe-list-item-checked,
+.scribe-list-item-unchecked {
+  list-style-type: none;
+  position: relative;
+  padding-left: 1.5em;
+}
+
+.scribe-list-item-checked::before,
+.scribe-list-item-unchecked::before {
+  position: absolute;
+  left: 0;
+  cursor: pointer;
+}
+
+.scribe-list-item-checked::before {
+  content: '\2611'; /* ☑ */
+}
+
+.scribe-list-item-unchecked::before {
+  content: '\2610'; /* ☐ */
+}
+
+/* Links */
+.scribe-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.scribe-link:hover {
+  color: #0052a3;
+}
+
+/* Blockquote */
+.scribe-quote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #ddd;
+  color: #666;
+  font-style: italic;
+  background-color: #fafafa;
+}
+
+/* Code block */
+.scribe-code-block {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  background-color: #f5f5f5;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1em 0;
+  tab-size: 2;
+}
+
+/* Code syntax highlighting */
+.scribe-code-comment {
+  color: #6a737d;
+}
+
+.scribe-code-keyword {
+  color: #d73a49;
+}
+
+.scribe-code-string {
+  color: #032f62;
+}
+
+.scribe-code-number {
+  color: #005cc5;
+}
+
+.scribe-code-function {
+  color: #6f42c1;
+}
+
+.scribe-code-class-name {
+  color: #22863a;
+}
+
+.scribe-code-operator {
+  color: #d73a49;
+}
+
+.scribe-code-punctuation {
+  color: #24292e;
+}
+
+.scribe-code-property {
+  color: #005cc5;
+}
+
+.scribe-code-tag {
+  color: #22863a;
+}
+
+.scribe-code-attr {
+  color: #6f42c1;
+}
+
+.scribe-code-boolean {
+  color: #005cc5;
+}
+
+.scribe-code-constant {
+  color: #005cc5;
+}
+
+.scribe-code-builtin {
+  color: #6f42c1;
+}
+
+.scribe-code-variable {
+  color: #e36209;
+}
+
+.scribe-code-regex {
+  color: #032f62;
+}
+
+.scribe-code-selector {
+  color: #6f42c1;
+}
+
+.scribe-code-atrule {
+  color: #d73a49;
+}
+
+.scribe-code-cdata {
+  color: #6a737d;
+}
+
+.scribe-code-char {
+  color: #032f62;
+}
+
+.scribe-code-class {
+  color: #22863a;
+}
+
+.scribe-code-deleted {
+  color: #b31d28;
+  background-color: #ffeef0;
+}
+
+.scribe-code-doctype {
+  color: #6a737d;
+}
+
+.scribe-code-entity {
+  color: #005cc5;
+}
+
+.scribe-code-important {
+  color: #e36209;
+  font-weight: bold;
+}
+
+.scribe-code-inserted {
+  color: #22863a;
+  background-color: #f0fff4;
+}
+
+.scribe-code-namespace {
+  color: #6a737d;
+}
+
+.scribe-code-prolog {
+  color: #6a737d;
+}
+
+.scribe-code-symbol {
+  color: #005cc5;
+}
+
+.scribe-code-url {
+  color: #0366d6;
+}
+
+/* Editor error state */
+.scribe-editor-error {
+  padding: 16px;
+  color: #b31d28;
+  background-color: #ffeef0;
+  border-radius: 4px;
+  margin: 16px;
+}
+
+/* Read-only state */
+.scribe-editor.scribe-editor-readonly .scribe-editor-input {
+  cursor: default;
+  background-color: #fafafa;
+}
+
+/* Toolbar styles */
+.scribe-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fafafa;
+  flex-wrap: wrap;
+}
+
+.scribe-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.scribe-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: pointer;
+  color: #666;
+  font-size: 14px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.scribe-toolbar-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.scribe-toolbar-button:active:not(:disabled),
+.scribe-toolbar-button.active {
+  background-color: #d0d0d0;
+  color: #1a1a1a;
+}
+
+.scribe-toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scribe-toolbar-button svg {
+  display: block;
+}
+
+.scribe-toolbar-select {
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.scribe-toolbar-select:hover {
+  border-color: #c0c0c0;
+}
+
+.scribe-toolbar-select:focus {
+  border-color: #0066cc;
+}
+
+.scribe-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #e0e0e0;
+  margin: 0 4px;
+}

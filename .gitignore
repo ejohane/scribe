@@ -47,3 +47,7 @@ history/
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Local development artifacts
+.scribe/
+notes/

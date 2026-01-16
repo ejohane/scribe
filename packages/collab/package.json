@@ -11,16 +11,32 @@
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@scribe/client-sdk": "workspace:*",
     "y-websocket": "^2.1.0",
     "yjs": "^13.6.29"
   },
+  "peerDependencies": {
+    "@lexical/react": "^0.38.2",
+    "lexical": "^0.38.2",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
   "devDependencies": {
+    "@lexical/react": "^0.38.2",
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "happy-dom": "^15.11.7",
+    "lexical": "^0.38.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

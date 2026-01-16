@@ -9,10 +9,14 @@
     "apps/desktop",
     "apps/desktop/*",
     "apps/cli",
-    "apps/sync-server"
+    "apps/sync-server",
+    "apps/web"
   ],
   "scripts": {
     "dev": "cd apps/desktop && bun run dev",
+    "dev:daemon": "cd packages/scribed && bunx tsx src/cli.ts start",
+    "dev:web": "cd apps/web && bun run dev",
+    "dev:server": "/bin/sh -c 'bun run dev:daemon & bun run dev:web'",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

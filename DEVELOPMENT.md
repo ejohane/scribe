@@ -310,6 +310,59 @@ rm -rf node_modules      # Clean dependencies
 bun install              # Reinstall
 ```
 
+## Browser Debugging with Claude Code
+
+Claude Code has access to browser automation and debugging tools via MCP servers.
+
+### Available MCP Servers
+
+**Playwright MCP** (`@playwright/mcp`)
+- Browser automation and testing
+- Page navigation, screenshots, DOM inspection
+- Form filling, clicking, keyboard input
+
+**Chrome DevTools MCP** (`chrome-devtools-mcp`)
+- Chrome DevTools integration
+- Console log inspection
+- Network request analysis
+- Performance traces
+- Device emulation
+
+### Using Chrome DevTools MCP
+
+To use Chrome DevTools MCP with authenticated sessions:
+
+```bash
+# Start Chrome with remote debugging enabled
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+  --remote-debugging-port=9222 \
+  --user-data-dir=/tmp/chrome-debug
+```
+
+Then configure MCP to connect to the existing session:
+
+```bash
+claude mcp add chrome-devtools -- npx chrome-devtools-mcp@latest --browserUrl ws://localhost:9222
+```
+
+### Example Prompts
+
+- "Navigate to localhost:5173 and check for console errors"
+- "Take a screenshot of the login page"
+- "Run a performance trace and identify bottlenecks"
+- "Check what network requests are failing"
+- "Verify my changes work in the browser"
+
+### Verifying MCP Servers
+
+```bash
+# List all configured MCP servers
+claude mcp list
+
+# Get details of a specific server
+claude mcp get chrome-devtools
+```
+
 ## Troubleshooting
 
 To be added as new architecture is implemented.
