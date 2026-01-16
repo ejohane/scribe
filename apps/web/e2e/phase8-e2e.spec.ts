@@ -8,7 +8,7 @@
  *   npx tsx packages/scribed/src/cli.ts start --vault /tmp/test-vault --port 47832
  *
  * Run:
- *   cd packages/web && bun run test:e2e
+ *   cd apps/web && bun run test:e2e
  */
 
 import { test, expect, type Page } from '@playwright/test';

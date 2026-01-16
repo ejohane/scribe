@@ -253,7 +253,7 @@ scribed stop
 ### Start the Web Client
 
 ```bash
-cd packages/web
+cd apps/web
 bun run dev
 # Opens http://localhost:5173
 ```
