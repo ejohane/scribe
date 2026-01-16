@@ -14,6 +14,39 @@ vi.mock('./config', () => ({
   DAEMON_PORT: 47832,
 }));
 
+// Mock editor component to avoid Lexical complexity in routing tests
+vi.mock('@scribe/editor', () => ({
+  ScribeEditor: () => <div data-testid="mock-editor">Mock Editor</div>,
+}));
+
+// Mock the collab module
+vi.mock('@scribe/collab', () => ({
+  YjsProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="mock-yjs-provider">{children}</div>
+  ),
+  useYjs: () => ({
+    doc: null,
+    isLoading: false,
+    error: null,
+    noteId: 'test-note',
+  }),
+  LexicalYjsPlugin: () => null,
+}));
+
+// Create full note document for tests
+function createMockNote(id: string, title: string) {
+  return {
+    id,
+    title,
+    type: 'note' as const,
+    date: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    content: { root: { children: [], type: 'root' as const, version: 1 } },
+    wordCount: 0,
+  };
+}
+
 // Create mock client factory with working API
 function createMockClient() {
   const client = {
@@ -52,11 +85,24 @@ function createMockClient() {
             .mockResolvedValue({ id: 'new-note-123', title: 'Untitled', type: 'note' }),
         },
         get: {
-          query: vi.fn().mockResolvedValue({ id: 'test-note', title: 'Test', type: 'note' }),
+          query: vi.fn().mockImplementation((id: string) => {
+            return Promise.resolve(createMockNote(id, `Note ${id}`));
+          }),
+        },
+        update: {
+          mutate: vi.fn().mockResolvedValue({}),
+        },
+        delete: {
+          mutate: vi.fn().mockResolvedValue(undefined),
         },
       },
     },
-    collab: {},
+    collab: {
+      joinDocument: vi.fn().mockResolvedValue({
+        doc: {},
+        destroy: vi.fn(),
+      }),
+    },
   };
   return client;
 }
@@ -112,11 +158,13 @@ describe('App Routing', () => {
     });
   });
 
-  it('renders NoteEditorPage at /note/:id route', () => {
+  it('renders NoteEditorPage at /note/:id route', async () => {
     renderWithRouter('/note/test-note-123');
 
-    expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-    expect(screen.getByTestId('note-id')).toHaveTextContent('test-note-123');
+    await waitFor(() => {
+      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
+    });
   });
 
   it('navigates from NoteListPage to NoteEditorPage via note list', async () => {
@@ -134,7 +182,7 @@ describe('App Routing', () => {
     // Should navigate to NoteEditorPage
     await waitFor(() => {
       expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('note-id')).toHaveTextContent('existing-note');
+      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
     });
   });
 
@@ -157,7 +205,7 @@ describe('App Routing', () => {
         type: 'note',
       });
       expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('note-id')).toHaveTextContent('new-note-123');
+      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
     });
   });
 
@@ -165,8 +213,11 @@ describe('App Routing', () => {
     const user = userEvent.setup();
     renderWithRouter('/note/test-123');
 
-    // Should start on NoteEditorPage
-    expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+    // Wait for editor page to load
+    await waitFor(() => {
+      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
+    });
 
     // Click back link
     await user.click(screen.getByTestId('back-link'));
