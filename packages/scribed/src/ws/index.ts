@@ -1,16 +1,12 @@
 /**
- * @scribe/scribed
+ * WebSocket module for Yjs synchronization.
  *
- * Background daemon server for Scribe.
- * Provides API endpoints for document management, graph operations, search, and collaboration.
+ * @module
  */
 
-export const VERSION = '0.0.0';
+export { YjsWebSocketServer, type YjsWebSocketServerConfig } from './server.js';
 
-// WebSocket server exports
 export {
-  YjsWebSocketServer,
-  type YjsWebSocketServerConfig,
   type ClientMessage,
   type ServerMessage,
   type JoinMessage,
@@ -26,4 +22,4 @@ export {
   parseClientMessage,
   isClientMessage,
   isServerMessage,
-} from './ws/index.js';
+} from './protocol.js';

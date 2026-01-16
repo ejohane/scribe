@@ -21,11 +21,15 @@
   },
   "dependencies": {
     "@scribe/collab": "workspace:*",
-    "@scribe/server-core": "workspace:*"
+    "@scribe/server-core": "workspace:*",
+    "nanoid": "^5.0.9",
+    "ws": "^8.18.0",
+    "yjs": "^13.6.29"
   },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
+    "@types/ws": "^8.5.13",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
