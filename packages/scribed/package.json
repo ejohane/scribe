@@ -22,7 +22,7 @@
   "dependencies": {
     "@scribe/collab": "workspace:*",
     "@scribe/server-core": "workspace:*",
-    "@trpc/server": "^10.45.4",
+    "@trpc/server": "^11.8.1",
     "commander": "^14.0.2",
     "nanoid": "^5.0.9",
     "ws": "^8.18.0",
