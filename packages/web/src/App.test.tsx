@@ -2,13 +2,78 @@
  * Tests for App component and routing
  */
 
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { ScribeProvider } from './providers/ScribeProvider';
 import { NoteListPage } from './pages/NoteListPage';
 import { NoteEditorPage } from './pages/NoteEditorPage';
+
+// Mock the config first
+vi.mock('./config', () => ({
+  DAEMON_PORT: 47832,
+}));
+
+// Create mock client factory with working API
+function createMockClient() {
+  const client = {
+    on: vi.fn(),
+    off: vi.fn(),
+    connect: vi.fn().mockImplementation(async () => {
+      // Simulate status change to connected after connect is called
+      setTimeout(() => {
+        const statusChangeCall = client.on.mock.calls.find(
+          (call: unknown[]) => call[0] === 'status-change'
+        );
+        if (statusChangeCall) {
+          const handler = statusChangeCall[1] as (status: string) => void;
+          handler('connected');
+        }
+      }, 0);
+    }),
+    disconnect: vi.fn(),
+    status: 'disconnected' as const,
+    isConnected: false,
+    api: {
+      notes: {
+        list: {
+          query: vi.fn().mockResolvedValue([
+            {
+              id: 'existing-note',
+              title: 'Existing Note',
+              type: 'note',
+              updatedAt: new Date().toISOString(),
+            },
+          ]),
+        },
+        create: {
+          mutate: vi
+            .fn()
+            .mockResolvedValue({ id: 'new-note-123', title: 'Untitled', type: 'note' }),
+        },
+        get: {
+          query: vi.fn().mockResolvedValue({ id: 'test-note', title: 'Test', type: 'note' }),
+        },
+      },
+    },
+    collab: {},
+  };
+  return client;
+}
+
+// Global mock client reference
+let mockClientInstance = createMockClient();
+
+// Mock the client-sdk module
+vi.mock('@scribe/client-sdk', () => {
+  return {
+    ScribeClient: vi.fn().mockImplementation(() => mockClientInstance),
+  };
+});
+
+// Import after mocks
+import { ScribeProvider } from './providers/ScribeProvider';
+import { ScribeClient } from '@scribe/client-sdk';
 
 /**
  * Helper to render with routing context.
@@ -28,11 +93,23 @@ function renderWithRouter(initialRoute = '/') {
 }
 
 describe('App Routing', () => {
-  it('renders NoteListPage at root route', () => {
+  beforeEach(() => {
+    mockClientInstance = createMockClient();
+    vi.clearAllMocks();
+    (ScribeClient as Mock).mockImplementation(() => mockClientInstance);
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('renders NoteListPage at root route', async () => {
     renderWithRouter('/');
 
-    expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Notes');
+    await waitFor(() => {
+      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Notes');
+    });
   });
 
   it('renders NoteEditorPage at /note/:id route', () => {
@@ -42,19 +119,46 @@ describe('App Routing', () => {
     expect(screen.getByTestId('note-id')).toHaveTextContent('test-note-123');
   });
 
-  it('navigates from NoteListPage to NoteEditorPage', async () => {
+  it('navigates from NoteListPage to NoteEditorPage via note list', async () => {
     const user = userEvent.setup();
     renderWithRouter('/');
 
-    // Should start on NoteListPage
-    expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+    // Wait for the note list to appear
+    await waitFor(() => {
+      expect(screen.getByTestId('note-list')).toBeInTheDocument();
+    });
 
-    // Click create note link
-    await user.click(screen.getByTestId('create-note-link'));
+    // Click on an existing note
+    await user.click(screen.getByTestId('note-item'));
 
     // Should navigate to NoteEditorPage
-    expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-    expect(screen.getByTestId('note-id')).toHaveTextContent('new');
+    await waitFor(() => {
+      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      expect(screen.getByTestId('note-id')).toHaveTextContent('existing-note');
+    });
+  });
+
+  it('creates new note and navigates to editor', async () => {
+    const user = userEvent.setup();
+    renderWithRouter('/');
+
+    // Wait for the page to load
+    await waitFor(() => {
+      expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
+    });
+
+    // Click create note button
+    await user.click(screen.getByTestId('create-note-button'));
+
+    // Should create note and navigate to NoteEditorPage
+    await waitFor(() => {
+      expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
+        title: 'Untitled',
+        type: 'note',
+      });
+      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      expect(screen.getByTestId('note-id')).toHaveTextContent('new-note-123');
+    });
   });
 
   it('navigates from NoteEditorPage back to NoteListPage', async () => {
@@ -68,6 +172,8 @@ describe('App Routing', () => {
     await user.click(screen.getByTestId('back-link'));
 
     // Should navigate back to NoteListPage
-    expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+    });
   });
 });
