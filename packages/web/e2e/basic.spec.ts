@@ -33,25 +33,34 @@ test.describe('Routing', () => {
   });
 
   test('note route renders NoteEditorPage', async ({ page }) => {
+    // Navigate to a non-existent note - shows error state but proves routing works
     await page.goto('/note/test-123');
 
     await expect(page.getByTestId('note-editor-page')).toBeVisible();
-    await expect(page.getByTestId('note-id')).toContainText('test-123');
+    // Note: test-123 doesn't exist, so we expect the error state
+    await expect(page.getByTestId('error-state')).toBeVisible();
   });
 
   test('navigates from NoteListPage to NoteEditorPage', async ({ page }) => {
     await page.goto('/');
 
-    // Click create note link
-    await page.getByTestId('create-note-link').click();
+    // Wait for loading to complete
+    await expect(page.getByTestId('note-list-page')).toBeVisible();
 
-    // Should navigate to NoteEditorPage
+    // Click create note button (not link)
+    await page.getByTestId('create-note-button').click();
+
+    // Should navigate to NoteEditorPage with a new note ID
     await expect(page.getByTestId('note-editor-page')).toBeVisible();
-    await expect(page).toHaveURL(/\/note\/new$/);
+    await expect(page).toHaveURL(/\/note\/[^/]+$/);
   });
 
   test('navigates from NoteEditorPage back to NoteListPage', async ({ page }) => {
-    await page.goto('/note/test-123');
+    // First create a note so we have a valid editor page
+    await page.goto('/');
+    await expect(page.getByTestId('note-list-page')).toBeVisible();
+    await page.getByTestId('create-note-button').click();
+    await expect(page.getByTestId('note-editor-page')).toBeVisible();
 
     // Click back link
     await page.getByTestId('back-link').click();
