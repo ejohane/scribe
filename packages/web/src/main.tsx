@@ -5,17 +5,13 @@
  * Provides a minimal browser-based interface for document editing.
  */
 
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { App } from './components/App';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { App } from './App';
+import './styles/global.css';
 
-export const VERSION = '0.0.0';
-
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  createRoot(rootElement).render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  );
-}
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
