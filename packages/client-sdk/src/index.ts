@@ -7,6 +7,11 @@
 
 export const VERSION = '0.0.0';
 
+// Main client - primary export
+export { ScribeClient } from './client.js';
+
+export type { ScribeClientOptions, ClientStatus, ScribeClientEvents } from './client.js';
+
 // Discovery module
 export {
   discoverDaemon,
