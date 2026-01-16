@@ -63,3 +63,17 @@ export type {
   ExtractedLink,
   NoteListFilter,
 } from './types/index.js';
+
+// Router exports
+export {
+  appRouter,
+  router,
+  publicProcedure,
+  procedure,
+  createContextFactory,
+  notesRouter,
+  searchRouter,
+  graphRouter,
+  type AppRouter,
+  type Context,
+} from './routers/index.js';
