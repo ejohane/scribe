@@ -24,10 +24,15 @@ import type { Services } from '@scribe/server-core';
 import { YjsWebSocketServer } from './ws/server.js';
 import { VERSION } from './index.js';
 
-/** Directory for daemon info file */
-const DAEMON_INFO_DIR = path.join(process.env.HOME ?? '', '.scribe');
-/** Path to daemon info file */
-const DAEMON_INFO_FILE = path.join(DAEMON_INFO_DIR, 'daemon.json');
+/** Get directory for daemon info file (computed at runtime to respect HOME changes) */
+function getDaemonInfoDir(): string {
+  return path.join(process.env.HOME ?? '', '.scribe');
+}
+
+/** Get path to daemon info file (computed at runtime to respect HOME changes) */
+function getDaemonInfoFile(): string {
+  return path.join(getDaemonInfoDir(), 'daemon.json');
+}
 
 /**
  * Configuration for daemon startup.
@@ -363,7 +368,7 @@ export class Daemon {
  */
 export async function getExistingDaemon(): Promise<DaemonInfo | null> {
   try {
-    const content = await fs.readFile(DAEMON_INFO_FILE, 'utf-8');
+    const content = await fs.readFile(getDaemonInfoFile(), 'utf-8');
     const info = JSON.parse(content) as DaemonInfo;
 
     // Check if process is actually running
@@ -384,8 +389,8 @@ export async function getExistingDaemon(): Promise<DaemonInfo | null> {
  * Write daemon info to file.
  */
 async function writeDaemonInfo(info: DaemonInfo): Promise<void> {
-  await fs.mkdir(DAEMON_INFO_DIR, { recursive: true });
-  await fs.writeFile(DAEMON_INFO_FILE, JSON.stringify(info, null, 2));
+  await fs.mkdir(getDaemonInfoDir(), { recursive: true });
+  await fs.writeFile(getDaemonInfoFile(), JSON.stringify(info, null, 2));
 }
 
 /**
@@ -393,7 +398,7 @@ async function writeDaemonInfo(info: DaemonInfo): Promise<void> {
  */
 async function removeDaemonInfo(): Promise<void> {
   try {
-    await fs.unlink(DAEMON_INFO_FILE);
+    await fs.unlink(getDaemonInfoFile());
   } catch {
     // Ignore if doesn't exist
   }
@@ -404,5 +409,5 @@ async function removeDaemonInfo(): Promise<void> {
  * Exported for testing.
  */
 export function getDaemonInfoPath(): string {
-  return DAEMON_INFO_FILE;
+  return getDaemonInfoFile();
 }

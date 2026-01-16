@@ -254,7 +254,7 @@ scribed stop
 
 ```bash
 cd packages/web
-pnpm dev
+bun run dev
 # Opens http://localhost:5173
 ```
 

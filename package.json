@@ -13,6 +13,9 @@
   ],
   "scripts": {
     "dev": "cd apps/desktop && bun run dev",
+    "dev:daemon": "cd packages/scribed && bunx tsx src/cli.ts start",
+    "dev:web": "cd packages/web && bun run dev",
+    "dev:server": "bun run dev:daemon & bun run dev:web",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

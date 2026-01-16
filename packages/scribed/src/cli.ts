@@ -27,7 +27,7 @@ program
   .command('start')
   .description('Start the Scribe daemon')
   .option('-v, --vault <path>', 'Path to vault directory', process.cwd())
-  .option('-p, --port <number>', 'Port to listen on (0 = auto)', '0')
+  .option('-p, --port <number>', 'Port to listen on', '47832')
   .action(async (options: { vault: string; port: string }) => {
     const vaultPath = path.resolve(options.vault);
 

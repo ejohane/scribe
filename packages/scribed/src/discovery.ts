@@ -13,10 +13,15 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { DaemonInfo, HealthResponse } from './daemon.js';
 
-/** Directory for daemon info file */
-const DAEMON_INFO_DIR = path.join(process.env.HOME ?? '', '.scribe');
-/** Path to daemon info file */
-const DAEMON_INFO_FILE = path.join(DAEMON_INFO_DIR, 'daemon.json');
+/** Get directory for daemon info file (computed at runtime to respect HOME changes) */
+function getDaemonInfoDir(): string {
+  return path.join(process.env.HOME ?? '', '.scribe');
+}
+
+/** Get path to daemon info file (computed at runtime to respect HOME changes) */
+function getDaemonInfoFile(): string {
+  return path.join(getDaemonInfoDir(), 'daemon.json');
+}
 
 /** Default timeout for health checks in milliseconds */
 const DEFAULT_HEALTH_TIMEOUT = 5000;
@@ -68,7 +73,7 @@ export async function discoverDaemon(options: DiscoverOptions = {}): Promise<Dis
   // Read daemon info file
   let info: DaemonInfo;
   try {
-    const content = await fs.readFile(DAEMON_INFO_FILE, 'utf-8');
+    const content = await fs.readFile(getDaemonInfoFile(), 'utf-8');
     info = JSON.parse(content) as DaemonInfo;
   } catch {
     return { found: false, error: 'No daemon info file found' };
@@ -181,7 +186,7 @@ async function checkHealth(port: number, timeout: number): Promise<HealthRespons
  */
 async function cleanupStaleFile(): Promise<void> {
   try {
-    await fs.unlink(DAEMON_INFO_FILE);
+    await fs.unlink(getDaemonInfoFile());
   } catch {
     // Ignore errors
   }
