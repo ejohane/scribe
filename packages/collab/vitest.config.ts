@@ -1,3 +1,12 @@
-import { nodeConfig } from '../../config/vitest/base';
+import react from '@vitejs/plugin-react';
+import { happyDomConfig, mergeConfig, defineConfig } from '../../config/vitest/base';
 
-export default nodeConfig;
+export default mergeConfig(
+  happyDomConfig,
+  defineConfig({
+    plugins: [react()],
+    test: {
+      setupFiles: ['./src/test/setup.ts'],
+    },
+  })
+);
