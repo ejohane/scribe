@@ -6,3 +6,8 @@
  */
 
 export const VERSION = '0.0.0';
+
+// YjsProvider context and hooks
+export { YjsProvider, useYjs, useYjsDoc } from './components/YjsProvider.js';
+
+export type { YjsContextValue, YjsProviderProps } from './components/YjsProvider.js';
