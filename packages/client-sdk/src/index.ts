@@ -6,3 +6,21 @@
  */
 
 export const VERSION = '0.0.0';
+
+// Discovery module
+export {
+  discoverDaemon,
+  waitForDaemon,
+  createManualDaemonInfo,
+  getTrpcUrl,
+  getWebSocketUrl,
+  getHealthUrl,
+  getDefaultConfigPath,
+} from './discovery.js';
+
+export type {
+  DaemonInfo,
+  DiscoveryOptions,
+  HealthResponse,
+  ManualDaemonConfig,
+} from './discovery.js';
