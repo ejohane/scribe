@@ -11,3 +11,8 @@ export const VERSION = '0.0.0';
 export { YjsProvider, useYjs, useYjsDoc } from './components/YjsProvider.js';
 
 export type { YjsContextValue, YjsProviderProps } from './components/YjsProvider.js';
+
+// LexicalYjsPlugin for editor synchronization
+export { LexicalYjsPlugin } from './components/LexicalYjsPlugin.js';
+
+export type { LexicalYjsPluginProps } from './components/LexicalYjsPlugin.js';
