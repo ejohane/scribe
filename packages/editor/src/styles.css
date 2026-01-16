@@ -338,7 +338,7 @@
   background-color: #fafafa;
 }
 
-/* Toolbar placeholder (will be implemented in separate task) */
+/* Toolbar styles */
 .scribe-editor-toolbar {
   display: flex;
   align-items: center;
@@ -346,6 +346,13 @@
   padding: 8px;
   border-bottom: 1px solid #e0e0e0;
   background-color: #fafafa;
+  flex-wrap: wrap;
+}
+
+.scribe-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .scribe-toolbar-button {
@@ -361,16 +368,49 @@
   cursor: pointer;
   color: #666;
   font-size: 14px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.scribe-toolbar-button:hover {
+.scribe-toolbar-button:hover:not(:disabled) {
   background-color: #e0e0e0;
 }
 
-.scribe-toolbar-button:active,
+.scribe-toolbar-button:active:not(:disabled),
 .scribe-toolbar-button.active {
   background-color: #d0d0d0;
   color: #1a1a1a;
+}
+
+.scribe-toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.scribe-toolbar-button svg {
+  display: block;
+}
+
+.scribe-toolbar-select {
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.scribe-toolbar-select:hover {
+  border-color: #c0c0c0;
+}
+
+.scribe-toolbar-select:focus {
+  border-color: #0066cc;
 }
 
 .scribe-toolbar-divider {
