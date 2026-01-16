@@ -40,6 +40,11 @@ export { ApiError, isApiError, isNotFoundError, isNetworkError } from './errors.
 
 export type { ApiErrorCode } from './errors.js';
 
+// Collab client module
+export { CollabClient } from './collab-client.js';
+
+export type { CollabClientOptions, CollabClientEvents, DocumentSession } from './collab-client.js';
+
 // Re-export types from server-core for convenience
 // These types are useful when working with API responses
 export type {
