@@ -1,7 +1,7 @@
 {
   "name": "scribe",
   "private": true,
-  "version": "1.38.0",
+  "version": "1.39.0",
   "description": "Personal note-taking system with markdown parsing, graph visualization, and intelligent search",
   "workspaces": [
     "packages/*",

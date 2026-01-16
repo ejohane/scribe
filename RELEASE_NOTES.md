@@ -13,6 +13,54 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.39.0
+
+## [1.39.0](https://github.com/ejohane/scribe/compare/v1.38.0...v1.39.0) (2026-01-16)
+
+### Features
+
+* **build:** configure Playwright for E2E browser testing in web package ([ea37f18](https://github.com/ejohane/scribe/commit/ea37f18a5315493e1f445f3e7ea54209c7405c4c))
+* **editor:** implement EditorToolbar component with formatting controls ([6f5b35d](https://github.com/ejohane/scribe/commit/6f5b35df124fe4fce781b1b42848a7dd0eb7c14a))
+* **editor:** implement ScribeEditor component with Lexical ([1823c2f](https://github.com/ejohane/scribe/commit/1823c2f68f33e357697b25caea41246bc137a09e))
+* **storage:** implement CollaborationService (Yjs document management) ([c53511c](https://github.com/ejohane/scribe/commit/c53511c725d8b52bff6fccef19f085a7f4bfd862))
+* **storage:** implement daemon CLI commands ([385cc81](https://github.com/ejohane/scribe/commit/385cc81db0bb1155070023f7620997086d87c587))
+* **storage:** implement daemon discovery in client SDK ([6b8c244](https://github.com/ejohane/scribe/commit/6b8c24459c3495acb82b0047f02412a3fe660383))
+* **storage:** implement daemon process management ([a688b2e](https://github.com/ejohane/scribe/commit/a688b2e9aa8b32f48969c92c34bdc3f65ac6af03))
+* **storage:** implement database connection and initialization ([f14a26d](https://github.com/ejohane/scribe/commit/f14a26de620a107cac97a44172b60872928e10ff))
+* **storage:** implement database migration system ([b40a5c9](https://github.com/ejohane/scribe/commit/b40a5c9a0e0e79f183fcbeb07fa53d1377f86d8b))
+* **storage:** implement DocumentService (CRUD + file I/O) ([7f043d9](https://github.com/ejohane/scribe/commit/7f043d919e8e044780120d8bd6dbb34c2302eb33))
+* **storage:** implement FTS5 search repository ([9b9d032](https://github.com/ejohane/scribe/commit/9b9d032b4b49bc3ff2140b2a6be88e0699707c8f))
+* **storage:** implement GraphService (links and tags queries) ([678fd23](https://github.com/ejohane/scribe/commit/678fd232e4d110781af259a6bd6e2a75ffae81a4))
+* **storage:** implement LexicalYjsPlugin for editor sync ([737c994](https://github.com/ejohane/scribe/commit/737c9941fb150740cea80e7dac321af62626da91))
+* **storage:** implement Links and Tags repositories ([710ca6e](https://github.com/ejohane/scribe/commit/710ca6ebf711f4a9e74fcfa27b27d80a941cfed6))
+* **storage:** implement main ScribeClient class ([7ecb395](https://github.com/ejohane/scribe/commit/7ecb39513711affef5f702dbfc75e1950ab2a95d))
+* **storage:** implement Notes repository with CRUD operations ([93d437f](https://github.com/ejohane/scribe/commit/93d437ff33c4703f256a1c3bca999c4bf93ad568))
+* **storage:** implement SearchService (FTS with query parsing) ([64f5ac8](https://github.com/ejohane/scribe/commit/64f5ac8828ea82a2aeec3f3908c370aaf183a507))
+* **storage:** implement service container and dependency injection ([5709cbf](https://github.com/ejohane/scribe/commit/5709cbf068d10885de56d624a44eda54335859ea))
+* **storage:** implement SQLite schema for notes, links, tags, and FTS ([492ff9f](https://github.com/ejohane/scribe/commit/492ff9f0c4f866322751d98b6d3410d0889e2b93))
+* **storage:** implement tRPC client wrapper ([3134608](https://github.com/ejohane/scribe/commit/3134608047dc965bfe61e9d2c264fbab556050ca))
+* **storage:** implement tRPC router for notes, search, graph ([b389435](https://github.com/ejohane/scribe/commit/b389435146ebb8e926fe05e8f63446a4f341e7c1))
+* **storage:** implement WebSocket client for Yjs sync ([2dffc1d](https://github.com/ejohane/scribe/commit/2dffc1de1a45b127ac6f6ef1b79785512f8875bf))
+* **storage:** implement WebSocket server for Yjs sync ([494fe45](https://github.com/ejohane/scribe/commit/494fe45107d1e315b67f28d2f63c66937e6f8e51))
+* **storage:** implement Yjs state and Snapshots repositories ([0d96d33](https://github.com/ejohane/scribe/commit/0d96d33d5f6ffd29a9ed25ef68921ee97848f80e))
+* **storage:** implement YjsProvider React context ([d9be9c5](https://github.com/ejohane/scribe/commit/d9be9c5ecc095ebe94d18fd13c7453d426d2c11b))
+* **ui:** implement NoteEditorPage with auto-save ([30d28ab](https://github.com/ejohane/scribe/commit/30d28ab1f72e14db576025635a3f72bf3572e920))
+* **ui:** implement NoteListPage component ([b645c0f](https://github.com/ejohane/scribe/commit/b645c0f399a48b9581f44fe130331e50d9b070d6))
+* **ui:** implement ScribeProvider and SDK integration ([320b47e](https://github.com/ejohane/scribe/commit/320b47e7f0c1380d6e1099c449f089365b260463))
+* **ui:** setup Vite project and routing for web client ([4a8522d](https://github.com/ejohane/scribe/commit/4a8522d1f9391361bf640c179956b42ace3fd660))
+
+### Documentation
+
+* add architecture documentation for client-server rearchitecture ([1aa2c8e](https://github.com/ejohane/scribe/commit/1aa2c8e77288a16f54731bae133ccac10f30e8bc))
+* add browser debugging section with Chrome DevTools MCP ([9aa7b75](https://github.com/ejohane/scribe/commit/9aa7b7502bdd3502ff878bf35755466447afe313))
+
+### Code Refactoring
+
+* move web client from packages/web to apps/web ([ffe35ae](https://github.com/ejohane/scribe/commit/ffe35ae132a6c8c3fd4f71b8a98018a3279a1189))
+
 ---
 
 # What's New in v1.38.0
