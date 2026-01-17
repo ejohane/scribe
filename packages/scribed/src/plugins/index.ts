@@ -56,3 +56,29 @@ export {
   type RouterFactory,
   type ReservedNamespace,
 } from './router-merger.js';
+
+// ============================================================================
+// Error Handler
+// ============================================================================
+
+export {
+  // Functions
+  createTimeout,
+  withTimeout,
+  logPluginError,
+  wrapEventHandler,
+  wrapLifecycleHook,
+  handleRouterError,
+  safePluginOperation,
+  // Constants
+  DEFAULT_PLUGIN_TIMEOUT,
+  EVENT_HANDLER_TIMEOUT,
+  LIFECYCLE_HOOK_TIMEOUT,
+  // Types
+  type PluginErrorType,
+  type PluginErrorLog,
+  type PluginEventHandler,
+  type WrapEventHandlerOptions,
+  type TimeoutOptions,
+  type WrapLifecycleHookOptions,
+} from './error-handler.js';
