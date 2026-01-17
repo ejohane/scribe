@@ -1,244 +1,124 @@
 /**
- * NoteEditorPage styles - Minimal dark theme
+ * NoteEditorPage styles - Minimal editor overrides
  */
 
-.note-editor-page {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 20px 24px;
-}
-
-/* Editor header */
-.editor-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.back-link {
-  color: var(--accent-green);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  transition: opacity 0.15s;
-}
-
-.back-link:hover {
-  opacity: 0.8;
-}
-
-/* Note title input */
-.note-title-input {
-  flex: 1;
-  font-size: 1.25rem;
-  font-weight: 500;
-  border: none;
-  outline: none;
-  padding: 0;
-  min-width: 0;
-  background: transparent;
-  color: var(--text-primary);
-}
-
-.note-title-input::placeholder {
-  color: var(--text-muted);
-}
-
-/* Editor actions */
-.editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.save-status {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
-.delete-btn {
-  padding: 6px 12px;
-  background: transparent;
-  border: 1px solid #ff6b6b;
-  color: #ff6b6b;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    opacity 0.15s;
-}
-
-.delete-btn:hover {
-  background: rgba(255, 107, 107, 0.1);
-}
-
-/* Editor main area */
-.editor-main {
-  flex: 1;
-  overflow: visible;
+/* Editor wrapper styling */
+.editor-wrapper {
+  min-height: calc(100vh - 120px);
 }
 
 /* Hide the toolbar for minimal design */
-.editor-main .scribe-editor-toolbar {
+.editor-wrapper .scribe-editor-toolbar {
   display: none;
 }
 
 /* Override editor styles for dark theme */
-.editor-main .scribe-editor {
-  color: var(--text-primary);
+.editor-wrapper .scribe-editor {
+  color: #f5f5f7;
   background: transparent;
 }
 
-.editor-main .scribe-editor-content {
+.editor-wrapper .scribe-editor-content {
   background: transparent;
 }
 
-.editor-main .scribe-editor-input {
+.editor-wrapper .scribe-editor-input {
   padding: 0;
-  color: var(--text-primary);
-  caret-color: var(--text-primary);
+  color: #f5f5f7;
+  caret-color: #34c759;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  outline: none;
 }
 
-.editor-main .scribe-editor-placeholder {
-  color: var(--text-muted);
+.editor-wrapper .scribe-editor-placeholder {
+  color: #6e6e73;
   top: 0;
   left: 0;
 }
 
-/* Override paragraph styling */
-.editor-main .scribe-p {
-  color: var(--text-secondary);
+/* Paragraph styling */
+.editor-wrapper .scribe-p {
+  color: #a1a1a6;
   margin: 0 0 1em 0;
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
-/* Override heading styles */
-.editor-main .scribe-h1 {
-  color: var(--text-primary);
+/* Heading styles */
+.editor-wrapper .scribe-h1 {
+  color: #f5f5f7;
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 0.75em 0;
 }
 
-.editor-main .scribe-h2 {
-  color: var(--text-primary);
+.editor-wrapper .scribe-h2 {
+  color: #f5f5f7;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5em 0 0.5em 0;
 }
 
-.editor-main .scribe-h3 {
-  color: var(--text-primary);
+.editor-wrapper .scribe-h3 {
+  color: #f5f5f7;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.25em 0 0.5em 0;
 }
 
-/* Override link color */
-.editor-main .scribe-link {
-  color: var(--accent-green);
-}
-
-.editor-main .scribe-link:hover {
-  opacity: 0.8;
-}
-
-/* Override code styles for dark theme */
-.editor-main .scribe-code-inline {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.editor-main .scribe-code-block {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-}
-
-/* Override blockquote for dark theme */
-.editor-main .scribe-quote {
-  border-left-color: var(--accent-green);
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
-/* Override list styles */
-.editor-main .scribe-list-ol,
-.editor-main .scribe-list-ul {
-  color: var(--text-secondary);
-}
-
-/* Loading state */
-.loading {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
-/* Error state */
-.error {
-  text-align: center;
-  padding: 24px;
-  background-color: rgba(255, 107, 107, 0.1);
-  border-radius: 8px;
-  color: #ff6b6b;
-}
-
-.error p {
-  margin: 0 0 16px;
-}
-
-.back-btn {
-  display: inline-block;
-  padding: 8px 16px;
-  background: transparent;
-  color: var(--accent-green);
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
+/* Link color */
+.editor-wrapper .scribe-link {
+  color: #34c759;
   text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.15s;
 }
 
-.back-btn:hover {
-  background: rgba(52, 199, 89, 0.1);
+.editor-wrapper .scribe-link:hover {
+  text-decoration: underline;
 }
 
-.retry-btn {
-  margin-top: 12px;
-  padding: 8px 16px;
-  background: transparent;
-  color: var(--accent-green);
-  border: 1px solid var(--accent-green);
-  border-radius: 6px;
+/* Code styles for dark theme */
+.editor-wrapper .scribe-code-inline {
+  background-color: #2c2c2e;
+  color: #f5f5f7;
+  padding: 0.125em 0.375em;
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+
+.editor-wrapper .scribe-code-block {
+  background-color: #2c2c2e;
+  color: #f5f5f7;
+  border: 1px solid #3a3a3c;
+  border-radius: 8px;
+  padding: 1em;
   font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s;
+  overflow-x: auto;
 }
 
-.retry-btn:hover {
-  background: rgba(52, 199, 89, 0.1);
+/* Blockquote for dark theme */
+.editor-wrapper .scribe-quote {
+  border-left: 3px solid #34c759;
+  background-color: #2c2c2e;
+  color: #a1a1a6;
+  padding: 0.75em 1em;
+  margin: 1em 0;
+  border-radius: 0 8px 8px 0;
 }
 
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  .note-editor-page {
-    padding: 16px;
-  }
+/* List styles */
+.editor-wrapper .scribe-list-ol,
+.editor-wrapper .scribe-list-ul {
+  color: #a1a1a6;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
 
-  .note-title-input {
-    font-size: 1.1rem;
-  }
+.editor-wrapper .scribe-list-ol li,
+.editor-wrapper .scribe-list-ul li {
+  margin: 0.25em 0;
+}
 
-  .editor-actions {
-    gap: 8px;
-  }
-
-  .save-status {
-    display: none;
-  }
+/* Selection */
+.editor-wrapper ::selection {
+  background: rgba(52, 199, 89, 0.3);
 }

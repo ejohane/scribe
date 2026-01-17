@@ -1,29 +1,21 @@
 /**
  * NoteListPage
  *
- * Displays a list of all notes in a minimal, clean interface.
+ * Extremely minimal notes interface - just a page and a cursor to type.
+ * Notes list is accessible via hamburger menu.
  */
 
-import { useEffect, useState, type FC } from 'react';
+import { useEffect, useState, useRef, type FC } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useScribe, useScribeClient } from '../providers/ScribeProvider';
 import type { NoteMetadata } from '@scribe/client-sdk';
-import './NoteListPage.css';
+import { Menu, FileText, Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 /**
- * Format date for header display (e.g., "Friday, January 9")
- */
-function formatHeaderDate(): string {
-  const now = new Date();
-  return now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-/**
- * Format a date string for display.
+ * Format a date for display in the sidebar.
  */
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -33,89 +25,33 @@ function formatDate(isoString: string): string {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 /**
- * Get greeting based on time of day
- */
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning!';
-  if (hour < 18) return 'Good afternoon!';
-  return 'Good evening!';
-}
-
-// Icons as inline SVGs for simplicity
-const MenuIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 2v6h-6" />
-    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-    <path d="M3 22v-6h6" />
-    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-  </svg>
-);
-
-const NoteIcon = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-  >
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-  </svg>
-);
-
-const ArrowIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="7" y1="17" x2="17" y2="7" />
-    <polyline points="7 7 17 7 17 17" />
-  </svg>
-);
-
-const ChevronIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-
-/**
- * Inner component that renders the note list.
+ * Inner component that renders the minimal note interface.
  */
 const NoteListContent: FC = () => {
   const client = useScribeClient();
   const navigate = useNavigate();
   const [notes, setNotes] = useState<NoteMetadata[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [expandedNote, setExpandedNote] = useState<string | null>(null);
-  const [newNoteTitle, setNewNoteTitle] = useState('');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const loadNotes = async () => {
     try {
       setLoading(true);
-      setError(null);
       const result = await client.api.notes.list.query({
         orderBy: 'updated_at',
         orderDir: 'desc',
       });
       setNotes(result);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
+      console.error('Failed to load notes:', err);
     } finally {
       setLoading(false);
     }
@@ -125,23 +61,34 @@ const NoteListContent: FC = () => {
     loadNotes();
   }, [client]);
 
-  const handleCreateNote = async (title?: string) => {
+  // Focus input on mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleCreateNote = async () => {
+    if (!inputValue.trim()) return;
+
     try {
+      const title = inputValue.trim().split('\n')[0].slice(0, 50) || 'Untitled';
       const note = await client.api.notes.create.mutate({
-        title: title || 'Untitled',
+        title,
         type: 'note',
       });
-      setNewNoteTitle('');
+      setInputValue('');
       navigate(`/note/${note.id}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      alert(`Failed to create note: ${message}`);
+      console.error('Failed to create note:', err);
     }
   };
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && newNoteTitle.trim()) {
-      handleCreateNote(newNoteTitle.trim());
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Cmd/Ctrl + Enter to create note
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleCreateNote();
     }
   };
 
@@ -151,155 +98,131 @@ const NoteListContent: FC = () => {
     try {
       await client.api.notes.delete.mutate(noteId);
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
-      setExpandedNote(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      alert(`Failed to delete note: ${message}`);
+      console.error('Failed to delete note:', err);
     }
   };
 
-  const toggleExpand = (noteId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    setExpandedNote(expandedNote === noteId ? null : noteId);
-  };
-
-  const getSummary = () => {
-    if (notes.length === 0) return 'No notes yet. Create your first note to get started.';
-    const recentCount = notes.filter((n) => {
-      const diff = Date.now() - new Date(n.updatedAt).getTime();
-      return diff < 7 * 24 * 60 * 60 * 1000;
-    }).length;
-    if (recentCount === 0)
-      return `You have ${notes.length} notes. Take a moment to review or create something new.`;
-    return `${getGreeting()} You have ${notes.length} notes, ${recentCount} updated this week.`;
-  };
-
   return (
-    <div className="app-container" data-testid="note-list-page">
-      <header className="app-header">
-        <button className="icon-btn menu-btn" aria-label="Menu">
-          <MenuIcon />
-        </button>
-      </header>
+    <div className="min-h-screen bg-[#1c1c1e] flex flex-col" data-testid="note-list-page">
+      {/* Hamburger Menu */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50 text-[#a1a1a6] hover:text-[#f5f5f7] hover:bg-[#2c2c2e]"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent
+          side="left"
+          className="w-[280px] sm:w-[320px] bg-[#1c1c1e] border-[#2c2c2e] p-0"
+        >
+          <SheetHeader className="p-4 border-b border-[#2c2c2e]">
+            <SheetTitle className="text-[#f5f5f7] text-sm font-medium">Notes</SheetTitle>
+          </SheetHeader>
 
-      <main className="main-content">
-        <div className="date-header">
-          <div className="date-title">
-            <span className="status-dot" />
-            <h1>{formatHeaderDate()}</h1>
-          </div>
-          <button className="icon-btn" onClick={loadNotes} aria-label="Refresh" disabled={loading}>
-            <RefreshIcon />
-          </button>
-        </div>
-
-        {loading && (
-          <p className="summary" data-testid="loading-state">
-            Loading...
-          </p>
-        )}
-        {!loading && <p className="summary">{getSummary()}</p>}
-
-        {error && (
-          <div className="error-banner" data-testid="error-state">
-            Error: {error.message}
-            <button onClick={loadNotes}>Retry</button>
-          </div>
-        )}
-
-        <div className="items-list" data-testid="note-list">
-          {notes.map((note) => (
-            <div
-              key={note.id}
-              className={`item ${expandedNote === note.id ? 'expanded' : ''}`}
-              data-testid="note-item"
-              onClick={(e) => toggleExpand(note.id, e)}
+          <div className="flex-1 overflow-y-auto">
+            {/* New Note Button */}
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                inputRef.current?.focus();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-[#34c759] hover:bg-[#2c2c2e] transition-colors"
             >
-              <div className="item-row">
-                <span className="item-icon">
-                  <NoteIcon />
-                </span>
-                <div className="item-content">
-                  <span className="item-title">{note.title}</span>
-                  <span className="item-subtitle">{formatDate(note.updatedAt)}</span>
-                </div>
-                <span className="item-chevron">
-                  <ChevronIcon />
-                </span>
-              </div>
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">New Note</span>
+            </button>
 
-              {expandedNote === note.id && (
-                <div className="item-expanded">
-                  <p className="item-description">
-                    Last modified {formatDate(note.updatedAt)}. Click to edit this note.
-                  </p>
-                  <div className="item-actions-row">
-                    <div className="item-actions">
-                      <Link to={`/note/${note.id}`} className="action-btn action-primary">
-                        Open
-                      </Link>
-                      <button
-                        className="action-btn action-secondary"
-                        onClick={(e) => handleDeleteNote(note.id, e)}
-                      >
-                        Delete
-                      </button>
-                    </div>
+            {/* Notes List */}
+            <div className="py-2">
+              {loading ? (
+                <p className="px-4 py-3 text-[#6e6e73] text-sm">Loading...</p>
+              ) : notes.length === 0 ? (
+                <p className="px-4 py-3 text-[#6e6e73] text-sm">No notes yet</p>
+              ) : (
+                notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="group flex items-center hover:bg-[#2c2c2e] transition-colors"
+                  >
                     <Link
                       to={`/note/${note.id}`}
-                      className="item-external-link"
-                      aria-label="Open note"
+                      onClick={() => setSheetOpen(false)}
+                      className="flex-1 flex items-center gap-3 px-4 py-3"
                     >
-                      <ArrowIcon />
+                      <FileText className="h-4 w-4 text-[#6e6e73] flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[#f5f5f7] text-sm truncate">{note.title}</p>
+                        <p className="text-[#6e6e73] text-xs">{formatDate(note.updatedAt)}</p>
+                      </div>
                     </Link>
+                    <button
+                      onClick={(e) => handleDeleteNote(note.id, e)}
+                      className="opacity-0 group-hover:opacity-100 p-2 mr-2 text-[#6e6e73] hover:text-red-500 transition-all"
+                      aria-label="Delete note"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                </div>
+                ))
               )}
             </div>
-          ))}
-        </div>
-
-        {!loading && notes.length === 0 && (
-          <div className="empty-state" data-testid="empty-state">
-            <p>No notes yet</p>
-            <button
-              onClick={() => handleCreateNote()}
-              className="action-btn action-primary"
-              data-testid="create-first-note-button"
-            >
-              Create your first note
-            </button>
           </div>
-        )}
+        </SheetContent>
+      </Sheet>
 
-        <div className="note-input-container">
-          <input
-            type="text"
-            className="note-input"
-            placeholder="Add a note or reminder..."
-            value={newNoteTitle}
-            onChange={(e) => setNewNoteTitle(e.target.value)}
-            onKeyDown={handleInputKeyDown}
+      {/* Main Content - Minimal Writing Area */}
+      <main className="flex-1 flex items-start justify-center pt-20 pb-8 px-4 md:px-8">
+        <div className="w-full max-w-[812px]">
+          <textarea
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Start typing..."
+            className={cn(
+              'w-full min-h-[calc(100vh-120px)] bg-transparent border-none outline-none resize-none',
+              'text-[#f5f5f7] text-lg leading-relaxed',
+              'placeholder:text-[#6e6e73]',
+              'caret-[#34c759]'
+            )}
             data-testid="create-note-input"
           />
         </div>
       </main>
+
+      {/* Subtle hint at bottom */}
+      {inputValue.trim() && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[#6e6e73] text-xs">
+          <kbd className="px-1.5 py-0.5 bg-[#2c2c2e] rounded text-[10px]">⌘</kbd>
+          <span className="mx-1">+</span>
+          <kbd className="px-1.5 py-0.5 bg-[#2c2c2e] rounded text-[10px]">Enter</kbd>
+          <span className="ml-2">to save</span>
+        </div>
+      )}
     </div>
   );
 };
 
 /**
- * Home page component that displays the list of notes.
+ * Notes page component - minimal interface.
  */
 export const NoteListPage: FC = () => {
   const { status, error, isConnected } = useScribe();
 
   if (status === 'connecting') {
     return (
-      <div className="app-container" data-testid="note-list-page">
-        <div className="center-message" data-testid="connecting-state">
-          <div className="loading-spinner" />
-          <p>Connecting...</p>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex items-center justify-center"
+        data-testid="note-list-page"
+      >
+        <div className="text-[#6e6e73] text-sm" data-testid="connecting-state">
+          Connecting...
         </div>
       </div>
     );
@@ -307,26 +230,42 @@ export const NoteListPage: FC = () => {
 
   if (error || status === 'error') {
     return (
-      <div className="app-container" data-testid="note-list-page">
-        <div className="center-message" data-testid="connection-error-state">
-          <p className="error-text">{error?.message ?? 'Unknown error'}</p>
-          <button onClick={() => window.location.reload()} className="action-btn action-primary">
-            Retry
-          </button>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-list-page"
+      >
+        <p className="text-red-400 text-sm" data-testid="connection-error-state">
+          {error?.message ?? 'Connection error'}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-[#f5f5f7] border-[#3a3a3c]"
+        >
+          Retry
+        </Button>
       </div>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className="app-container" data-testid="note-list-page">
-        <div className="center-message" data-testid="disconnected-state">
-          <p className="error-text">Disconnected</p>
-          <button onClick={() => window.location.reload()} className="action-btn action-primary">
-            Reconnect
-          </button>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-list-page"
+      >
+        <p className="text-[#6e6e73] text-sm" data-testid="disconnected-state">
+          Disconnected
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-[#f5f5f7] border-[#3a3a3c]"
+        >
+          Reconnect
+        </Button>
       </div>
     );
   }

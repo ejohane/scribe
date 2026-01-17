@@ -1,8 +1,8 @@
 /**
  * NoteEditorPage
  *
- * Full-screen editor for a single note with auto-save and Yjs collaboration.
- * Loads note from daemon, displays in Lexical editor, and saves changes automatically.
+ * Extremely minimal full-screen editor for a single note.
+ * Just the page and a cursor to type.
  */
 
 import { useEffect, useState, useCallback, useRef, type FC } from 'react';
@@ -10,11 +10,31 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useScribe, useScribeClient } from '../providers/ScribeProvider';
 import { ScribeEditor, type EditorContent } from '@scribe/editor';
 import { YjsProvider, useYjs, LexicalYjsPlugin } from '@scribe/collab';
-import type { NoteDocument } from '@scribe/client-sdk';
+import type { NoteDocument, NoteMetadata } from '@scribe/client-sdk';
+import { Menu, FileText, Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import './NoteEditorPage.css';
 
 /** Auto-save debounce delay in milliseconds */
 const AUTO_SAVE_DELAY = 1000;
+
+/**
+ * Format a date for display in the sidebar.
+ */
+function formatDate(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 /**
  * Format last saved time for display.
@@ -39,14 +59,13 @@ const EditorWithYjs: FC<EditorWithYjsProps> = ({ initialContent, onChange }) => 
 
   if (isLoading) {
     return (
-      <div className="loading" data-testid="collab-loading">
+      <div className="text-[#6e6e73] text-sm" data-testid="collab-loading">
         Syncing...
       </div>
     );
   }
 
   if (error) {
-    // Fall back to non-collaborative editing when collab fails
     console.warn('Collaboration unavailable:', error);
   }
 
@@ -63,7 +82,6 @@ const EditorWithYjs: FC<EditorWithYjsProps> = ({ initialContent, onChange }) => 
 
 /**
  * Inner component that renders the note editor content.
- * Assumes the client is connected.
  */
 interface NoteEditorContentProps {
   id: string;
@@ -73,30 +91,36 @@ const NoteEditorContent: FC<NoteEditorContentProps> = ({ id }) => {
   const client = useScribeClient();
   const navigate = useNavigate();
   const [note, setNote] = useState<NoteDocument | null>(null);
+  const [notes, setNotes] = useState<NoteMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Refs for debouncing auto-save
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const pendingContentRef = useRef<EditorContent | null>(null);
 
-  // Load note on mount or when id changes
+  // Load note and notes list
   useEffect(() => {
     let cancelled = false;
 
-    async function loadNote() {
+    async function loadData() {
       try {
         setLoading(true);
         setError(null);
-        const result = await client.api.notes.get.query(id);
+
+        const [noteResult, notesResult] = await Promise.all([
+          client.api.notes.get.query(id),
+          client.api.notes.list.query({ orderBy: 'updated_at', orderDir: 'desc' }),
+        ]);
 
         if (!cancelled) {
-          if (!result) {
+          if (!noteResult) {
             setError(new Error('Note not found'));
           } else {
-            setNote(result);
+            setNote(noteResult);
+            setNotes(notesResult);
           }
         }
       } catch (err) {
@@ -110,24 +134,20 @@ const NoteEditorContent: FC<NoteEditorContentProps> = ({ id }) => {
       }
     }
 
-    loadNote();
+    loadData();
 
     return () => {
       cancelled = true;
     };
   }, [client, id]);
 
-  // Save function
   const saveNote = useCallback(
     async (content: EditorContent) => {
       if (!note) return;
 
       try {
         setSaving(true);
-        await client.api.notes.update.mutate({
-          id,
-          content,
-        });
+        await client.api.notes.update.mutate({ id, content });
         setLastSaved(new Date());
       } catch (err) {
         console.error('Save failed:', err);
@@ -138,7 +158,6 @@ const NoteEditorContent: FC<NoteEditorContentProps> = ({ id }) => {
     [client, id, note]
   );
 
-  // Debounced auto-save on content change
   const handleChange = useCallback(
     (content: EditorContent) => {
       pendingContentRef.current = content;
@@ -156,12 +175,10 @@ const NoteEditorContent: FC<NoteEditorContentProps> = ({ id }) => {
     [saveNote]
   );
 
-  // Cleanup timeout on unmount, saving any pending changes
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-        // Save any pending changes immediately on unmount
         if (pendingContentRef.current) {
           saveNote(pendingContentRef.current);
         }
@@ -169,44 +186,41 @@ const NoteEditorContent: FC<NoteEditorContentProps> = ({ id }) => {
     };
   }, [saveNote]);
 
-  // Update title handler
-  const handleTitleChange = async (newTitle: string) => {
-    if (!note) return;
-
+  const handleDeleteNote = async (noteId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
-      await client.api.notes.update.mutate({
-        id,
-        title: newTitle,
-      });
-      setNote({ ...note, title: newTitle });
+      await client.api.notes.delete.mutate(noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      if (noteId === id) {
+        navigate('/');
+      }
     } catch (err) {
-      console.error('Title update failed:', err);
+      console.error('Failed to delete note:', err);
     }
   };
 
-  // Delete note handler
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this note?')) return;
-
+  const handleCreateNote = async () => {
     try {
-      await client.api.notes.delete.mutate(id);
-      navigate('/');
+      const newNote = await client.api.notes.create.mutate({
+        title: 'Untitled',
+        type: 'note',
+      });
+      setSheetOpen(false);
+      navigate(`/note/${newNote.id}`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      alert(`Delete failed: ${message}`);
+      console.error('Failed to create note:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="note-editor-page" data-testid="note-editor-page">
-        <header className="editor-header">
-          <Link to="/" className="back-link" data-testid="back-link">
-            &larr; Notes
-          </Link>
-        </header>
-        <div className="loading" data-testid="loading-state">
-          Loading note...
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex items-center justify-center"
+        data-testid="note-editor-page"
+      >
+        <div className="text-[#6e6e73] text-sm" data-testid="loading-state">
+          Loading...
         </div>
       </div>
     );
@@ -214,141 +228,181 @@ const NoteEditorContent: FC<NoteEditorContentProps> = ({ id }) => {
 
   if (error || !note) {
     return (
-      <div className="note-editor-page" data-testid="note-editor-page">
-        <header className="editor-header">
-          <Link to="/" className="back-link" data-testid="back-link">
-            &larr; Notes
-          </Link>
-        </header>
-        <div className="error" data-testid="error-state">
-          <p>{error?.message ?? 'Note not found'}</p>
-          <Link to="/" className="back-btn">
-            Back to notes
-          </Link>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-editor-page"
+      >
+        <p className="text-red-400 text-sm" data-testid="error-state">
+          {error?.message ?? 'Note not found'}
+        </p>
+        <Link to="/" className="text-[#34c759] text-sm hover:underline">
+          Back to notes
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="note-editor-page" data-testid="note-editor-page">
-      <header className="editor-header">
-        <Link to="/" className="back-link" data-testid="back-link">
-          &larr; Notes
-        </Link>
+    <div className="min-h-screen bg-[#1c1c1e] flex flex-col" data-testid="note-editor-page">
+      {/* Hamburger Menu */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50 text-[#a1a1a6] hover:text-[#f5f5f7] hover:bg-[#2c2c2e]"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent
+          side="left"
+          className="w-[280px] sm:w-[320px] bg-[#1c1c1e] border-[#2c2c2e] p-0"
+        >
+          <SheetHeader className="p-4 border-b border-[#2c2c2e]">
+            <SheetTitle className="text-[#f5f5f7] text-sm font-medium">Notes</SheetTitle>
+          </SheetHeader>
 
-        <input
-          type="text"
-          className="note-title-input"
-          value={note.title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="Untitled"
-          aria-label="Note title"
-          data-testid="note-title-input"
-        />
+          <div className="flex-1 overflow-y-auto">
+            {/* New Note Button */}
+            <button
+              onClick={handleCreateNote}
+              className="w-full flex items-center gap-3 px-4 py-3 text-[#34c759] hover:bg-[#2c2c2e] transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">New Note</span>
+            </button>
 
-        <div className="editor-actions">
-          <span className="save-status" data-testid="save-status">
-            {saving ? 'Saving...' : lastSaved ? `Saved ${formatSavedTime(lastSaved)}` : ''}
-          </span>
-          <button onClick={handleDelete} className="delete-btn" data-testid="delete-btn">
-            Delete
-          </button>
+            {/* Notes List */}
+            <div className="py-2">
+              {notes.map((n) => (
+                <div
+                  key={n.id}
+                  className={cn(
+                    'group flex items-center hover:bg-[#2c2c2e] transition-colors',
+                    n.id === id && 'bg-[#2c2c2e]'
+                  )}
+                >
+                  <Link
+                    to={`/note/${n.id}`}
+                    onClick={() => setSheetOpen(false)}
+                    className="flex-1 flex items-center gap-3 px-4 py-3"
+                  >
+                    <FileText className="h-4 w-4 text-[#6e6e73] flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#f5f5f7] text-sm truncate">{n.title}</p>
+                      <p className="text-[#6e6e73] text-xs">{formatDate(n.updatedAt)}</p>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={(e) => handleDeleteNote(n.id, e)}
+                    className="opacity-0 group-hover:opacity-100 p-2 mr-2 text-[#6e6e73] hover:text-red-500 transition-all"
+                    aria-label="Delete note"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content - Minimal Editor */}
+      <main className="flex-1 flex items-start justify-center pt-20 pb-8 px-4 md:px-8">
+        <div className="w-full max-w-[812px] editor-wrapper">
+          <YjsProvider noteId={id} collabClient={client.collab}>
+            <EditorWithYjs initialContent={note.content as EditorContent} onChange={handleChange} />
+          </YjsProvider>
         </div>
-      </header>
-
-      <main className="editor-main">
-        <YjsProvider noteId={id} collabClient={client.collab}>
-          {/* Cast note.content to EditorContent - they are semantically compatible
-              but TypeScript sees different type definitions */}
-          <EditorWithYjs initialContent={note.content as EditorContent} onChange={handleChange} />
-        </YjsProvider>
       </main>
+
+      {/* Save status indicator */}
+      <div className="fixed bottom-4 right-4 text-[#6e6e73] text-xs" data-testid="save-status">
+        {saving ? 'Saving...' : lastSaved ? `Saved ${formatSavedTime(lastSaved)}` : ''}
+      </div>
     </div>
   );
 };
 
 /**
  * Note editor page component.
- * Handles connection state and renders editor when connected.
  */
 export const NoteEditorPage: FC = () => {
   const { id } = useParams<{ id: string }>();
   const { status, error, isConnected } = useScribe();
 
-  // Show connecting state
   if (status === 'connecting') {
     return (
-      <div className="note-editor-page" data-testid="note-editor-page">
-        <header className="editor-header">
-          <Link to="/" className="back-link" data-testid="back-link">
-            &larr; Notes
-          </Link>
-        </header>
-        <div className="loading" data-testid="connecting-state">
-          Connecting to daemon...
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex items-center justify-center"
+        data-testid="note-editor-page"
+      >
+        <div className="text-[#6e6e73] text-sm" data-testid="connecting-state">
+          Connecting...
         </div>
       </div>
     );
   }
 
-  // Show error state
   if (error || status === 'error') {
     return (
-      <div className="note-editor-page" data-testid="note-editor-page">
-        <header className="editor-header">
-          <Link to="/" className="back-link" data-testid="back-link">
-            &larr; Notes
-          </Link>
-        </header>
-        <div className="error" data-testid="connection-error-state">
-          Connection error: {error?.message ?? 'Unknown error'}
-          <button onClick={() => window.location.reload()} className="retry-btn">
-            Retry
-          </button>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-editor-page"
+      >
+        <p className="text-red-400 text-sm" data-testid="connection-error-state">
+          {error?.message ?? 'Connection error'}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-[#f5f5f7] border-[#3a3a3c]"
+        >
+          Retry
+        </Button>
       </div>
     );
   }
 
-  // Show disconnected state
   if (!isConnected) {
     return (
-      <div className="note-editor-page" data-testid="note-editor-page">
-        <header className="editor-header">
-          <Link to="/" className="back-link" data-testid="back-link">
-            &larr; Notes
-          </Link>
-        </header>
-        <div className="error" data-testid="disconnected-state">
-          Disconnected from daemon
-          <button onClick={() => window.location.reload()} className="retry-btn">
-            Reconnect
-          </button>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-editor-page"
+      >
+        <p className="text-[#6e6e73] text-sm" data-testid="disconnected-state">
+          Disconnected
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-[#f5f5f7] border-[#3a3a3c]"
+        >
+          Reconnect
+        </Button>
       </div>
     );
   }
 
-  // Handle missing id parameter (shouldn't happen with proper routing)
   if (!id) {
     return (
-      <div className="note-editor-page" data-testid="note-editor-page">
-        <header className="editor-header">
-          <Link to="/" className="back-link" data-testid="back-link">
-            &larr; Notes
-          </Link>
-        </header>
-        <div className="error" data-testid="error-state">
-          <p>No note ID provided</p>
-          <Link to="/" className="back-btn">
-            Back to notes
-          </Link>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-editor-page"
+      >
+        <p className="text-[#6e6e73] text-sm" data-testid="error-state">
+          No note ID provided
+        </p>
+        <Link to="/" className="text-[#34c759] text-sm hover:underline">
+          Back to notes
+        </Link>
       </div>
     );
   }
 
-  // Render editor when connected
   return <NoteEditorContent id={id} />;
 };

@@ -1,5 +1,5 @@
 /**
- * Tests for NoteListPage
+ * Tests for NoteListPage - Minimal UI
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
@@ -34,7 +34,6 @@ function createMockClient(
     on: vi.fn(),
     off: vi.fn(),
     connect: vi.fn().mockImplementation(async () => {
-      // Simulate status change to connected after connect is called
       setTimeout(() => {
         const statusChangeCall = client.on.mock.calls.find(
           (call: unknown[]) => call[0] === 'status-change'
@@ -57,6 +56,9 @@ function createMockClient(
           mutate: vi
             .fn()
             .mockResolvedValue({ id: 'new-note-123', title: 'Untitled', type: 'note' }),
+        },
+        delete: {
+          mutate: vi.fn().mockResolvedValue(undefined),
         },
       },
     },
@@ -117,124 +119,61 @@ describe('NoteListPage', () => {
     });
   });
 
-  it('displays the date heading', async () => {
+  it('displays the textarea for creating notes', async () => {
     renderNoteListPage();
 
     await waitFor(() => {
-      // New UI shows date header (e.g., "Thursday, January 16")
-      const heading = screen.getByRole('heading', { level: 1 });
-      expect(heading).toBeInTheDocument();
+      expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
     });
   });
 
   describe('Loading state', () => {
-    it('shows loading state initially', async () => {
-      // Delay the API response to see loading state
-      mockClientInstance.api.notes.list.query = vi
-        .fn()
-        .mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve([]), 100)));
+    it('shows connecting state initially', async () => {
+      // Create a client that triggers connecting status
+      const connectingClient = {
+        on: vi.fn(),
+        off: vi.fn(),
+        connect: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn(),
+        status: 'disconnected' as const,
+        isConnected: false,
+        api: {
+          notes: {
+            list: { query: vi.fn() },
+            create: { mutate: vi.fn() },
+            delete: { mutate: vi.fn() },
+          },
+        },
+        collab: {},
+      };
 
-      renderNoteListPage();
-
-      // The loading state should appear
-      await waitFor(() => {
-        expect(screen.getByTestId('loading-state')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Empty state', () => {
-    it('shows empty state when no notes exist', async () => {
-      renderNoteListPage({ notes: [] });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('empty-state')).toBeInTheDocument();
-      });
-      expect(screen.getByText('No notes yet')).toBeInTheDocument();
-    });
-
-    it('has create first note button in empty state', async () => {
-      renderNoteListPage({ notes: [] });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('create-first-note-button')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Note list', () => {
-    const mockNotes = [
-      { id: 'note-1', title: 'First Note', type: 'note', updatedAt: new Date().toISOString() },
-      {
-        id: 'note-2',
-        title: 'Second Note',
-        type: 'daily',
-        updatedAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: 'note-3',
-        title: 'Third Note',
-        type: 'meeting',
-        updatedAt: new Date(Date.now() - 172800000).toISOString(),
-      },
-    ];
-
-    it('displays notes in a list', async () => {
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('note-list')).toBeInTheDocument();
+      (ScribeClient as Mock).mockImplementation(() => {
+        const client = { ...connectingClient };
+        client.on = vi.fn().mockImplementation((event, handler) => {
+          if (event === 'status-change') {
+            // Only trigger connecting, not connected
+            setTimeout(() => handler('connecting'), 0);
+          }
+        });
+        return client;
       });
 
-      const noteItems = screen.getAllByTestId('note-item');
-      expect(noteItems).toHaveLength(3);
-    });
-
-    it('displays note titles', async () => {
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        expect(screen.getByText('First Note')).toBeInTheDocument();
-        expect(screen.getByText('Second Note')).toBeInTheDocument();
-        expect(screen.getByText('Third Note')).toBeInTheDocument();
-      });
-    });
-
-    it('displays note items with icons', async () => {
-      renderNoteListPage({ notes: mockNotes });
+      render(
+        <MemoryRouter>
+          <ScribeProvider>
+            <NoteListPage />
+          </ScribeProvider>
+        </MemoryRouter>
+      );
 
       await waitFor(() => {
-        // New UI shows note items with icons, titles, and dates
-        const noteItems = screen.getAllByTestId('note-item');
-        expect(noteItems).toHaveLength(3);
-      });
-    });
-
-    it('displays relative dates', async () => {
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        expect(screen.getByText(/Today/)).toBeInTheDocument();
-        expect(screen.getByText(/Yesterday/)).toBeInTheDocument();
-        expect(screen.getByText(/2 days ago/)).toBeInTheDocument();
-      });
-    });
-
-    it('note items are clickable', async () => {
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        const noteItems = screen.getAllByTestId('note-item');
-        expect(noteItems).toHaveLength(3);
-        // Each note item should contain title and subtitle
-        expect(noteItems[0].querySelector('.item-title')).toHaveTextContent('First Note');
-        expect(noteItems[0].querySelector('.item-subtitle')).toHaveTextContent('Today');
+        expect(screen.getByTestId('connecting-state')).toBeInTheDocument();
       });
     });
   });
 
   describe('Create note', () => {
-    it('has create note input field', async () => {
+    it('has create note textarea', async () => {
       renderNoteListPage({ notes: [] });
 
       await waitFor(() => {
@@ -242,7 +181,43 @@ describe('NoteListPage', () => {
       });
     });
 
-    it('creates note and navigates when typing and pressing Enter', async () => {
+    it('creates note and navigates when typing and pressing Cmd+Enter', async () => {
+      renderNoteListPage({ notes: [] });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
+      });
+
+      const input = screen.getByTestId('create-note-input');
+      fireEvent.change(input, { target: { value: 'My New Note' } });
+      fireEvent.keyDown(input, { key: 'Enter', metaKey: true });
+
+      await waitFor(() => {
+        expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
+          title: 'My New Note',
+          type: 'note',
+        });
+        expect(mockNavigate).toHaveBeenCalledWith('/note/new-note-123');
+      });
+    });
+
+    it('creates note with Ctrl+Enter', async () => {
+      renderNoteListPage({ notes: [] });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
+      });
+
+      const input = screen.getByTestId('create-note-input');
+      fireEvent.change(input, { target: { value: 'My New Note' } });
+      fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+
+      await waitFor(() => {
+        expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalled();
+      });
+    });
+
+    it('does not create note with just Enter (allows multi-line)', async () => {
       renderNoteListPage({ notes: [] });
 
       await waitFor(() => {
@@ -254,86 +229,109 @@ describe('NoteListPage', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       await waitFor(() => {
-        expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
-          title: 'My New Note',
-          type: 'note',
-        });
-        expect(mockNavigate).toHaveBeenCalledWith('/note/new-note-123');
+        expect(mockClientInstance.api.notes.create.mutate).not.toHaveBeenCalled();
       });
     });
 
-    it('creates note from empty state button', async () => {
+    it('does not create empty notes', async () => {
       renderNoteListPage({ notes: [] });
 
-      await waitFor(() => {
-        expect(screen.getByTestId('create-first-note-button')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByTestId('create-first-note-button'));
-
-      await waitFor(() => {
-        expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
-          title: 'Untitled',
-          type: 'note',
-        });
-        expect(mockNavigate).toHaveBeenCalledWith('/note/new-note-123');
-      });
-    });
-
-    it('shows alert on create error', async () => {
-      const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
-      // Create client and then override the create mutate
-      renderNoteListPage({ notes: [] });
-
-      // Wait for the component to be ready
       await waitFor(() => {
         expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
       });
 
-      // Now override the mutate to reject
-      mockClientInstance.api.notes.create.mutate = vi
-        .fn()
-        .mockRejectedValue(new Error('Create failed'));
-
       const input = screen.getByTestId('create-note-input');
-      fireEvent.change(input, { target: { value: 'Test Note' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.keyDown(input, { key: 'Enter', metaKey: true });
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith('Failed to create note: Create failed');
+        expect(mockClientInstance.api.notes.create.mutate).not.toHaveBeenCalled();
+      });
+    });
+
+    it('uses first line as title (truncated to 50 chars)', async () => {
+      renderNoteListPage({ notes: [] });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
       });
 
-      alertMock.mockRestore();
+      const longTitle = 'A'.repeat(60);
+      const input = screen.getByTestId('create-note-input');
+      fireEvent.change(input, { target: { value: `${longTitle}\nMore content` } });
+      fireEvent.keyDown(input, { key: 'Enter', metaKey: true });
+
+      await waitFor(() => {
+        expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
+          title: 'A'.repeat(50),
+          type: 'note',
+        });
+      });
     });
   });
 
-  describe('Error handling', () => {
-    it('shows error state when API call fails', async () => {
-      mockClientInstance.api.notes.list.query = vi
-        .fn()
-        .mockRejectedValue(new Error('Network error'));
-
+  describe('Hamburger menu', () => {
+    it('has menu button', async () => {
       renderNoteListPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('error-state')).toBeInTheDocument();
-        expect(screen.getByText(/Network error/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
+      });
+    });
+
+    it('opens sheet when menu button is clicked', async () => {
+      const mockNotes = [
+        { id: 'note-1', title: 'Test Note', type: 'note', updatedAt: new Date().toISOString() },
+      ];
+      renderNoteListPage({ notes: mockNotes });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Notes')).toBeInTheDocument();
+        expect(screen.getByText('New Note')).toBeInTheDocument();
+      });
+    });
+
+    it('displays notes in sidebar', async () => {
+      const mockNotes = [
+        { id: 'note-1', title: 'First Note', type: 'note', updatedAt: new Date().toISOString() },
+        { id: 'note-2', title: 'Second Note', type: 'note', updatedAt: new Date().toISOString() },
+      ];
+      renderNoteListPage({ notes: mockNotes });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('First Note')).toBeInTheDocument();
+        expect(screen.getByText('Second Note')).toBeInTheDocument();
       });
     });
   });
 
   describe('Connection states', () => {
     it('shows disconnected state when not connected', async () => {
-      // Create a client that won't auto-connect
       const disconnectedClient = {
         on: vi.fn(),
         off: vi.fn(),
-        connect: vi.fn().mockResolvedValue(undefined), // Does not trigger status change
+        connect: vi.fn().mockResolvedValue(undefined),
         disconnect: vi.fn(),
         status: 'disconnected' as const,
         isConnected: false,
-        api: { notes: { list: { query: vi.fn() }, create: { mutate: vi.fn() } } },
+        api: {
+          notes: {
+            list: { query: vi.fn() },
+            create: { mutate: vi.fn() },
+            delete: { mutate: vi.fn() },
+          },
+        },
         collab: {},
       };
       (ScribeClient as Mock).mockImplementation(() => disconnectedClient);
@@ -346,7 +344,6 @@ describe('NoteListPage', () => {
         </MemoryRouter>
       );
 
-      // Should show disconnected state
       await waitFor(() => {
         expect(screen.getByTestId('disconnected-state')).toBeInTheDocument();
       });
@@ -354,87 +351,35 @@ describe('NoteListPage', () => {
   });
 
   describe('Accessibility', () => {
-    it('has proper heading structure', async () => {
+    it('textarea is focusable and has placeholder', async () => {
       renderNoteListPage({ notes: [] });
 
       await waitFor(() => {
-        const heading = screen.getByRole('heading', { level: 1 });
-        // New UI shows date as heading
-        expect(heading).toBeInTheDocument();
+        const textarea = screen.getByTestId('create-note-input');
+        expect(textarea).toBeVisible();
+        expect(textarea).toHaveAttribute('placeholder', 'Start typing...');
       });
     });
 
-    it('note list container is accessible', async () => {
-      const mockNotes = [
-        { id: 'note-1', title: 'Test Note', type: 'note', updatedAt: new Date().toISOString() },
-      ];
-      renderNoteListPage({ notes: mockNotes });
+    it('menu button is accessible', async () => {
+      renderNoteListPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('note-list')).toBeInTheDocument();
-        expect(screen.getAllByTestId('note-item')).toHaveLength(1);
-      });
-    });
-
-    it('input field is focusable', async () => {
-      renderNoteListPage({ notes: [] });
-
-      await waitFor(() => {
-        const createInput = screen.getByTestId('create-note-input');
-        expect(createInput).toBeVisible();
+        const menuButton = screen.getByRole('button', { name: /menu/i });
+        expect(menuButton).toBeInTheDocument();
+        expect(menuButton).toHaveAttribute('aria-label', 'Menu');
       });
     });
   });
 
-  describe('Date formatting', () => {
-    it('formats today as "Today"', async () => {
-      const mockNotes = [
-        { id: 'note-1', title: 'Test Note', type: 'note', updatedAt: new Date().toISOString() },
-      ];
-      renderNoteListPage({ notes: mockNotes });
+  describe('Responsive design', () => {
+    it('main content area has max-width of 812px', async () => {
+      renderNoteListPage();
 
       await waitFor(() => {
-        // Look for "Today" in the item-subtitle span
-        const noteItem = screen.getByTestId('note-item');
-        expect(noteItem.querySelector('.item-subtitle')).toHaveTextContent('Today');
-      });
-    });
-
-    it('formats yesterday as "Yesterday"', async () => {
-      const yesterday = new Date(Date.now() - 86400000).toISOString();
-      const mockNotes = [{ id: 'note-1', title: 'Test Note', type: 'note', updatedAt: yesterday }];
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        const noteItem = screen.getByTestId('note-item');
-        expect(noteItem.querySelector('.item-subtitle')).toHaveTextContent('Yesterday');
-      });
-    });
-
-    it('formats recent dates as "N days ago"', async () => {
-      const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString();
-      const mockNotes = [
-        { id: 'note-1', title: 'Recent Note', type: 'note', updatedAt: threeDaysAgo },
-      ];
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        const noteItem = screen.getByTestId('note-item');
-        expect(noteItem.querySelector('.item-subtitle')).toHaveTextContent('3 days ago');
-      });
-    });
-
-    it('formats older dates with locale string', async () => {
-      const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString();
-      const mockNotes = [{ id: 'note-1', title: 'Old Note', type: 'note', updatedAt: twoWeeksAgo }];
-      renderNoteListPage({ notes: mockNotes });
-
-      await waitFor(() => {
-        // Should show locale date format (like "1/1/2026")
-        const noteItem = screen.getByTestId('note-item');
-        expect(noteItem.querySelector('.item-subtitle')).toHaveTextContent(
-          /\d{1,2}\/\d{1,2}\/\d{4}/
-        );
+        const textarea = screen.getByTestId('create-note-input');
+        const container = textarea.parentElement;
+        expect(container).toHaveClass('max-w-[812px]');
       });
     });
   });
