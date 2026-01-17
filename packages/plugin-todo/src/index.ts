@@ -31,7 +31,13 @@
  */
 
 // Re-export server components
-export { TodoStore, createTodoRouter } from './server/index.js';
+export {
+  TodoStore,
+  createTodoRouter,
+  createEventHandlers,
+  manifest,
+  createServerPlugin,
+} from './server/index.js';
 export type { TodoRouter } from './server/index.js';
 
 // Re-export shared types

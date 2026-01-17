@@ -670,5 +670,70 @@ describe('init', () => {
 
       expect(receivedEvent).toBe(true);
     });
+
+    it('auto-subscribes eventHandlers when plugin is activated', async () => {
+      const system = await initializePluginSystem(db);
+
+      let deletedNoteId: string | null = null;
+
+      const module: PluginModule = {
+        manifest: createTestManifest({
+          id: '@scribe/plugin-event-handlers',
+          capabilities: [{ type: 'storage' }, { type: 'event-hook', events: ['note:deleted'] }],
+        }),
+        createServerPlugin: (context) => ({
+          manifest: context.manifest,
+          eventHandlers: {
+            'note:deleted': (event) => {
+              deletedNoteId = event.noteId;
+            },
+          },
+        }),
+      };
+
+      await system.loadPlugins([module]);
+      await system.activateAll();
+
+      // Emit a note:deleted event through the event bus
+      await system.eventBus.emit({
+        type: 'note:deleted',
+        noteId: 'deleted-note-123',
+      });
+
+      expect(deletedNoteId).toBe('deleted-note-123');
+    });
+
+    it('auto-subscribes async eventHandlers', async () => {
+      const system = await initializePluginSystem(db);
+
+      let handlerCalled = false;
+
+      const module: PluginModule = {
+        manifest: createTestManifest({
+          id: '@scribe/plugin-async-handler',
+          capabilities: [{ type: 'storage' }, { type: 'event-hook', events: ['note:deleted'] }],
+        }),
+        createServerPlugin: (context) => ({
+          manifest: context.manifest,
+          eventHandlers: {
+            'note:deleted': async () => {
+              // Simulate async operation
+              await new Promise((resolve) => setTimeout(resolve, 10));
+              handlerCalled = true;
+            },
+          },
+        }),
+      };
+
+      await system.loadPlugins([module]);
+      await system.activateAll();
+
+      await system.eventBus.emit({
+        type: 'note:deleted',
+        noteId: 'test-note',
+      });
+
+      expect(handlerCalled).toBe(true);
+    });
   });
 });

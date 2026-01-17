@@ -8,7 +8,13 @@
  * @module
  */
 
-import type { PluginManifest, PluginModule, ServerPluginContext } from '@scribe/plugin-core';
+import type {
+  PluginManifest,
+  PluginModule,
+  ServerPluginContext,
+  ServerPlugin,
+  PluginEventType,
+} from '@scribe/plugin-core';
 import {
   PluginRegistry,
   PluginLoader,
@@ -20,6 +26,48 @@ import type { PluginStorageDatabase } from '@scribe/plugin-core';
 
 import { createPluginLogger } from './logger.js';
 import { collectPluginRouters, type PluginRouterEntry } from './router-merger.js';
+
+// ============================================================================
+// Event Handler Subscription Helper
+// ============================================================================
+
+/**
+ * Subscribe a plugin's event handlers to the event bus.
+ *
+ * Iterates over the plugin's eventHandlers map and subscribes each handler
+ * to the appropriate event type on the event bus.
+ *
+ * @param plugin - The server plugin with event handlers
+ * @param eventBus - The event bus to subscribe to
+ * @returns Unsubscribe function that removes all subscriptions
+ */
+function subscribeEventHandlers(plugin: ServerPlugin, eventBus: DefaultPluginEventBus): () => void {
+  if (!plugin.eventHandlers) {
+    return () => {};
+  }
+
+  const unsubscribers: Array<() => void> = [];
+
+  for (const [eventType, handler] of Object.entries(plugin.eventHandlers)) {
+    if (handler) {
+      // The handler function needs to be wrapped to match the expected signature
+      const wrappedHandler = handler as (event: unknown) => void | Promise<void>;
+      eventBus.addHandler(eventType as PluginEventType, wrappedHandler);
+
+      // Track unsubscribe function
+      unsubscribers.push(() => {
+        eventBus.removeHandler(eventType as PluginEventType, wrappedHandler);
+      });
+    }
+  }
+
+  // Return a function that unsubscribes all handlers
+  return () => {
+    for (const unsubscribe of unsubscribers) {
+      unsubscribe();
+    }
+  };
+}
 
 // ============================================================================
 // Types
@@ -211,15 +259,27 @@ export async function initializePluginSystem(
       let activated = 0;
       let failed = 0;
 
-      for (const plugin of plugins) {
+      for (const registered of plugins) {
+        const pluginId = registered.plugin.manifest.id;
         try {
-          await lifecycle.activate(plugin.plugin.manifest.id);
+          await lifecycle.activate(pluginId);
+
+          // Subscribe event handlers for the plugin after activation
+          const serverPlugin = registered.plugin as ServerPlugin;
+          if (serverPlugin.eventHandlers) {
+            subscribeEventHandlers(serverPlugin, eventBus);
+            // eslint-disable-next-line no-console -- Intentional logging
+            console.log(
+              `[plugins] Subscribed event handlers for ${pluginId}: ${Object.keys(serverPlugin.eventHandlers).join(', ')}`
+            );
+          }
+
           activated++;
         } catch (error) {
           failed++;
           // eslint-disable-next-line no-console -- Intentional error logging
           console.error(
-            `[plugins] Failed to activate ${plugin.plugin.manifest.id}:`,
+            `[plugins] Failed to activate ${pluginId}:`,
             error instanceof Error ? error.message : error
           );
         }
