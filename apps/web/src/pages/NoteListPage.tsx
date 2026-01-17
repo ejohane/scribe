@@ -1,19 +1,21 @@
 /**
  * NoteListPage
  *
- * Displays a list of all notes and allows navigation to individual notes.
- * Fetches notes from the daemon and displays them in a sortable list.
+ * Extremely minimal notes interface - just a page and a cursor to type.
+ * Notes list is accessible via hamburger menu.
  */
 
-import { useEffect, useState, type FC } from 'react';
+import { useEffect, useState, useRef, type FC } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useScribe, useScribeClient } from '../providers/ScribeProvider';
 import type { NoteMetadata } from '@scribe/client-sdk';
-import './NoteListPage.css';
+import { Menu, FileText, Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 /**
- * Format a date string for display.
- * Shows relative time for recent dates (Today, Yesterday, N days ago).
+ * Format a date for display in the sidebar.
  */
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -23,184 +25,250 @@ function formatDate(isoString: string): string {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 /**
- * Inner component that renders the note list.
- * Assumes the client is connected.
+ * Inner component that renders the minimal note interface.
  */
 const NoteListContent: FC = () => {
   const client = useScribeClient();
   const navigate = useNavigate();
   const [notes, setNotes] = useState<NoteMetadata[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch notes on mount
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadNotes() {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await client.api.notes.list.query({
-          orderBy: 'updated_at',
-          orderDir: 'desc',
-        });
-        if (!cancelled) {
-          setNotes(result);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadNotes();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [client]);
-
-  // Create new note handler
-  const handleCreateNote = async () => {
+  const loadNotes = async () => {
     try {
-      const note = await client.api.notes.create.mutate({
-        title: 'Untitled',
-        type: 'note',
+      setLoading(true);
+      const result = await client.api.notes.list.query({
+        orderBy: 'updated_at',
+        orderDir: 'desc',
       });
-      navigate(`/note/${note.id}`);
+      setNotes(result);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      alert(`Failed to create note: ${message}`);
+      console.error('Failed to load notes:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="note-list-page" data-testid="note-list-page">
-        <header className="page-header">
-          <h1>Notes</h1>
-        </header>
-        <div className="loading" data-testid="loading-state">
-          Loading notes...
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    loadNotes();
+  }, [client]);
 
-  if (error) {
-    return (
-      <div className="note-list-page" data-testid="note-list-page">
-        <header className="page-header">
-          <h1>Notes</h1>
-        </header>
-        <div className="error" data-testid="error-state">
-          Error: {error.message}
-        </div>
-      </div>
-    );
-  }
+  // Focus input on mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleCreateNote = async () => {
+    if (!inputValue.trim()) return;
+
+    try {
+      const title = inputValue.trim().split('\n')[0].slice(0, 50) || 'Untitled';
+      const note = await client.api.notes.create.mutate({
+        title,
+        type: 'note',
+      });
+      setInputValue('');
+      navigate(`/note/${note.id}`);
+    } catch (err) {
+      console.error('Failed to create note:', err);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Cmd/Ctrl + Enter to create note
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleCreateNote();
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await client.api.notes.delete.mutate(noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+    }
+  };
 
   return (
-    <div className="note-list-page" data-testid="note-list-page">
-      <header className="page-header">
-        <h1>Notes</h1>
-        <button onClick={handleCreateNote} className="create-btn" data-testid="create-note-button">
-          + New Note
-        </button>
-      </header>
+    <div className="min-h-screen bg-[#1c1c1e] flex flex-col" data-testid="note-list-page">
+      {/* Hamburger Menu */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50 text-[#a1a1a6] hover:text-[#f5f5f7] hover:bg-[#2c2c2e]"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent
+          side="left"
+          className="w-[280px] sm:w-[320px] bg-[#1c1c1e] border-[#2c2c2e] p-0"
+        >
+          <SheetHeader className="p-4 border-b border-[#2c2c2e]">
+            <SheetTitle className="text-[#f5f5f7] text-sm font-medium">Notes</SheetTitle>
+          </SheetHeader>
 
-      {notes.length === 0 ? (
-        <div className="empty-state" data-testid="empty-state">
-          <p>No notes yet</p>
-          <button onClick={handleCreateNote} data-testid="create-first-note-button">
-            Create your first note
-          </button>
+          <div className="flex-1 overflow-y-auto">
+            {/* New Note Button */}
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                inputRef.current?.focus();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-[#34c759] hover:bg-[#2c2c2e] transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-sm">New Note</span>
+            </button>
+
+            {/* Notes List */}
+            <div className="py-2">
+              {loading ? (
+                <p className="px-4 py-3 text-[#6e6e73] text-sm">Loading...</p>
+              ) : notes.length === 0 ? (
+                <p className="px-4 py-3 text-[#6e6e73] text-sm">No notes yet</p>
+              ) : (
+                notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="group flex items-center hover:bg-[#2c2c2e] transition-colors"
+                  >
+                    <Link
+                      to={`/note/${note.id}`}
+                      onClick={() => setSheetOpen(false)}
+                      className="flex-1 flex items-center gap-3 px-4 py-3"
+                    >
+                      <FileText className="h-4 w-4 text-[#6e6e73] flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[#f5f5f7] text-sm truncate">{note.title}</p>
+                        <p className="text-[#6e6e73] text-xs">{formatDate(note.updatedAt)}</p>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={(e) => handleDeleteNote(note.id, e)}
+                      className="opacity-0 group-hover:opacity-100 p-2 mr-2 text-[#6e6e73] hover:text-red-500 transition-all"
+                      aria-label="Delete note"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content - Minimal Writing Area */}
+      <main className="flex-1 flex items-start justify-center pt-20 pb-8 px-4 md:px-8">
+        <div className="w-full max-w-[812px]">
+          <textarea
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Start typing..."
+            className={cn(
+              'w-full min-h-[calc(100vh-120px)] bg-transparent border-none outline-none resize-none',
+              'text-[#f5f5f7] text-lg leading-relaxed',
+              'placeholder:text-[#6e6e73]',
+              'caret-[#34c759]'
+            )}
+            data-testid="create-note-input"
+          />
         </div>
-      ) : (
-        <ul className="note-list" data-testid="note-list">
-          {notes.map((note) => (
-            <li key={note.id}>
-              <Link to={`/note/${note.id}`} className="note-item" data-testid="note-item">
-                <span className="note-title">{note.title}</span>
-                <span className="note-meta">
-                  {note.type} • {formatDate(note.updatedAt)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+      </main>
+
+      {/* Subtle hint at bottom */}
+      {inputValue.trim() && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[#6e6e73] text-xs">
+          <kbd className="px-1.5 py-0.5 bg-[#2c2c2e] rounded text-[10px]">⌘</kbd>
+          <span className="mx-1">+</span>
+          <kbd className="px-1.5 py-0.5 bg-[#2c2c2e] rounded text-[10px]">Enter</kbd>
+          <span className="ml-2">to save</span>
+        </div>
       )}
     </div>
   );
 };
 
 /**
- * Home page component that displays the list of notes.
- * Handles connection state and renders content when connected.
+ * Notes page component - minimal interface.
  */
 export const NoteListPage: FC = () => {
   const { status, error, isConnected } = useScribe();
 
-  // Show connecting state
   if (status === 'connecting') {
     return (
-      <div className="note-list-page" data-testid="note-list-page">
-        <header className="page-header">
-          <h1>Notes</h1>
-        </header>
-        <div className="loading" data-testid="connecting-state">
-          Connecting to daemon...
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex items-center justify-center"
+        data-testid="note-list-page"
+      >
+        <div className="text-[#6e6e73] text-sm" data-testid="connecting-state">
+          Connecting...
         </div>
       </div>
     );
   }
 
-  // Show error state
   if (error || status === 'error') {
     return (
-      <div className="note-list-page" data-testid="note-list-page">
-        <header className="page-header">
-          <h1>Notes</h1>
-        </header>
-        <div className="error" data-testid="connection-error-state">
-          Connection error: {error?.message ?? 'Unknown error'}
-          <button onClick={() => window.location.reload()} className="retry-btn">
-            Retry
-          </button>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-list-page"
+      >
+        <p className="text-red-400 text-sm" data-testid="connection-error-state">
+          {error?.message ?? 'Connection error'}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-[#f5f5f7] border-[#3a3a3c]"
+        >
+          Retry
+        </Button>
       </div>
     );
   }
 
-  // Show disconnected state
   if (!isConnected) {
     return (
-      <div className="note-list-page" data-testid="note-list-page">
-        <header className="page-header">
-          <h1>Notes</h1>
-        </header>
-        <div className="error" data-testid="disconnected-state">
-          Disconnected from daemon
-          <button onClick={() => window.location.reload()} className="retry-btn">
-            Reconnect
-          </button>
-        </div>
+      <div
+        className="min-h-screen bg-[#1c1c1e] flex flex-col items-center justify-center gap-4"
+        data-testid="note-list-page"
+      >
+        <p className="text-[#6e6e73] text-sm" data-testid="disconnected-state">
+          Disconnected
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+          className="text-[#f5f5f7] border-[#3a3a3c]"
+        >
+          Reconnect
+        </Button>
       </div>
     );
   }
 
-  // Render note list when connected
   return <NoteListContent />;
 };

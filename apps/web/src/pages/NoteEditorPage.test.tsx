@@ -1,5 +1,5 @@
 /**
- * Tests for NoteEditorPage
+ * Tests for NoteEditorPage - Minimal UI
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
@@ -67,8 +67,18 @@ const mockNote = {
   wordCount: 0,
 };
 
+const mockNotes = [
+  {
+    id: 'test-note-123',
+    title: 'Test Note Title',
+    type: 'note',
+    updatedAt: new Date().toISOString(),
+  },
+  { id: 'note-2', title: 'Another Note', type: 'note', updatedAt: new Date().toISOString() },
+];
+
 // Create mock client factory
-function createMockClient(note = mockNote) {
+function createMockClient(note = mockNote, notes = mockNotes) {
   const client = {
     on: vi.fn(),
     off: vi.fn(),
@@ -90,6 +100,14 @@ function createMockClient(note = mockNote) {
       notes: {
         get: {
           query: vi.fn().mockResolvedValue(note),
+        },
+        list: {
+          query: vi.fn().mockResolvedValue(notes),
+        },
+        create: {
+          mutate: vi
+            .fn()
+            .mockResolvedValue({ id: 'new-note-123', title: 'Untitled', type: 'note' }),
         },
         update: {
           mutate: vi.fn().mockResolvedValue({ ...note }),
@@ -125,8 +143,8 @@ import { ScribeClient } from '@scribe/client-sdk';
 import { NoteEditorPage } from './NoteEditorPage';
 
 // Helper to render with providers
-function renderNoteEditorPage(noteId = 'test-note-123', note = mockNote) {
-  mockClientInstance = createMockClient(note);
+function renderNoteEditorPage(noteId = 'test-note-123', note = mockNote, notes = mockNotes) {
+  mockClientInstance = createMockClient(note, notes);
   (ScribeClient as Mock).mockImplementation(() => mockClientInstance);
 
   return render(
@@ -162,25 +180,27 @@ describe('NoteEditorPage', () => {
       });
     });
 
-    it('has back link to notes list', async () => {
+    it('has hamburger menu button', async () => {
       renderNoteEditorPage();
 
       await waitFor(() => {
-        const link = screen.getByTestId('back-link');
-        expect(link).toBeInTheDocument();
-        expect(link).toHaveAttribute('href', '/');
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
       });
     });
   });
 
   describe('Loading state', () => {
     it('shows loading state while fetching note', async () => {
-      // Create a custom client with delayed response
       const customClient = createMockClient();
       customClient.api.notes.get.query = vi
         .fn()
         .mockImplementation(
           () => new Promise((resolve) => setTimeout(() => resolve(mockNote), 500))
+        );
+      customClient.api.notes.list.query = vi
+        .fn()
+        .mockImplementation(
+          () => new Promise((resolve) => setTimeout(() => resolve(mockNotes), 500))
         );
       (ScribeClient as Mock).mockImplementation(() => customClient);
 
@@ -194,10 +214,9 @@ describe('NoteEditorPage', () => {
         </MemoryRouter>
       );
 
-      // Should show loading state
       await waitFor(() => {
         expect(screen.getByTestId('loading-state')).toBeInTheDocument();
-        expect(screen.getByText('Loading note...')).toBeInTheDocument();
+        expect(screen.getByText('Loading...')).toBeInTheDocument();
       });
     });
 
@@ -254,7 +273,6 @@ describe('NoteEditorPage', () => {
     });
 
     it('has back link in error state', async () => {
-      // Create a custom note that will return null
       const customMockClient = createMockClient();
       customMockClient.api.notes.get.query = vi.fn().mockResolvedValue(null);
       (ScribeClient as Mock).mockImplementation(() => customMockClient);
@@ -270,23 +288,12 @@ describe('NoteEditorPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('back-link')).toBeInTheDocument();
         expect(screen.getByText('Back to notes')).toBeInTheDocument();
       });
     });
   });
 
   describe('Note display', () => {
-    it('loads and displays note title', async () => {
-      renderNoteEditorPage();
-
-      await waitFor(() => {
-        const titleInput = screen.getByTestId('note-title-input');
-        expect(titleInput).toBeInTheDocument();
-        expect(titleInput).toHaveValue('Test Note Title');
-      });
-    });
-
     it('displays editor component', async () => {
       renderNoteEditorPage();
 
@@ -303,39 +310,14 @@ describe('NoteEditorPage', () => {
         expect(editor).toHaveAttribute('data-initial-content');
       });
     });
-  });
 
-  describe('Title editing', () => {
-    it('allows editing the title', async () => {
+    it('editor wrapper has max-width of 812px', async () => {
       renderNoteEditorPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
-      });
-
-      const titleInput = screen.getByTestId('note-title-input');
-      fireEvent.change(titleInput, { target: { value: 'New Title' } });
-
-      await waitFor(() => {
-        expect(mockClientInstance.api.notes.update.mutate).toHaveBeenCalledWith({
-          id: 'test-note-123',
-          title: 'New Title',
-        });
-      });
-    });
-
-    it('updates local state after title change', async () => {
-      renderNoteEditorPage();
-
-      await waitFor(() => {
-        expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
-      });
-
-      const titleInput = screen.getByTestId('note-title-input');
-      fireEvent.change(titleInput, { target: { value: 'Updated Title' } });
-
-      await waitFor(() => {
-        expect(titleInput).toHaveValue('Updated Title');
+        const editor = screen.getByTestId('mock-editor');
+        const wrapper = editor.closest('.max-w-\\[812px\\]');
+        expect(wrapper).toBeInTheDocument();
       });
     });
   });
@@ -348,11 +330,9 @@ describe('NoteEditorPage', () => {
         expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
       });
 
-      // Trigger content change
       const changeButton = screen.getByTestId('mock-editor-change');
       fireEvent.click(changeButton);
 
-      // Advance timers to trigger debounced save
       await act(async () => {
         vi.advanceTimersByTime(1100);
       });
@@ -374,7 +354,6 @@ describe('NoteEditorPage', () => {
 
       const changeButton = screen.getByTestId('mock-editor-change');
 
-      // Trigger multiple rapid changes
       fireEvent.click(changeButton);
       await act(async () => {
         vi.advanceTimersByTime(500);
@@ -385,22 +364,18 @@ describe('NoteEditorPage', () => {
       });
       fireEvent.click(changeButton);
 
-      // Should not have saved yet
       expect(mockClientInstance.api.notes.update.mutate).not.toHaveBeenCalled();
 
-      // Advance past debounce delay
       await act(async () => {
         vi.advanceTimersByTime(1100);
       });
 
-      // Should have saved once
       await waitFor(() => {
         expect(mockClientInstance.api.notes.update.mutate).toHaveBeenCalledTimes(1);
       });
     });
 
     it('shows save status while saving', async () => {
-      // Create a controlled promise that we can resolve manually
       let resolveUpdate: () => void;
       const savePromise = new Promise<void>((resolve) => {
         resolveUpdate = resolve;
@@ -412,22 +387,17 @@ describe('NoteEditorPage', () => {
         expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
       });
 
-      // Override update.mutate after render to use our controlled promise
       mockClientInstance.api.notes.update.mutate = vi.fn().mockReturnValue(savePromise);
 
-      // Trigger change
       const changeButton = screen.getByTestId('mock-editor-change');
       fireEvent.click(changeButton);
 
-      // Advance past debounce
       await act(async () => {
         vi.advanceTimersByTime(1100);
       });
 
-      // Should show saving status while promise is pending
       expect(screen.getByTestId('save-status')).toHaveTextContent('Saving...');
 
-      // Now resolve the save
       await act(async () => {
         resolveUpdate!();
       });
@@ -440,112 +410,97 @@ describe('NoteEditorPage', () => {
         expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
       });
 
-      // Trigger change
       const changeButton = screen.getByTestId('mock-editor-change');
       fireEvent.click(changeButton);
 
-      // Advance past debounce
       await act(async () => {
         vi.advanceTimersByTime(1100);
       });
 
-      // Wait for save to complete
       await waitFor(() => {
         expect(screen.getByTestId('save-status')).toHaveTextContent(/Saved/);
       });
     });
   });
 
-  describe('Delete note', () => {
-    it('has delete button', async () => {
+  describe('Hamburger menu', () => {
+    it('opens sheet when menu button is clicked', async () => {
       renderNoteEditorPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('delete-btn')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Notes')).toBeInTheDocument();
+        expect(screen.getByText('New Note')).toBeInTheDocument();
       });
     });
 
-    it('shows confirmation dialog before deleting', async () => {
-      const confirmMock = vi.spyOn(window, 'confirm').mockReturnValue(false);
-
+    it('displays notes list in sidebar', async () => {
       renderNoteEditorPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('delete-btn')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('delete-btn'));
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }));
 
-      expect(confirmMock).toHaveBeenCalledWith('Delete this note?');
-      expect(mockClientInstance.api.notes.delete.mutate).not.toHaveBeenCalled();
-
-      confirmMock.mockRestore();
+      await waitFor(() => {
+        expect(screen.getByText('Test Note Title')).toBeInTheDocument();
+        expect(screen.getByText('Another Note')).toBeInTheDocument();
+      });
     });
 
-    it('deletes note and navigates home on confirm', async () => {
-      const confirmMock = vi.spyOn(window, 'confirm').mockReturnValue(true);
-
+    it('highlights current note in sidebar', async () => {
       renderNoteEditorPage();
 
       await waitFor(() => {
-        expect(screen.getByTestId('delete-btn')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('delete-btn'));
+      fireEvent.click(screen.getByRole('button', { name: /menu/i }));
 
       await waitFor(() => {
-        expect(mockClientInstance.api.notes.delete.mutate).toHaveBeenCalledWith('test-note-123');
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+        // The current note should be visible and have a highlighted style
+        expect(screen.getByText('Test Note Title')).toBeInTheDocument();
+        // Find the container with the highlight class (contains bg-[#2c2c2e])
+        const noteLinks = screen.getAllByRole('link');
+        const currentNoteLink = noteLinks.find((link) =>
+          link.textContent?.includes('Test Note Title')
+        );
+        expect(currentNoteLink).toBeInTheDocument();
       });
-
-      confirmMock.mockRestore();
-    });
-
-    it('shows alert on delete error', async () => {
-      const confirmMock = vi.spyOn(window, 'confirm').mockReturnValue(true);
-      const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
-      renderNoteEditorPage();
-
-      await waitFor(() => {
-        expect(screen.getByTestId('delete-btn')).toBeInTheDocument();
-      });
-
-      mockClientInstance.api.notes.delete.mutate = vi
-        .fn()
-        .mockRejectedValue(new Error('Delete failed'));
-
-      fireEvent.click(screen.getByTestId('delete-btn'));
-
-      await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith('Delete failed: Delete failed');
-      });
-
-      confirmMock.mockRestore();
-      alertMock.mockRestore();
     });
   });
 
   describe('Connection states', () => {
     it('shows connecting state while connecting', async () => {
-      // Create a client that stays connecting
       const connectingClient = {
         on: vi.fn(),
         off: vi.fn(),
-        connect: vi.fn().mockResolvedValue(undefined), // Does not trigger status change
+        connect: vi.fn().mockResolvedValue(undefined),
         disconnect: vi.fn(),
         status: 'disconnected' as const,
         isConnected: false,
-        api: { notes: { get: { query: vi.fn() } } },
+        api: {
+          notes: {
+            get: { query: vi.fn() },
+            list: { query: vi.fn() },
+            create: { mutate: vi.fn() },
+            update: { mutate: vi.fn() },
+            delete: { mutate: vi.fn() },
+          },
+        },
         collab: {},
       };
 
-      // Override to simulate connecting status
       (ScribeClient as Mock).mockImplementation(() => {
         const client = { ...connectingClient };
         client.on = vi.fn().mockImplementation((event, handler) => {
           if (event === 'status-change') {
-            // Only trigger connecting, not connected
             setTimeout(() => handler('connecting'), 0);
           }
         });
@@ -575,7 +530,15 @@ describe('NoteEditorPage', () => {
         disconnect: vi.fn(),
         status: 'disconnected' as const,
         isConnected: false,
-        api: { notes: { get: { query: vi.fn() } } },
+        api: {
+          notes: {
+            get: { query: vi.fn() },
+            list: { query: vi.fn() },
+            create: { mutate: vi.fn() },
+            update: { mutate: vi.fn() },
+            delete: { mutate: vi.fn() },
+          },
+        },
         collab: {},
       };
       (ScribeClient as Mock).mockImplementation(() => disconnectedClient);
@@ -607,22 +570,12 @@ describe('NoteEditorPage', () => {
   });
 
   describe('Accessibility', () => {
-    it('title input has aria-label', async () => {
+    it('menu button has aria-label', async () => {
       renderNoteEditorPage();
 
       await waitFor(() => {
-        const titleInput = screen.getByTestId('note-title-input');
-        expect(titleInput).toHaveAttribute('aria-label', 'Note title');
-      });
-    });
-
-    it('back link is accessible', async () => {
-      renderNoteEditorPage();
-
-      await waitFor(() => {
-        const backLink = screen.getByTestId('back-link');
-        expect(backLink).toBeVisible();
-        expect(backLink).toHaveAttribute('href', '/');
+        const menuButton = screen.getByRole('button', { name: /menu/i });
+        expect(menuButton).toHaveAttribute('aria-label', 'Menu');
       });
     });
   });

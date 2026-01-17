@@ -1,9 +1,9 @@
 /**
- * Tests for App component and routing
+ * Tests for App component and routing - Minimal UI
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { NoteListPage } from './pages/NoteListPage';
@@ -53,7 +53,6 @@ function createMockClient() {
     on: vi.fn(),
     off: vi.fn(),
     connect: vi.fn().mockImplementation(async () => {
-      // Simulate status change to connected after connect is called
       setTimeout(() => {
         const statusChangeCall = client.on.mock.calls.find(
           (call: unknown[]) => call[0] === 'status-change'
@@ -154,7 +153,8 @@ describe('App Routing', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Notes');
+      // Minimal UI shows a textarea for creating notes
+      expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
     });
   });
 
@@ -163,68 +163,75 @@ describe('App Routing', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
     });
   });
 
-  it('navigates from NoteListPage to NoteEditorPage via note list', async () => {
+  it('navigates from NoteListPage to NoteEditorPage via hamburger menu', async () => {
     const user = userEvent.setup();
     renderWithRouter('/');
 
-    // Wait for the note list to appear
+    // Wait for the page to load and menu button to appear
     await waitFor(() => {
-      expect(screen.getByTestId('note-list')).toBeInTheDocument();
+      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
     });
 
-    // Click on an existing note
-    await user.click(screen.getByTestId('note-item'));
+    // Open hamburger menu
+    await user.click(screen.getByRole('button', { name: /menu/i }));
+
+    // Wait for notes list in sidebar
+    await waitFor(() => {
+      expect(screen.getByText('Existing Note')).toBeInTheDocument();
+    });
+
+    // Click on a note
+    await user.click(screen.getByText('Existing Note'));
 
     // Should navigate to NoteEditorPage
     await waitFor(() => {
       expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
     });
   });
 
-  it('creates new note and navigates to editor', async () => {
-    const user = userEvent.setup();
+  it('creates new note via Cmd+Enter and navigates to editor', async () => {
     renderWithRouter('/');
 
     // Wait for the page to load
     await waitFor(() => {
-      expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
+      expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
     });
 
-    // Click create note button
-    await user.click(screen.getByTestId('create-note-button'));
+    // Type in textarea and press Cmd+Enter
+    const textarea = screen.getByTestId('create-note-input');
+    fireEvent.change(textarea, { target: { value: 'My New Note' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', metaKey: true });
 
     // Should create note and navigate to NoteEditorPage
     await waitFor(() => {
       expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
-        title: 'Untitled',
+        title: 'My New Note',
         type: 'note',
       });
-      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
     });
   });
 
-  it('navigates from NoteEditorPage back to NoteListPage', async () => {
+  it('navigates from NoteEditorPage to NoteListPage via hamburger menu home', async () => {
     const user = userEvent.setup();
     renderWithRouter('/note/test-123');
 
     // Wait for editor page to load
     await waitFor(() => {
       expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('note-title-input')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
     });
 
-    // Click back link
-    await user.click(screen.getByTestId('back-link'));
+    // Open hamburger menu and click New Note to focus on creating
+    await user.click(screen.getByRole('button', { name: /menu/i }));
 
-    // Should navigate back to NoteListPage
     await waitFor(() => {
-      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+      expect(screen.getByText('Notes')).toBeInTheDocument();
     });
   });
 });

@@ -1,169 +1,124 @@
 /**
- * NoteEditorPage styles
+ * NoteEditorPage styles - Minimal editor overrides
  */
 
-.note-editor-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+/* Editor wrapper styling */
+.editor-wrapper {
+  min-height: calc(100vh - 120px);
 }
 
-/* Editor header */
-.editor-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e0e0e0;
-  gap: 16px;
-  flex-shrink: 0;
+/* Hide the toolbar for minimal design */
+.editor-wrapper .scribe-editor-toolbar {
+  display: none;
 }
 
-.back-link {
-  color: #0066cc;
-  text-decoration: none;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: color 0.2s;
-}
-
-.back-link:hover {
-  color: #0052a3;
-}
-
-.back-link:focus {
-  outline: 2px solid #0066cc;
-  outline-offset: 2px;
-}
-
-/* Note title input */
-.note-title-input {
-  flex: 1;
-  font-size: 1.25rem;
-  font-weight: 500;
-  border: none;
-  outline: none;
-  padding: 8px;
-  min-width: 0;
+/* Override editor styles for dark theme */
+.editor-wrapper .scribe-editor {
+  color: #f5f5f7;
   background: transparent;
 }
 
-.note-title-input::placeholder {
-  color: #999;
-}
-
-.note-title-input:focus {
-  background: #f5f5f5;
-  border-radius: 4px;
-}
-
-/* Editor actions */
-.editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.save-status {
-  color: #666;
-  font-size: 0.875rem;
-  white-space: nowrap;
-}
-
-.delete-btn {
-  padding: 6px 12px;
+.editor-wrapper .scribe-editor-content {
   background: transparent;
-  border: 1px solid #cc0000;
-  color: #cc0000;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s;
 }
 
-.delete-btn:hover {
-  background: #fff0f0;
-  border-color: #990000;
-}
-
-.delete-btn:focus {
-  outline: 2px solid #cc0000;
-  outline-offset: 2px;
-}
-
-/* Editor main area */
-.editor-main {
-  flex: 1;
-  overflow: auto;
+.editor-wrapper .scribe-editor-input {
   padding: 0;
+  color: #f5f5f7;
+  caret-color: #34c759;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  outline: none;
 }
 
-/* Loading state */
-.loading {
-  text-align: center;
-  padding: 48px 24px;
-  color: #666;
-  font-size: 1rem;
+.editor-wrapper .scribe-editor-placeholder {
+  color: #6e6e73;
+  top: 0;
+  left: 0;
 }
 
-/* Error state */
-.error {
-  text-align: center;
-  padding: 24px;
-  margin: 24px;
-  background-color: #ffebee;
-  border-radius: 8px;
-  color: #c62828;
+/* Paragraph styling */
+.editor-wrapper .scribe-p {
+  color: #a1a1a6;
+  margin: 0 0 1em 0;
+  line-height: 1.75;
 }
 
-.error p {
-  margin: 0 0 16px;
+/* Heading styles */
+.editor-wrapper .scribe-h1 {
+  color: #f5f5f7;
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 0.75em 0;
 }
 
-.back-btn {
-  display: inline-block;
-  padding: 8px 16px;
-  background: #c62828;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
+.editor-wrapper .scribe-h2 {
+  color: #f5f5f7;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5em 0 0.5em 0;
+}
+
+.editor-wrapper .scribe-h3 {
+  color: #f5f5f7;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.25em 0 0.5em 0;
+}
+
+/* Link color */
+.editor-wrapper .scribe-link {
+  color: #34c759;
   text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.2s;
 }
 
-.back-btn:hover {
-  background: #b71c1c;
+.editor-wrapper .scribe-link:hover {
+  text-decoration: underline;
 }
 
-.back-btn:focus {
-  outline: 2px solid #c62828;
-  outline-offset: 2px;
-}
-
-.retry-btn {
-  margin-top: 12px;
-  padding: 8px 16px;
-  background: #c62828;
-  color: white;
-  border: none;
+/* Code styles for dark theme */
+.editor-wrapper .scribe-code-inline {
+  background-color: #2c2c2e;
+  color: #f5f5f7;
+  padding: 0.125em 0.375em;
   border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 0.875em;
 }
 
-.retry-btn:hover {
-  background: #b71c1c;
+.editor-wrapper .scribe-code-block {
+  background-color: #2c2c2e;
+  color: #f5f5f7;
+  border: 1px solid #3a3a3c;
+  border-radius: 8px;
+  padding: 1em;
+  font-size: 0.875rem;
+  overflow-x: auto;
 }
 
-.retry-btn:focus {
-  outline: 2px solid #c62828;
-  outline-offset: 2px;
+/* Blockquote for dark theme */
+.editor-wrapper .scribe-quote {
+  border-left: 3px solid #34c759;
+  background-color: #2c2c2e;
+  color: #a1a1a6;
+  padding: 0.75em 1em;
+  margin: 1em 0;
+  border-radius: 0 8px 8px 0;
+}
+
+/* List styles */
+.editor-wrapper .scribe-list-ol,
+.editor-wrapper .scribe-list-ul {
+  color: #a1a1a6;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.editor-wrapper .scribe-list-ol li,
+.editor-wrapper .scribe-list-ul li {
+  margin: 0.25em 0;
+}
+
+/* Selection */
+.editor-wrapper ::selection {
+  background: rgba(52, 199, 89, 0.3);
 }
