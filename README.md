@@ -1,44 +1,89 @@
 # Scribe
 
-Personal note-taking system with markdown parsing, graph visualization, intelligent search, and a modular plugin architecture.
+Personal note-taking system with wiki-links, backlinks, full-text search, and a modular plugin architecture.
 
 ## Architecture
 
-This is a Turborepo monorepo with the following structure:
+Scribe follows a **daemon-centric architecture** where both web and Electron apps are thin shells around a shared daemon core.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                            CLIENTS                               │
+│   ┌──────────┐  ┌───────────┐                                   │
+│   │ Web App  │  │  Desktop  │  (both use @scribe/app-shell)     │
+│   └────┬─────┘  └─────┬─────┘                                   │
+│        └──────┬───────┘                                         │
+│               │                                                 │
+│   ┌───────────┴───────────┐                                     │
+│   │   @scribe/app-shell   │  Shared React providers & pages     │
+│   └───────────┬───────────┘                                     │
+│               │                                                 │
+│   ┌───────────┴───────────┐                                     │
+│   │  @scribe/client-sdk   │  tRPC client                        │
+│   └───────────┬───────────┘                                     │
+└───────────────│─────────────────────────────────────────────────┘
+                │ tRPC + WebSocket
+┌───────────────│─────────────────────────────────────────────────┐
+│               │            DAEMON (@scribe/scribed)             │
+│   ┌───────────┴───────────┐                                     │
+│   │   @scribe/server-core │  Business logic + tRPC routers      │
+│   └───────────┬───────────┘                                     │
+│   ┌───────────┴───────────┐                                     │
+│   │   @scribe/server-db   │  SQLite + FTS5                      │
+│   └───────────────────────┘                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+For detailed architecture documentation, see [docs/architecture.md](docs/architecture.md).
+
+## Quick Start
+
+### Prerequisites
+
+- [Bun](https://bun.sh) >= 1.0.0
+- Node.js >= 18.0.0 (for Electron)
+
+### Installation
+
+```bash
+# Install dependencies
+bun install
+
+# Build all packages
+bun run build
+```
+
+### Running
+
+```bash
+# Start web app + daemon
+bun run dev:server
+
+# Or start Electron app (embeds daemon)
+bun run --cwd apps/desktop dev
+```
+
+For detailed setup instructions, see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
+
+## Packages
 
 ### Applications
 
 | Package | Description |
 |---------|-------------|
-| `apps/web` | React web application |
-| `packages/scribed` | Background daemon for note processing and sync |
+| `apps/web` | React web application (thin shell) |
+| `apps/desktop` | Electron app (embeds daemon) |
 
 ### Core Packages
 
 | Package | Description |
 |---------|-------------|
-| `@scribe/shared` | Shared types, utilities, and constants |
-| `@scribe/engine-core` | Metadata extraction, task management, note processing |
-| `@scribe/engine-graph` | Graph database and relationship queries |
-| `@scribe/engine-search` | Full-text search indexing and queries |
-| `@scribe/engine-sync` | Sync engine for offline-first architecture |
-| `@scribe/storage-fs` | File system storage adapter |
-
-### Client Packages
-
-| Package | Description |
-|---------|-------------|
-| `@scribe/client-sdk` | Client SDK for web applications |
+| `@scribe/scribed` | Background daemon with tRPC API |
+| `@scribe/app-shell` | Shared React providers and pages |
+| `@scribe/client-sdk` | Type-safe tRPC client |
+| `@scribe/server-core` | Server business logic |
+| `@scribe/server-db` | SQLite database layer |
 | `@scribe/editor` | Lexical-based rich text editor |
-| `@scribe/design-system` | UI components and design tokens |
-| `@scribe/collab` | Real-time collaboration support |
-
-### Server Packages
-
-| Package | Description |
-|---------|-------------|
-| `@scribe/server-core` | Server-side business logic |
-| `@scribe/server-db` | Database access layer (SQLite) |
 
 ### Plugin System
 
@@ -54,30 +99,20 @@ The plugin system enables modular extensions that can:
 - Add sidebar panels to the UI
 - Add slash commands to the editor
 
-See [plugin-core](packages/plugin-core/README.md) for the framework documentation and [plugin-todo](packages/plugin-todo/README.md) for a reference implementation.
+See [plugin-core](packages/plugin-core/README.md) for the framework documentation.
 
-### Configuration
+### Supporting Packages
 
 | Package | Description |
 |---------|-------------|
-| `config/` | Shared TypeScript, ESLint, and Prettier configs |
+| `@scribe/shared` | Shared types, utilities, and constants |
+| `@scribe/design-system` | UI components and design tokens |
+| `@scribe/collab` | Real-time collaboration support |
+| `@scribe/storage-fs` | File system storage adapter |
 
 ## Development
 
-### Prerequisites
-
-- [Bun](https://bun.sh) >= 1.0.0
-- Node.js >= 18.0.0
-
-### Quick Start
-
 ```bash
-# Install dependencies
-bun install
-
-# Build all packages
-bun run build
-
 # Run tests
 bun run test
 
@@ -86,58 +121,30 @@ bun run lint
 
 # Type check
 bun run typecheck
+
+# Format code
+bun run format
 ```
 
-### Development Workflow
-
-```bash
-# Start the web app in development mode
-bun run dev
-
-# Start the daemon
-bun run daemon
-
-# Run tests in watch mode
-bun run test:watch
-```
-
-For detailed development workflows, see [DEVELOPMENT.md](DEVELOPMENT.md).
+For detailed development workflows, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Tech Stack
 
 - **Language**: TypeScript
 - **Package Manager**: Bun
 - **Monorepo**: Turborepo
-- **Runtime**: Bun (server), Browser (client)
+- **Runtime**: Bun (server), Browser (client), Electron (desktop)
 - **Database**: SQLite (via better-sqlite3)
 - **API**: tRPC
 - **Editor**: Lexical
-- **UI**: React with vanilla-extract
+- **UI**: React with Tailwind CSS
 
-## Project Structure
+## Documentation
 
-```
-scribe/
-├── apps/
-│   └── web/                 # React web application
-├── packages/
-│   ├── shared/              # Shared types and utilities
-│   ├── engine-core/         # Note processing engine
-│   ├── engine-graph/        # Graph database
-│   ├── engine-search/       # Search indexing
-│   ├── engine-sync/         # Sync engine
-│   ├── storage-fs/          # File system adapter
-│   ├── client-sdk/          # Client SDK
-│   ├── editor/              # Rich text editor
-│   ├── design-system/       # UI components
-│   ├── collab/              # Collaboration
-│   ├── server-core/         # Server logic
-│   ├── server-db/           # Database layer
-│   ├── scribed/             # Background daemon
-│   ├── plugin-core/         # Plugin framework
-│   └── plugin-todo/         # Todo plugin
-└── config/                  # Shared configs
-```
+- [Architecture Overview](docs/architecture.md) - System design and data flow
+- [Getting Started](docs/GETTING_STARTED.md) - Setup and running the app
+- [Development Guide](docs/DEVELOPMENT.md) - Development workflows
+- [Removed Features](docs/REMOVED_FEATURES.md) - Features removed in refactoring
 
 ## License
 

@@ -1,15 +1,54 @@
-# Scribe Client-Server Architecture
+# Scribe Architecture
 
 ## Overview
 
-Scribe uses a client-server architecture where a background daemon (`scribed`) manages the vault and serves multiple clients via tRPC + WebSocket. This architecture enables:
+Scribe follows a **daemon-centric architecture** where both web and Electron apps are thin shells around a shared daemon core. This design enables:
 
+- **Code reuse** - Single daemon implementation serves all clients
+- **Thin clients** - Apps focus only on UI and platform-specific features
 - **Multi-client support** - Web, desktop, and future mobile clients
 - **Real-time collaboration** - Yjs CRDT-based sync
 - **Centralized storage** - Single source of truth in JSON files
 - **Type-safe API** - Full TypeScript inference via tRPC
 
-## Architecture Diagram
+## Components
+
+### Daemon (`@scribe/scribed`)
+The core of Scribe. Handles all business logic:
+- Note storage and retrieval
+- Full-text search (FTS5)
+- Graph operations (backlinks, tags, links)
+- Export functionality
+- Plugin system
+- tRPC API over HTTP
+- Yjs WebSocket for real-time collaboration
+
+### Client SDK (`@scribe/client-sdk`)
+Framework-agnostic TypeScript client library:
+- Type-safe tRPC client
+- Shared types for all clients
+- Connection management
+
+### App Shell (`@scribe/app-shell`)
+Shared React components and providers:
+- `ScribeProvider` - tRPC and query client setup
+- `PlatformProvider` - Platform abstraction layer
+- `NoteListPage` - Note listing
+- `NoteEditorPage` - Note editing
+
+### Web App (`apps/web`)
+Thin shell using app-shell:
+- Connects to daemon via HTTP
+- BrowserRouter for navigation
+- Plugin UI integration
+
+### Electron App (`apps/desktop`)
+Embeds daemon in main process:
+- Uses app-shell in renderer
+- HashRouter for file:// protocol
+- Provides native features (dialogs, updates, deep links)
+
+## Data Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -22,9 +61,14 @@ Scribe uses a client-server architecture where a background daemon (`scribed`) m
 │        └──────────────┼──────────────┘                                  │
 │                       │                                                 │
 │              ┌────────┴────────┐                                        │
+│              │   App Shell     │  @scribe/app-shell                     │
+│              │  (Shared React  │  Providers + Pages                     │
+│              │   Components)   │                                        │
+│              └────────┬────────┘                                        │
+│                       │                                                 │
+│              ┌────────┴────────┐                                        │
 │              │   Client SDK    │  @scribe/client-sdk                    │
-│              │  (Framework-    │                                        │
-│              │   agnostic)     │                                        │
+│              │  (tRPC Client)  │                                        │
 │              └────────┬────────┘                                        │
 └───────────────────────│─────────────────────────────────────────────────┘
                         │
@@ -58,8 +102,8 @@ Scribe uses a client-server architecture where a background daemon (`scribed`) m
 │              │  │ Service   │  │                                        │
 │              │  └───────────┘  │                                        │
 │              │  ┌───────────┐  │                                        │
-│              │  │  Collab   │  │  Yjs document management               │
-│              │  │ Service   │  │                                        │
+│              │  │  Plugin   │  │  Plugin router + storage               │
+│              │  │  System   │  │                                        │
 │              │  └───────────┘  │                                        │
 │              └────────┬────────┘                                        │
 │                       │                                                 │
@@ -71,6 +115,7 @@ Scribe uses a client-server architecture where a background daemon (`scribed`) m
 │              │  - FTS5 index   │                                        │
 │              │  - Graph edges  │                                        │
 │              │  - Yjs state    │                                        │
+│              │  - Plugin data  │                                        │
 │              └────────┬────────┘                                        │
 └───────────────────────│─────────────────────────────────────────────────┘
                         │
@@ -94,22 +139,29 @@ Scribe uses a client-server architecture where a background daemon (`scribed`) m
 
 | Package | Purpose | Key Dependencies |
 |---------|---------|------------------|
-| **@scribe/scribed** | Background daemon server with CLI | tRPC server, ws, commander |
-| **@scribe/server-core** | Business logic services (Document, Graph, Search, Collab) | tRPC server, Zod, Yjs |
+| **@scribe/scribed** | Background daemon server with CLI and plugin system | tRPC server, ws, commander |
+| **@scribe/server-core** | Business logic services (Document, Graph, Search) | tRPC server, Zod |
 | **@scribe/server-db** | SQLite database layer with FTS5 search | better-sqlite3 |
+| **@scribe/plugin-core** | Plugin framework: types, registry, storage, events | - |
+| **@scribe/plugin-todo** | Reference plugin: task management for notes | - |
 
 ### Client Packages
 
 | Package | Purpose | Key Dependencies |
 |---------|---------|------------------|
-| **@scribe/client-sdk** | Framework-agnostic TypeScript client library | tRPC client, ws, Yjs |
+| **@scribe/app-shell** | Shared React providers and pages | React, @tanstack/react-query, tRPC |
+| **@scribe/client-sdk** | Framework-agnostic TypeScript client library | tRPC client |
 | **@scribe/collab** | Yjs-Lexical binding for collaborative editing | Yjs, y-websocket, Lexical |
 | **@scribe/editor** | Shared Lexical editor components | Lexical, @lexical/* plugins |
-| **@scribe/web** | Web client MVP (React + Vite) | React, react-router-dom, Vite |
 
-## Data Flow
+### Applications
 
-### Note Creation
+| App | Purpose | Key Features |
+|-----|---------|--------------|
+| **apps/web** | Web application | Thin shell, connects to standalone daemon |
+| **apps/desktop** | Electron application | Embeds daemon in main process, native features |
+
+## Note Creation Flow
 
 ```
 1. Client calls api.notes.create({ title, type })
