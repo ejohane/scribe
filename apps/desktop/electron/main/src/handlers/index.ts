@@ -9,12 +9,16 @@
  * | Module | Channels | Description |
  * |--------|----------|-------------|
  * | {@link setupAppHandlers} | `ping`, `app:*`, `shell:*` | App configuration, devtools, shell operations |
- * | {@link setupNotesHandlers} | `notes:*` | Notes CRUD, title search, date-based queries |
- * | {@link setupSearchHandlers} | `search:*` | Full-text search across notes |
- * | {@link setupGraphHandlers} | `graph:*` | Graph traversal, backlinks, tag queries |
- * | {@link setupExportHandlers} | `export:*` | Export notes to external formats |
  * | {@link setupAssetHandlers} | `assets:*` | Binary asset management (images) |
  * | {@link setupWindowHandlers} | `window:*` | Multi-window management |
+ *
+ * ## Daemon-Provided Functionality
+ *
+ * The following functionality is now provided by the daemon via tRPC:
+ * - Notes CRUD: `notes.router.ts` (was notesHandlers.ts)
+ * - Search: `search.router.ts` (was searchHandlers.ts)
+ * - Graph: `graph.router.ts` (was graphHandlers.ts)
+ * - Export: `export.router.ts` (was exportHandlers.ts)
  *
  * ## IPC Channel Naming Convention
  *
@@ -24,17 +28,12 @@
  *
  * ## Error Handling
  *
- * All handlers may throw if dependencies are not initialized (vault, graph, search, etc.).
- * Some handlers wrap errors using {@link ScribeError} for user-friendly messages.
+ * All handlers may throw if dependencies are not initialized.
  *
  * @module handlers
  */
 
-export { setupNotesHandlers } from './notesHandlers';
-export { setupSearchHandlers } from './searchHandlers';
-export { setupGraphHandlers } from './graphHandlers';
 export { setupAppHandlers } from './appHandlers';
-export { setupExportHandlers } from './exportHandlers';
 export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';
 export {
@@ -46,6 +45,5 @@ export {
 export { setupAssetHandlers, registerAssetProtocol } from './assetHandlers';
 export { setupWindowHandlers } from './windowHandlers';
 
-export type { HandlerDependencies, AppConfig, Engines } from './types';
-export { withEngines } from './types';
+export type { HandlerDependencies, AppConfig } from './types';
 export { loadConfig, saveConfig, getVaultPath, DEFAULT_VAULT_PATH } from './config';

@@ -2,16 +2,10 @@ import { app } from 'electron';
 import path from 'path';
 import { createVaultPath, IPC_CHANNELS } from '@scribe/shared';
 import { WindowManager } from './window-manager';
-import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
-import { GraphEngine } from '@scribe/engine-graph';
-import { SearchEngine } from '@scribe/engine-search';
+import { initializeVault } from '@scribe/storage-fs';
 import { setupAutoUpdater, setupDevUpdateHandlers } from './auto-updater';
 import {
-  setupNotesHandlers,
-  setupSearchHandlers,
-  setupGraphHandlers,
   setupAppHandlers,
-  setupExportHandlers,
   setupDialogHandlers,
   setupVaultHandlers,
   setupAssetHandlers,
@@ -216,18 +210,21 @@ function processPendingDeepLink(): void {
 }
 
 // Shared dependencies for all IPC handlers
+// Note: vault, graphEngine, and searchEngine have been removed as their
+// functionality is now provided by the daemon via tRPC.
 const deps: HandlerDependencies = {
   windowManager: null,
-  vault: null,
-  graphEngine: null,
-  searchEngine: null,
 };
 
 /**
- * Initialize the vault and load notes
+ * Initialize the vault directory structure.
+ *
+ * Note: This is a thin initialization that only ensures the vault directory exists.
+ * All note loading, graph building, and search indexing is now handled by the daemon.
+ *
  * @returns The initialized vault path (VaultPath branded type)
  */
-async function initializeEngine(): Promise<import('@scribe/shared').VaultPath> {
+async function initializeVaultDirectory(): Promise<import('@scribe/shared').VaultPath> {
   try {
     // Load configured vault path (or default)
     const configuredPath = await getVaultPath();
@@ -237,54 +234,22 @@ async function initializeEngine(): Promise<import('@scribe/shared').VaultPath> {
     const vaultPath = await initializeVault(createVaultPath(configuredPath));
     mainLogger.info(`Vault initialized at: ${vaultPath}`);
 
-    // Create vault instance and load notes
-    deps.vault = new FileSystemVault(vaultPath);
-    const noteCount = await deps.vault.load();
-    mainLogger.info(`Loaded ${noteCount} notes from vault`);
-
-    // Check for quarantined files and log warning
-    const quarantinedFiles = deps.vault.getQuarantineManager().listQuarantined();
-    if (quarantinedFiles.length > 0) {
-      mainLogger.warn(
-        `${quarantinedFiles.length} corrupt note(s) were quarantined: ${quarantinedFiles.join(', ')}`
-      );
-    }
-
-    // Initialize graph engine
-    deps.graphEngine = new GraphEngine();
-
-    // Initialize search engine
-    deps.searchEngine = new SearchEngine();
-
-    // Build initial graph and search index from loaded notes
-    const notes = deps.vault.list();
-    for (const note of notes) {
-      deps.graphEngine.addNote(note);
-      deps.searchEngine.indexNote(note);
-    }
-    mainLogger.info(`Graph initialized with ${notes.length} notes`);
-    mainLogger.info(`Search index initialized with ${deps.searchEngine.size()} notes`);
-
-    const stats = deps.graphEngine.getStats();
-    mainLogger.debug(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
-
     return vaultPath;
   } catch (error) {
-    mainLogger.error('Failed to initialize engine', { error });
+    mainLogger.error('Failed to initialize vault directory', { error });
     throw error;
   }
 }
 
 /**
  * Setup all IPC handlers by delegating to domain-specific handler modules.
+ *
+ * Note: Notes, search, graph, and export functionality is now provided by
+ * the daemon via tRPC. Only electron-specific handlers remain here.
  */
 function setupIPCHandlers() {
   // Register all handler modules
   setupAppHandlers(deps);
-  setupNotesHandlers(deps);
-  setupSearchHandlers(deps);
-  setupGraphHandlers(deps);
-  setupExportHandlers(deps);
   setupDialogHandlers();
   setupVaultHandlers(deps);
   setupWindowHandlers(deps);
@@ -313,8 +278,8 @@ app.whenReady().then(async () => {
   // Register as default protocol handler for scribe:// URLs
   registerProtocolHandler();
 
-  // Initialize engine before setting up IPC handlers
-  const vaultPath = await initializeEngine();
+  // Initialize vault directory structure before setting up IPC handlers
+  const vaultPath = await initializeVaultDirectory();
 
   // Register custom protocol for serving asset files securely
   registerAssetProtocol(vaultPath);
