@@ -19,6 +19,12 @@ import {
 } from './handlers';
 import { mainLogger } from './logger';
 import { setupApplicationMenu } from './menu';
+import {
+  startEmbeddedDaemon,
+  stopEmbeddedDaemon,
+  showErrorAndQuit,
+  type EmbeddedDaemonInfo,
+} from './embedded-daemon';
 
 // __filename and __dirname are provided by the build script banner
 
@@ -214,7 +220,11 @@ function processPendingDeepLink(): void {
 // functionality is now provided by the daemon via tRPC.
 const deps: HandlerDependencies = {
   windowManager: null,
+  daemonPort: undefined,
 };
+
+// Reference to the embedded daemon for lifecycle management
+let embeddedDaemon: EmbeddedDaemonInfo | null = null;
 
 /**
  * Initialize the vault directory structure.
@@ -281,6 +291,25 @@ app.whenReady().then(async () => {
   // Initialize vault directory structure before setting up IPC handlers
   const vaultPath = await initializeVaultDirectory();
 
+  // Start embedded daemon before creating windows
+  // This ensures all API endpoints are available when the renderer loads
+  try {
+    embeddedDaemon = await startEmbeddedDaemon({
+      vaultPath,
+      // Port 0 = auto-assign (default in startEmbeddedDaemon)
+    });
+    deps.daemonPort = embeddedDaemon.port;
+    mainLogger.info('Embedded daemon ready', { port: deps.daemonPort });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    mainLogger.error('Failed to start embedded daemon', { error });
+    await showErrorAndQuit(
+      'Failed to Start Scribe',
+      `Could not start the Scribe daemon: ${message}`
+    );
+    return; // showErrorAndQuit doesn't return, but TypeScript doesn't know that
+  }
+
   // Register custom protocol for serving asset files securely
   registerAssetProtocol(vaultPath);
 
@@ -344,6 +373,36 @@ app.on('window-all-closed', () => {
 });
 
 // Cleanup hook before quitting
-app.on('before-quit', () => {
-  mainLogger.debug('Application quitting');
+// Track if we're in the middle of shutdown to prevent re-entry
+let isShuttingDown = false;
+
+app.on('before-quit', async (event) => {
+  // If we're already shutting down, let the quit proceed
+  if (isShuttingDown) {
+    return;
+  }
+
+  // If there's no daemon to shut down, let the quit proceed
+  if (!embeddedDaemon) {
+    mainLogger.debug('Application quitting (no daemon to stop)');
+    return;
+  }
+
+  // Prevent the quit and shut down the daemon first
+  event.preventDefault();
+  isShuttingDown = true;
+
+  mainLogger.info('Application quitting, stopping embedded daemon...');
+
+  try {
+    await stopEmbeddedDaemon(embeddedDaemon);
+    embeddedDaemon = null;
+    mainLogger.info('Daemon stopped, proceeding with quit');
+  } catch (error) {
+    mainLogger.error('Error stopping daemon during quit', { error });
+    // Continue with quit even if daemon stop fails
+  }
+
+  // Now actually quit
+  app.quit();
 });

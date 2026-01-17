@@ -268,17 +268,14 @@ export function setupAppHandlers(deps: HandlerDependencies): void {
    * Returns the port number of the embedded daemon.
    * The renderer uses this to establish tRPC connection.
    *
-   * @returns The port number the daemon is listening on
+   * @returns The port number the daemon is listening on, or null if daemon not started
    *
    * @remarks
-   * This handler is a placeholder that returns the default daemon port.
-   * When the embedded daemon is implemented (scribe-i2zx), this will
-   * return the actual dynamically-assigned port.
+   * The port is dynamically assigned when the embedded daemon starts.
+   * This allows multiple instances and avoids port conflicts.
    */
   ipcMain.handle('scribe:getDaemonPort', async () => {
-    // Default daemon port - will be dynamic when embedded daemon is implemented
-    // TODO: scribe-i2zx will update this to return the actual daemon port
-    return deps.daemonPort ?? 4455;
+    return deps.daemonPort ?? null;
   });
 }
 

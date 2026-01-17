@@ -13,7 +13,7 @@ export interface HandlerDependencies {
   /**
    * Port number where the embedded daemon is listening.
    * Used by the renderer to establish tRPC connection.
-   * Will be dynamically assigned when embedded daemon is implemented (scribe-i2zx).
+   * Dynamically assigned by the OS when the embedded daemon starts with port 0.
    */
   daemonPort?: number;
 }
