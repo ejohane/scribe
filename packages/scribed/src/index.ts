@@ -51,7 +51,18 @@ export {
 
 // Plugin system exports
 export {
-  // Functions
+  // Initialization
+  initializePluginSystem,
+  type PluginSystem,
+  type ServerPluginContextFactory,
+  // Logger
+  createPluginLogger,
+  createNoopLogger,
+  // Installed plugins
+  getInstalledPlugins,
+  discoverPlugins,
+  type PluginDiscoveryConfig,
+  // Router merger functions
   buildAppRouter,
   collectPluginRouters,
   validateNamespace,
