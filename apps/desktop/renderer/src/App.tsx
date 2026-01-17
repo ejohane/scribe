@@ -10,6 +10,8 @@ import { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/app-shell';
 import type { PlatformCapabilities, UpdateInfo } from '@scribe/app-shell';
+import type { EditorContent } from '@scribe/client-sdk';
+import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe/editor';
 
 /**
  * Root application component.
@@ -92,13 +94,31 @@ export function App() {
     },
   };
 
+  /**
+   * Render function for the editor component.
+   * Passed to NoteEditorPage to provide the actual editor implementation.
+   *
+   * Note: EditorContent types from @scribe/client-sdk and @scribe/editor are
+   * structurally compatible but have different type definitions. We cast here
+   * since both represent Lexical serialized editor state.
+   */
+  function renderEditor(content: EditorContent, onChange: (content: EditorContent) => void) {
+    return (
+      <ScribeEditor
+        initialContent={content as ScribeEditorContent}
+        onChange={onChange as (content: ScribeEditorContent) => void}
+        autoFocus
+      />
+    );
+  }
+
   return (
     <HashRouter>
       <PlatformProvider platform="electron" capabilities={capabilities}>
         <ScribeProvider daemonUrl={daemonUrl}>
           <Routes>
             <Route path="/" element={<NoteListPage />} />
-            <Route path="/note/:id" element={<NoteEditorPage />} />
+            <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
           </Routes>
         </ScribeProvider>
       </PlatformProvider>

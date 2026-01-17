@@ -29,6 +29,7 @@
     "@scribe/app-shell": "workspace:*",
     "@scribe/client-sdk": "workspace:*",
     "@scribe/design-system": "workspace:*",
+    "@scribe/editor": "workspace:*",
     "@scribe/shared": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "@trpc/client": "^10.0.0",
