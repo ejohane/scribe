@@ -74,6 +74,8 @@ export {
   notesRouter,
   searchRouter,
   graphRouter,
+  exportRouter,
   type AppRouter,
   type Context,
+  type ExportRouter,
 } from './routers/index.js';

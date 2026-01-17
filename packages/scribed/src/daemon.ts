@@ -24,6 +24,7 @@ import {
   notesRouter,
   searchRouter,
   graphRouter,
+  exportRouter,
 } from '@scribe/server-core';
 import type { Services } from '@scribe/server-core';
 import { DefaultPluginEventBus } from '@scribe/plugin-core';
@@ -161,6 +162,7 @@ export class Daemon {
       notes: notesRouter,
       search: searchRouter,
       graph: graphRouter,
+      export: exportRouter,
     };
     const pluginRouters = this.pluginSystem.getRouters();
     const routerResult = buildAppRouter(
