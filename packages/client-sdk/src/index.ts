@@ -53,8 +53,9 @@ export type { CollabClientOptions, CollabClientEvents, DocumentSession } from '.
 // Re-export types from server-core for convenience
 // These types are useful when working with API responses
 export type {
-  // Router type for advanced usage
+  // Router types for advanced usage
   AppRouter,
+  ExportRouter,
   // Note types
   NoteDocument,
   NoteMetadata,
