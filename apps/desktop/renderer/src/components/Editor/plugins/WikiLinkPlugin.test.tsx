@@ -22,17 +22,8 @@ import { WikiLinkProvider } from './WikiLinkContext';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
-// Mock window.scribe.notes.searchTitles
-const mockSearchTitles = vi.fn().mockResolvedValue([]);
-
-// Setup global mock for window.scribe
-beforeEach(() => {
-  (window as unknown as { scribe: { notes: { searchTitles: typeof mockSearchTitles } } }).scribe = {
-    notes: {
-      searchTitles: mockSearchTitles,
-    },
-  };
-});
+// Mock searchNotes function for context
+const mockSearchNotes = vi.fn().mockResolvedValue([]);
 
 // Component to capture editor reference
 function EditorCapture({ editorRef }: { editorRef: React.MutableRefObject<LexicalEditor | null> }) {
@@ -56,6 +47,7 @@ function TestEditor({
       currentNoteId={createNoteId('test-note')}
       onLinkClick={vi.fn()}
       onError={vi.fn()}
+      searchNotes={mockSearchNotes}
     >
       <LexicalComposer
         initialConfig={{
@@ -84,7 +76,7 @@ describe('WikiLinkPlugin', () => {
   beforeEach(() => {
     editorRef = { current: null };
     vi.clearAllMocks();
-    mockSearchTitles.mockResolvedValue([]);
+    mockSearchNotes.mockResolvedValue([]);
   });
 
   describe('[[ detection', () => {
@@ -199,7 +191,7 @@ describe('WikiLinkPlugin', () => {
       // Wait for debounced search (150ms)
       await waitFor(
         () => {
-          expect(mockSearchTitles).toHaveBeenCalledWith('meet', 10);
+          expect(mockSearchNotes).toHaveBeenCalledWith('meet', 10);
         },
         { timeout: 500 }
       );
@@ -215,7 +207,7 @@ describe('WikiLinkPlugin integration', () => {
   beforeEach(() => {
     editorRef = { current: null };
     vi.clearAllMocks();
-    mockSearchTitles.mockResolvedValue([]);
+    mockSearchNotes.mockResolvedValue([]);
   });
 
   it('converts [[text]] to WikiLinkNode on ]] closure', async () => {
@@ -549,7 +541,7 @@ describe('WikiLinkPlugin integration', () => {
 
     it('positions cursor immediately after WikiLinkNode without adding space on autocomplete selection', async () => {
       // Mock search to return a result for selection
-      mockSearchTitles.mockResolvedValue([
+      mockSearchNotes.mockResolvedValue([
         { id: createNoteId('test-id'), title: 'Test Note', snippet: '', score: 1, matches: [] },
       ]);
 
@@ -602,7 +594,7 @@ describe('WikiLinkPlugin integration', () => {
       // Wait for search to be called (debounced 150ms)
       await waitFor(
         () => {
-          expect(mockSearchTitles).toHaveBeenCalled();
+          expect(mockSearchNotes).toHaveBeenCalled();
         },
         { timeout: 1000 }
       );

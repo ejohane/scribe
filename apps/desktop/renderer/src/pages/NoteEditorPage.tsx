@@ -13,7 +13,7 @@ import { WikiLinkProvider } from '../components/Editor/plugins/WikiLinkContext';
 import { PersonMentionProvider } from '../components/Editor/plugins/PersonMentionContext';
 import { EditorCommandProvider } from '../components/Editor/EditorCommandContext';
 import type { NoteDocument, EditorContent as ServerEditorContent } from '@scribe/server-core';
-import type { NoteId, Note, EditorContent } from '@scribe/shared';
+import type { NoteId, Note, EditorContent, SearchResult } from '@scribe/shared';
 import * as styles from './NoteEditorPage.css';
 
 /**
@@ -203,6 +203,35 @@ export function NoteEditorPage() {
     [navigate]
   );
 
+  // Search notes for wiki-link autocomplete
+  const handleSearchNotes = useCallback(
+    async (query: string, limit: number): Promise<SearchResult[]> => {
+      if (!trpc) return [];
+      try {
+        const results = await trpc.search.query.query({
+          text: query,
+          options: { limit },
+        });
+        // Map search results to SearchResult format expected by WikiLinkPlugin
+        return results.map((r) => ({
+          id: r.note.id as NoteId,
+          title: r.note.title,
+          snippet: r.snippet,
+          score: r.score,
+          // Map matchedIn to matches format
+          matches: r.matchedIn.map((location) => ({
+            field: location as 'title' | 'tags' | 'content',
+            positions: [], // Positions not provided by server-core search
+          })),
+        }));
+      } catch (err) {
+        console.error('[NoteEditorPage] Search failed:', err);
+        return [];
+      }
+    },
+    [trpc]
+  );
+
   // Handle person mention clicks
   const handlePersonMentionClick = useCallback(
     async (personId: NoteId) => {
@@ -315,6 +344,7 @@ export function NoteEditorPage() {
           currentNoteId={id as NoteId}
           onLinkClick={handleWikiLinkClick}
           onError={(msg) => setError(msg)}
+          searchNotes={handleSearchNotes}
         >
           <PersonMentionProvider
             currentNoteId={id as NoteId}

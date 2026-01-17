@@ -23,8 +23,7 @@ import {
 } from '@lexical/react/LexicalHorizontalRuleNode';
 import type { LexicalNode } from 'lexical';
 import { createLogger } from '@scribe/shared';
-
-import type { useNoteState } from '../../hooks/useNoteState';
+import type { Note, NoteId, EditorContent } from '@scribe/shared';
 
 const log = createLogger({ prefix: 'EditorRoot' });
 import { InitialStatePlugin } from './plugins/InitialStatePlugin';
@@ -153,8 +152,37 @@ const editorConfig = {
   ],
 };
 
+/**
+ * Note state object passed from page components to EditorRoot.
+ * This interface matches the shape returned by the old useNoteState hook,
+ * enabling backward compatibility while allowing pages to construct
+ * the state object directly from tRPC calls.
+ */
+export interface NoteState {
+  /** Current note being edited (null if none loaded) */
+  currentNote: Note | null;
+  /** Current note ID */
+  currentNoteId: NoteId | null;
+  /** Whether the current note is a system note */
+  isSystemNote: boolean;
+  /** Whether a note is currently loading */
+  isLoading: boolean;
+  /** Error message if load/save failed */
+  error: string | null;
+  /** Save the current note with updated content */
+  saveNote: (content: EditorContent) => Promise<void>;
+  /** Load a note by ID */
+  loadNote: (id: NoteId) => Promise<void>;
+  /** Create and load a new note */
+  createNote: () => Promise<void>;
+  /** Delete a note by ID */
+  deleteNote: (id: NoteId) => Promise<void>;
+  /** Update note metadata (title, type, tags) */
+  updateMetadata: () => Promise<void>;
+}
+
 interface EditorRootProps {
-  noteState: ReturnType<typeof useNoteState>;
+  noteState: NoteState;
 }
 
 export function EditorRoot({ noteState }: EditorRootProps) {

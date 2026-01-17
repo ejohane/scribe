@@ -28,6 +28,7 @@ import {
 } from 'lexical';
 import { createLogger } from '@scribe/shared';
 import { $createWikiLinkNode } from './WikiLinkNode';
+import { useWikiLinkContext } from './WikiLinkContext';
 
 const log = createLogger({ prefix: 'WikiLinkPlugin' });
 import { WikiLinkAutocomplete } from './WikiLinkAutocomplete';
@@ -67,6 +68,7 @@ export type { TriggerState };
 
 export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
   const [editor] = useLexicalComposerContext();
+  const { searchNotes } = useWikiLinkContext();
 
   // Ref for debounced search timeout
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,12 +86,19 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
         return;
       }
 
+      // If no search function is provided, skip search
+      if (!searchNotes) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
 
       try {
-        const results = await window.scribe.notes.searchTitles(query, 10);
+        const results = await searchNotes(query, 10);
         // Filter out current note
-        const filtered = results.filter((r) => r.id !== currentNoteId);
+        const filtered = results.filter((r: SearchResult) => r.id !== currentNoteId);
         setResults(filtered);
         setLoading(false);
       } catch (error) {
@@ -98,7 +107,7 @@ export function WikiLinkPlugin({ currentNoteId }: WikiLinkPluginProps) {
         setLoading(false);
       }
     },
-    [currentNoteId]
+    [currentNoteId, searchNotes]
   );
 
   // Cleanup timeout on unmount

@@ -42,7 +42,6 @@ const mockNoteDocument: NoteDocument = {
   updatedAt: '2025-01-15T10:00:00.000Z',
   content: { root: { children: [], type: 'root', version: 1 } },
   wordCount: 100,
-  filePath: '/notes/note-1.json',
 };
 
 // Create mock tRPC client
