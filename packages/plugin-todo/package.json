@@ -18,7 +18,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@scribe/plugin-core": "workspace:*"
+    "@scribe/plugin-core": "workspace:*",
+    "@trpc/server": "^10.45.4",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
