@@ -234,26 +234,28 @@ describe('NoteListPage', () => {
   });
 
   describe('Create note', () => {
-    it('has create note button in header', async () => {
+    it('has create note input field', async () => {
       renderNoteListPage({ notes: [] });
 
       await waitFor(() => {
-        expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
+        expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
       });
     });
 
-    it('creates note and navigates on button click', async () => {
+    it('creates note and navigates when typing and pressing Enter', async () => {
       renderNoteListPage({ notes: [] });
 
       await waitFor(() => {
-        expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
+        expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId('create-note-button'));
+      const input = screen.getByTestId('create-note-input');
+      fireEvent.change(input, { target: { value: 'My New Note' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
 
       await waitFor(() => {
         expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
-          title: 'Untitled',
+          title: 'My New Note',
           type: 'note',
         });
         expect(mockNavigate).toHaveBeenCalledWith('/note/new-note-123');
@@ -286,7 +288,7 @@ describe('NoteListPage', () => {
 
       // Wait for the component to be ready
       await waitFor(() => {
-        expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
+        expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
       });
 
       // Now override the mutate to reject
@@ -294,7 +296,9 @@ describe('NoteListPage', () => {
         .fn()
         .mockRejectedValue(new Error('Create failed'));
 
-      fireEvent.click(screen.getByTestId('create-note-button'));
+      const input = screen.getByTestId('create-note-input');
+      fireEvent.change(input, { target: { value: 'Test Note' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
 
       await waitFor(() => {
         expect(alertMock).toHaveBeenCalledWith('Failed to create note: Create failed');
@@ -372,12 +376,12 @@ describe('NoteListPage', () => {
       });
     });
 
-    it('buttons are focusable', async () => {
+    it('input field is focusable', async () => {
       renderNoteListPage({ notes: [] });
 
       await waitFor(() => {
-        const createButton = screen.getByTestId('create-note-button');
-        expect(createButton).toBeVisible();
+        const createInput = screen.getByTestId('create-note-input');
+        expect(createInput).toBeVisible();
       });
     });
   });

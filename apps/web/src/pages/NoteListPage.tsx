@@ -87,10 +87,9 @@ const ArrowIcon = () => (
   </svg>
 );
 
-const PlusIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
+const ChevronIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="9 18 15 12 9 6" />
   </svg>
 );
 
@@ -104,6 +103,7 @@ const NoteListContent: FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
+  const [newNoteTitle, setNewNoteTitle] = useState('');
 
   const loadNotes = async () => {
     try {
@@ -125,16 +125,23 @@ const NoteListContent: FC = () => {
     loadNotes();
   }, [client]);
 
-  const handleCreateNote = async () => {
+  const handleCreateNote = async (title?: string) => {
     try {
       const note = await client.api.notes.create.mutate({
-        title: 'Untitled',
+        title: title || 'Untitled',
         type: 'note',
       });
+      setNewNoteTitle('');
       navigate(`/note/${note.id}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       alert(`Failed to create note: ${message}`);
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newNoteTitle.trim()) {
+      handleCreateNote(newNoteTitle.trim());
     }
   };
 
@@ -216,8 +223,8 @@ const NoteListContent: FC = () => {
                   <span className="item-title">{note.title}</span>
                   <span className="item-subtitle">{formatDate(note.updatedAt)}</span>
                 </div>
-                <span className="item-arrow">
-                  <ArrowIcon />
+                <span className="item-chevron">
+                  <ChevronIcon />
                 </span>
               </div>
 
@@ -226,16 +233,25 @@ const NoteListContent: FC = () => {
                   <p className="item-description">
                     Last modified {formatDate(note.updatedAt)}. Click to edit this note.
                   </p>
-                  <div className="item-actions">
-                    <Link to={`/note/${note.id}`} className="action-btn action-primary">
-                      Open
-                    </Link>
-                    <button
-                      className="action-btn action-secondary"
-                      onClick={(e) => handleDeleteNote(note.id, e)}
+                  <div className="item-actions-row">
+                    <div className="item-actions">
+                      <Link to={`/note/${note.id}`} className="action-btn action-primary">
+                        Open
+                      </Link>
+                      <button
+                        className="action-btn action-secondary"
+                        onClick={(e) => handleDeleteNote(note.id, e)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <Link
+                      to={`/note/${note.id}`}
+                      className="item-external-link"
+                      aria-label="Open note"
                     >
-                      Delete
-                    </button>
+                      <ArrowIcon />
+                    </Link>
                   </div>
                 </div>
               )}
@@ -247,7 +263,7 @@ const NoteListContent: FC = () => {
           <div className="empty-state" data-testid="empty-state">
             <p>No notes yet</p>
             <button
-              onClick={handleCreateNote}
+              onClick={() => handleCreateNote()}
               className="action-btn action-primary"
               data-testid="create-first-note-button"
             >
@@ -255,16 +271,19 @@ const NoteListContent: FC = () => {
             </button>
           </div>
         )}
-      </main>
 
-      <button
-        className="fab"
-        onClick={handleCreateNote}
-        aria-label="Create new note"
-        data-testid="create-note-button"
-      >
-        <PlusIcon />
-      </button>
+        <div className="note-input-container">
+          <input
+            type="text"
+            className="note-input"
+            placeholder="Add a note or reminder..."
+            value={newNoteTitle}
+            onChange={(e) => setNewNoteTitle(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+            data-testid="create-note-input"
+          />
+        </div>
+      </main>
     </div>
   );
 };

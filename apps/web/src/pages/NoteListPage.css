@@ -130,16 +130,23 @@
   color: var(--text-secondary);
 }
 
-.item-arrow {
+.item-chevron {
   flex-shrink: 0;
   color: var(--text-muted);
   margin-top: 4px;
-  opacity: 0.6;
-  transition: opacity 0.15s;
+  opacity: 0.5;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 
-.item:hover .item-arrow {
-  opacity: 1;
+.item:hover .item-chevron {
+  opacity: 0.8;
+}
+
+.item.expanded .item-chevron {
+  transform: rotate(90deg);
+  opacity: 0.8;
 }
 
 /* Expanded item content */
@@ -154,10 +161,30 @@
   line-height: 1.5;
 }
 
+.item-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .item-actions {
   display: flex;
   gap: 16px;
   align-items: center;
+}
+
+.item-external-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  text-decoration: none;
+}
+
+.item-external-link:hover {
+  opacity: 1;
 }
 
 /* Action buttons */
@@ -205,34 +232,31 @@
   font-size: 1rem;
 }
 
-/* Floating action button */
-.fab {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  background: var(--accent-green);
-  color: #fff;
+/* Bottom input field */
+.note-input-container {
+  margin-top: 32px;
+  padding-top: 16px;
+}
+
+.note-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
   border: none;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: background-color 0.15s;
 }
 
-.fab:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+.note-input::placeholder {
+  color: var(--text-muted);
 }
 
-.fab:active {
-  transform: scale(0.98);
+.note-input:focus {
+  background: var(--bg-tertiary);
 }
 
 /* Center message for loading/error states */
@@ -307,11 +331,7 @@
     font-size: 1.25rem;
   }
 
-  .fab {
-    bottom: 16px;
-    right: 16px;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+  .note-input {
+    padding: 12px 14px;
   }
 }
