@@ -85,17 +85,11 @@ export type { MarkdownExportOptions } from './content-extractor.js';
 export { IPC_CHANNELS } from './ipc-contract.js';
 export type {
   SuccessResponse,
-  DateBasedNoteResult,
   UpdateInfo,
   UpdateError,
-  ExportResult,
-  NotesAPI,
-  SearchAPI,
-  GraphAPI,
   ShellAPI,
   AppAPI,
   UpdateAPI,
-  ExportAPI,
   DialogAPI,
   FolderPickerOptions,
   VaultAPI,
@@ -103,27 +97,17 @@ export type {
   VaultCreateResult,
   VaultValidationResult,
   ScribeAPI,
-  // Recent Opens types
-  RecentOpenEntityType,
-  RecentOpenRecord,
-  RecentOpensAPI,
   // Deep Link types
   DeepLinkAction,
   DeepLinkParseResult,
   DeepLinkAPI,
-  // CLI types
-  CLIInstallResult,
-  CLIStatus,
-  CLIAPI,
-  // Raycast types
-  RaycastInstallResult,
-  RaycastStatus,
-  RaycastAPI,
   // Asset types
   AssetSaveResult,
   AssetsAPI,
   // Window management types
   WindowAPI,
+  // Daemon connection types
+  ScribeDaemonAPI,
 } from './ipc-contract.js';
 
 // Date Utilities - consolidated date formatting, parsing, and comparison

@@ -1,15 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type {
-  Note,
-  NoteId,
-  SyncStatus,
-  ConflictResolution,
-  RecentOpenEntityType,
-  DeepLinkAction,
-} from '@scribe/shared';
+import type { DeepLinkAction } from '@scribe/shared';
 import { IPC_CHANNELS, type ScribeAPI, type WindowAPI } from '@scribe/shared';
 
-// Re-import SyncStatus for the event handler type annotation
+// Re-import for the event handler type annotation
 type IpcRendererEvent = Electron.IpcRendererEvent;
 
 // Create window API separately to handle the 'new' reserved keyword
@@ -30,32 +23,12 @@ const windowAPI: WindowAPI = {
  * This implementation uses the shared IPC contract from @scribe/shared
  * as the single source of truth for the API surface. All types and
  * documentation are defined in packages/shared/src/ipc-contract.ts.
+ *
+ * Note: Notes, search, graph, and export operations are now handled by
+ * the daemon via tRPC and are not part of this API surface.
  */
 const scribeAPI: ScribeAPI = {
   ping: () => ipcRenderer.invoke(IPC_CHANNELS.PING),
-
-  notes: {
-    list: () => ipcRenderer.invoke(IPC_CHANNELS.NOTES_LIST),
-    read: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_READ, id),
-    create: () => ipcRenderer.invoke(IPC_CHANNELS.NOTES_CREATE),
-    save: (note: Note) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_SAVE, note),
-    delete: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_DELETE, id),
-    findByTitle: (title: string) => ipcRenderer.invoke(IPC_CHANNELS.NOTES_FIND_BY_TITLE, title),
-    searchTitles: (query: string, limit?: number) =>
-      ipcRenderer.invoke(IPC_CHANNELS.NOTES_SEARCH_TITLES, query, limit ?? 10),
-    findByDate: (date: string, includeCreated: boolean, includeUpdated: boolean) =>
-      ipcRenderer.invoke(IPC_CHANNELS.NOTES_FIND_BY_DATE, { date, includeCreated, includeUpdated }),
-  },
-
-  search: {
-    query: (text: string) => ipcRenderer.invoke(IPC_CHANNELS.SEARCH_QUERY, text),
-  },
-
-  graph: {
-    forNote: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.GRAPH_FOR_NOTE, id),
-    backlinks: (id: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.GRAPH_BACKLINKS, id),
-    notesWithTag: (tag: string) => ipcRenderer.invoke(IPC_CHANNELS.GRAPH_NOTES_WITH_TAG, tag),
-  },
 
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke(IPC_CHANNELS.SHELL_OPEN_EXTERNAL, url),
@@ -66,7 +39,7 @@ const scribeAPI: ScribeAPI = {
   app: {
     openDevTools: () => ipcRenderer.invoke(IPC_CHANNELS.APP_OPEN_DEV_TOOLS),
     getLastOpenedNote: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_LAST_OPENED_NOTE),
-    setLastOpenedNote: (noteId: NoteId | null) =>
+    setLastOpenedNote: (noteId: string | null) =>
       ipcRenderer.invoke(IPC_CHANNELS.APP_SET_LAST_OPENED_NOTE, noteId),
     getConfig: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_CONFIG),
     setConfig: (config: Record<string, unknown>) =>
@@ -107,17 +80,6 @@ const scribeAPI: ScribeAPI = {
     },
   },
 
-  cli: {
-    install: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_INSTALL),
-    isInstalled: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_IS_INSTALLED),
-    uninstall: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_UNINSTALL),
-    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_GET_STATUS),
-  },
-
-  export: {
-    toMarkdown: (noteId: NoteId) => ipcRenderer.invoke(IPC_CHANNELS.EXPORT_TO_MARKDOWN, noteId),
-  },
-
   dialog: {
     selectFolder: (options?: { title?: string; defaultPath?: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.DIALOG_SELECT_FOLDER, options),
@@ -128,42 +90,6 @@ const scribeAPI: ScribeAPI = {
     setPath: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_SET_PATH, path),
     create: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_CREATE, path),
     validate: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.VAULT_VALIDATE, path),
-  },
-
-  sync: {
-    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_GET_STATUS),
-
-    trigger: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_TRIGGER),
-
-    getConflicts: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_GET_CONFLICTS),
-
-    resolveConflict: (noteId: string, resolution: ConflictResolution) =>
-      ipcRenderer.invoke(IPC_CHANNELS.SYNC_RESOLVE_CONFLICT, noteId, resolution),
-
-    enable: (options: { apiKey: string; serverUrl?: string }) =>
-      ipcRenderer.invoke(IPC_CHANNELS.SYNC_ENABLE, options),
-
-    disable: () => ipcRenderer.invoke(IPC_CHANNELS.SYNC_DISABLE),
-
-    onStatusChange: (callback: (status: SyncStatus) => void) => {
-      const handler = (_event: IpcRendererEvent, status: SyncStatus) => {
-        callback(status);
-      };
-      ipcRenderer.on(IPC_CHANNELS.SYNC_STATUS_CHANGED, handler);
-      return () => {
-        ipcRenderer.removeListener(IPC_CHANNELS.SYNC_STATUS_CHANGED, handler);
-      };
-    },
-  },
-
-  recentOpens: {
-    recordOpen: (entityId: string, entityType: RecentOpenEntityType) =>
-      ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_RECORD, entityId, entityType),
-
-    getRecent: (limit?: number) => ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_GET, limit),
-
-    removeTracking: (entityId: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.RECENT_OPENS_REMOVE, entityId),
   },
 
   deepLink: {
@@ -178,12 +104,6 @@ const scribeAPI: ScribeAPI = {
     },
   },
 
-  raycast: {
-    install: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_INSTALL),
-    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_GET_STATUS),
-    openInRaycast: () => ipcRenderer.invoke(IPC_CHANNELS.RAYCAST_OPEN_IN_RAYCAST),
-  },
-
   assets: {
     save: (data: ArrayBuffer, mimeType: string, filename?: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.ASSETS_SAVE, data, mimeType, filename),
@@ -193,6 +113,10 @@ const scribeAPI: ScribeAPI = {
   },
 
   window: windowAPI,
+
+  scribe: {
+    getDaemonPort: () => ipcRenderer.invoke(IPC_CHANNELS.SCRIBE_GET_DAEMON_PORT),
+  },
 };
 
 // Expose the API to the renderer via contextBridge

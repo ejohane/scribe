@@ -10,6 +10,12 @@ import type { WindowManager } from '../window-manager';
  */
 export interface HandlerDependencies {
   windowManager: WindowManager | null;
+  /**
+   * Port number where the embedded daemon is listening.
+   * Used by the renderer to establish tRPC connection.
+   * Will be dynamically assigned when embedded daemon is implemented (scribe-i2zx).
+   */
+  daemonPort?: number;
 }
 
 /**

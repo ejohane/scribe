@@ -4,6 +4,10 @@
  * This module defines all IPC channel names and typed interfaces for communication
  * between the renderer process and main process via the preload bridge.
  *
+ * Note: Many operations (notes, search, graph, export) are now handled by the
+ * daemon via tRPC. This contract only covers Electron-specific operations that
+ * must remain in the main process.
+ *
  * Usage:
  * - Preload: Import and implement using `createPreloadBridge()`
  * - Renderer types: Re-export `ScribeAPI` for ambient type declarations
@@ -13,9 +17,7 @@
  * @since 1.0.0
  */
 
-import type { Note, NoteId, SearchResult, GraphNode } from './types.js';
-
-import type { SyncStatus, SyncResult, SyncConflict, ConflictResolution } from './sync-types.js';
+import type { NoteId } from './types.js';
 
 // ============================================================================
 // Deep Link Types
@@ -43,81 +45,19 @@ export interface DeepLinkParseResult {
 }
 
 // ============================================================================
-// Recent Opens Types
-// ============================================================================
-
-/** Entity types that can be tracked for recent opens */
-export type RecentOpenEntityType = 'note' | 'meeting' | 'person' | 'daily';
-
-/** Record of a recently opened entity */
-export interface RecentOpenRecord {
-  /** Unique identifier of the entity */
-  entityId: string;
-  /** Type of the entity */
-  entityType: RecentOpenEntityType;
-  /** Unix timestamp in milliseconds when the entity was last opened */
-  openedAt: number;
-}
-
-/** API for recent opens tracking */
-export interface RecentOpensAPI {
-  /**
-   * Record that an entity was opened.
-   * Performs an upsert: creates a new record or updates the timestamp if already tracked.
-   *
-   * @param entityId - Unique identifier of the entity
-   * @param entityType - Type of the entity being opened
-   * @returns Success status
-   */
-  recordOpen(entityId: string, entityType: RecentOpenEntityType): Promise<{ success: boolean }>;
-
-  /**
-   * Get the N most recently opened entities.
-   *
-   * @param limit - Maximum number of records to return (default: 10)
-   * @returns Array of recent open records sorted by openedAt descending
-   */
-  getRecent(limit?: number): Promise<RecentOpenRecord[]>;
-
-  /**
-   * Remove tracking for a deleted entity.
-   * Should be called when an entity is permanently deleted.
-   *
-   * @param entityId - Unique identifier of the entity to remove
-   * @returns Success status
-   */
-  removeTracking(entityId: string): Promise<{ success: boolean }>;
-}
-
-// ============================================================================
 // IPC Channel Names
 // ============================================================================
 
 /**
  * All IPC channel names used by the Scribe application.
  * These are the string identifiers passed to ipcRenderer.invoke/send.
+ *
+ * Note: Notes, search, graph, and export operations are now handled by the
+ * daemon via tRPC and are not part of the IPC surface.
  */
 export const IPC_CHANNELS = {
   // Core
   PING: 'ping',
-
-  // Notes
-  NOTES_LIST: 'notes:list',
-  NOTES_READ: 'notes:read',
-  NOTES_CREATE: 'notes:create',
-  NOTES_SAVE: 'notes:save',
-  NOTES_DELETE: 'notes:delete',
-  NOTES_FIND_BY_TITLE: 'notes:findByTitle',
-  NOTES_SEARCH_TITLES: 'notes:searchTitles',
-  NOTES_FIND_BY_DATE: 'notes:findByDate',
-
-  // Search
-  SEARCH_QUERY: 'search:query',
-
-  // Graph
-  GRAPH_FOR_NOTE: 'graph:forNote',
-  GRAPH_BACKLINKS: 'graph:backlinks',
-  GRAPH_NOTES_WITH_TAG: 'graph:notesWithTag',
 
   // Shell
   SHELL_OPEN_EXTERNAL: 'shell:openExternal',
@@ -140,15 +80,6 @@ export const IPC_CHANNELS = {
   UPDATE_DOWNLOADED: 'update:downloaded',
   UPDATE_ERROR: 'update:error',
 
-  // CLI
-  CLI_INSTALL: 'cli:install',
-  CLI_IS_INSTALLED: 'cli:is-installed',
-  CLI_UNINSTALL: 'cli:uninstall',
-  CLI_GET_STATUS: 'cli:get-status',
-
-  // Export
-  EXPORT_TO_MARKDOWN: 'export:toMarkdown',
-
   // Dialog
   DIALOG_SELECT_FOLDER: 'dialog:selectFolder',
 
@@ -158,27 +89,8 @@ export const IPC_CHANNELS = {
   VAULT_CREATE: 'vault:create',
   VAULT_VALIDATE: 'vault:validate',
 
-  // Sync
-  SYNC_GET_STATUS: 'sync:getStatus',
-  SYNC_TRIGGER: 'sync:trigger',
-  SYNC_GET_CONFLICTS: 'sync:getConflicts',
-  SYNC_RESOLVE_CONFLICT: 'sync:resolveConflict',
-  SYNC_ENABLE: 'sync:enable',
-  SYNC_DISABLE: 'sync:disable',
-  SYNC_STATUS_CHANGED: 'sync:statusChanged',
-
-  // Recent Opens
-  RECENT_OPENS_RECORD: 'recentOpens:record',
-  RECENT_OPENS_GET: 'recentOpens:get',
-  RECENT_OPENS_REMOVE: 'recentOpens:remove',
-
   // Deep Links
   DEEP_LINK_RECEIVED: 'deepLink:received',
-
-  // Raycast Extension
-  RAYCAST_INSTALL: 'raycast:install',
-  RAYCAST_GET_STATUS: 'raycast:getStatus',
-  RAYCAST_OPEN_IN_RAYCAST: 'raycast:openInRaycast',
 
   // Assets
   ASSETS_SAVE: 'assets:save',
@@ -193,6 +105,9 @@ export const IPC_CHANNELS = {
   WINDOW_CLOSE: 'window:close',
   WINDOW_FOCUS: 'window:focus',
   WINDOW_REPORT_CURRENT_NOTE: 'window:reportCurrentNote',
+
+  // Daemon Connection
+  SCRIBE_GET_DAEMON_PORT: 'scribe:getDaemonPort',
 } as const;
 
 // ============================================================================
@@ -202,12 +117,6 @@ export const IPC_CHANNELS = {
 /** Standard success response for mutating operations */
 export interface SuccessResponse {
   success: boolean;
-}
-
-/** Result from findByDate API - a note with the reason it matched */
-export interface DateBasedNoteResult {
-  note: Note;
-  reason: 'created' | 'updated';
 }
 
 /** Update info payload */
@@ -220,91 +129,9 @@ export interface UpdateError {
   message: string;
 }
 
-/**
- * Result of an export operation
- */
-export interface ExportResult {
-  /** Whether the export succeeded */
-  success: boolean;
-  /** Path where file was saved (if successful and not cancelled) */
-  filePath?: string;
-  /** Whether the user cancelled the save dialog */
-  cancelled?: boolean;
-  /** Error message if export failed */
-  error?: string;
-}
-
 // ============================================================================
 // API Namespace Interfaces
 // ============================================================================
-
-/**
- * Notes API for CRUD operations on notes
- */
-export interface NotesAPI {
-  /** List all notes */
-  list(): Promise<Note[]>;
-
-  /** Read a single note by ID */
-  read(id: NoteId): Promise<Note>;
-
-  /** Create a new note */
-  create(): Promise<Note>;
-
-  /** Save a note (create or update) */
-  save(note: Note): Promise<SuccessResponse>;
-
-  /** Delete a note by ID */
-  delete(id: NoteId): Promise<SuccessResponse>;
-
-  /**
-   * Find a note by title (for wiki-link resolution)
-   * Returns exact match first, then case-insensitive match.
-   * If multiple matches, returns the most recently updated note.
-   */
-  findByTitle(title: string): Promise<Note | null>;
-
-  /**
-   * Search note titles (for wiki-link autocomplete)
-   * Returns notes whose titles contain the query string.
-   */
-  searchTitles(query: string, limit?: number): Promise<SearchResult[]>;
-
-  /**
-   * Find notes by creation/update date (for date-based linked mentions)
-   * @param date - Date string in "MM-dd-yyyy" format
-   * @param includeCreated - Include notes created on this date
-   * @param includeUpdated - Include notes updated on this date
-   * @returns Array of notes with their match reason ('created' | 'updated')
-   */
-  findByDate(
-    date: string,
-    includeCreated: boolean,
-    includeUpdated: boolean
-  ): Promise<DateBasedNoteResult[]>;
-}
-
-/**
- * Search API for full-text search operations
- */
-export interface SearchAPI {
-  /** Search notes by text query */
-  query(text: string): Promise<SearchResult[]>;
-}
-
-/**
- * Graph API for note relationship queries
- */
-export interface GraphAPI {
-  /** Get graph neighbors for a note (both incoming and outgoing connections) */
-  forNote(id: NoteId): Promise<GraphNode[]>;
-
-  /** Get backlinks for a note (notes that link to this note) */
-  backlinks(id: NoteId): Promise<GraphNode[]>;
-
-  /** Get all notes with a specific tag */
-  notesWithTag(tag: string): Promise<GraphNode[]>;
-}
 
 /**
  * Shell API for system-level operations
@@ -372,77 +199,6 @@ export interface UpdateAPI {
 
   /** Subscribe to error event with error message */
   onError(callback: (error: UpdateError) => void): () => void;
-}
-
-/**
- * Result of a CLI installation operation.
- */
-export interface CLIInstallResult {
-  /** Whether the operation succeeded */
-  success: boolean;
-  /** Human-readable message describing the result */
-  message: string;
-  /** Whether the user needs to add ~/.local/bin to their PATH */
-  needsPathSetup?: boolean;
-}
-
-/**
- * Status of the CLI installation.
- */
-export interface CLIStatus {
-  /** Whether the CLI is installed (symlink exists) */
-  installed: boolean;
-  /** Whether the installed CLI is linked to this app's binary */
-  linkedToThisApp: boolean;
-  /** Whether the CLI binary exists in the app bundle */
-  binaryExists: boolean;
-  /** Whether ~/.local/bin is in the user's PATH */
-  pathConfigured: boolean;
-  /** Path to the CLI binary in the app bundle */
-  binaryPath: string;
-  /** Target path where the CLI is/will be installed */
-  targetPath: string;
-}
-
-/**
- * CLI API for managing the Scribe command-line interface
- */
-export interface CLIAPI {
-  /**
-   * Install the CLI by creating a symlink to ~/.local/bin/scribe.
-   * The symlink points to the CLI binary in the app bundle.
-   */
-  install(): Promise<CLIInstallResult>;
-
-  /**
-   * Check if the CLI is currently installed.
-   */
-  isInstalled(): Promise<boolean>;
-
-  /**
-   * Uninstall the CLI by removing the symlink.
-   * Only removes if the symlink points to this app's binary.
-   */
-  uninstall(): Promise<CLIInstallResult>;
-
-  /**
-   * Get detailed status of the CLI installation.
-   */
-  getStatus(): Promise<CLIStatus>;
-}
-
-/**
- * Export API for saving notes to external formats
- */
-export interface ExportAPI {
-  /**
-   * Export a note to Markdown format.
-   * Opens a native file save dialog for the user to choose the destination.
-   *
-   * @param noteId - ID of the note to export
-   * @returns Export result with file path or cancellation status
-   */
-  toMarkdown(noteId: NoteId): Promise<ExportResult>;
 }
 
 /**
@@ -534,71 +290,6 @@ export interface VaultAPI {
 }
 
 /**
- * Sync API for multi-device synchronization
- */
-export interface SyncAPI {
-  /**
-   * Get the current sync status.
-   *
-   * @returns Current sync status including state, pending changes, and conflicts
-   */
-  getStatus(): Promise<SyncStatus>;
-
-  /**
-   * Manually trigger a sync cycle.
-   * Pushes local changes and pulls remote changes.
-   *
-   * @returns Result of the sync operation
-   */
-  trigger(): Promise<SyncResult>;
-
-  /**
-   * Get list of unresolved conflicts.
-   *
-   * @returns Array of conflicts awaiting resolution
-   */
-  getConflicts(): Promise<SyncConflict[]>;
-
-  /**
-   * Resolve a sync conflict.
-   *
-   * @param noteId - ID of the note with the conflict
-   * @param resolution - How to resolve the conflict (keep_local, keep_remote, or keep_both)
-   * @returns Success status
-   */
-  resolveConflict(noteId: string, resolution: ConflictResolution): Promise<{ success: boolean }>;
-
-  /**
-   * Enable sync for the current vault.
-   *
-   * @param options - Sync configuration options
-   * @param options.apiKey - API key for authentication
-   * @param options.serverUrl - Optional custom server URL
-   * @returns Success status with optional error message
-   */
-  enable(options: {
-    apiKey: string;
-    serverUrl?: string;
-  }): Promise<{ success: boolean; error?: string }>;
-
-  /**
-   * Disable sync for the current vault.
-   *
-   * @returns Success status
-   */
-  disable(): Promise<{ success: boolean }>;
-
-  /**
-   * Subscribe to sync status changes.
-   * Called whenever the sync state changes (e.g., idle -> syncing -> idle).
-   *
-   * @param callback - Function called with new status on each change
-   * @returns Unsubscribe function for cleanup
-   */
-  onStatusChange(callback: (status: SyncStatus) => void): () => void;
-}
-
-/**
  * Deep Link API for handling scribe:// URLs
  */
 export interface DeepLinkAPI {
@@ -665,62 +356,6 @@ export interface AssetsAPI {
   getPath(assetId: string): Promise<string | null>;
 }
 
-// ============================================================================
-// Raycast Extension Types
-// ============================================================================
-
-/**
- * Result of a Raycast extension installation operation.
- */
-export interface RaycastInstallResult {
-  /** Whether the operation succeeded */
-  success: boolean;
-  /** Human-readable message describing the result */
-  message: string;
-  /** Error details if failed */
-  error?: string;
-}
-
-/**
- * Status of the Raycast extension installation.
- */
-export interface RaycastStatus {
-  /** Whether Raycast app is installed on the system */
-  raycastInstalled: boolean;
-  /** Whether the Scribe CLI is installed (required for extension) */
-  cliInstalled: boolean;
-  /** Whether the extension source is bundled with this app */
-  extensionBundled: boolean;
-  /** Whether the extension has been copied to user directory */
-  extensionInstalled: boolean;
-  /** Whether npm dependencies have been installed */
-  dependenciesInstalled: boolean;
-  /** Path where extension is/will be installed */
-  installPath: string;
-}
-
-/**
- * Raycast Extension API for managing the Scribe Raycast extension
- */
-export interface RaycastAPI {
-  /**
-   * Install the Raycast extension.
-   * Copies bundled source to user directory, runs npm install, and opens Raycast import.
-   */
-  install(): Promise<RaycastInstallResult>;
-
-  /**
-   * Get detailed status of the Raycast extension installation.
-   */
-  getStatus(): Promise<RaycastStatus>;
-
-  /**
-   * Open Raycast with the extension import URL.
-   * Used after installation to trigger the Raycast import flow.
-   */
-  openInRaycast(): Promise<RaycastInstallResult>;
-}
-
 /**
  * API for window management operations.
  * Enables multi-window support in Scribe.
@@ -770,24 +405,31 @@ export interface WindowAPI {
 // ============================================================================
 
 /**
+ * Scribe Daemon API for getting daemon connection info.
+ */
+export interface ScribeDaemonAPI {
+  /**
+   * Get the port number of the running daemon.
+   * Used by the renderer to establish tRPC connection.
+   *
+   * @returns The port number the daemon is listening on
+   */
+  getDaemonPort(): Promise<number>;
+}
+
+/**
  * Complete Scribe API exposed to the renderer process via contextBridge.
  *
  * This interface is the single source of truth for the IPC API surface.
  * The preload script implements this interface, and the renderer consumes it
  * via `window.scribe`.
+ *
+ * Note: Notes, search, graph, and export operations are now handled by the
+ * daemon via tRPC and are not part of this API.
  */
 export interface ScribeAPI {
   /** Simple ping for testing IPC connectivity */
   ping(): Promise<{ message: string; timestamp: number }>;
-
-  /** Notes CRUD operations */
-  notes: NotesAPI;
-
-  /** Full-text search */
-  search: SearchAPI;
-
-  /** Graph/relationship queries */
-  graph: GraphAPI;
 
   /** System shell operations */
   shell: ShellAPI;
@@ -798,33 +440,21 @@ export interface ScribeAPI {
   /** Auto-update functionality */
   update: UpdateAPI;
 
-  /** CLI installation management */
-  cli: CLIAPI;
-
-  /** Export notes to external formats */
-  export: ExportAPI;
-
   /** Native OS dialogs */
   dialog: DialogAPI;
 
   /** Vault management */
   vault: VaultAPI;
 
-  /** Sync API for multi-device synchronization */
-  sync: SyncAPI;
-
-  /** Recent opens tracking */
-  recentOpens: RecentOpensAPI;
-
   /** Deep link handling for scribe:// URLs */
   deepLink: DeepLinkAPI;
-
-  /** Raycast extension management */
-  raycast: RaycastAPI;
 
   /** Binary asset management (images) */
   assets: AssetsAPI;
 
   /** Window management for multi-window support */
   window: WindowAPI;
+
+  /** Daemon connection info for tRPC client */
+  scribe: ScribeDaemonAPI;
 }
