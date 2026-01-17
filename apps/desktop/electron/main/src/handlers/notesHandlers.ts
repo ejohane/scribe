@@ -44,10 +44,9 @@
  * - All engines must be updated atomically to maintain consistency
  * - Task changes need to be broadcast to the renderer
  *
- * Note: The EngineOrchestrator class in ../EngineOrchestrator.ts provides
- * similar coordination logic and could be used as an alternative to manual
- * coordination. The current inline approach was chosen for explicitness
- * and to avoid adding another dependency layer during early development.
+ * Note: An EngineOrchestrator class could provide similar coordination logic
+ * as an alternative to manual coordination. The current inline approach was
+ * chosen for explicitness and to avoid adding another dependency layer.
  *
  * ## IPC Channels
  *
@@ -222,16 +221,6 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
         const taskChanges = engines.taskIndex.removeNote(id);
         if (taskChanges.length > 0) {
           deps.windowManager?.broadcast('tasks:changed', taskChanges);
-        }
-
-        // Step 5: Clean up recent opens tracking (best-effort, fire-and-forget)
-        try {
-          if (deps.recentOpensDb) {
-            deps.recentOpensDb.removeTracking(id);
-          }
-        } catch (cleanupError) {
-          // Log but don't fail the deletion
-          console.warn('Failed to clean up recent opens tracking:', cleanupError);
         }
 
         return { success: true };

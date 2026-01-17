@@ -17,9 +17,7 @@
  * | {@link setupDailyHandlers} | `daily:*` | Daily note get-or-create |
  * | {@link setupMeetingHandlers} | `meeting:*` | Meeting note creation and attendees |
  * | {@link setupTasksHandlers} | `tasks:*` | Task toggle, list, reorder |
- * | {@link setupCLIHandlers} | `cli:*` | CLI installation and management |
  * | {@link setupExportHandlers} | `export:*` | Export notes to external formats |
- * | {@link setupSyncHandlers} | `sync:*` | Multi-device sync operations |
  * | {@link setupAssetHandlers} | `assets:*` | Binary asset management (images) |
  * | {@link setupWindowHandlers} | `window:*` | Multi-window management |
  *
@@ -46,19 +44,15 @@ export { setupDictionaryHandlers } from './dictionaryHandlers';
 export { setupDailyHandlers } from './dailyHandlers';
 export { setupMeetingHandlers } from './meetingHandlers';
 export { setupTasksHandlers } from './tasksHandlers';
-export { setupCLIHandlers } from './cliHandlers';
 export { setupExportHandlers } from './exportHandlers';
 export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';
-export { setupSyncHandlers, setupSyncStatusForwarding } from './syncHandlers';
-export { setupRecentOpensHandlers } from './recentOpensHandlers';
 export {
   parseDeepLink,
   extractDeepLinkFromArgv,
   registerProtocolHandler,
   DEEP_LINK_PROTOCOL,
 } from './deepLinkHandlers';
-export { setupRaycastHandlers } from './raycastHandlers';
 export { setupAssetHandlers, registerAssetProtocol } from './assetHandlers';
 export { setupWindowHandlers } from './windowHandlers';
 

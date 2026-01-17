@@ -1,14 +1,11 @@
 import { app } from 'electron';
 import path from 'path';
-import { createVaultPath, createNoteId, IPC_CHANNELS } from '@scribe/shared';
+import { createVaultPath, IPC_CHANNELS } from '@scribe/shared';
 import { WindowManager } from './window-manager';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
 import { TaskIndex } from '@scribe/engine-core/node';
-import { loadSyncConfig, createSyncEngine } from '@scribe/engine-sync';
-import { createCredentialManager } from './sync/credential-manager.js';
-import { RecentOpensDatabase } from './database/recentOpensDb';
 import { setupAutoUpdater, setupDevUpdateHandlers } from './auto-updater';
 import {
   setupNotesHandlers,
@@ -20,14 +17,9 @@ import {
   setupDailyHandlers,
   setupMeetingHandlers,
   setupTasksHandlers,
-  setupCLIHandlers,
-  setupRaycastHandlers,
   setupExportHandlers,
   setupDialogHandlers,
   setupVaultHandlers,
-  setupSyncHandlers,
-  setupSyncStatusForwarding,
-  setupRecentOpensHandlers,
   setupAssetHandlers,
   registerAssetProtocol,
   setupWindowHandlers,
@@ -236,8 +228,6 @@ const deps: HandlerDependencies = {
   graphEngine: null,
   searchEngine: null,
   taskIndex: null,
-  syncEngine: null,
-  recentOpensDb: null,
 };
 
 /**
@@ -277,11 +267,6 @@ async function initializeEngine(): Promise<import('@scribe/shared').VaultPath> {
     deps.taskIndex = new TaskIndex(path.join(vaultPath, 'derived'));
     await deps.taskIndex.load();
 
-    // Initialize recent opens database
-    const recentOpensDbPath = path.join(vaultPath, 'derived', 'recent_opens.sqlite3');
-    deps.recentOpensDb = new RecentOpensDatabase({ dbPath: recentOpensDbPath });
-    mainLogger.info('Recent opens database initialized');
-
     // Build initial graph, search index, and task index from loaded notes
     const notes = deps.vault.list();
     for (const note of notes) {
@@ -295,56 +280,6 @@ async function initializeEngine(): Promise<import('@scribe/shared').VaultPath> {
 
     const stats = deps.graphEngine.getStats();
     mainLogger.debug(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
-
-    // SYNC: Load sync configuration using engine-sync package
-    // Sync is disabled by default - only enabled with valid config and enabled: true
-    const syncConfigResult = await loadSyncConfig(vaultPath);
-
-    if (syncConfigResult.status === 'enabled') {
-      try {
-        // Get API key from secure storage
-        const credentialManager = createCredentialManager(vaultPath);
-        const apiKey = await credentialManager.getApiKey();
-
-        if (apiKey) {
-          // Create and initialize sync engine
-          deps.syncEngine = await createSyncEngine({
-            vaultPath,
-            config: syncConfigResult.config,
-            apiKey,
-            // networkMonitor: new ElectronNetworkMonitor(), // TODO: Implement if needed
-            onSaveNote: async (note) => {
-              // Save via vault without triggering sync again (internal sync save)
-              await deps.vault?.save(note);
-            },
-            onDeleteNote: async (noteId) => {
-              await deps.vault?.delete(createNoteId(noteId));
-            },
-            onReadNote: async (noteId) => {
-              return deps.vault?.read(createNoteId(noteId)) ?? null;
-            },
-          });
-
-          mainLogger.info('Sync engine initialized', {
-            serverUrl: syncConfigResult.config.serverUrl,
-            deviceId: syncConfigResult.config.deviceId.slice(0, 8) + '...', // Log only prefix for privacy
-          });
-        } else {
-          mainLogger.warn('Sync enabled but no API key found - sync engine not initialized');
-          deps.syncEngine = null;
-        }
-      } catch (error) {
-        mainLogger.error('Failed to initialize sync engine', { error });
-        deps.syncEngine = null;
-      }
-    } else if (syncConfigResult.status === 'disabled') {
-      deps.syncEngine = null;
-      mainLogger.info(`Sync disabled - reason: ${syncConfigResult.reason}`);
-    } else {
-      // Error loading config
-      deps.syncEngine = null;
-      mainLogger.error('Error loading sync config', { error: syncConfigResult.error });
-    }
 
     return vaultPath;
   } catch (error) {
@@ -367,13 +302,9 @@ function setupIPCHandlers() {
   setupDailyHandlers(deps);
   setupMeetingHandlers(deps);
   setupTasksHandlers(deps);
-  setupCLIHandlers(deps);
-  setupRaycastHandlers(deps);
   setupExportHandlers(deps);
   setupDialogHandlers();
   setupVaultHandlers(deps);
-  setupSyncHandlers(deps);
-  setupRecentOpensHandlers(deps);
   setupWindowHandlers(deps);
 }
 
@@ -437,9 +368,6 @@ app.whenReady().then(async () => {
     }
   }
 
-  // Setup sync status forwarding to renderer (if sync is enabled)
-  setupSyncStatusForwarding(deps);
-
   // On macOS, set the dock icon explicitly (needed for dev mode, production uses bundled icon)
   if (process.platform === 'darwin' && app.dock) {
     // app.getAppPath() returns the apps/desktop directory (where package.json with "main" is)
@@ -477,26 +405,6 @@ app.on('before-quit', async () => {
       mainLogger.debug('Task index flushed successfully');
     } catch (error) {
       mainLogger.error('Failed to flush task index', { error });
-    }
-  }
-
-  // Shutdown sync engine to stop polling and cleanup resources
-  if (deps.syncEngine) {
-    try {
-      await deps.syncEngine.shutdown();
-      mainLogger.debug('Sync engine shutdown successfully');
-    } catch (error) {
-      mainLogger.error('Failed to shutdown sync engine', { error });
-    }
-  }
-
-  // Close recent opens database
-  if (deps.recentOpensDb) {
-    try {
-      deps.recentOpensDb.close();
-      mainLogger.debug('Recent opens database closed successfully');
-    } catch (error) {
-      mainLogger.error('Failed to close recent opens database', { error });
     }
   }
 });
