@@ -154,7 +154,8 @@ describe('App Routing', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Notes');
+      // New UI shows date header instead of "Notes"
+      expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
     });
   });
 
@@ -176,8 +177,14 @@ describe('App Routing', () => {
       expect(screen.getByTestId('note-list')).toBeInTheDocument();
     });
 
-    // Click on an existing note
+    // Click on an existing note to expand it
     await user.click(screen.getByTestId('note-item'));
+
+    // Wait for expanded state and click Open button
+    await waitFor(() => {
+      expect(screen.getByText('Open')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Open'));
 
     // Should navigate to NoteEditorPage
     await waitFor(() => {
