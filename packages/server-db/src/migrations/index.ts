@@ -3,6 +3,7 @@
  */
 
 import migration001 from './001_initial.js';
+import migration002 from './002_plugin_storage.js';
 
 /**
  * Migration interface that all migrations must implement
@@ -19,7 +20,7 @@ export interface MigrationDefinition {
 /**
  * All migrations in order of application
  */
-export const migrations: MigrationDefinition[] = [migration001];
+export const migrations: MigrationDefinition[] = [migration001, migration002];
 
 /**
  * Get a migration by name
@@ -35,4 +36,4 @@ export function getLatestVersion(): number {
   return migrations.length > 0 ? migrations[migrations.length - 1].version : 0;
 }
 
-export { migration001 };
+export { migration001, migration002 };

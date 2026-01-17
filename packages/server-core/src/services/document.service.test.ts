@@ -22,6 +22,7 @@ import {
   TagsRepository,
   SearchRepository,
 } from '@scribe/server-db';
+import { createMockEventBus } from '@scribe/plugin-core';
 import { DocumentService } from './document.service.js';
 import type { EditorContent, NoteFile } from '../types/index.js';
 import { DocumentError } from '../errors.js';
@@ -799,6 +800,267 @@ describe('DocumentService', () => {
 
       const indexedAfter = notesRepo.findById(note.id);
       expect(indexedAfter?.contentHash).not.toBe(hashBefore);
+    });
+  });
+
+  describe('note lifecycle event emission', () => {
+    let eventBus: ReturnType<typeof createMockEventBus>;
+    let serviceWithEvents: DocumentService;
+
+    beforeEach(async () => {
+      eventBus = createMockEventBus();
+      serviceWithEvents = new DocumentService({
+        vaultPath,
+        notesRepo: new NotesRepository(scribeDb.getDb()),
+        linksRepo: new LinksRepository(scribeDb.getDb()),
+        tagsRepo: new TagsRepository(scribeDb.getDb()),
+        searchRepo: new SearchRepository(scribeDb.getDb()),
+        eventBus,
+      });
+    });
+
+    describe('note:created event', () => {
+      it('should emit note:created when a note is created', async () => {
+        const note = await serviceWithEvents.create({
+          title: 'Test Note',
+          type: 'note',
+        });
+
+        // Wait for fire-and-forget event emission
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(eventBus.emittedEvents).toHaveLength(1);
+        expect(eventBus.emittedEvents[0].type).toBe('note:created');
+
+        const event = eventBus.emittedEvents[0];
+        if (event.type === 'note:created') {
+          expect(event.noteId).toBe(note.id);
+          expect(event.title).toBe('Test Note');
+          expect(event.createdAt).toBeInstanceOf(Date);
+        }
+      });
+
+      it('should include correct title in note:created event', async () => {
+        await serviceWithEvents.create({
+          title: 'Specific Title',
+          type: 'note',
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        const event = eventBus.emittedEvents[0];
+        if (event.type === 'note:created') {
+          expect(event.title).toBe('Specific Title');
+        }
+      });
+    });
+
+    describe('note:updated event', () => {
+      it('should emit note:updated when a note is updated', async () => {
+        const note = await serviceWithEvents.create({
+          title: 'Original',
+          type: 'note',
+        });
+
+        eventBus.reset(); // Clear creation event
+
+        await serviceWithEvents.update(note.id, {
+          title: 'Updated',
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(eventBus.emittedEvents).toHaveLength(1);
+        expect(eventBus.emittedEvents[0].type).toBe('note:updated');
+
+        const event = eventBus.emittedEvents[0];
+        if (event.type === 'note:updated') {
+          expect(event.noteId).toBe(note.id);
+          expect(event.title).toBe('Updated');
+          expect(event.updatedAt).toBeInstanceOf(Date);
+        }
+      });
+
+      it('should include change flags indicating what changed', async () => {
+        const note = await serviceWithEvents.create({
+          title: 'Original',
+          type: 'note',
+          content: createTestContent('Original content'),
+        });
+
+        eventBus.reset();
+
+        // Update only title
+        await serviceWithEvents.update(note.id, { title: 'New Title' });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        let event = eventBus.emittedEvents[0];
+        if (event.type === 'note:updated') {
+          expect(event.changes.title).toBe(true);
+          expect(event.changes.content).toBe(false);
+        }
+
+        eventBus.reset();
+
+        // Update only content
+        await serviceWithEvents.update(note.id, {
+          content: createTestContent('New content'),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        event = eventBus.emittedEvents[0];
+        if (event.type === 'note:updated') {
+          expect(event.changes.title).toBe(false);
+          expect(event.changes.content).toBe(true);
+        }
+
+        eventBus.reset();
+
+        // Update both
+        await serviceWithEvents.update(note.id, {
+          title: 'Another Title',
+          content: createTestContent('Another content'),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        event = eventBus.emittedEvents[0];
+        if (event.type === 'note:updated') {
+          expect(event.changes.title).toBe(true);
+          expect(event.changes.content).toBe(true);
+        }
+      });
+
+      it('should not emit event when note does not exist', async () => {
+        eventBus.reset();
+
+        await serviceWithEvents.update('non-existent', { title: 'Test' });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(eventBus.emittedEvents).toHaveLength(0);
+      });
+
+      it('should mark title as unchanged when same title is provided', async () => {
+        const note = await serviceWithEvents.create({
+          title: 'Same Title',
+          type: 'note',
+        });
+
+        eventBus.reset();
+
+        await serviceWithEvents.update(note.id, {
+          title: 'Same Title', // Same as current
+          content: createTestContent('New content'),
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        const event = eventBus.emittedEvents[0];
+        if (event.type === 'note:updated') {
+          expect(event.changes.title).toBe(false); // Not changed
+          expect(event.changes.content).toBe(true);
+        }
+      });
+    });
+
+    describe('note:deleted event', () => {
+      it('should emit note:deleted when a note is deleted', async () => {
+        const note = await serviceWithEvents.create({
+          title: 'To Delete',
+          type: 'note',
+        });
+
+        eventBus.reset();
+
+        await serviceWithEvents.delete(note.id);
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(eventBus.emittedEvents).toHaveLength(1);
+        expect(eventBus.emittedEvents[0].type).toBe('note:deleted');
+
+        const event = eventBus.emittedEvents[0];
+        if (event.type === 'note:deleted') {
+          expect(event.noteId).toBe(note.id);
+        }
+      });
+
+      it('should not emit event when note does not exist', async () => {
+        eventBus.reset();
+
+        await serviceWithEvents.delete('non-existent');
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(eventBus.emittedEvents).toHaveLength(0);
+      });
+    });
+
+    describe('event emission error handling', () => {
+      it('should continue operation even if event emission fails', async () => {
+        // Create a mock event bus that throws
+        const failingEventBus = {
+          emit: vi.fn().mockRejectedValue(new Error('Event bus error')),
+          createScopedEmitter: vi.fn(),
+          getHandlerCount: vi.fn().mockReturnValue(0),
+          clear: vi.fn(),
+        };
+
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const serviceWithFailingEvents = new DocumentService({
+          vaultPath,
+          notesRepo: new NotesRepository(scribeDb.getDb()),
+          linksRepo: new LinksRepository(scribeDb.getDb()),
+          tagsRepo: new TagsRepository(scribeDb.getDb()),
+          searchRepo: new SearchRepository(scribeDb.getDb()),
+          eventBus: failingEventBus,
+        });
+
+        // Create should succeed even if event emission fails
+        const note = await serviceWithFailingEvents.create({
+          title: 'Test',
+          type: 'note',
+        });
+
+        expect(note).toBeDefined();
+        expect(note.id).toBeDefined();
+
+        // Wait for error to be logged
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(failingEventBus.emit).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[document-service] Event emission error:',
+          expect.any(Error)
+        );
+
+        errorSpy.mockRestore();
+      });
+
+      it('should not emit events when no event bus is provided', async () => {
+        // Service without event bus (original behavior)
+        const serviceWithoutEvents = new DocumentService({
+          vaultPath,
+          notesRepo: new NotesRepository(scribeDb.getDb()),
+          linksRepo: new LinksRepository(scribeDb.getDb()),
+          tagsRepo: new TagsRepository(scribeDb.getDb()),
+          searchRepo: new SearchRepository(scribeDb.getDb()),
+          // No eventBus provided
+        });
+
+        // Should work without issues
+        const note = await serviceWithoutEvents.create({
+          title: 'Test',
+          type: 'note',
+        });
+
+        expect(note).toBeDefined();
+
+        // No event bus means no events, but operation should succeed
+        await serviceWithoutEvents.update(note.id, { title: 'Updated' });
+        await serviceWithoutEvents.delete(note.id);
+      });
     });
   });
 });

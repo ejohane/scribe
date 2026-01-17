@@ -4,6 +4,7 @@
  * Manages the lifecycle of the Scribe daemon:
  * - Startup with port allocation
  * - Service initialization
+ * - Plugin system initialization
  * - HTTP + WebSocket server setup
  * - Signal handling for graceful shutdown
  * - PID/port file management
@@ -14,15 +15,26 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as http from 'node:http';
+import type { AnyRouter } from '@trpc/server';
 import {
   createServices,
   destroyServices,
-  appRouter,
   createContextFactory,
+  router,
+  notesRouter,
+  searchRouter,
+  graphRouter,
 } from '@scribe/server-core';
 import type { Services } from '@scribe/server-core';
+import { DefaultPluginEventBus } from '@scribe/plugin-core';
 import { YjsWebSocketServer } from './ws/server.js';
 import { VERSION } from './index.js';
+import {
+  initializePluginSystem,
+  getInstalledPlugins,
+  buildAppRouter,
+  type PluginSystem,
+} from './plugins/index.js';
 
 /** Get directory for daemon info file (computed at runtime to respect HOME changes) */
 function getDaemonInfoDir(): string {
@@ -93,6 +105,10 @@ export interface HealthResponse {
 export class Daemon {
   /** Initialized services */
   private services?: Services;
+  /** Plugin system */
+  private pluginSystem?: PluginSystem;
+  /** The merged app router (core + plugins) */
+  private appRouter?: AnyRouter;
   /** HTTP server instance */
   private server?: http.Server;
   /** WebSocket server instance */
@@ -119,26 +135,73 @@ export class Daemon {
       throw new Error(`Daemon already running (PID: ${existing.pid}, port: ${existing.port})`);
     }
 
-    // 2. Initialize services
+    // 2. Create event bus first (shared between services and plugin system)
+    const eventBus = new DefaultPluginEventBus();
+
+    // 3. Initialize services (with event bus for note lifecycle events)
     const dbPath = path.join(this.config.vaultPath, '.scribe', 'index.db');
     this.services = createServices({
       vaultPath: this.config.vaultPath,
       dbPath,
+      eventBus,
     });
 
-    // 3. Create HTTP server with tRPC and health endpoint
+    // 4. Initialize plugin system (with same event bus)
+    this.pluginSystem = await initializePluginSystem({
+      db: this.services.db.getDb(),
+      eventBus,
+    });
+
+    // 5. Load plugins (before router creation)
+    const installedPlugins = getInstalledPlugins();
+    await this.pluginSystem.loadPlugins(installedPlugins);
+
+    // 6. Build merged router (core + plugin routers)
+    const coreRouters = {
+      notes: notesRouter,
+      search: searchRouter,
+      graph: graphRouter,
+    };
+    const pluginRouters = this.pluginSystem.getRouters();
+    const routerResult = buildAppRouter(
+      coreRouters,
+      pluginRouters,
+      (routers) => router(routers),
+      this.pluginSystem.lifecycle
+    );
+    this.appRouter = routerResult.router;
+
+    // Log router merge results
+    if (routerResult.merged.length > 0) {
+      // eslint-disable-next-line no-console -- Intentional startup logging
+      console.log(
+        `[daemon] Merged ${routerResult.merged.length} plugin router(s): ${routerResult.merged.map((r) => r.namespace).join(', ')}`
+      );
+    }
+    if (routerResult.skipped.length > 0) {
+      // eslint-disable-next-line no-console -- Intentional warning
+      console.warn(
+        `[daemon] Skipped ${routerResult.skipped.length} plugin router(s):`,
+        routerResult.skipped.map((s) => `${s.pluginId} (${s.reason})`).join(', ')
+      );
+    }
+
+    // 7. Create HTTP server with tRPC and health endpoint
     const createContext = createContextFactory(this.services);
     this.server = http.createServer((req, res) => {
       this.handleRequest(req, res, createContext);
     });
 
-    // 4. Create WebSocket server
+    // 8. Create WebSocket server
     this.wsServer = new YjsWebSocketServer(this.services.collaborationService, this.server);
 
-    // 5. Start listening
+    // 9. Activate plugins (after services ready, before server starts)
+    await this.pluginSystem.activateAll();
+
+    // 10. Start listening
     const port = await this.listen(this.config.port ?? 0);
 
-    // 6. Write daemon info
+    // 11. Write daemon info
     this.info = {
       pid: process.pid,
       port,
@@ -148,7 +211,7 @@ export class Daemon {
     };
     await writeDaemonInfo(this.info);
 
-    // 7. Setup signal handlers
+    // 12. Setup signal handlers
     this.setupSignalHandlers();
 
     return this.info;
@@ -164,15 +227,23 @@ export class Daemon {
     }
     this.shuttingDown = true;
 
+    // eslint-disable-next-line no-console -- Intentional shutdown logging
+    console.log('[daemon] Shutting down...');
+
     // 1. Remove signal handlers to avoid leaks in tests
     this.removeSignalHandlers();
 
-    // 2. Close WebSocket server (disconnect all clients)
+    // 2. Shut down plugins (deactivate all)
+    if (this.pluginSystem) {
+      await this.pluginSystem.shutdown();
+    }
+
+    // 3. Close WebSocket server (disconnect all clients)
     if (this.wsServer) {
       await this.wsServer.close();
     }
 
-    // 3. Stop accepting new HTTP connections
+    // 4. Stop accepting new HTTP connections
     if (this.server) {
       await new Promise<void>((resolve, reject) => {
         this.server!.close((err) => {
@@ -185,13 +256,16 @@ export class Daemon {
       });
     }
 
-    // 4. Clean up services (persist Yjs state, close DB)
+    // 5. Clean up services (persist Yjs state, close DB)
     if (this.services) {
       destroyServices(this.services);
     }
 
-    // 5. Remove daemon info file
+    // 6. Remove daemon info file
     await removeDaemonInfo();
+
+    // eslint-disable-next-line no-console -- Intentional shutdown logging
+    console.log('[daemon] Shutdown complete');
   }
 
   /**
@@ -206,6 +280,14 @@ export class Daemon {
    */
   isRunning(): boolean {
     return this.info !== undefined && !this.shuttingDown;
+  }
+
+  /**
+   * Get the plugin system.
+   * Available after start() is called.
+   */
+  getPluginSystem(): PluginSystem | undefined {
+    return this.pluginSystem;
   }
 
   /**
@@ -303,7 +385,7 @@ export class Daemon {
       const response = await fetchRequestHandler({
         endpoint: '/trpc',
         req: fetchRequest,
-        router: appRouter,
+        router: this.appRouter!,
         createContext,
       });
 

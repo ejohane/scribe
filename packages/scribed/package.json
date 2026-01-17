@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@scribe/collab": "workspace:*",
+    "@scribe/plugin-core": "workspace:*",
     "@scribe/server-core": "workspace:*",
     "@trpc/server": "^10.45.4",
     "commander": "^14.0.2",

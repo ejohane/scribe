@@ -48,3 +48,38 @@ export {
   isClientMessage,
   isServerMessage,
 } from './ws/index.js';
+
+// Plugin system exports
+export {
+  // Initialization
+  initializePluginSystem,
+  type PluginSystem,
+  type ServerPluginContextFactory,
+  // Logger
+  createPluginLogger,
+  createNoopLogger,
+  // Installed plugins
+  getInstalledPlugins,
+  discoverPlugins,
+  type PluginDiscoveryConfig,
+  // Router merger functions
+  buildAppRouter,
+  collectPluginRouters,
+  validateNamespace,
+  validateNamespaceFormat,
+  isReservedNamespace,
+  wrapPluginRouter,
+  handlePluginRouterError,
+  clearRouterLifecycleMap,
+  getAllNamespaces,
+  isNamespaceAvailable,
+  // Constants
+  RESERVED_NAMESPACES,
+  // Error classes
+  NamespaceValidationError,
+  // Types
+  type PluginRouterEntry,
+  type BuildRouterResult,
+  type RouterFactory,
+  type ReservedNamespace,
+} from './plugins/index.js';

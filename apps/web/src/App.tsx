@@ -8,6 +8,7 @@
 import { type FC } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ScribeProvider } from './providers/ScribeProvider';
+import { PluginProvider, PluginClientInitializer } from './plugins';
 import { NoteListPage } from './pages/NoteListPage';
 import { NoteEditorPage } from './pages/NoteEditorPage';
 
@@ -23,10 +24,14 @@ export const App: FC<AppProps> = () => {
   return (
     <BrowserRouter>
       <ScribeProvider>
-        <Routes>
-          <Route path="/" element={<NoteListPage />} />
-          <Route path="/note/:id" element={<NoteEditorPage />} />
-        </Routes>
+        <PluginClientInitializer>
+          <PluginProvider>
+            <Routes>
+              <Route path="/" element={<NoteListPage />} />
+              <Route path="/note/:id" element={<NoteEditorPage />} />
+            </Routes>
+          </PluginProvider>
+        </PluginClientInitializer>
       </ScribeProvider>
     </BrowserRouter>
   );
