@@ -2,15 +2,16 @@
  * App component
  *
  * Root application component for Scribe Web client.
- * Sets up routing and provides application-wide context.
+ * Sets up routing and provides application-wide context using app-shell.
  */
 
 import { type FC } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ScribeProvider } from './providers/ScribeProvider';
+import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/app-shell';
 import { PluginProvider, PluginClientInitializer } from './plugins';
-import { NoteListPage } from './pages/NoteListPage';
-import { NoteEditorPage } from './pages/NoteEditorPage';
+import { DAEMON_PORT, DAEMON_HOST } from './config';
+
+const DAEMON_URL = `http://${DAEMON_HOST}:${DAEMON_PORT}`;
 
 export interface AppProps {
   /** Optional router for testing (allows using MemoryRouter in tests) */
@@ -23,16 +24,18 @@ export interface AppProps {
 export const App: FC<AppProps> = () => {
   return (
     <BrowserRouter>
-      <ScribeProvider>
-        <PluginClientInitializer>
-          <PluginProvider>
-            <Routes>
-              <Route path="/" element={<NoteListPage />} />
-              <Route path="/note/:id" element={<NoteEditorPage />} />
-            </Routes>
-          </PluginProvider>
-        </PluginClientInitializer>
-      </ScribeProvider>
+      <PlatformProvider platform="web" capabilities={{}}>
+        <ScribeProvider daemonUrl={DAEMON_URL}>
+          <PluginClientInitializer>
+            <PluginProvider>
+              <Routes>
+                <Route path="/" element={<NoteListPage />} />
+                <Route path="/note/:id" element={<NoteEditorPage />} />
+              </Routes>
+            </PluginProvider>
+          </PluginClientInitializer>
+        </ScribeProvider>
+      </PlatformProvider>
     </BrowserRouter>
   );
 };

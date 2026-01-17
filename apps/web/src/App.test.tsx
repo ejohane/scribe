@@ -1,147 +1,115 @@
 /**
- * Tests for App component and routing - Minimal UI
+ * Tests for App component and routing with app-shell
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { NoteListPage } from './pages/NoteListPage';
-import { NoteEditorPage } from './pages/NoteEditorPage';
 
-// Mock the config first
+// Mock the config
 vi.mock('./config', () => ({
   DAEMON_PORT: 47832,
+  DAEMON_HOST: '127.0.0.1',
 }));
 
-// Mock editor component to avoid Lexical complexity in routing tests
-vi.mock('@scribe/editor', () => ({
-  ScribeEditor: () => <div data-testid="mock-editor">Mock Editor</div>,
+// Mock @tanstack/react-query
+vi.mock('@tanstack/react-query', () => ({
+  QueryClient: vi.fn().mockImplementation(() => ({})),
+  QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Mock the collab module
-vi.mock('@scribe/collab', () => ({
-  YjsProvider: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="mock-yjs-provider">{children}</div>
-  ),
-  useYjs: () => ({
-    doc: null,
-    isLoading: false,
-    error: null,
-    noteId: 'test-note',
-  }),
-  LexicalYjsPlugin: () => null,
+// Create mockTrpc as a stable reference
+const mockTrpc = {
+  notes: {
+    list: {
+      query: vi.fn(),
+    },
+    create: {
+      mutate: vi.fn(),
+    },
+    get: {
+      query: vi.fn(),
+    },
+    update: {
+      mutate: vi.fn(),
+    },
+    delete: {
+      mutate: vi.fn(),
+    },
+  },
+  export: {
+    toMarkdown: {
+      query: vi.fn(),
+    },
+  },
+};
+
+// Mock @trpc/client
+vi.mock('@trpc/client', () => ({
+  createTRPCProxyClient: () => mockTrpc,
+  httpBatchLink: () => ({}),
 }));
 
-// Create full note document for tests
-function createMockNote(id: string, title: string) {
-  return {
-    id,
-    title,
-    type: 'note' as const,
+// Import pages from app-shell (they're the same ones used in App)
+import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/app-shell';
+
+// Sample note data
+const mockNotes = [
+  {
+    id: 'note-1',
+    title: 'Test Note',
+    type: 'note',
     date: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    content: { root: { children: [], type: 'root' as const, version: 1 } },
-    wordCount: 0,
-  };
-}
+    wordCount: 100,
+    filePath: '/notes/note-1.json',
+  },
+];
 
-// Create mock client factory with working API
-function createMockClient() {
-  const client = {
-    on: vi.fn(),
-    off: vi.fn(),
-    connect: vi.fn().mockImplementation(async () => {
-      setTimeout(() => {
-        const statusChangeCall = client.on.mock.calls.find(
-          (call: unknown[]) => call[0] === 'status-change'
-        );
-        if (statusChangeCall) {
-          const handler = statusChangeCall[1] as (status: string) => void;
-          handler('connected');
-        }
-      }, 0);
-    }),
-    disconnect: vi.fn(),
-    status: 'disconnected' as const,
-    isConnected: false,
-    api: {
-      notes: {
-        list: {
-          query: vi.fn().mockResolvedValue([
-            {
-              id: 'existing-note',
-              title: 'Existing Note',
-              type: 'note',
-              updatedAt: new Date().toISOString(),
-            },
-          ]),
-        },
-        create: {
-          mutate: vi
-            .fn()
-            .mockResolvedValue({ id: 'new-note-123', title: 'Untitled', type: 'note' }),
-        },
-        get: {
-          query: vi.fn().mockImplementation((id: string) => {
-            return Promise.resolve(createMockNote(id, `Note ${id}`));
-          }),
-        },
-        update: {
-          mutate: vi.fn().mockResolvedValue({}),
-        },
-        delete: {
-          mutate: vi.fn().mockResolvedValue(undefined),
-        },
-      },
-    },
-    collab: {
-      joinDocument: vi.fn().mockResolvedValue({
-        doc: {},
-        destroy: vi.fn(),
-      }),
-    },
-  };
-  return client;
-}
-
-// Global mock client reference
-let mockClientInstance = createMockClient();
-
-// Mock the client-sdk module
-vi.mock('@scribe/client-sdk', () => {
-  return {
-    ScribeClient: vi.fn().mockImplementation(() => mockClientInstance),
-  };
-});
-
-// Import after mocks
-import { ScribeProvider } from './providers/ScribeProvider';
-import { ScribeClient } from '@scribe/client-sdk';
+const mockNote = {
+  id: 'note-1',
+  title: 'Test Note',
+  type: 'note',
+  date: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  content: { root: { children: [], type: 'root', version: 1 } },
+  wordCount: 100,
+  filePath: '/notes/note-1.json',
+};
 
 /**
  * Helper to render with routing context.
  * Uses MemoryRouter instead of BrowserRouter for testing.
  */
-function renderWithRouter(initialRoute = '/') {
+function renderApp(initialRoute = '/') {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
-      <ScribeProvider>
-        <Routes>
-          <Route path="/" element={<NoteListPage />} />
-          <Route path="/note/:id" element={<NoteEditorPage />} />
-        </Routes>
-      </ScribeProvider>
+      <PlatformProvider platform="web" capabilities={{}}>
+        <ScribeProvider daemonUrl="http://127.0.0.1:47832">
+          <Routes>
+            <Route path="/" element={<NoteListPage />} />
+            <Route path="/note/:id" element={<NoteEditorPage />} />
+          </Routes>
+        </ScribeProvider>
+      </PlatformProvider>
     </MemoryRouter>
   );
 }
 
-describe('App Routing', () => {
+describe('App Routing with app-shell', () => {
   beforeEach(() => {
-    mockClientInstance = createMockClient();
     vi.clearAllMocks();
-    (ScribeClient as Mock).mockImplementation(() => mockClientInstance);
+    mockTrpc.notes.list.query.mockResolvedValue(mockNotes);
+    mockTrpc.notes.get.query.mockResolvedValue(mockNote);
+    mockTrpc.notes.create.mutate.mockResolvedValue({
+      id: 'new-note',
+      title: 'Untitled',
+      type: 'note',
+    });
+    mockTrpc.notes.delete.mutate.mockResolvedValue({ success: true });
+    mockTrpc.export.toMarkdown.query.mockResolvedValue({ markdown: '# Test' });
   });
 
   afterEach(() => {
@@ -149,89 +117,51 @@ describe('App Routing', () => {
   });
 
   it('renders NoteListPage at root route', async () => {
-    renderWithRouter('/');
+    renderApp('/');
 
     await waitFor(() => {
       expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
-      // Minimal UI shows a textarea for creating notes
-      expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
+    });
+  });
+
+  it('displays notes from tRPC', async () => {
+    renderApp('/');
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Note')).toBeInTheDocument();
     });
   });
 
   it('renders NoteEditorPage at /note/:id route', async () => {
-    renderWithRouter('/note/test-note-123');
+    renderApp('/note/note-1');
 
     await waitFor(() => {
       expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
     });
   });
 
-  it('navigates from NoteListPage to NoteEditorPage via hamburger menu', async () => {
-    const user = userEvent.setup();
-    renderWithRouter('/');
+  it('has create note button', async () => {
+    renderApp('/');
 
-    // Wait for the page to load and menu button to appear
     await waitFor(() => {
-      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /menu/i })).toBeInTheDocument();
-    });
-
-    // Open hamburger menu
-    await user.click(screen.getByRole('button', { name: /menu/i }));
-
-    // Wait for notes list in sidebar
-    await waitFor(() => {
-      expect(screen.getByText('Existing Note')).toBeInTheDocument();
-    });
-
-    // Click on a note
-    await user.click(screen.getByText('Existing Note'));
-
-    // Should navigate to NoteEditorPage
-    await waitFor(() => {
-      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
+      expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
     });
   });
 
-  it('creates new note via Cmd+Enter and navigates to editor', async () => {
-    renderWithRouter('/');
+  it('creates note on button click', async () => {
+    renderApp('/');
 
-    // Wait for the page to load
     await waitFor(() => {
-      expect(screen.getByTestId('create-note-input')).toBeInTheDocument();
+      expect(screen.getByTestId('create-note-button')).toBeInTheDocument();
     });
 
-    // Type in textarea and press Cmd+Enter
-    const textarea = screen.getByTestId('create-note-input');
-    fireEvent.change(textarea, { target: { value: 'My New Note' } });
-    fireEvent.keyDown(textarea, { key: 'Enter', metaKey: true });
+    fireEvent.click(screen.getByTestId('create-note-button'));
 
-    // Should create note and navigate to NoteEditorPage
     await waitFor(() => {
-      expect(mockClientInstance.api.notes.create.mutate).toHaveBeenCalledWith({
-        title: 'My New Note',
+      expect(mockTrpc.notes.create.mutate).toHaveBeenCalledWith({
+        title: 'Untitled',
         type: 'note',
       });
-    });
-  });
-
-  it('navigates from NoteEditorPage to NoteListPage via hamburger menu home', async () => {
-    const user = userEvent.setup();
-    renderWithRouter('/note/test-123');
-
-    // Wait for editor page to load
-    await waitFor(() => {
-      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-editor')).toBeInTheDocument();
-    });
-
-    // Open hamburger menu and click New Note to focus on creating
-    await user.click(screen.getByRole('button', { name: /menu/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Notes')).toBeInTheDocument();
     });
   });
 });

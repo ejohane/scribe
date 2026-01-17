@@ -1,8 +1,8 @@
 /**
  * PluginClientInitializer
  *
- * Component that initializes plugins with the Scribe client.
- * Must be rendered inside ScribeProvider after the client is connected.
+ * Component that initializes plugins with the tRPC client from app-shell.
+ * Must be rendered inside ScribeProvider after the client is ready.
  *
  * @module
  */
@@ -10,7 +10,7 @@
 import { useEffect, useRef, type FC, type ReactNode } from 'react';
 // Import from /client to avoid pulling in server-side code (@trpc/server)
 import { initializeClientPlugin as initTodoPlugin } from '@scribe/plugin-todo/client';
-import { useScribe } from '../providers/ScribeProvider';
+import { useTrpc } from '@scribe/app-shell';
 
 /**
  * Props for the PluginClientInitializer component.
@@ -21,21 +21,10 @@ export interface PluginClientInitializerProps {
 }
 
 /**
- * Hook that returns the Scribe client for plugin use.
- *
- * This wrapper is needed because plugin initialization expects a hook
- * that returns the client directly, not the full context.
- */
-function useScribeClientForPlugins() {
-  const { client } = useScribe();
-  return client;
-}
-
-/**
- * Component that initializes plugins with the Scribe client.
+ * Component that initializes plugins with the tRPC client.
  *
  * This component:
- * 1. Waits for the Scribe client to be available
+ * 1. Gets the tRPC client from app-shell's ScribeProvider
  * 2. Initializes all installed plugins with the client hook
  * 3. Renders children once initialization is complete
  *
@@ -44,7 +33,7 @@ function useScribeClientForPlugins() {
  *
  * @example
  * ```tsx
- * <ScribeProvider>
+ * <ScribeProvider daemonUrl="http://localhost:3000">
  *   <PluginClientInitializer>
  *     <PluginProvider>
  *       <App />
@@ -55,20 +44,20 @@ function useScribeClientForPlugins() {
  */
 export const PluginClientInitializer: FC<PluginClientInitializerProps> = ({ children }) => {
   const initialized = useRef(false);
-  const { isConnected } = useScribe();
+  const trpc = useTrpc();
 
   useEffect(() => {
-    if (isConnected && !initialized.current) {
-      // Initialize plugins with the client hook
-      // The hook wrapper returns just the client, matching what plugins expect
+    if (trpc && !initialized.current) {
+      // Initialize plugins with the tRPC client hook
+      // The plugins expect a hook that returns the API client
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      initTodoPlugin(useScribeClientForPlugins as any);
+      initTodoPlugin(() => ({ api: trpc }) as any);
 
       initialized.current = true;
       // eslint-disable-next-line no-console -- Intentional logging for debugging
-      console.log('[PluginClientInitializer] Plugins initialized with client');
+      console.log('[PluginClientInitializer] Plugins initialized with tRPC client');
     }
-  }, [isConnected]);
+  }, [trpc]);
 
   return <>{children}</>;
 };

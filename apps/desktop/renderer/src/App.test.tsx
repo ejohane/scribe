@@ -1,13 +1,11 @@
 /**
- * Tests for App component with routing.
+ * Tests for App component with routing using app-shell.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import type { ScribeAPI } from '@scribe/shared';
 import type { NoteMetadata, NoteDocument } from '@scribe/server-core';
-import App from './App';
 
 // Mock notes data
 const mockNotes: NoteMetadata[] = [
@@ -49,14 +47,28 @@ const mockTrpc = {
   notes: {
     list: { query: vi.fn().mockResolvedValue(mockNotes) },
     get: { query: vi.fn().mockResolvedValue(mockNoteDocument) },
-    create: { mutate: vi.fn() },
+    create: {
+      mutate: vi.fn().mockResolvedValue({ id: 'new-note', title: 'Untitled', type: 'note' }),
+    },
     update: { mutate: vi.fn() },
     delete: { mutate: vi.fn() },
   },
   export: {
-    toMarkdown: { query: vi.fn() },
+    toMarkdown: { query: vi.fn().mockResolvedValue({ markdown: '# Test' }) },
   },
 };
+
+// Mock @tanstack/react-query
+vi.mock('@tanstack/react-query', () => ({
+  QueryClient: vi.fn().mockImplementation(() => ({})),
+  QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// Mock @trpc/client to provide our mock tRPC
+vi.mock('@trpc/client', () => ({
+  createTRPCProxyClient: () => mockTrpc,
+  httpBatchLink: () => ({}),
+}));
 
 // Create mock Electron API
 const mockElectron = {
@@ -113,33 +125,22 @@ const mockElectron = {
   },
 } as unknown as ScribeAPI;
 
-// Mock the ElectronProvider to provide context immediately
-vi.mock('./providers/ElectronProvider', () => {
-  return {
-    ElectronProvider: ({ children }: { children: React.ReactNode }) => children,
-    useElectron: () => ({
-      electron: mockElectron,
-      trpc: mockTrpc,
-      isReady: true,
-      daemonPort: 47832,
-      error: null,
-    }),
-  };
-});
-
-// Mock the page components to isolate App routing tests
-vi.mock('./pages/NoteListPage', () => ({
-  NoteListPage: () => <div data-testid="note-list-page">Note List Page</div>,
-}));
-
-vi.mock('./pages/NoteEditorPage', () => ({
-  NoteEditorPage: () => <div data-testid="note-editor-page">Note Editor Page</div>,
-}));
+// Import App after mocks
+import App from './App';
 
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock window.scribe for ElectronProvider
+    // Re-setup mock implementations after clearing
+    mockTrpc.notes.list.query.mockResolvedValue(mockNotes);
+    mockTrpc.notes.get.query.mockResolvedValue(mockNoteDocument);
+    mockTrpc.notes.create.mutate.mockResolvedValue({
+      id: 'new-note',
+      title: 'Untitled',
+      type: 'note',
+    });
+    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47832);
+    // Mock window.scribe for Electron API
     Object.defineProperty(window, 'scribe', {
       value: mockElectron,
       writable: true,
@@ -150,13 +151,13 @@ describe('App', () => {
     vi.resetAllMocks();
   });
 
-  it('renders without crashing', () => {
+  it('shows loading state initially', () => {
     render(<App />);
-    // App uses HashRouter, so it should render
-    expect(document.body).toBeInTheDocument();
+
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  it('renders NoteListPage at root path', async () => {
+  it('renders NoteListPage after daemon port is resolved', async () => {
     render(<App />);
 
     await waitFor(() => {
@@ -164,25 +165,23 @@ describe('App', () => {
     });
   });
 
-  it('renders NoteEditorPage at /note/:id path', async () => {
-    // Use MemoryRouter to test specific routes since we mock the pages
-    // Note: We need to test App's HashRouter behavior indirectly
-    // For this test, we verify the Route components are set up correctly
+  it('shows error state when daemon port fails', async () => {
+    mockElectron.scribe.getDaemonPort = vi.fn().mockRejectedValue(new Error('Daemon not running'));
+
     render(<App />);
 
-    // By default, HashRouter starts at '/', so we see NoteListPage
     await waitFor(() => {
-      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+      expect(screen.getByText('Connection Error')).toBeInTheDocument();
+      expect(screen.getByText('Daemon not running')).toBeInTheDocument();
     });
   });
 
-  it('wraps routes with ElectronProvider', async () => {
-    // The ElectronProvider is mocked to pass through children
-    // If it wasn't working, the pages wouldn't render
+  it('displays notes from tRPC', async () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+      expect(screen.getByText('First Note')).toBeInTheDocument();
+      expect(screen.getByText('Second Note')).toBeInTheDocument();
     });
   });
 });
@@ -190,6 +189,15 @@ describe('App', () => {
 describe('App routing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-setup mock implementations after clearing
+    mockTrpc.notes.list.query.mockResolvedValue(mockNotes);
+    mockTrpc.notes.get.query.mockResolvedValue(mockNoteDocument);
+    mockTrpc.notes.create.mutate.mockResolvedValue({
+      id: 'new-note',
+      title: 'Untitled',
+      type: 'note',
+    });
+    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47832);
     Object.defineProperty(window, 'scribe', {
       value: mockElectron,
       writable: true,
@@ -200,13 +208,13 @@ describe('App routing', () => {
     vi.resetAllMocks();
   });
 
-  it('uses HashRouter for Electron compatibility', () => {
-    // HashRouter uses # in URLs for routing
-    // This is important for Electron's file:// protocol
+  it('uses HashRouter for Electron compatibility', async () => {
     render(<App />);
 
-    // The App should render without errors using HashRouter
-    expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+    await waitFor(() => {
+      // The App should render without errors using HashRouter
+      expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+    });
   });
 
   it('has route for root path (/)', async () => {
@@ -216,20 +224,20 @@ describe('App routing', () => {
       expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
     });
   });
-
-  it('has route for note editor path (/note/:id)', async () => {
-    // We can test this by checking that the Route is configured
-    // Since we mock the pages, we just verify the app structure is correct
-    render(<App />);
-
-    // App renders without errors, indicating routes are properly configured
-    expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
-  });
 });
 
 describe('App provider hierarchy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-setup mock implementations after clearing
+    mockTrpc.notes.list.query.mockResolvedValue(mockNotes);
+    mockTrpc.notes.get.query.mockResolvedValue(mockNoteDocument);
+    mockTrpc.notes.create.mutate.mockResolvedValue({
+      id: 'new-note',
+      title: 'Untitled',
+      type: 'note',
+    });
+    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47832);
     Object.defineProperty(window, 'scribe', {
       value: mockElectron,
       writable: true,
@@ -240,14 +248,20 @@ describe('App provider hierarchy', () => {
     vi.resetAllMocks();
   });
 
-  it('wraps content in ElectronProvider inside HashRouter', async () => {
-    // The order matters: HashRouter > ElectronProvider > Routes
-    // This ensures navigation works before tRPC is available
+  it('wraps content in PlatformProvider and ScribeProvider inside HashRouter', async () => {
     render(<App />);
 
     await waitFor(() => {
       // If the hierarchy is wrong, this wouldn't render
       expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
+    });
+  });
+
+  it('calls getDaemonPort on mount', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockElectron.scribe.getDaemonPort).toHaveBeenCalled();
     });
   });
 });

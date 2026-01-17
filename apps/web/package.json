@@ -18,10 +18,13 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
+    "@scribe/app-shell": "workspace:*",
     "@scribe/client-sdk": "workspace:*",
     "@scribe/collab": "workspace:*",
     "@scribe/editor": "workspace:*",
     "@scribe/plugin-core": "workspace:*",
+    "@tanstack/react-query": "^5.0.0",
+    "@trpc/client": "^10.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
