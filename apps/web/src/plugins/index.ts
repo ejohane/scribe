@@ -48,3 +48,7 @@ export type {
 
 // Installed plugins registry
 export { getInstalledPlugins } from './installed';
+
+// Plugin client initializer
+export { PluginClientInitializer } from './PluginClientInitializer';
+export type { PluginClientInitializerProps } from './PluginClientInitializer';

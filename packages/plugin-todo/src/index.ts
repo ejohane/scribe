@@ -3,6 +3,19 @@
  *
  * Todo plugin for Scribe - adds task management capabilities to your notes.
  *
+ * This module provides a complete PluginModule export that includes both
+ * server and client plugin factories, as well as the manifest.
+ *
+ * @example
+ * ```typescript
+ * // In installed plugins registry (web app)
+ * import * as todoPlugin from '@scribe/plugin-todo';
+ *
+ * export function getInstalledPlugins(): PluginModule[] {
+ *   return [todoPlugin];
+ * }
+ * ```
+ *
  * @example
  * ```typescript
  * // Server-side usage
@@ -39,6 +52,18 @@ export {
   createServerPlugin,
 } from './server/index.js';
 export type { TodoRouter } from './server/index.js';
+
+// Re-export client components
+export {
+  createClientPlugin,
+  initializeClientPlugin,
+  TasksSidebarPanel,
+  setUseScribeClient,
+  taskCommandHandler,
+  setTaskCommandClient,
+  setTaskCommandToast,
+  createTaskCommandHandler,
+} from './client/index.js';
 
 // Re-export shared types
 export type { Todo, TodoStatus, CreateTodoInput, UpdateTodoInput } from './shared/index.js';

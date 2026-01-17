@@ -6,30 +6,14 @@
  * @module
  */
 
-import type { PluginManifest, ServerPlugin, ServerPluginContext } from '@scribe/plugin-core';
+import type { ServerPlugin, ServerPluginContext } from '@scribe/plugin-core';
 import { TodoStore } from './store.js';
 import { createTodoRouter } from './router.js';
 import { createEventHandlers } from './events.js';
+import { manifest } from '../shared/manifest.js';
 
-/**
- * Todo plugin manifest.
- *
- * Declares the plugin's identity and capabilities.
- */
-export const manifest: PluginManifest = {
-  id: '@scribe/plugin-todo',
-  version: '1.0.0',
-  name: 'Todo Plugin',
-  description: 'Adds task management capabilities to your notes',
-  author: 'Scribe Team',
-  capabilities: [
-    { type: 'trpc-router', namespace: 'todos' },
-    { type: 'storage', keys: ['todo:ids', 'todo:*', 'todo:by-note:*'] },
-    { type: 'event-hook', events: ['note:deleted'] },
-    { type: 'sidebar-panel', id: 'todo-panel', label: 'Tasks', icon: 'CheckSquare' },
-    { type: 'slash-command', command: 'task', label: 'Add Task', description: 'Add a todo item' },
-  ],
-};
+// Re-export manifest for backwards compatibility
+export { manifest } from '../shared/manifest.js';
 
 /**
  * Create the server-side plugin instance.

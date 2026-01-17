@@ -8,6 +8,8 @@
  */
 
 import type { PluginModule } from '@scribe/plugin-core';
+// Import from /client to avoid pulling in server-side code (@trpc/server)
+import * as todoPlugin from '@scribe/plugin-todo/client';
 
 /**
  * Get all installed plugins.
@@ -35,10 +37,8 @@ import type { PluginModule } from '@scribe/plugin-core';
  * @returns Array of plugin modules to load
  */
 export function getInstalledPlugins(): PluginModule[] {
-  // No plugins installed yet
-  // Add imported plugin modules here as they're created
   return [
-    // Example (uncomment when plugin-todo is created):
-    // todoPlugin,
+    todoPlugin,
+    // Add more plugins here
   ];
 }

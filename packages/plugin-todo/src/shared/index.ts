@@ -5,3 +5,4 @@
  */
 
 export type { Todo, TodoStatus, CreateTodoInput, UpdateTodoInput } from './types.js';
+export { manifest } from './manifest.js';
