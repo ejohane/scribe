@@ -110,3 +110,29 @@ export {
   hasCapability,
   getCapabilitiesByType,
 } from './plugin-types.js';
+
+// ============================================================================
+// Plugin Manifest Validation (Zod Schemas)
+// ============================================================================
+
+export {
+  // Schemas
+  pluginManifestSchema,
+  pluginCapabilitySchema,
+  trpcRouterCapabilitySchema,
+  storageCapabilitySchema,
+  eventHookCapabilitySchema,
+  sidebarPanelCapabilitySchema,
+  slashCommandCapabilitySchema,
+  // Validation helpers
+  validateManifest,
+  safeValidateManifest,
+  validateCapability,
+  // Error class
+  PluginManifestError,
+} from './plugin-manifest.schema.js';
+
+export type {
+  PluginManifestFromSchema,
+  PluginCapabilityFromSchema,
+} from './plugin-manifest.schema.js';
