@@ -155,3 +155,16 @@ export type {
   CapabilityTypeMap,
   CapabilityIndex,
 } from './plugin-registry.js';
+
+// ============================================================================
+// Plugin Loader
+// ============================================================================
+
+export { PluginLoader, PluginLoadError, detectEnvironment } from './plugin-loader.js';
+
+export type {
+  PluginModule,
+  PluginLoadFailure,
+  LoadResult,
+  PluginContextFactory,
+} from './plugin-loader.js';
