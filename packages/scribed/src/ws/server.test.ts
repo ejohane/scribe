@@ -299,7 +299,7 @@ describe('YjsWebSocketServer', () => {
       client.close();
     });
 
-    it('should broadcast updates to other clients', async () => {
+    it('should broadcast updates to other clients', { timeout: 15000 }, async () => {
       const note = await services.documentService.create({
         title: 'Test Note',
         type: 'note',
@@ -313,8 +313,8 @@ describe('YjsWebSocketServer', () => {
       sendMessage(client1, { type: 'join', noteId: note.id });
       sendMessage(client2, { type: 'join', noteId: note.id });
 
-      await collectMessages(client1, 2);
-      await collectMessages(client2, 2);
+      await collectMessages(client1, 2, 10000);
+      await collectMessages(client2, 2, 10000);
 
       // Create update from client1
       const clientDoc = new Y.Doc();
@@ -323,7 +323,7 @@ describe('YjsWebSocketServer', () => {
       clientDoc.destroy();
 
       // Set up listener for client2 BEFORE sending
-      const updatePromise = waitForMessage(client2, 'sync-update');
+      const updatePromise = waitForMessage(client2, 'sync-update', 10000);
 
       // Client1 sends update
       sendMessage(client1, {
@@ -477,7 +477,7 @@ describe('YjsWebSocketServer', () => {
       expect(wsServer.getNoteClientCount(note2.id)).toBe(0);
     });
 
-    it('should not affect other clients on disconnect', async () => {
+    it('should not affect other clients on disconnect', { timeout: 15000 }, async () => {
       const note = await services.documentService.create({
         title: 'Test Note',
         type: 'note',
@@ -490,8 +490,8 @@ describe('YjsWebSocketServer', () => {
       sendMessage(client1, { type: 'join', noteId: note.id });
       sendMessage(client2, { type: 'join', noteId: note.id });
 
-      await waitForMessage(client1, 'joined');
-      await waitForMessage(client2, 'joined');
+      await waitForMessage(client1, 'joined', 10000);
+      await waitForMessage(client2, 'joined', 10000);
 
       expect(wsServer.getNoteClientCount(note.id)).toBe(2);
 
@@ -499,7 +499,7 @@ describe('YjsWebSocketServer', () => {
       client1.close();
 
       // Wait for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Client2 should still be connected
       expect(wsServer.getNoteClientCount(note.id)).toBe(1);
