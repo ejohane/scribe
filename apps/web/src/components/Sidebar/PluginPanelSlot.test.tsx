@@ -8,7 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import {
   PluginPanelSlot,
   PanelLoadingSkeleton,
-  PanelErrorFallback,
+  SidebarPanelFallback,
   type PanelProps,
 } from './PluginPanelSlot';
 
@@ -45,37 +45,25 @@ describe('PanelLoadingSkeleton', () => {
   });
 });
 
-describe('PanelErrorFallback', () => {
-  it('renders error message', () => {
-    render(<PanelErrorFallback pluginId="@test/plugin" />);
-
-    expect(screen.getByTestId('panel-error-fallback')).toBeInTheDocument();
-    expect(screen.getByText('This panel encountered an error.')).toBeInTheDocument();
-    expect(screen.getByText('Plugin: @test/plugin')).toBeInTheDocument();
-  });
-
-  it('displays error message when provided', () => {
-    const error = new Error('Test error message');
-    render(<PanelErrorFallback pluginId="@test/plugin" error={error} />);
-
-    expect(screen.getByText('Test error message')).toBeInTheDocument();
-  });
-
-  it('shows retry button when onRetry is provided', () => {
+describe('SidebarPanelFallback', () => {
+  it('renders fallback UI', () => {
     const onRetry = vi.fn();
-    render(<PanelErrorFallback pluginId="@test/plugin" onRetry={onRetry} />);
+    render(<SidebarPanelFallback pluginId="@test/plugin" onRetry={onRetry} />);
 
-    const retryButton = screen.getByText('Try Again');
+    expect(screen.getByTestId('sidebar-panel-fallback')).toBeInTheDocument();
+    expect(screen.getByText('Panel unavailable')).toBeInTheDocument();
+    expect(screen.getByText('@test/plugin')).toBeInTheDocument();
+  });
+
+  it('calls onRetry when retry button is clicked', () => {
+    const onRetry = vi.fn();
+    render(<SidebarPanelFallback pluginId="@test/plugin" onRetry={onRetry} />);
+
+    const retryButton = screen.getByTestId('sidebar-panel-fallback-retry');
     expect(retryButton).toBeInTheDocument();
 
     fireEvent.click(retryButton);
     expect(onRetry).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not show retry button when onRetry is not provided', () => {
-    render(<PanelErrorFallback pluginId="@test/plugin" />);
-
-    expect(screen.queryByText('Try Again')).not.toBeInTheDocument();
   });
 });
 
@@ -202,6 +190,7 @@ describe('PluginPanelSlot', () => {
 
   it('catches errors in panel component and shows fallback', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const ErrorPanel = () => {
       throw new Error('Panel crashed');
@@ -214,17 +203,19 @@ describe('PluginPanelSlot', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('panel-error-fallback')).toBeInTheDocument();
+      expect(screen.getByTestId('sidebar-panel-fallback')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Panel crashed')).toBeInTheDocument();
-    expect(screen.getByText('Plugin: @test/plugin')).toBeInTheDocument();
+    expect(screen.getByText('Panel unavailable')).toBeInTheDocument();
+    expect(screen.getByText('@test/plugin')).toBeInTheDocument();
 
     consoleSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   it('allows retry after error', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     let shouldError = true;
 
     const FlakeyPanel = () => {
@@ -242,12 +233,12 @@ describe('PluginPanelSlot', () => {
 
     // Should show error fallback
     await waitFor(() => {
-      expect(screen.getByTestId('panel-error-fallback')).toBeInTheDocument();
+      expect(screen.getByTestId('sidebar-panel-fallback')).toBeInTheDocument();
     });
 
     // Fix the error and retry
     shouldError = false;
-    fireEvent.click(screen.getByText('Try Again'));
+    fireEvent.click(screen.getByTestId('sidebar-panel-fallback-retry'));
 
     // Should now render successfully
     await waitFor(() => {
@@ -255,5 +246,6 @@ describe('PluginPanelSlot', () => {
     });
 
     consoleSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 });

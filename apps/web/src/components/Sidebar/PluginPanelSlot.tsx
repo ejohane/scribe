@@ -8,8 +8,9 @@
  * @module
  */
 
-import { Suspense, type ComponentType, type ReactNode, Component } from 'react';
+import { Suspense, type ComponentType } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PluginErrorBoundary, SidebarPanelFallback } from '../../plugins/PluginErrorBoundary';
 
 /**
  * Props passed to plugin panel components.
@@ -58,89 +59,6 @@ function PanelLoadingSkeleton() {
 }
 
 /**
- * Fallback UI shown when a plugin panel crashes.
- */
-interface PanelErrorFallbackProps {
-  pluginId: string;
-  error?: Error;
-  onRetry?: () => void;
-}
-
-function PanelErrorFallback({ pluginId, error, onRetry }: PanelErrorFallbackProps) {
-  return (
-    <div className="p-4 text-center" data-testid="panel-error-fallback">
-      <p className="text-red-400 text-sm mb-2">This panel encountered an error.</p>
-      {error && (
-        <p className="text-[var(--text-muted)] text-xs mb-3 font-mono break-all">{error.message}</p>
-      )}
-      <p className="text-[var(--text-muted)] text-xs mb-3">Plugin: {pluginId}</p>
-      {onRetry && (
-        <button onClick={onRetry} className="text-[var(--accent-green)] text-sm hover:underline">
-          Try Again
-        </button>
-      )}
-    </div>
-  );
-}
-
-/**
- * Error boundary state.
- */
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
-
-/**
- * Error boundary props.
- */
-interface PluginErrorBoundaryProps {
-  pluginId: string;
-  children: ReactNode;
-  onError?: (error: Error, pluginId: string) => void;
-}
-
-/**
- * Error boundary for plugin panels.
- *
- * Catches errors in plugin components and displays a fallback UI.
- */
-class PluginErrorBoundary extends Component<PluginErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: PluginErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error) {
-    // eslint-disable-next-line no-console -- Intentional error logging for debugging
-    console.error(`[PluginPanelSlot] Plugin ${this.props.pluginId} panel error:`, error);
-    this.props.onError?.(error, this.props.pluginId);
-  }
-
-  handleRetry = () => {
-    this.setState({ hasError: false, error: null });
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <PanelErrorFallback
-          pluginId={this.props.pluginId}
-          error={this.state.error ?? undefined}
-          onRetry={this.handleRetry}
-        />
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-/**
  * Wraps a plugin panel component with error boundary and loading state.
  *
  * Provides the Panel API to the plugin component for common operations
@@ -182,7 +100,12 @@ export function PluginPanelSlot({
   };
 
   return (
-    <PluginErrorBoundary pluginId={pluginId}>
+    <PluginErrorBoundary
+      pluginId={pluginId}
+      fallback={({ pluginId: pId, resetErrorBoundary }) => (
+        <SidebarPanelFallback pluginId={pId} onRetry={resetErrorBoundary} />
+      )}
+    >
       <Suspense fallback={<PanelLoadingSkeleton />}>
         <PanelComponent panelApi={panelApi} />
       </Suspense>
@@ -190,4 +113,6 @@ export function PluginPanelSlot({
   );
 }
 
-export { PanelLoadingSkeleton, PanelErrorFallback, PluginErrorBoundary };
+export { PanelLoadingSkeleton };
+// Re-export from the centralized error boundary module
+export { PluginErrorBoundary, SidebarPanelFallback } from '../../plugins/PluginErrorBoundary';

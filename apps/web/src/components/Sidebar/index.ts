@@ -13,7 +13,7 @@ export type { SidebarProps, CorePanelDefinition } from './Sidebar';
 export {
   PluginPanelSlot,
   PanelLoadingSkeleton,
-  PanelErrorFallback,
   PluginErrorBoundary,
+  SidebarPanelFallback,
 } from './PluginPanelSlot';
 export type { PluginPanelSlotProps, PanelProps, PanelApi } from './PluginPanelSlot';
