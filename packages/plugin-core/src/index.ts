@@ -193,3 +193,11 @@ export {
 } from './plugin-events.js';
 
 export type { PluginEventBus, PluginEventHandler } from './plugin-events.js';
+
+// ============================================================================
+// Plugin Lifecycle Management
+// ============================================================================
+
+export { PluginLifecycleManager, PluginLifecycleError } from './plugin-lifecycle.js';
+
+export type { PluginState, PluginLifecycleStatus } from './plugin-lifecycle.js';
