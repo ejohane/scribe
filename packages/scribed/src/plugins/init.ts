@@ -87,6 +87,16 @@ export interface ServerPluginContextFactory {
 // ============================================================================
 
 /**
+ * Options for initializing the plugin system.
+ */
+export interface InitPluginSystemOptions {
+  /** Database instance for plugin storage */
+  db: PluginStorageDatabase;
+  /** Optional pre-created event bus. If not provided, a new one is created. */
+  eventBus?: DefaultPluginEventBus;
+}
+
+/**
  * Initialize the plugin system.
  *
  * Creates all core plugin infrastructure components:
@@ -96,12 +106,15 @@ export interface ServerPluginContextFactory {
  * - EventBus: Enables event-based communication between plugins and core
  * - Lifecycle: Manages plugin activation/deactivation states
  *
- * @param db - Database instance for plugin storage
+ * @param dbOrOptions - Database instance for plugin storage, or options object
  * @returns Initialized PluginSystem
  *
  * @example
  * ```typescript
- * const pluginSystem = await initializePluginSystem(db);
+ * // Create event bus first to share with services
+ * const eventBus = new DefaultPluginEventBus();
+ * const services = createServices({ vaultPath, dbPath, eventBus });
+ * const pluginSystem = await initializePluginSystem({ db, eventBus });
  *
  * // Load plugins from installed modules
  * await pluginSystem.loadPlugins(getInstalledPlugins());
@@ -116,14 +129,19 @@ export interface ServerPluginContextFactory {
  * await pluginSystem.shutdown();
  * ```
  */
-export async function initializePluginSystem(db: PluginStorageDatabase): Promise<PluginSystem> {
+export async function initializePluginSystem(
+  dbOrOptions: PluginStorageDatabase | InitPluginSystemOptions
+): Promise<PluginSystem> {
+  // Support both old signature (just db) and new signature (options object)
+  const options: InitPluginSystemOptions = 'db' in dbOrOptions ? dbOrOptions : { db: dbOrOptions };
+
   // eslint-disable-next-line no-console -- Intentional startup logging
   console.log('[plugins] Initializing plugin system...');
 
   // Create core components
   const registry = new PluginRegistry();
-  const storageFactory = new PluginStorageFactory(db);
-  const eventBus = new DefaultPluginEventBus();
+  const storageFactory = new PluginStorageFactory(options.db);
+  const eventBus = options.eventBus ?? new DefaultPluginEventBus();
 
   // Create context factory for server plugins
   const contextFactory: ServerPluginContextFactory = {

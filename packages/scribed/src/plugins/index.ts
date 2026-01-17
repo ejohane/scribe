@@ -15,6 +15,7 @@ export {
   initializePluginSystem,
   type PluginSystem,
   type ServerPluginContextFactory,
+  type InitPluginSystemOptions,
 } from './init.js';
 
 // ============================================================================

@@ -29,6 +29,7 @@ import {
   YjsStateRepository,
   SnapshotsRepository,
 } from '@scribe/server-db';
+import type { PluginEventBus } from '@scribe/plugin-core';
 import { DocumentService } from './services/document.service.js';
 import { GraphService } from './services/graph.service.js';
 import { SearchService } from './services/search.service.js';
@@ -44,6 +45,8 @@ export interface ServiceConfig {
   dbPath: string;
   /** Enable verbose SQL logging (default: false) */
   verbose?: boolean;
+  /** Optional plugin event bus for emitting note lifecycle events */
+  eventBus?: PluginEventBus;
 }
 
 /**
@@ -130,6 +133,7 @@ export function createServices(config: ServiceConfig): Services {
     linksRepo,
     tagsRepo,
     searchRepo,
+    eventBus: config.eventBus,
   });
 
   // GraphService has no service dependencies, only repos

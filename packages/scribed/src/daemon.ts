@@ -26,6 +26,7 @@ import {
   graphRouter,
 } from '@scribe/server-core';
 import type { Services } from '@scribe/server-core';
+import { DefaultPluginEventBus } from '@scribe/plugin-core';
 import { YjsWebSocketServer } from './ws/server.js';
 import { VERSION } from './index.js';
 import {
@@ -134,21 +135,28 @@ export class Daemon {
       throw new Error(`Daemon already running (PID: ${existing.pid}, port: ${existing.port})`);
     }
 
-    // 2. Initialize services
+    // 2. Create event bus first (shared between services and plugin system)
+    const eventBus = new DefaultPluginEventBus();
+
+    // 3. Initialize services (with event bus for note lifecycle events)
     const dbPath = path.join(this.config.vaultPath, '.scribe', 'index.db');
     this.services = createServices({
       vaultPath: this.config.vaultPath,
       dbPath,
+      eventBus,
     });
 
-    // 3. Initialize plugin system
-    this.pluginSystem = await initializePluginSystem(this.services.db.getDb());
+    // 4. Initialize plugin system (with same event bus)
+    this.pluginSystem = await initializePluginSystem({
+      db: this.services.db.getDb(),
+      eventBus,
+    });
 
-    // 4. Load plugins (before router creation)
+    // 5. Load plugins (before router creation)
     const installedPlugins = getInstalledPlugins();
     await this.pluginSystem.loadPlugins(installedPlugins);
 
-    // 5. Build merged router (core + plugin routers)
+    // 6. Build merged router (core + plugin routers)
     const coreRouters = {
       notes: notesRouter,
       search: searchRouter,
@@ -178,22 +186,22 @@ export class Daemon {
       );
     }
 
-    // 6. Create HTTP server with tRPC and health endpoint
+    // 7. Create HTTP server with tRPC and health endpoint
     const createContext = createContextFactory(this.services);
     this.server = http.createServer((req, res) => {
       this.handleRequest(req, res, createContext);
     });
 
-    // 7. Create WebSocket server
+    // 8. Create WebSocket server
     this.wsServer = new YjsWebSocketServer(this.services.collaborationService, this.server);
 
-    // 8. Activate plugins (after services ready, before server starts)
+    // 9. Activate plugins (after services ready, before server starts)
     await this.pluginSystem.activateAll();
 
-    // 9. Start listening
+    // 10. Start listening
     const port = await this.listen(this.config.port ?? 0);
 
-    // 10. Write daemon info
+    // 11. Write daemon info
     this.info = {
       pid: process.pid,
       port,
@@ -203,7 +211,7 @@ export class Daemon {
     };
     await writeDaemonInfo(this.info);
 
-    // 11. Setup signal handlers
+    // 12. Setup signal handlers
     this.setupSignalHandlers();
 
     return this.info;

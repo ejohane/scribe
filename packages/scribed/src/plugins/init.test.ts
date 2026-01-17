@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import type { PluginManifest, ServerPlugin, PluginModule } from '@scribe/plugin-core';
-import { PLUGIN_STORAGE_SCHEMA } from '@scribe/plugin-core';
+import { PLUGIN_STORAGE_SCHEMA, DefaultPluginEventBus } from '@scribe/plugin-core';
 import { initializePluginSystem } from './init.js';
 
 // ============================================================================
@@ -112,6 +112,26 @@ describe('init', () => {
       await initializePluginSystem(db);
 
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Initializing plugin system'));
+    });
+
+    it('accepts options object with db', async () => {
+      const system = await initializePluginSystem({ db });
+
+      expect(system.registry).toBeDefined();
+      expect(system.eventBus).toBeDefined();
+    });
+
+    it('uses provided eventBus when passed in options', async () => {
+      const customEventBus = new DefaultPluginEventBus();
+      const system = await initializePluginSystem({ db, eventBus: customEventBus });
+
+      expect(system.eventBus).toBe(customEventBus);
+    });
+
+    it('creates new eventBus when not provided in options', async () => {
+      const system = await initializePluginSystem({ db });
+
+      expect(system.eventBus).toBeInstanceOf(DefaultPluginEventBus);
     });
   });
 

@@ -23,6 +23,7 @@ import type {
   Note,
 } from '@scribe/server-db';
 import { extractTextFromLexical } from '@scribe/server-db';
+import type { PluginEventBus, PluginEvent } from '@scribe/plugin-core';
 import type {
   CreateNoteOptions,
   UpdateNoteOptions,
@@ -50,6 +51,8 @@ export interface DocumentServiceDeps {
   tagsRepo: TagsRepository;
   /** Search repository for FTS operations */
   searchRepo: SearchRepository;
+  /** Optional plugin event bus for emitting note lifecycle events */
+  eventBus?: PluginEventBus;
 }
 
 /**
@@ -94,6 +97,7 @@ export class DocumentService {
   private readonly linksRepo: LinksRepository;
   private readonly tagsRepo: TagsRepository;
   private readonly searchRepo: SearchRepository;
+  private readonly eventBus?: PluginEventBus;
 
   constructor(deps: DocumentServiceDeps) {
     this.vaultPath = deps.vaultPath;
@@ -101,6 +105,7 @@ export class DocumentService {
     this.linksRepo = deps.linksRepo;
     this.tagsRepo = deps.tagsRepo;
     this.searchRepo = deps.searchRepo;
+    this.eventBus = deps.eventBus;
   }
 
   /**
@@ -176,6 +181,14 @@ export class DocumentService {
     const plainText = this.extractPlainText(content);
     const tags = this.extractTags(content);
     this.searchRepo.index(id, options.title, plainText, tags);
+
+    // 6. Emit note:created event (fire-and-forget)
+    this.emitEvent({
+      type: 'note:created',
+      noteId: id,
+      title: options.title,
+      createdAt: new Date(now),
+    });
 
     return {
       ...noteFile,
@@ -286,6 +299,18 @@ export class DocumentService {
     const tags = this.extractTags(updatedContent);
     this.searchRepo.index(id, updatedTitle, plainText, tags);
 
+    // 5. Emit note:updated event (fire-and-forget)
+    this.emitEvent({
+      type: 'note:updated',
+      noteId: id,
+      title: updatedTitle,
+      updatedAt: new Date(now),
+      changes: {
+        title: options.title !== undefined && options.title !== current.title,
+        content: options.content !== undefined,
+      },
+    });
+
     return {
       ...updated,
       wordCount,
@@ -327,6 +352,12 @@ export class DocumentService {
 
     // 3. Remove from search (FTS5 doesn't support CASCADE)
     this.searchRepo.remove(id);
+
+    // 4. Emit note:deleted event (fire-and-forget)
+    this.emitEvent({
+      type: 'note:deleted',
+      noteId: id,
+    });
 
     return true;
   }
@@ -561,5 +592,25 @@ export class DocumentService {
       wordCount: note.wordCount,
       filePath: note.filePath,
     };
+  }
+
+  /**
+   * Emit a plugin event (fire-and-forget).
+   *
+   * Events never block or fail note operations. Errors are logged
+   * but not propagated to ensure note CRUD always succeeds.
+   *
+   * @param event - The event to emit
+   */
+  private emitEvent(event: PluginEvent): void {
+    if (!this.eventBus) {
+      return;
+    }
+
+    // Fire and forget - don't await, errors logged by event bus
+    this.eventBus.emit(event).catch((error) => {
+      // eslint-disable-next-line no-console -- Intentional error logging for plugin event failures
+      console.error('[document-service] Event emission error:', error);
+    });
   }
 }
