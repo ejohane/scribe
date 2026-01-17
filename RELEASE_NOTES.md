@@ -14,6 +14,48 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.40.0
+
+## [1.40.0](https://github.com/ejohane/scribe/compare/v1.39.0...v1.40.0) (2026-01-17)
+
+### Features
+
+* **engine:** define core plugin TypeScript interfaces and types ([e745571](https://github.com/ejohane/scribe/commit/e745571786734e72d811b1893a6ff60e96569f53))
+* **engine:** implement /task slash command handler for Todo plugin ([3fb5dbe](https://github.com/ejohane/scribe/commit/3fb5dbe136efe7d1201810ec356d783a8f8439ce))
+* **engine:** implement plugin error handling and auto-deactivation ([a2cf479](https://github.com/ejohane/scribe/commit/a2cf479186d0671f8a9b79ac65d1c14c9eaffdab))
+* **engine:** implement plugin tRPC router merger for appRouter ([5aaf038](https://github.com/ejohane/scribe/commit/5aaf038cee78bcf64c3d1f01fe3ba110ae199983))
+* **engine:** implement PluginEventEmitter for server-side hooks ([86599ac](https://github.com/ejohane/scribe/commit/86599ac46c483cc3b5e30103b2064184970bdc3e))
+* **engine:** implement PluginLifecycleManager for activation/deactivation ([0de30fc](https://github.com/ejohane/scribe/commit/0de30fca17e082637e63f1f784572cd7eceea750))
+* **engine:** implement PluginLoader for build-time plugin discovery ([fffc0f5](https://github.com/ejohane/scribe/commit/fffc0f598ffefc06629c0e086adb949f4bcd9af2))
+* **engine:** implement PluginManifest Zod validation schema ([02b7777](https://github.com/ejohane/scribe/commit/02b77776537b05f997b228e50e0524ca06bea3db))
+* **engine:** implement PluginRegistry for plugin and capability tracking ([bb26aee](https://github.com/ejohane/scribe/commit/bb26aee0c316c10e8d509c56f87b02921cf0d301))
+* **engine:** implement PluginStorage with namespaced SQLite isolation ([ff58c50](https://github.com/ejohane/scribe/commit/ff58c50d8c46eb2803d503fe19c119ef04065066))
+* **engine:** implement Todo plugin event hooks for note deletion cleanup ([5a2e6b1](https://github.com/ejohane/scribe/commit/5a2e6b110561c4b58e37cf8c225f0c97a46fac90))
+* **engine:** implement Todo plugin tRPC router ([f6c7b70](https://github.com/ejohane/scribe/commit/f6c7b702fc685dd23094b7784a2c098dbf1ebdc6))
+* **engine:** implement TodoStore with plugin storage backend ([cecfdd9](https://github.com/ejohane/scribe/commit/cecfdd9901d32f09e264fc14a0d260a88e025415))
+* **engine:** initialize plugin system in scribed daemon startup ([762723c](https://github.com/ejohane/scribe/commit/762723c4a23a1c2e892213880bc8844cf9112a21))
+* **engine:** wire note lifecycle events to plugin event bus ([b74903f](https://github.com/ejohane/scribe/commit/b74903f98bb4422cda4a1755b2777f04ec20e6ff))
+* **ui:** add React error boundaries for plugin components ([cc1b436](https://github.com/ejohane/scribe/commit/cc1b436fdf5d6fb0b5dcd1140a4abfe2f8efac8a))
+* **ui:** implement PluginProvider context and usePlugins hooks ([5b41dba](https://github.com/ejohane/scribe/commit/5b41dba13ef7b92921fe15b6a434e5f37dba1919))
+* **ui:** implement Sidebar component with plugin panel integration ([9620059](https://github.com/ejohane/scribe/commit/9620059a22964627eca9e51337c9ca9f3dcddc62))
+* **ui:** implement TasksSidebarPanel component for Todo plugin ([a1eef7b](https://github.com/ejohane/scribe/commit/a1eef7b8f05a0fecfefe0643646ce24789b64651))
+* **ui:** integrate plugin slash commands into SlashMenu ([299de1a](https://github.com/ejohane/scribe/commit/299de1ab954f534a9f185e51b65dee440f58e37f))
+* **web:** add shadcn/ui components and complete minimal dark theme ([63b1cd0](https://github.com/ejohane/scribe/commit/63b1cd0e5938fa397d4dbd3dd2816a8d3ccdbfe6))
+* **web:** minimal dark theme UI redesign ([9b3142d](https://github.com/ejohane/scribe/commit/9b3142de8c4482c41a24606319686494acd875bb))
+* **web:** update note editor page to minimal dark theme ([b989d8a](https://github.com/ejohane/scribe/commit/b989d8aea2023ed0af591728818e264ee7cbf243))
+* **web:** update notes page to match minimal dark theme design ([a084d25](https://github.com/ejohane/scribe/commit/a084d252b16da81c26695da188b4847cd64a3063))
+
+### Bug Fixes
+
+* **ci:** fix flaky tests in scribed package ([854d408](https://github.com/ejohane/scribe/commit/854d40866ec713431793b14f8cba799135e3c34d))
+
+### Documentation
+
+* add comprehensive documentation for plugin system ([3f67b4b](https://github.com/ejohane/scribe/commit/3f67b4bdf6bf48925098906938e1869981a4adac))
+
 ---
 
 # What's New in v1.39.0
