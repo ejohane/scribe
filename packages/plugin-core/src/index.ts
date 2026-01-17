@@ -136,3 +136,22 @@ export type {
   PluginManifestFromSchema,
   PluginCapabilityFromSchema,
 } from './plugin-manifest.schema.js';
+
+// ============================================================================
+// Plugin Registry
+// ============================================================================
+
+export { PluginRegistry, PluginConflictError } from './plugin-registry.js';
+
+export type {
+  PluginStatus,
+  RegisteredPlugin,
+  TrpcRouterEntry,
+  StorageEntry,
+  EventHookEntry,
+  SidebarPanelEntry,
+  SlashCommandEntry,
+  CapabilityEntry,
+  CapabilityTypeMap,
+  CapabilityIndex,
+} from './plugin-registry.js';
