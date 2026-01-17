@@ -181,3 +181,15 @@ export {
 } from './plugin-storage.js';
 
 export type { PluginStorageDatabase, PluginStorageStatement } from './plugin-storage.js';
+
+// ============================================================================
+// Plugin Event System
+// ============================================================================
+
+export {
+  DefaultPluginEventBus,
+  createMockEventBus,
+  createNoopEventEmitter,
+} from './plugin-events.js';
+
+export type { PluginEventBus, PluginEventHandler } from './plugin-events.js';

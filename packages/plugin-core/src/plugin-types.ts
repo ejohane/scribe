@@ -347,13 +347,33 @@ export interface PluginStorage {
 
 /**
  * Interface for plugin event subscription.
+ *
+ * Plugins use this interface to subscribe to Scribe lifecycle events.
+ * The emitter tracks subscriptions and allows cleanup on deactivation.
  */
 export interface PluginEventEmitter {
   /**
    * Subscribe to an event type.
    * Returns an unsubscribe function.
+   *
+   * @param eventType - The event type to subscribe to
+   * @param handler - The handler function to call when the event is emitted
+   * @returns A function that unsubscribes the handler when called
    */
   on<T extends PluginEventType>(
+    eventType: T,
+    handler: (event: Extract<PluginEvent, { type: T }>) => void | Promise<void>
+  ): () => void;
+
+  /**
+   * Subscribe to an event type, firing only once.
+   * The handler will be automatically unsubscribed after the first event.
+   *
+   * @param eventType - The event type to subscribe to
+   * @param handler - The handler function to call once
+   * @returns A function that unsubscribes the handler when called (can be called before the event fires)
+   */
+  once<T extends PluginEventType>(
     eventType: T,
     handler: (event: Extract<PluginEvent, { type: T }>) => void | Promise<void>
   ): () => void;
@@ -362,6 +382,12 @@ export interface PluginEventEmitter {
    * Emit an event (typically called by the plugin system, not plugins).
    */
   emit(event: PluginEvent): Promise<void>;
+
+  /**
+   * Unsubscribe all handlers registered by this plugin.
+   * Called during plugin deactivation to clean up subscriptions.
+   */
+  removeAllListeners(): void;
 }
 
 /**

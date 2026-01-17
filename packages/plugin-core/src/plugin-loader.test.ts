@@ -67,7 +67,9 @@ function createMockServerContext(manifest: PluginManifest): ServerPluginContext 
     },
     events: {
       on: vi.fn().mockReturnValue(() => {}),
+      once: vi.fn().mockReturnValue(() => {}),
       emit: vi.fn().mockResolvedValue(undefined),
+      removeAllListeners: vi.fn(),
     },
     logger: {
       debug: vi.fn(),
