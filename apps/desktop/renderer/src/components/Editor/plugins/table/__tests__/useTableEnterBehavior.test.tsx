@@ -237,9 +237,8 @@ describe('useTableEnterBehavior', () => {
     });
 
     // Dispatch Enter command - should return false (not handled)
-    let commandHandled = false;
     await act(async () => {
-      commandHandled = editor.dispatchCommand(KEY_ENTER_COMMAND, createKeyboardEvent('Enter'));
+      editor.dispatchCommand(KEY_ENTER_COMMAND, createKeyboardEvent('Enter'));
     });
 
     // The hook should not handle this (returns false), allowing default behavior

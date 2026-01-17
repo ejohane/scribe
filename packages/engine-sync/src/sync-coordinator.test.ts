@@ -5,14 +5,7 @@ import { SyncTransport } from './sync-transport.js';
 import { ChangeTracker } from './change-tracker.js';
 import { ConflictResolver } from './conflict-resolver.js';
 import { SimpleNetworkMonitor } from './network-monitor.js';
-import {
-  createNoteId,
-  type BaseNote,
-  type NoteMetadata,
-  type EditorContent,
-  type SyncPushResponse,
-  type SyncPullResponse,
-} from '@scribe/shared';
+import { createNoteId, type BaseNote, type NoteMetadata, type EditorContent } from '@scribe/shared';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
@@ -26,7 +19,7 @@ const createEmptyEditorContent = (): EditorContent => ({
 });
 
 // Helper to create editor content with text
-const createEditorContent = (text: string): EditorContent => ({
+const _createEditorContent = (text: string): EditorContent => ({
   root: {
     type: 'root',
     children: [{ type: 'paragraph', children: [{ type: 'text', text }] }],

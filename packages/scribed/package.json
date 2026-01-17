@@ -20,7 +20,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@scribe/collab": "workspace:*",
     "@scribe/plugin-core": "workspace:*",
     "@scribe/server-core": "workspace:*",
     "@trpc/server": "^10.45.4",

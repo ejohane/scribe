@@ -25,7 +25,6 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
-  COMMAND_PRIORITY_EDITOR,
 } from 'lexical';
 import {
   TableNode,

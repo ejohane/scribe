@@ -213,7 +213,6 @@ describe('WikiLinkNode', () => {
         const node = $createWikiLinkNode('Test Note', 'Test Note', createNoteId('id123'));
         $insertNodes([node]);
 
-        const children = root.getAllTextNodes();
         // WikiLinkNode is not a TextNode, so check the root's descendants
         expect(root.getTextContent()).toBe('Test Note');
       });

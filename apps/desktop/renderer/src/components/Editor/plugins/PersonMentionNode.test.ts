@@ -289,11 +289,8 @@ describe('PersonMentionNode', () => {
     });
 
     it('can be retrieved from editor state', async () => {
-      let nodeKey: string | null = null;
-
       await editor.update(() => {
         const node = $createPersonMentionNode('Test Person', createNoteId('person-test'));
-        nodeKey = node.__key;
         $insertNodes([node]);
       });
 

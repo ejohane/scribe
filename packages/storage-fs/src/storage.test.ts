@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
-import type { EditorContent, VaultPath, MeetingNote, DailyNote } from '@scribe/shared';
+import type { EditorContent, VaultPath, MeetingNote } from '@scribe/shared';
 import { createVaultPath, createNoteId, isDailyNote, isMeetingNote } from '@scribe/shared';
 import { FileSystemVault } from './storage.js';
 import { initializeVault } from './vault.js';
@@ -581,7 +581,7 @@ describe('FileSystemVault', () => {
 
       // Create new vault and load - should not find the deleted note
       const vault2 = new FileSystemVault(tempDir);
-      const count = await vault2.load();
+      await vault2.load();
 
       // Verify no ghost files
       const notesList = vault2.list();

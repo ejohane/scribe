@@ -707,7 +707,7 @@ describe('SearchEngine', () => {
         searchEngine.indexNote(noteInside);
 
         // This word should be found (within 1000 chars)
-        const insideResults = searchEngine.search('insideword');
+        searchEngine.search('insideword');
         // Note: Due to how the content is built with repeated sentences,
         // the exact position may vary. The test verifies the truncation behavior exists.
 
