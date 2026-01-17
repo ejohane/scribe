@@ -168,3 +168,16 @@ export type {
   LoadResult,
   PluginContextFactory,
 } from './plugin-loader.js';
+
+// ============================================================================
+// Plugin Storage Implementation
+// ============================================================================
+
+export {
+  SQLitePluginStorage,
+  PluginStorageFactory,
+  PLUGIN_STORAGE_SCHEMA,
+  PLUGIN_STORAGE_DROP,
+} from './plugin-storage.js';
+
+export type { PluginStorageDatabase, PluginStorageStatement } from './plugin-storage.js';

@@ -61,6 +61,7 @@ function createMockServerContext(manifest: PluginManifest): ServerPluginContext 
       get: vi.fn().mockResolvedValue(undefined),
       set: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
+      has: vi.fn().mockResolvedValue(false),
       keys: vi.fn().mockResolvedValue([]),
       clear: vi.fn().mockResolvedValue(undefined),
     },

@@ -330,6 +330,11 @@ export interface PluginStorage {
   delete(key: string): Promise<void>;
 
   /**
+   * Check if a key exists in storage.
+   */
+  has(key: string): Promise<boolean>;
+
+  /**
    * List all keys in this plugin's namespace.
    */
   keys(): Promise<string[]>;
