@@ -205,18 +205,12 @@ function App() {
     [showToast]
   );
 
-  // Handle navigation to daily note - open or create the daily note for the given date
+  // Handle navigation to daily note - feature temporarily disabled during refactor
   const handleNavigateToDaily = useCallback(
-    async (date: Date) => {
-      try {
-        const dailyNote = await window.scribe.daily.getOrCreate(date);
-        navigateToNote(dailyNote.id);
-      } catch (error) {
-        showToast('Failed to open daily note', 'error');
-        console.error('Failed to navigate to daily note:', error);
-      }
+    async (_date: Date) => {
+      showToast('Daily notes feature coming soon');
     },
-    [navigateToNote, showToast]
+    [showToast]
   );
 
   // Handle export success - show toast notification
@@ -253,18 +247,12 @@ function App() {
     [commandPalette, showToast]
   );
 
-  // Handle deep link navigation to daily note with optional date
+  // Handle deep link navigation to daily note - feature temporarily disabled during refactor
   const handleDeepLinkDaily = useCallback(
-    async (date?: Date) => {
-      try {
-        const dailyNote = await window.scribe.daily.getOrCreate(date);
-        navigateToNote(dailyNote.id);
-      } catch (error) {
-        showToast('Failed to open daily note', 'error');
-        console.error('Failed to navigate to daily note:', error);
-      }
+    async (_date?: Date) => {
+      showToast('Daily notes feature coming soon');
     },
-    [navigateToNote, showToast]
+    [showToast]
   );
 
   // Subscribe to deep link events

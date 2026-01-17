@@ -23,7 +23,7 @@
  *
  * Use this pattern when:
  * - Operation only reads from vault (no writes)
- * - No need to update graph, search, or task indexes
+ * - No need to update graph or search indexes
  * - Performance is critical (avoids unnecessary engine validation)
  *
  * ### Pattern B: Coordinated Engine Access (Write Operations)
@@ -34,15 +34,12 @@
  *   await engines.vault.save(note);
  *   engines.graphEngine.addNote(note);
  *   engines.searchEngine.indexNote(note);
- *   const taskChanges = engines.taskIndex.indexNote(note);
- *   // Emit task changes...
  * }));
  * ```
  *
  * Use this pattern when:
  * - Operation modifies note data (create, update, delete)
  * - All engines must be updated atomically to maintain consistency
- * - Task changes need to be broadcast to the renderer
  *
  * Note: An EngineOrchestrator class could provide similar coordination logic
  * as an alternative to manual coordination. The current inline approach was
@@ -68,9 +65,8 @@
  *
  * ## Side Effects
  *
- * - `notes:save` updates graph engine, search index, and task index
- * - `notes:delete` removes from graph engine, search index, and task index
- * - Task changes trigger `tasks:changed` event to renderer
+ * - `notes:save` updates graph engine and search index
+ * - `notes:delete` removes from graph engine and search index
  *
  * @module handlers/notesHandlers
  */
@@ -82,7 +78,7 @@ import { HandlerDependencies, requireVault, withEngines, wrapError } from './typ
 /**
  * Setup IPC handlers for notes CRUD operations.
  *
- * @param deps - Handler dependencies (requires vault, graphEngine, searchEngine, taskIndex)
+ * @param deps - Handler dependencies (requires vault, graphEngine, searchEngine)
  *
  * @example
  * ```typescript
@@ -158,7 +154,6 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * @sideeffects
    * - Updates graph engine with new note data (links, tags)
    * - Updates search index for full-text search
-   * - Re-indexes tasks and broadcasts `tasks:changed` event if tasks changed
    */
   ipcMain.handle(
     'notes:save',
@@ -173,12 +168,6 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
 
         // Step 3: Update search index for full-text search
         engines.searchEngine.indexNote(note);
-
-        // Step 4: Re-index tasks for this note and broadcast changes
-        const taskChanges = engines.taskIndex.indexNote(note);
-        if (taskChanges.length > 0) {
-          deps.windowManager?.broadcast('tasks:changed', taskChanges);
-        }
 
         return { success: true };
       } catch (error) {
@@ -201,7 +190,6 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
    * @sideeffects
    * - Removes from graph engine (links, backlinks)
    * - Removes from search index
-   * - Removes tasks and broadcasts `tasks:changed` event
    */
   ipcMain.handle(
     'notes:delete',
@@ -216,12 +204,6 @@ export function setupNotesHandlers(deps: HandlerDependencies): void {
 
         // Step 3: Remove from search index
         engines.searchEngine.removeNote(id);
-
-        // Step 4: Remove tasks for this note and broadcast changes
-        const taskChanges = engines.taskIndex.removeNote(id);
-        if (taskChanges.length > 0) {
-          deps.windowManager?.broadcast('tasks:changed', taskChanges);
-        }
 
         return { success: true };
       } catch (error) {

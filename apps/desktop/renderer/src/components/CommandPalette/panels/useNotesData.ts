@@ -62,33 +62,14 @@ export function useNotesData({ enabled }: UseNotesDataOptions): UseNotesDataResu
  * Hook for fetching people data
  */
 export function usePeopleData({ enabled }: UseNotesDataOptions): UseNotesDataResult {
-  const [allPeople, setAllPeople] = useState<Note[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [allPeople] = useState<Note[]>([]);
+  const [isLoading] = useState(false);
 
+  // People feature temporarily disabled during refactor
+  // The list will be empty until the feature is re-implemented as a plugin
   useEffect(() => {
     if (!enabled) return;
-
-    let cancelled = false;
-
-    const fetchPeople = async () => {
-      setIsLoading(true);
-      try {
-        const people = await window.scribe.people.list();
-        if (!cancelled) setAllPeople(people);
-      } catch (error) {
-        if (!cancelled) {
-          log.error('Failed to fetch people', { error });
-          setAllPeople([]);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    fetchPeople();
-    return () => {
-      cancelled = true;
-    };
+    // No-op: people.list() is no longer available
   }, [enabled]);
 
   return { allNotes: allPeople, isLoading };

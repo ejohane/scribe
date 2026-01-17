@@ -1,7 +1,6 @@
 import type { FileSystemVault } from '@scribe/storage-fs';
 import type { GraphEngine } from '@scribe/engine-graph';
 import type { SearchEngine } from '@scribe/engine-search';
-import type { TaskIndex } from '@scribe/engine-core/node';
 import type { WindowManager } from '../window-manager';
 import { ScribeError } from '@scribe/shared';
 
@@ -13,7 +12,6 @@ export interface HandlerDependencies {
   vault: FileSystemVault | null;
   graphEngine: GraphEngine | null;
   searchEngine: SearchEngine | null;
-  taskIndex: TaskIndex | null;
   windowManager: WindowManager | null;
 }
 
@@ -57,16 +55,6 @@ export function requireSearchEngine(deps: HandlerDependencies): SearchEngine {
 }
 
 /**
- * Helper to get a guaranteed non-null taskIndex, throwing if not initialized.
- */
-export function requireTaskIndex(deps: HandlerDependencies): TaskIndex {
-  if (!deps.taskIndex) {
-    throw new Error('Task index not initialized');
-  }
-  return deps.taskIndex;
-}
-
-/**
  * Helper to get a guaranteed non-null windowManager, throwing if not initialized.
  */
 export function requireWindowManager(deps: HandlerDependencies): WindowManager {
@@ -84,14 +72,13 @@ export interface Engines {
   vault: FileSystemVault;
   graphEngine: GraphEngine;
   searchEngine: SearchEngine;
-  taskIndex: TaskIndex;
 }
 
 /**
  * Higher-order function to wrap IPC handlers that require all engines.
  *
  * Consolidates the common pattern of calling requireVault, requireGraphEngine,
- * requireSearchEngine, and requireTaskIndex at the start of each handler.
+ * and requireSearchEngine at the start of each handler.
  *
  * @param deps - Handler dependencies that may have null engines during startup
  * @param handler - The handler function that receives validated engines and IPC args
@@ -103,7 +90,6 @@ export interface Engines {
  *   await engines.vault.save(note);
  *   engines.graphEngine.addNote(note);
  *   engines.searchEngine.indexNote(note);
- *   engines.taskIndex.indexNote(note);
  *   return { success: true };
  * }));
  * ```
@@ -115,14 +101,13 @@ export function withEngines<T extends unknown[], R>(
   handler: (engines: Engines, ...args: T) => Promise<R>
 ): (_event: Electron.IpcMainInvokeEvent, ...args: T) => Promise<R> {
   return async (_event: Electron.IpcMainInvokeEvent, ...args: T): Promise<R> => {
-    if (!deps.vault || !deps.graphEngine || !deps.searchEngine || !deps.taskIndex) {
+    if (!deps.vault || !deps.graphEngine || !deps.searchEngine) {
       throw new Error('Engines not initialized');
     }
     const engines: Engines = {
       vault: deps.vault,
       graphEngine: deps.graphEngine,
       searchEngine: deps.searchEngine,
-      taskIndex: deps.taskIndex,
     };
     return handler(engines, ...args);
   };

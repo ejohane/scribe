@@ -1,17 +1,9 @@
 /**
  * PersonMentionPlugin - Core plugin for person mention creation
  *
- * Responsibilities:
- * 1. Detect when user types @
- * 2. Track the position where autocomplete should appear
- * 3. Insert PersonMentionNode when person is selected
- * 4. Handle Escape key to cancel
- * 5. Manage autocomplete state and search integration
- * 6. Handle keyboard navigation for autocomplete
- * 7. Handle person creation when no match exists
- * 8. Render PersonMentionAutocomplete component
- *
- * Uses the shared useTriggerableAutocomplete hook for common autocomplete patterns.
+ * NOTE: People feature temporarily disabled during thin shell refactor.
+ * This plugin is stubbed out until the feature is re-implemented
+ * via the daemon service.
  */
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -27,10 +19,8 @@ import {
   createCommand,
   type LexicalCommand,
 } from 'lexical';
-import { createLogger } from '@scribe/shared';
 import { $createPersonMentionNode } from './PersonMentionNode';
 
-const log = createLogger({ prefix: 'PersonMentionPlugin' });
 import { usePersonMentionContext } from './PersonMentionContext';
 import { PersonMentionAutocomplete } from './PersonMentionAutocomplete';
 import type { PersonResult } from './PersonMentionAutocomplete';
@@ -168,23 +158,13 @@ export function PersonMentionPlugin({ currentNoteId }: PersonMentionPluginProps)
     [insertPersonMention]
   );
 
-  // Handle create new person
+  // Handle create new person - feature disabled during refactor
   const handleCreate = useCallback(
-    async (name: string) => {
-      try {
-        // Create the person via API
-        const newPerson = await window.scribe.people.create(name);
-        // Insert the mention with the new person's ID (using explicit title field)
-        insertPersonMention(newPerson.title || name, newPerson.id);
-      } catch (error) {
-        log.error('Failed to create person', { name, error });
-        // Show error to user via context
-        onError(`Failed to create "${name}"`);
-        // Close autocomplete on error
-        actions.close();
-      }
+    async (_name: string) => {
+      onError('People feature coming soon');
+      actions.close();
     },
-    [insertPersonMention, actions, onError]
+    [actions, onError]
   );
 
   // Callback to receive results from autocomplete for keyboard navigation

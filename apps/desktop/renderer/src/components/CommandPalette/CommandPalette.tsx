@@ -12,7 +12,6 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { format } from 'date-fns';
 import type { Command, PaletteMode } from '../../commands/types';
 import type { Note, NoteId, SearchResult } from '@scribe/shared';
 import { Overlay, Surface, SearchIcon, ArrowLeftIcon } from '@scribe/design-system';
@@ -283,15 +282,11 @@ export function CommandPalette({
     if (mode === 'meeting-create') {
       return (
         <MeetingCreatePanel
-          onSubmit={async (title, date) => {
-            try {
-              onClose();
-              const isoDate = format(date, 'yyyy-MM-dd');
-              const note = await window.scribe.meeting.create(title, isoDate);
-              onNoteSelect?.(note.id);
-            } catch (error) {
-              handleError(error, 'Failed to create meeting');
-            }
+          onSubmit={async (_title, _date) => {
+            // Meeting feature temporarily disabled during refactor
+            onClose();
+            // Show toast indicating feature is coming soon
+            console.info('Meeting notes feature coming soon');
           }}
           onCancel={() => {
             setMode('command');

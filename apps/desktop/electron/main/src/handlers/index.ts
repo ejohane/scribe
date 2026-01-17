@@ -12,11 +12,6 @@
  * | {@link setupNotesHandlers} | `notes:*` | Notes CRUD, title search, date-based queries |
  * | {@link setupSearchHandlers} | `search:*` | Full-text search across notes |
  * | {@link setupGraphHandlers} | `graph:*` | Graph traversal, backlinks, tag queries |
- * | {@link setupPeopleHandlers} | `people:*` | Person note management |
- * | {@link setupDictionaryHandlers} | `dictionary:*` | Spellcheck dictionary management |
- * | {@link setupDailyHandlers} | `daily:*` | Daily note get-or-create |
- * | {@link setupMeetingHandlers} | `meeting:*` | Meeting note creation and attendees |
- * | {@link setupTasksHandlers} | `tasks:*` | Task toggle, list, reorder |
  * | {@link setupExportHandlers} | `export:*` | Export notes to external formats |
  * | {@link setupAssetHandlers} | `assets:*` | Binary asset management (images) |
  * | {@link setupWindowHandlers} | `window:*` | Multi-window management |
@@ -24,8 +19,8 @@
  * ## IPC Channel Naming Convention
  *
  * All channels follow the pattern `domain:action`:
- * - Domain groups related functionality (e.g., `notes`, `tasks`)
- * - Action describes the operation (e.g., `list`, `create`, `toggle`)
+ * - Domain groups related functionality (e.g., `notes`)
+ * - Action describes the operation (e.g., `list`, `create`)
  *
  * ## Error Handling
  *
@@ -38,12 +33,7 @@
 export { setupNotesHandlers } from './notesHandlers';
 export { setupSearchHandlers } from './searchHandlers';
 export { setupGraphHandlers } from './graphHandlers';
-export { setupPeopleHandlers } from './peopleHandlers';
 export { setupAppHandlers } from './appHandlers';
-export { setupDictionaryHandlers } from './dictionaryHandlers';
-export { setupDailyHandlers } from './dailyHandlers';
-export { setupMeetingHandlers } from './meetingHandlers';
-export { setupTasksHandlers } from './tasksHandlers';
 export { setupExportHandlers } from './exportHandlers';
 export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';

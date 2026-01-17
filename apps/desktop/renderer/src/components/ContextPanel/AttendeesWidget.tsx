@@ -90,40 +90,22 @@ export function AttendeesWidget({ note, onNavigate, onNoteUpdate }: AttendeesWid
   // Should show create option: query exists and no exact match
   const showCreateOption = searchQuery.trim().length > 0 && !hasExactMatch;
 
-  const handleCreatePerson = useCallback(
-    async (name: string) => {
-      try {
-        // Create the person via API
-        const newPerson = await window.scribe.people.create(name);
-        // Add the new person as an attendee
-        await window.scribe.meeting.addAttendee(note.id, newPerson.id);
-        setIsAdding(false);
-        setSearchQuery('');
-        onNoteUpdate?.();
-      } catch (error) {
-        log.error('Failed to create person', { name, noteId: note.id, error });
-      }
-    },
-    [note.id, onNoteUpdate]
-  );
+  // People and meeting features temporarily disabled during refactor
+  const handleCreatePerson = useCallback(async (_name: string) => {
+    log.info('People/meeting feature coming soon');
+    setIsAdding(false);
+    setSearchQuery('');
+  }, []);
 
-  const handleAddAttendee = useCallback(
-    async (personId: NoteId) => {
-      await window.scribe.meeting.addAttendee(note.id, personId);
-      setIsAdding(false);
-      setSearchQuery('');
-      onNoteUpdate?.();
-    },
-    [note.id, onNoteUpdate]
-  );
+  const handleAddAttendee = useCallback(async (_personId: NoteId) => {
+    log.info('People/meeting feature coming soon');
+    setIsAdding(false);
+    setSearchQuery('');
+  }, []);
 
-  const handleRemoveAttendee = useCallback(
-    async (personId: NoteId) => {
-      await window.scribe.meeting.removeAttendee(note.id, personId);
-      onNoteUpdate?.();
-    },
-    [note.id, onNoteUpdate]
-  );
+  const handleRemoveAttendee = useCallback(async (_personId: NoteId) => {
+    log.info('People/meeting feature coming soon');
+  }, []);
 
   const handlePersonClick = useCallback(
     (personId: NoteId) => {

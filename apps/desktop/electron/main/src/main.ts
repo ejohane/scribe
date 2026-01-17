@@ -5,18 +5,12 @@ import { WindowManager } from './window-manager';
 import { FileSystemVault, initializeVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import { TaskIndex } from '@scribe/engine-core/node';
 import { setupAutoUpdater, setupDevUpdateHandlers } from './auto-updater';
 import {
   setupNotesHandlers,
   setupSearchHandlers,
   setupGraphHandlers,
-  setupPeopleHandlers,
   setupAppHandlers,
-  setupDictionaryHandlers,
-  setupDailyHandlers,
-  setupMeetingHandlers,
-  setupTasksHandlers,
   setupExportHandlers,
   setupDialogHandlers,
   setupVaultHandlers,
@@ -227,7 +221,6 @@ const deps: HandlerDependencies = {
   vault: null,
   graphEngine: null,
   searchEngine: null,
-  taskIndex: null,
 };
 
 /**
@@ -263,20 +256,14 @@ async function initializeEngine(): Promise<import('@scribe/shared').VaultPath> {
     // Initialize search engine
     deps.searchEngine = new SearchEngine();
 
-    // Initialize task index (derived data stored in vault/derived)
-    deps.taskIndex = new TaskIndex(path.join(vaultPath, 'derived'));
-    await deps.taskIndex.load();
-
-    // Build initial graph, search index, and task index from loaded notes
+    // Build initial graph and search index from loaded notes
     const notes = deps.vault.list();
     for (const note of notes) {
       deps.graphEngine.addNote(note);
       deps.searchEngine.indexNote(note);
-      deps.taskIndex.indexNote(note);
     }
     mainLogger.info(`Graph initialized with ${notes.length} notes`);
     mainLogger.info(`Search index initialized with ${deps.searchEngine.size()} notes`);
-    mainLogger.info(`Task index initialized with ${deps.taskIndex.size} tasks`);
 
     const stats = deps.graphEngine.getStats();
     mainLogger.debug(`Graph stats: ${stats.nodes} nodes, ${stats.edges} edges, ${stats.tags} tags`);
@@ -297,11 +284,6 @@ function setupIPCHandlers() {
   setupNotesHandlers(deps);
   setupSearchHandlers(deps);
   setupGraphHandlers(deps);
-  setupPeopleHandlers(deps);
-  setupDictionaryHandlers(deps);
-  setupDailyHandlers(deps);
-  setupMeetingHandlers(deps);
-  setupTasksHandlers(deps);
   setupExportHandlers(deps);
   setupDialogHandlers();
   setupVaultHandlers(deps);
@@ -396,15 +378,7 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Cleanup engines before quitting
-app.on('before-quit', async () => {
-  // Flush task index to persist any pending changes
-  if (deps.taskIndex) {
-    try {
-      await deps.taskIndex.flush();
-      mainLogger.debug('Task index flushed successfully');
-    } catch (error) {
-      mainLogger.error('Failed to flush task index', { error });
-    }
-  }
+// Cleanup hook before quitting
+app.on('before-quit', () => {
+  mainLogger.debug('Application quitting');
 });

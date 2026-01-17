@@ -2,8 +2,6 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   Note,
   NoteId,
-  TaskFilter,
-  TaskChangeEvent,
   SyncStatus,
   ConflictResolution,
   RecentOpenEntityType,
@@ -74,54 +72,6 @@ const scribeAPI: ScribeAPI = {
     setConfig: (config: Record<string, unknown>) =>
       ipcRenderer.invoke(IPC_CHANNELS.APP_SET_CONFIG, config),
     relaunch: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RELAUNCH),
-  },
-
-  people: {
-    list: () => ipcRenderer.invoke(IPC_CHANNELS.PEOPLE_LIST),
-    create: (name: string) => ipcRenderer.invoke(IPC_CHANNELS.PEOPLE_CREATE, name),
-    search: (query: string, limit?: number) =>
-      ipcRenderer.invoke(IPC_CHANNELS.PEOPLE_SEARCH, query, limit ?? 10),
-  },
-
-  daily: {
-    getOrCreate: (date?: Date) =>
-      ipcRenderer.invoke(
-        IPC_CHANNELS.DAILY_GET_OR_CREATE,
-        date ? { date: date.toISOString() } : undefined
-      ),
-    find: (date: string) => ipcRenderer.invoke(IPC_CHANNELS.DAILY_FIND, { date }),
-  },
-
-  meeting: {
-    create: (title: string, date?: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.MEETING_CREATE, { title, date }),
-    addAttendee: (noteId: NoteId, personId: NoteId) =>
-      ipcRenderer.invoke(IPC_CHANNELS.MEETING_ADD_ATTENDEE, { noteId, personId }),
-    removeAttendee: (noteId: NoteId, personId: NoteId) =>
-      ipcRenderer.invoke(IPC_CHANNELS.MEETING_REMOVE_ATTENDEE, { noteId, personId }),
-  },
-
-  dictionary: {
-    addWord: (word: string) => ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_ADD_WORD, word),
-    removeWord: (word: string) => ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_REMOVE_WORD, word),
-    getLanguages: () => ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_GET_LANGUAGES),
-    setLanguages: (languages: string[]) =>
-      ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_SET_LANGUAGES, languages),
-    getAvailableLanguages: () =>
-      ipcRenderer.invoke(IPC_CHANNELS.DICTIONARY_GET_AVAILABLE_LANGUAGES),
-  },
-
-  tasks: {
-    list: (filter?: TaskFilter) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_LIST, filter),
-    toggle: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_TOGGLE, { taskId }),
-    reorder: (taskIds: string[]) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_REORDER, { taskIds }),
-    get: (taskId: string) => ipcRenderer.invoke(IPC_CHANNELS.TASKS_GET, { taskId }),
-    onChange: (callback: (events: TaskChangeEvent[]) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, events: TaskChangeEvent[]) =>
-        callback(events);
-      ipcRenderer.on(IPC_CHANNELS.TASKS_CHANGED, handler);
-      return () => ipcRenderer.removeListener(IPC_CHANNELS.TASKS_CHANGED, handler);
-    },
   },
 
   update: {

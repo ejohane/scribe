@@ -13,15 +13,7 @@
  * @since 1.0.0
  */
 
-import type {
-  Note,
-  NoteId,
-  SearchResult,
-  GraphNode,
-  Task,
-  TaskFilter,
-  TaskChangeEvent,
-} from './types.js';
+import type { Note, NoteId, SearchResult, GraphNode } from './types.js';
 
 import type { SyncStatus, SyncResult, SyncConflict, ConflictResolution } from './sync-types.js';
 
@@ -138,34 +130,6 @@ export const IPC_CHANNELS = {
   APP_GET_CONFIG: 'app:getConfig',
   APP_SET_CONFIG: 'app:setConfig',
   APP_RELAUNCH: 'app:relaunch',
-
-  // People
-  PEOPLE_LIST: 'people:list',
-  PEOPLE_CREATE: 'people:create',
-  PEOPLE_SEARCH: 'people:search',
-
-  // Daily
-  DAILY_GET_OR_CREATE: 'daily:getOrCreate',
-  DAILY_FIND: 'daily:find',
-
-  // Meeting
-  MEETING_CREATE: 'meeting:create',
-  MEETING_ADD_ATTENDEE: 'meeting:addAttendee',
-  MEETING_REMOVE_ATTENDEE: 'meeting:removeAttendee',
-
-  // Dictionary
-  DICTIONARY_ADD_WORD: 'dictionary:addWord',
-  DICTIONARY_REMOVE_WORD: 'dictionary:removeWord',
-  DICTIONARY_GET_LANGUAGES: 'dictionary:getLanguages',
-  DICTIONARY_SET_LANGUAGES: 'dictionary:setLanguages',
-  DICTIONARY_GET_AVAILABLE_LANGUAGES: 'dictionary:getAvailableLanguages',
-
-  // Tasks
-  TASKS_LIST: 'tasks:list',
-  TASKS_TOGGLE: 'tasks:toggle',
-  TASKS_REORDER: 'tasks:reorder',
-  TASKS_GET: 'tasks:get',
-  TASKS_CHANGED: 'tasks:changed',
 
   // Update
   UPDATE_CHECK: 'update:check',
@@ -382,139 +346,6 @@ export interface AppAPI {
 
   /** Relaunch the application (for vault switching and updates) */
   relaunch(): Promise<void>;
-}
-
-/**
- * People API for managing person notes
- */
-export interface PeopleAPI {
-  /** List all people */
-  list(): Promise<Note[]>;
-
-  /** Create a new person with the given name */
-  create(name: string): Promise<Note>;
-
-  /** Search people by name (for autocomplete) */
-  search(query: string, limit?: number): Promise<SearchResult[]>;
-}
-
-/**
- * Daily note API operations
- */
-export interface DailyAPI {
-  /**
-   * Get or create a daily note for a specific date.
-   * If no date is provided, uses today's date.
-   * Idempotent: returns same note on repeat calls for the same date.
-   * @param date - Optional date to get/create the daily note for
-   */
-  getOrCreate(date?: Date): Promise<Note>;
-
-  /**
-   * Find daily note for a specific date.
-   * @param date - ISO date string "YYYY-MM-DD"
-   * @returns The daily note or null if not found
-   */
-  find(date: string): Promise<Note | null>;
-}
-
-/**
- * Meeting note API operations
- */
-export interface MeetingAPI {
-  /**
-   * Create a new meeting note for a specific date.
-   * Auto-creates the daily note for that date if needed and links the meeting to it.
-   *
-   * @param title - The meeting title (required, cannot be empty)
-   * @param date - Optional ISO date string (YYYY-MM-DD). Defaults to today if not provided.
-   * @returns The newly created meeting note
-   *
-   * @example
-   * // Create meeting for today (default)
-   * const note = await window.scribe.meeting.create('Sprint Planning');
-   *
-   * @example
-   * // Create meeting for a specific date
-   * const note = await window.scribe.meeting.create('Retro', '2025-12-25');
-   */
-  create(title: string, date?: string): Promise<Note>;
-
-  /**
-   * Add a person as attendee to a meeting.
-   * Idempotent: adding same person twice has no effect.
-   * @param noteId - The meeting note ID
-   * @param personId - The person note ID to add
-   */
-  addAttendee(noteId: NoteId, personId: NoteId): Promise<SuccessResponse>;
-
-  /**
-   * Remove a person from a meeting's attendees.
-   * Idempotent: removing non-existent attendee has no effect.
-   * @param noteId - The meeting note ID
-   * @param personId - The person note ID to remove
-   */
-  removeAttendee(noteId: NoteId, personId: NoteId): Promise<SuccessResponse>;
-}
-
-/**
- * Dictionary/Spellcheck API for managing custom dictionary
- */
-export interface DictionaryAPI {
-  /** Add a word to the spellcheck dictionary */
-  addWord(word: string): Promise<SuccessResponse>;
-
-  /** Remove a word from the spellcheck dictionary */
-  removeWord(word: string): Promise<SuccessResponse>;
-
-  /** Get the currently active spellcheck languages */
-  getLanguages(): Promise<string[]>;
-
-  /** Set the active spellcheck languages */
-  setLanguages(languages: string[]): Promise<SuccessResponse>;
-
-  /** Get all available spellcheck languages that can be enabled */
-  getAvailableLanguages(): Promise<string[]>;
-}
-
-/**
- * Tasks API for task management
- */
-export interface TasksAPI {
-  /**
-   * List tasks with optional filtering and pagination
-   * @param filter - Optional filter criteria
-   * @returns Tasks and optional nextCursor for pagination
-   */
-  list(filter?: TaskFilter): Promise<{ tasks: Task[]; nextCursor?: string }>;
-
-  /**
-   * Toggle a task's completion state
-   * @param taskId - The task ID to toggle
-   * @returns Success status and updated task
-   */
-  toggle(taskId: string): Promise<{ success: boolean; task?: Task; error?: string }>;
-
-  /**
-   * Reorder tasks by priority
-   * @param taskIds - Array of task IDs in new priority order
-   * @returns Success status
-   */
-  reorder(taskIds: string[]): Promise<SuccessResponse>;
-
-  /**
-   * Get a single task by ID
-   * @param taskId - The task ID to retrieve
-   * @returns The task or null if not found
-   */
-  get(taskId: string): Promise<Task | null>;
-
-  /**
-   * Subscribe to task change events
-   * @param callback - Called when tasks change
-   * @returns Unsubscribe function for cleanup
-   */
-  onChange(callback: (events: TaskChangeEvent[]) => void): () => void;
 }
 
 /**
@@ -963,21 +794,6 @@ export interface ScribeAPI {
 
   /** App-level operations */
   app: AppAPI;
-
-  /** Person note management */
-  people: PeopleAPI;
-
-  /** Daily note operations */
-  daily: DailyAPI;
-
-  /** Meeting note operations */
-  meeting: MeetingAPI;
-
-  /** Dictionary/spellcheck management */
-  dictionary: DictionaryAPI;
-
-  /** Task management */
-  tasks: TasksAPI;
 
   /** Auto-update functionality */
   update: UpdateAPI;

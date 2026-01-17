@@ -3,6 +3,9 @@
  *
  * Commands for creating and navigating to templated notes.
  * These commands create daily notes, meeting notes, and other templated content.
+ *
+ * Note: Daily and meeting features are temporarily disabled during the thin shell refactor.
+ * They will be re-implemented as plugins.
  */
 
 import { CalendarCheckIcon, CalendarDaysIcon } from '@scribe/design-system';
@@ -12,32 +15,32 @@ import type { Command } from './types';
 /**
  * Template-related commands for the command palette.
  * These commands create and navigate to templated notes.
+ *
+ * Note: Daily and meeting commands are temporarily disabled during refactor.
  */
 export const templateCommands: Command[] = [
   {
     id: 'daily:today',
     title: 'Today',
-    description: "Open or create today's daily note",
+    description: 'Daily notes - coming soon',
     group: 'notes',
     keywords: ['daily', 'today', 'journal', 'date'],
     closeOnSelect: true,
     icon: createElement(CalendarCheckIcon, { size: 16 }),
-    run: async (context) => {
-      const note = await window.scribe.daily.getOrCreate();
-      context.navigateToNote(note.id);
+    run: async (_context) => {
+      // Feature temporarily disabled during thin shell refactor
     },
   },
   {
     id: 'meeting:create',
     title: 'New Meeting',
-    description: 'Create a new meeting note',
+    description: 'Meeting notes - coming soon',
     group: 'notes',
     keywords: ['meeting', 'notes', 'agenda', 'sync'],
-    closeOnSelect: false, // Keep open for meeting creation panel
+    closeOnSelect: true,
     icon: createElement(CalendarDaysIcon, { size: 16 }),
-    run: async (context) => {
-      // Switch to meeting-create mode to show the MeetingCreatePanel
-      context.setPaletteMode('meeting-create');
+    run: async (_context) => {
+      // Feature temporarily disabled during thin shell refactor
     },
   },
 ];
