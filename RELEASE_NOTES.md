@@ -15,6 +15,52 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.41.0
+
+## [1.41.0](https://github.com/ejohane/scribe/compare/v1.40.0...v1.41.0) (2026-01-18)
+
+### Features
+
+* **desktop:** implement embedded daemon startup in electron main ([f451058](https://github.com/ejohane/scribe/commit/f451058842a12073d29a93936d7462b23ccea54d))
+* **engine:** add collaborative editing with Yjs sync ([e93e611](https://github.com/ejohane/scribe/commit/e93e611a7f141c6f5f25d2f554c0c69c2afb7ae4))
+* **engine:** export ExportRouter type from client-sdk and add export API docs ([1b7366c](https://github.com/ejohane/scribe/commit/1b7366c2ab4401c2db92bc64da51736fd7fef85d))
+* **engine:** implement export tRPC router with toMarkdown procedure ([cef301a](https://github.com/ejohane/scribe/commit/cef301a57f6f2bb581e2d33f11c467858e9a0c9f))
+* **engine:** implement ExportService with toMarkdown function ([3f050c3](https://github.com/ejohane/scribe/commit/3f050c3b996f6e153debaa0356975a6d860c2a94))
+* **engine:** register export router in daemon's tRPC router ([5fd75bb](https://github.com/ejohane/scribe/commit/5fd75bb3e426736ec90cb2ddcb14702440a018b7))
+* **renderer:** add ElectronProvider with tRPC client integration ([6938441](https://github.com/ejohane/scribe/commit/693844124cb71cb485ce25333113246eb5f2a169))
+* **renderer:** add NoteListPage and NoteEditorPage components ([7042fd2](https://github.com/ejohane/scribe/commit/7042fd22764a05294a7cf249fa4b7be24fded224))
+* **ui:** add NoteListPage and NoteEditorPage to app-shell package ([4b59887](https://github.com/ejohane/scribe/commit/4b59887959857bf9af04ef0181c4d6b8776892ab))
+* **ui:** add ScribeProvider and PlatformProvider to app-shell ([ac5d7f4](https://github.com/ejohane/scribe/commit/ac5d7f45faafbd03fab288bfcfb797fb43d7a42b))
+* **ui:** create packages/app-shell package structure ([9fa89eb](https://github.com/ejohane/scribe/commit/9fa89eb5cc66227f8be9d8de25d2bfa7cfc01e7a))
+
+### Bug Fixes
+
+* **collab:** resolve auto-save persistence bugs ([93f7dbd](https://github.com/ejohane/scribe/commit/93f7dbd9746b15c8b9a09e308ebf3a89a3a6cbad))
+* **engine:** align collab test assertions with Yjs map structure ([df9d2f0](https://github.com/ejohane/scribe/commit/df9d2f06a1737a7ec42cba77d52348477c1ed3bf))
+* **ui:** configure vitest to ignore unhandled errors in renderer tests ([33fa776](https://github.com/ejohane/scribe/commit/33fa7761b42e45bf7b72527315ce4a20d25bd3f3))
+* **ui:** integrate editor component in web and desktop apps ([802cb9f](https://github.com/ejohane/scribe/commit/802cb9fe52ed2af63169544e384aa6f2fbd42594))
+* **ui:** suppress Lexical/happy-dom compat errors in CI tests ([8a3f23e](https://github.com/ejohane/scribe/commit/8a3f23ef00ecd850ee1b44f582a86ce295f32c4a))
+
+### Documentation
+
+* add refactoring metrics report for thin-shell architecture ([d285884](https://github.com/ejohane/scribe/commit/d28588442c43632571275b69d405a262478555a8)), closes [#89](https://github.com/ejohane/scribe/issues/89)
+* update documentation for new thin-shell architecture ([ae3da9e](https://github.com/ejohane/scribe/commit/ae3da9eeb919a7c0db2ccc4ceb0ece1336b0edd8))
+
+### Code Refactoring
+
+* **build:** delete daemon-duplicated handlers ([5fbef12](https://github.com/ejohane/scribe/commit/5fbef120fce3a1ce388d98af243b6df3605d846d)), closes [#89](https://github.com/ejohane/scribe/issues/89)
+* **build:** delete removed feature handlers ([c090517](https://github.com/ejohane/scribe/commit/c090517ef5f55aec257e939d636c9c6a79a6a260))
+* **build:** delete unused electron infrastructure ([f09251a](https://github.com/ejohane/scribe/commit/f09251a094236e73e1c1f38178a9fe10e3239e79)), closes [#89](https://github.com/ejohane/scribe/issues/89)
+* **desktop:** simplify main.ts architecture with deep link router extraction ([ad30d80](https://github.com/ejohane/scribe/commit/ad30d803d5a7af024b5eb46ac3b42f072f847ae1))
+* **preload:** remove deleted IPC channels and add getDaemonPort ([4dbadeb](https://github.com/ejohane/scribe/commit/4dbadebbe125cd3070023e9089f2b51ddd01bc95))
+* rename app-shell to web-core and simplify page components ([5e116b3](https://github.com/ejohane/scribe/commit/5e116b3eb1bb6d124fd7c87ebf72268ca59968b6))
+* **renderer:** simplify App.tsx to minimal routing structure ([e7441a9](https://github.com/ejohane/scribe/commit/e7441a9972f41f77297306fd121877076e73ab6f))
+* **ui:** delete old renderer components and infrastructure ([67c28f8](https://github.com/ejohane/scribe/commit/67c28f80969f3d2141a656520e9203e62868a227)), closes [#89](https://github.com/ejohane/scribe/issues/89)
+* **ui:** migrate web and electron apps to use app-shell package ([c35a806](https://github.com/ejohane/scribe/commit/c35a8065c831a28a834b468dd0e8322e2c3d5334))
+
 ---
 
 # What's New in v1.40.0
