@@ -70,6 +70,7 @@ function renderNoteEditorPage(options?: {
   onSave?: (noteId: string, content: EditorContent) => void;
   onError?: (error: Error) => void;
   skipMockSetup?: boolean;
+  collaborative?: boolean;
 }) {
   const {
     noteId = 'test-note-123',
@@ -79,6 +80,7 @@ function renderNoteEditorPage(options?: {
     onSave,
     onError,
     skipMockSetup = false,
+    collaborative = false, // Disable collaborative mode in tests by default
   } = options ?? {};
 
   // Only set up mock if not skipped (allows tests to set up their own mock behavior)
@@ -99,6 +101,7 @@ function renderNoteEditorPage(options?: {
               path="/note/:id"
               element={
                 <NoteEditorPage
+                  collaborative={collaborative}
                   renderEditor={renderEditor}
                   renderMenuButton={renderMenuButton}
                   onSave={onSave}
@@ -264,7 +267,7 @@ describe('NoteEditorPage', () => {
   });
 
   describe('Auto-save', () => {
-    it('saves content after debounce delay', async () => {
+    it('saves content after debounce delay when user interacts', async () => {
       renderNoteEditorPage({
         renderEditor: (content, onChange) => (
           <button
@@ -284,6 +287,9 @@ describe('NoteEditorPage', () => {
         expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
       });
 
+      // Simulate user interaction (keyDown) to enable auto-save
+      fireEvent.keyDown(screen.getByTestId('note-editor-content'), { key: 'a' });
+
       fireEvent.click(screen.getByTestId('custom-editor'));
 
       // Not yet saved
@@ -298,6 +304,39 @@ describe('NoteEditorPage', () => {
         id: 'test-note-123',
         content: { root: { children: [{ type: 'text', text: 'new' }], type: 'root', version: 1 } },
       });
+    });
+
+    it('does not save when no user interaction (e.g., Yjs sync)', async () => {
+      renderNoteEditorPage({
+        renderEditor: (content, onChange) => (
+          <button
+            data-testid="custom-editor"
+            onClick={() =>
+              onChange({
+                root: { children: [{ type: 'text', text: 'new' }], type: 'root', version: 1 },
+              })
+            }
+          >
+            Change
+          </button>
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+
+      // No user interaction before clicking - simulates Yjs sync triggering onChange
+
+      fireEvent.click(screen.getByTestId('custom-editor'));
+
+      // Advance timer past debounce delay
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      // Should NOT save because no user interaction occurred
+      expect(mockTrpc.notes.update.mutate).not.toHaveBeenCalled();
     });
 
     it('shows saving indicator while saving', async () => {
@@ -323,6 +362,9 @@ describe('NoteEditorPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
       });
+
+      // Simulate user interaction to enable auto-save
+      fireEvent.keyDown(screen.getByTestId('note-editor-content'), { key: 'a' });
 
       fireEvent.click(screen.getByTestId('custom-editor'));
 
@@ -361,6 +403,9 @@ describe('NoteEditorPage', () => {
         expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
       });
 
+      // Simulate user interaction to enable auto-save
+      fireEvent.keyDown(screen.getByTestId('note-editor-content'), { key: 'a' });
+
       fireEvent.click(screen.getByTestId('custom-editor'));
 
       await act(async () => {
@@ -393,6 +438,9 @@ describe('NoteEditorPage', () => {
       await waitFor(() => {
         expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
       });
+
+      // Simulate user interaction to enable auto-save
+      fireEvent.keyDown(screen.getByTestId('note-editor-content'), { key: 'a' });
 
       fireEvent.click(screen.getByTestId('custom-editor'));
 
@@ -429,7 +477,10 @@ describe('NoteEditorPage', () => {
           <ScribeProvider daemonUrl="http://localhost:3000">
             <PlatformProvider platform="web" capabilities={{}}>
               <Routes>
-                <Route path="/note/:id" element={<NoteEditorPage noteId="prop-id" />} />
+                <Route
+                  path="/note/:id"
+                  element={<NoteEditorPage noteId="prop-id" collaborative={false} />}
+                />
               </Routes>
             </PlatformProvider>
           </ScribeProvider>

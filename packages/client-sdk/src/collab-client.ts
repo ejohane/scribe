@@ -224,7 +224,11 @@ export class CollabClient {
       } else {
         this.ws.removeAllListeners?.();
       }
-      this.ws.close();
+      // Only close if connection was established (readyState > 0)
+      // ws library throws if close() is called during CONNECTING state
+      if (this.ws.readyState !== 0) {
+        this.ws.close();
+      }
       this.ws = null;
     }
 
@@ -291,13 +295,17 @@ export class CollabClient {
 
     // Create local Y.Doc
     const doc = new Y.Doc();
+    console.log(`[CollabClient] Created Y.Doc with guid: ${doc.guid}`);
     this.documents.set(noteId, doc);
 
     // Set up local change handler
     const updateHandler = (update: Uint8Array, origin: unknown) => {
+      console.log(`[CollabClient] Doc update event, origin: ${origin}`);
       if (origin !== 'remote') {
         // Send local changes to server
         this.sendUpdate(noteId, update);
+      } else {
+        console.log(`[CollabClient] Skipping remote origin update`);
       }
     };
     this.updateHandlers.set(noteId, updateHandler);
@@ -459,15 +467,18 @@ export class CollabClient {
       switch (message.type) {
         case 'joined':
           // Document join confirmed - state will follow
+          console.log(`[CollabClient] Joined note: ${message.noteId}`);
           break;
 
         case 'sync-state':
           // Apply initial state
+          console.log(`[CollabClient] Received sync-state for note: ${message.noteId}`);
           this.applyState(message.noteId, this.decodeBytes(message.state));
           break;
 
         case 'sync-update':
           // Apply incremental update
+          console.log(`[CollabClient] Received sync-update for note: ${message.noteId}`);
           this.applyUpdate(message.noteId, this.decodeBytes(message.update));
           break;
 
@@ -512,6 +523,7 @@ export class CollabClient {
    * Send a local update to the server.
    */
   private sendUpdate(noteId: string, update: Uint8Array): void {
+    console.log(`[CollabClient] Sending sync-update for note: ${noteId}, ${update.length} bytes`);
     this.send({
       type: 'sync-update',
       noteId,

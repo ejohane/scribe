@@ -10,9 +10,10 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-rout
 import {
   ScribeProvider,
   PlatformProvider,
+  CollabProvider,
   NoteListPage,
   NoteEditorPage,
-  useTrpc,
+  type CollabEditorProps,
 } from '@scribe/web-core';
 import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe/editor';
 import type { EditorContent } from '@scribe/client-sdk';
@@ -26,8 +27,13 @@ const DAEMON_URL = `http://${DAEMON_HOST}:${DAEMON_PORT}`;
 /**
  * Render function for the editor component.
  * Minimal mode - no toolbar, just the text and cursor.
+ * Supports collaborative editing when collabProps are provided.
  */
-function renderEditor(content: EditorContent, onChange: (content: EditorContent) => void) {
+function renderEditor(
+  content: EditorContent,
+  onChange: (content: EditorContent) => void,
+  collabProps?: CollabEditorProps
+) {
   return (
     <ScribeEditor
       initialContent={content as ScribeEditorContent}
@@ -35,6 +41,8 @@ function renderEditor(content: EditorContent, onChange: (content: EditorContent)
       autoFocus
       showToolbar={false}
       placeholder=""
+      yjsDoc={collabProps?.yjsDoc}
+      YjsPlugin={collabProps?.YjsPlugin}
     />
   );
 }
@@ -79,50 +87,29 @@ function EditorLayout() {
 }
 
 /**
- * Home page - redirects to most recent note or creates one.
+ * Home page - redirects to notes list.
  */
 function HomePage() {
   const navigate = useNavigate();
-  const trpc = useTrpc();
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadOrCreate() {
-      try {
-        const notes = await trpc.notes.list.query({
-          limit: 1,
-          orderBy: 'updated_at',
-          orderDir: 'desc',
-        });
-
-        if (notes.length > 0) {
-          navigate(`/note/${notes[0].id}`, { replace: true });
-        } else {
-          // Create first note
-          const newNote = await trpc.notes.create.mutate({
-            title: 'Untitled',
-            type: 'note',
-          });
-          navigate(`/note/${newNote.id}`, { replace: true });
-        }
-      } catch (err) {
-        console.error('Failed to load notes:', err);
-        setLoading(false);
-      }
-    }
-
-    loadOrCreate();
-  }, [navigate, trpc]);
-
-  if (loading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background">
-        <div className="text-foreground/20 text-sm">Loading...</div>
-      </div>
-    );
-  }
+    navigate('/notes', { replace: true });
+  }, [navigate]);
 
   return null;
+}
+
+/**
+ * Notes page - displays all notes in a centered layout.
+ */
+function NotesPage() {
+  return (
+    <div className="h-screen w-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md h-full max-h-[600px] border border-border/30 rounded-lg shadow-lg bg-background overflow-hidden">
+        <NoteListPage />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -133,16 +120,19 @@ export const App: FC = () => {
     <BrowserRouter>
       <PlatformProvider platform="web" capabilities={{}}>
         <ScribeProvider daemonUrl={DAEMON_URL}>
-          <PluginClientInitializer>
-            <PluginProvider>
-              <div className="h-screen w-screen bg-background">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/note/:id" element={<EditorLayout />} />
-                </Routes>
-              </div>
-            </PluginProvider>
-          </PluginClientInitializer>
+          <CollabProvider daemonUrl={DAEMON_URL}>
+            <PluginClientInitializer>
+              <PluginProvider>
+                <div className="h-screen w-screen bg-background">
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/notes" element={<NotesPage />} />
+                    <Route path="/note/:id" element={<EditorLayout />} />
+                  </Routes>
+                </div>
+              </PluginProvider>
+            </PluginClientInitializer>
+          </CollabProvider>
         </ScribeProvider>
       </PlatformProvider>
     </BrowserRouter>

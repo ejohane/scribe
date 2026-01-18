@@ -7,11 +7,41 @@
  */
 
 import { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
-import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/web-core';
-import type { PlatformCapabilities, UpdateInfo } from '@scribe/web-core';
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import {
+  ScribeProvider,
+  PlatformProvider,
+  CollabProvider,
+  NoteListPage,
+  NoteEditorPage,
+} from '@scribe/web-core';
+import type { PlatformCapabilities, UpdateInfo, CollabEditorProps } from '@scribe/web-core';
 import type { EditorContent } from '@scribe/client-sdk';
 import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe/editor';
+
+/**
+ * Home page - redirects to notes list.
+ */
+function HomePage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/notes', { replace: true });
+  }, [navigate]);
+
+  return null;
+}
+
+/**
+ * Notes page - displays all notes.
+ */
+function NotesPage() {
+  return (
+    <div className="h-screen w-screen bg-background">
+      <NoteListPage />
+    </div>
+  );
+}
 
 /**
  * Root application component.
@@ -19,7 +49,8 @@ import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe
  * Handles async daemon port resolution and sets up providers.
  *
  * Route structure:
- * - / -> Note list (home)
+ * - / -> Redirects to /notes
+ * - /notes -> Note list
  * - /note/:id -> Note editor
  */
 export function App() {
@@ -97,17 +128,24 @@ export function App() {
   /**
    * Render function for the editor component.
    * Passed to NoteEditorPage to provide the actual editor implementation.
+   * Supports collaborative editing when collabProps are provided.
    *
    * Note: EditorContent types from @scribe/client-sdk and @scribe/editor are
    * structurally compatible but have different type definitions. We cast here
    * since both represent Lexical serialized editor state.
    */
-  function renderEditor(content: EditorContent, onChange: (content: EditorContent) => void) {
+  function renderEditor(
+    content: EditorContent,
+    onChange: (content: EditorContent) => void,
+    collabProps?: CollabEditorProps
+  ) {
     return (
       <ScribeEditor
         initialContent={content as ScribeEditorContent}
         onChange={onChange as (content: ScribeEditorContent) => void}
         autoFocus
+        yjsDoc={collabProps?.yjsDoc}
+        YjsPlugin={collabProps?.YjsPlugin}
       />
     );
   }
@@ -116,10 +154,13 @@ export function App() {
     <HashRouter>
       <PlatformProvider platform="electron" capabilities={capabilities}>
         <ScribeProvider daemonUrl={daemonUrl}>
-          <Routes>
-            <Route path="/" element={<NoteListPage />} />
-            <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
-          </Routes>
+          <CollabProvider daemonUrl={daemonUrl}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/notes" element={<NotesPage />} />
+              <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
+            </Routes>
+          </CollabProvider>
         </ScribeProvider>
       </PlatformProvider>
     </HashRouter>

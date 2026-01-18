@@ -1,2 +1,2 @@
-// Placeholder - will be populated in extraction task
-export {};
+export { CollaborativeEditor } from './CollaborativeEditor';
+export type { CollaborativeEditorProps, CollabEditorProps } from './CollaborativeEditor';

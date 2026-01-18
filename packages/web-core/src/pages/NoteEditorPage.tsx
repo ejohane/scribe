@@ -9,8 +9,19 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTrpc } from '../providers/ScribeProvider';
+import { useTrpc } from '../providers/ScribeProvider.js';
+import { CollaborativeEditor, type CollabEditorProps } from '../components/CollaborativeEditor.js';
 import type { NoteDocument, EditorContent } from '@scribe/client-sdk';
+
+/**
+ * Compare two EditorContent objects for equality.
+ * Used to detect if content change is from user edit vs Yjs sync.
+ */
+function contentEquals(a: EditorContent | null, b: EditorContent | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 /** Auto-save debounce delay in milliseconds */
 const AUTO_SAVE_DELAY = 1000;
@@ -23,10 +34,13 @@ export interface NoteEditorPageProps {
   className?: string;
   /** Note ID to load (overrides URL param) */
   noteId?: string;
+  /** Whether to enable collaborative editing (default: true) */
+  collaborative?: boolean;
   /** Render prop for the editor */
   renderEditor?: (
     content: EditorContent,
-    onChange: (content: EditorContent) => void
+    onChange: (content: EditorContent) => void,
+    collabProps?: CollabEditorProps
   ) => React.ReactNode;
   /** Render prop for the menu button in upper left */
   renderMenuButton?: () => React.ReactNode;
@@ -42,6 +56,7 @@ export interface NoteEditorPageProps {
 export function NoteEditorPage({
   className = '',
   noteId: propNoteId,
+  collaborative = true,
   renderEditor,
   renderMenuButton,
   onSave,
@@ -65,6 +80,11 @@ export function NoteEditorPage({
   /** Delay before chrome reappears after typing stops (ms) */
   const TYPING_FADE_DELAY = 1500;
 
+  /** Track the initial content loaded from tRPC to detect Yjs sync overwrites */
+  const initialContentRef = useRef<EditorContent | null>(null);
+  /** Track if user has made actual edits (not just Yjs sync) */
+  const hasUserEditedRef = useRef(false);
+
   // Fetch note
   const fetchNote = useCallback(async () => {
     if (!id) {
@@ -82,6 +102,9 @@ export function NoteEditorPage({
         setError('Note not found');
       } else {
         setNote(result);
+        // Track initial content to detect Yjs sync overwrites
+        initialContentRef.current = result.content;
+        hasUserEditedRef.current = false;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load note';
@@ -99,13 +122,17 @@ export function NoteEditorPage({
   // Save note content
   const saveNote = useCallback(
     async (content: EditorContent) => {
+      console.log('[NoteEditorPage] saveNote called, id:', id, 'hasNote:', !!note);
       if (!id || !note) return;
 
+      console.log('[NoteEditorPage] Calling trpc.notes.update');
       setIsSaving(true);
       try {
-        await trpc.notes.update.mutate({ id, content });
+        const result = await trpc.notes.update.mutate({ id, content });
+        console.log('[NoteEditorPage] Save SUCCESS, result:', result?.id);
         onSave?.(id, content);
       } catch (err) {
+        console.error('[NoteEditorPage] Save FAILED:', err);
         const message = err instanceof Error ? err.message : 'Failed to save';
         onError?.(err instanceof Error ? err : new Error(message));
       } finally {
@@ -118,6 +145,29 @@ export function NoteEditorPage({
   // Handle content changes with debounced auto-save
   const handleContentChange = useCallback(
     (content: EditorContent) => {
+      console.log('[NoteEditorPage] handleContentChange called');
+
+      // Only consider it a user edit if it MATCHES the initial content from tRPC
+      // plus additional characters (user is building on the initial content).
+      // If the content is DIFFERENT from initial but we haven't edited yet,
+      // it's likely Yjs sync overwriting with stale data.
+      const matchesInitial = contentEquals(content, initialContentRef.current);
+
+      // If content matches initial, we're back to the loaded state - not a user edit
+      // If content is different from initial AND we already marked user edit, allow save
+      // If content is different from initial AND we haven't marked user edit, could be Yjs sync
+      if (matchesInitial) {
+        console.log('[NoteEditorPage] Content matches initial, not a user edit');
+      } else if (hasUserEditedRef.current) {
+        console.log('[NoteEditorPage] User has edited, allowing auto-save');
+      } else {
+        // Content is different from initial but no user edit marked yet
+        // This is likely Yjs sync overwriting - DON'T mark as user edit
+        console.log(
+          '[NoteEditorPage] Content differs from initial but no user edit yet - likely Yjs sync, skipping'
+        );
+      }
+
       pendingContentRef.current = content;
 
       // Track typing state for chrome fade
@@ -133,21 +183,36 @@ export function NoteEditorPage({
         clearTimeout(saveTimeoutRef.current);
       }
 
-      saveTimeoutRef.current = setTimeout(() => {
-        if (pendingContentRef.current) {
-          saveNote(pendingContentRef.current);
-        }
-      }, AUTO_SAVE_DELAY);
+      // Only auto-save if user has made edits (not just Yjs sync)
+      if (hasUserEditedRef.current) {
+        saveTimeoutRef.current = setTimeout(() => {
+          if (pendingContentRef.current) {
+            saveNote(pendingContentRef.current);
+          }
+        }, AUTO_SAVE_DELAY);
+      } else {
+        console.log('[NoteEditorPage] Skipping auto-save (no user edits yet)');
+      }
     },
     [saveNote, TYPING_FADE_DELAY]
   );
+
+  // Track user interaction to enable auto-save
+  // This is more reliable than content comparison for detecting user edits vs Yjs sync
+  const handleUserInteraction = useCallback(() => {
+    if (!hasUserEditedRef.current) {
+      hasUserEditedRef.current = true;
+      console.log('[NoteEditorPage] User interaction detected, enabling auto-save');
+    }
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-        if (pendingContentRef.current) {
+        // Only save on unmount if user has made actual edits
+        if (pendingContentRef.current && hasUserEditedRef.current) {
           saveNote(pendingContentRef.current);
         }
       }
@@ -224,9 +289,16 @@ export function NoteEditorPage({
       )}
 
       {/* Editor - minimal centered layout */}
-      <main data-testid="note-editor-content">
+      {/* onKeyDown detects user typing to enable auto-save (vs Yjs sync) */}
+      <main data-testid="note-editor-content" onKeyDown={handleUserInteraction}>
         {renderEditor ? (
-          renderEditor(note.content, handleContentChange)
+          collaborative && id ? (
+            <CollaborativeEditor noteId={id}>
+              {(collabProps) => renderEditor(note.content, handleContentChange, collabProps)}
+            </CollaborativeEditor>
+          ) : (
+            renderEditor(note.content, handleContentChange)
+          )
         ) : (
           <div
             style={{ color: 'var(--foreground)', opacity: 0.3 }}

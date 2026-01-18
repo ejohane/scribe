@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host $TAILWIND_IP",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src tests",
