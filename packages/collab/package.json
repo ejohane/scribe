@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@scribe/client-sdk": "workspace:*",
-    "y-websocket": "^2.1.0",
     "yjs": "^13.6.29"
   },
   "peerDependencies": {

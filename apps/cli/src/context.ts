@@ -283,9 +283,7 @@ export async function initializeFullContext(options: GlobalOptions): Promise<Laz
   // Force initialization of graph and search engines by accessing the lazy getters.
   // This pattern intentionally uses property access without assignment to trigger
   // lazy initialization during startup rather than on first command use.
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- Intentional: triggers lazy getter initialization
   ctx.graphEngine;
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- Intentional: triggers lazy getter initialization
   ctx.searchEngine;
 
   logTiming(options, 'full context initialization total', totalStartTime);

@@ -52,7 +52,7 @@ function createContentWithTasks(
         {
           type: 'list',
           listType: 'check',
-          children: tasks.map((t, index) => ({
+          children: tasks.map((t) => ({
             type: 'listitem',
             __key: t.nodeKey,
             checked: t.checked,

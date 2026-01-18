@@ -10,6 +10,8 @@ export default mergeConfig(
       exclude: ['**/*.integration.test.ts'],
       // Use vitest's built-in mocking instead of Bun's
       environment: 'node',
+      // Pass with no tests (infrastructure tests removed during thin shell refactor)
+      passWithNoTests: true,
       coverage: {
         // electron/main has simpler coverage needs
         thresholds: undefined,

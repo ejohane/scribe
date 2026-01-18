@@ -24,6 +24,7 @@ import {
   notesRouter,
   searchRouter,
   graphRouter,
+  exportRouter,
 } from '@scribe/server-core';
 import type { Services } from '@scribe/server-core';
 import { DefaultPluginEventBus } from '@scribe/plugin-core';
@@ -161,6 +162,7 @@ export class Daemon {
       notes: notesRouter,
       search: searchRouter,
       graph: graphRouter,
+      export: exportRouter,
     };
     const pluginRouters = this.pluginSystem.getRouters();
     const routerResult = buildAppRouter(
@@ -294,8 +296,9 @@ export class Daemon {
    * Start listening on the specified port.
    */
   private listen(preferredPort: number): Promise<number> {
+    const host = process.env.TAILWIND_IP ? '0.0.0.0' : '127.0.0.1';
     return new Promise((resolve, reject) => {
-      this.server!.listen(preferredPort, '127.0.0.1', () => {
+      this.server!.listen(preferredPort, host, () => {
         const address = this.server!.address();
         if (typeof address === 'object' && address) {
           resolve(address.port);

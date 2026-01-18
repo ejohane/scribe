@@ -8,8 +8,11 @@
  * Test Strategy:
  * 1. Verify API shape matches ScribeAPI contract
  * 2. Verify each method calls the correct IPC channel
- * 3. Verify argument transformations (especially Date serialization)
+ * 3. Verify argument transformations
  * 4. Verify event listener setup/cleanup
+ *
+ * Note: Notes, search, graph, export, CLI, sync, and raycast operations
+ * are now handled by the daemon via tRPC and are not part of this API.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -64,21 +67,29 @@ describe('Preload Security Boundary', () => {
       expect(mockExposeInMainWorld).toHaveBeenCalledWith('scribe', expect.any(Object));
     });
 
-    it('has all expected namespaces', () => {
+    it('has all expected namespaces (Electron-only)', () => {
       expect(capturedApi).toHaveProperty('ping');
-      expect(capturedApi).toHaveProperty('notes');
-      expect(capturedApi).toHaveProperty('search');
-      expect(capturedApi).toHaveProperty('graph');
       expect(capturedApi).toHaveProperty('shell');
       expect(capturedApi).toHaveProperty('app');
-      expect(capturedApi).toHaveProperty('people');
-      expect(capturedApi).toHaveProperty('daily');
-      expect(capturedApi).toHaveProperty('meeting');
-      expect(capturedApi).toHaveProperty('dictionary');
-      expect(capturedApi).toHaveProperty('tasks');
       expect(capturedApi).toHaveProperty('update');
-      expect(capturedApi).toHaveProperty('cli');
-      expect(capturedApi).toHaveProperty('export');
+      expect(capturedApi).toHaveProperty('dialog');
+      expect(capturedApi).toHaveProperty('vault');
+      expect(capturedApi).toHaveProperty('deepLink');
+      expect(capturedApi).toHaveProperty('assets');
+      expect(capturedApi).toHaveProperty('window');
+      expect(capturedApi).toHaveProperty('scribe');
+    });
+
+    it('does not expose daemon-handled namespaces', () => {
+      // These are now handled by the daemon via tRPC
+      expect(capturedApi).not.toHaveProperty('notes');
+      expect(capturedApi).not.toHaveProperty('search');
+      expect(capturedApi).not.toHaveProperty('graph');
+      expect(capturedApi).not.toHaveProperty('export');
+      expect(capturedApi).not.toHaveProperty('cli');
+      expect(capturedApi).not.toHaveProperty('sync');
+      expect(capturedApi).not.toHaveProperty('raycast');
+      expect(capturedApi).not.toHaveProperty('recentOpens');
     });
   });
 
@@ -90,99 +101,6 @@ describe('Preload Security Boundary', () => {
     });
   });
 
-  describe('Notes API', () => {
-    it('list invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.notes.list();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_LIST);
-    });
-
-    it('read invokes correct channel with noteId', async () => {
-      const noteId = 'test-note-id' as import('@scribe/shared').NoteId;
-      mockInvoke.mockResolvedValue(null);
-      await capturedApi.notes.read(noteId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_READ, noteId);
-    });
-
-    it('create invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue({ id: 'new-id' });
-      await capturedApi.notes.create();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_CREATE);
-    });
-
-    it('save invokes correct channel with note', async () => {
-      const note = { id: 'test-id', title: 'Test' } as import('@scribe/shared').Note;
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.notes.save(note);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_SAVE, note);
-    });
-
-    it('delete invokes correct channel with noteId', async () => {
-      const noteId = 'test-note-id' as import('@scribe/shared').NoteId;
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.notes.delete(noteId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_DELETE, noteId);
-    });
-
-    it('findByTitle invokes correct channel with title', async () => {
-      mockInvoke.mockResolvedValue(null);
-      await capturedApi.notes.findByTitle('Test Title');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_FIND_BY_TITLE, 'Test Title');
-    });
-
-    it('searchTitles invokes correct channel with query and default limit', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.notes.searchTitles('test');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_SEARCH_TITLES, 'test', 10);
-    });
-
-    it('searchTitles invokes correct channel with custom limit', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.notes.searchTitles('test', 5);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_SEARCH_TITLES, 'test', 5);
-    });
-
-    it('findByDate invokes correct channel with date options', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.notes.findByDate('2024-12-21', true, false);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.NOTES_FIND_BY_DATE, {
-        date: '2024-12-21',
-        includeCreated: true,
-        includeUpdated: false,
-      });
-    });
-  });
-
-  describe('Search API', () => {
-    it('query invokes correct channel with search text', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.search.query('test query');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.SEARCH_QUERY, 'test query');
-    });
-  });
-
-  describe('Graph API', () => {
-    it('forNote invokes correct channel with noteId', async () => {
-      const noteId = 'test-note-id' as import('@scribe/shared').NoteId;
-      mockInvoke.mockResolvedValue({ nodes: [], edges: [] });
-      await capturedApi.graph.forNote(noteId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.GRAPH_FOR_NOTE, noteId);
-    });
-
-    it('backlinks invokes correct channel with noteId', async () => {
-      const noteId = 'test-note-id' as import('@scribe/shared').NoteId;
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.graph.backlinks(noteId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.GRAPH_BACKLINKS, noteId);
-    });
-
-    it('notesWithTag invokes correct channel with tag', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.graph.notesWithTag('important');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.GRAPH_NOTES_WITH_TAG, 'important');
-    });
-  });
-
   describe('Shell API', () => {
     it('openExternal invokes correct channel with URL', async () => {
       mockInvoke.mockResolvedValue(undefined);
@@ -190,6 +108,15 @@ describe('Preload Security Boundary', () => {
       expect(mockInvoke).toHaveBeenCalledWith(
         IPC_CHANNELS.SHELL_OPEN_EXTERNAL,
         'https://example.com'
+      );
+    });
+
+    it('showItemInFolder invokes correct channel with path', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+      await capturedApi.shell.showItemInFolder('/path/to/file');
+      expect(mockInvoke).toHaveBeenCalledWith(
+        IPC_CHANNELS.SHELL_SHOW_ITEM_IN_FOLDER,
+        '/path/to/file'
       );
     });
   });
@@ -208,10 +135,12 @@ describe('Preload Security Boundary', () => {
     });
 
     it('setLastOpenedNote invokes correct channel with noteId', async () => {
-      const noteId = 'test-note-id' as import('@scribe/shared').NoteId;
       mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.app.setLastOpenedNote(noteId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.APP_SET_LAST_OPENED_NOTE, noteId);
+      await capturedApi.app.setLastOpenedNote('test-note-id');
+      expect(mockInvoke).toHaveBeenCalledWith(
+        IPC_CHANNELS.APP_SET_LAST_OPENED_NOTE,
+        'test-note-id'
+      );
     });
 
     it('setLastOpenedNote handles null', async () => {
@@ -232,196 +161,11 @@ describe('Preload Security Boundary', () => {
       await capturedApi.app.setConfig(config);
       expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.APP_SET_CONFIG, config);
     });
-  });
 
-  describe('People API', () => {
-    it('list invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.people.list();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.PEOPLE_LIST);
-    });
-
-    it('create invokes correct channel with name', async () => {
-      mockInvoke.mockResolvedValue({ id: 'person-id' });
-      await capturedApi.people.create('John Doe');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.PEOPLE_CREATE, 'John Doe');
-    });
-
-    it('search invokes correct channel with query and default limit', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.people.search('john');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.PEOPLE_SEARCH, 'john', 10);
-    });
-
-    it('search invokes correct channel with custom limit', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.people.search('john', 5);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.PEOPLE_SEARCH, 'john', 5);
-    });
-  });
-
-  describe('Daily API', () => {
-    it('getOrCreate invokes correct channel without date', async () => {
-      mockInvoke.mockResolvedValue({ note: {}, isNew: true });
-      await capturedApi.daily.getOrCreate();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DAILY_GET_OR_CREATE, undefined);
-    });
-
-    it('getOrCreate transforms Date to ISO string', async () => {
-      const date = new Date('2024-12-21T10:30:00.000Z');
-      mockInvoke.mockResolvedValue({ note: {}, isNew: false });
-      await capturedApi.daily.getOrCreate(date);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DAILY_GET_OR_CREATE, {
-        date: '2024-12-21T10:30:00.000Z',
-      });
-    });
-
-    it('find invokes correct channel with date string', async () => {
-      mockInvoke.mockResolvedValue({ note: null });
-      await capturedApi.daily.find('2024-12-21');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DAILY_FIND, { date: '2024-12-21' });
-    });
-  });
-
-  describe('Meeting API', () => {
-    it('create invokes correct channel with title', async () => {
-      mockInvoke.mockResolvedValue({ id: 'meeting-id' });
-      await capturedApi.meeting.create('Team Standup');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.MEETING_CREATE, {
-        title: 'Team Standup',
-        date: undefined,
-      });
-    });
-
-    it('create invokes correct channel with title and date', async () => {
-      mockInvoke.mockResolvedValue({ id: 'meeting-id' });
-      await capturedApi.meeting.create('Team Standup', '2024-12-21');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.MEETING_CREATE, {
-        title: 'Team Standup',
-        date: '2024-12-21',
-      });
-    });
-
-    it('addAttendee invokes correct channel', async () => {
-      const noteId = 'meeting-id' as import('@scribe/shared').NoteId;
-      const personId = 'person-id' as import('@scribe/shared').NoteId;
+    it('relaunch invokes correct channel', async () => {
       mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.meeting.addAttendee(noteId, personId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.MEETING_ADD_ATTENDEE, {
-        noteId,
-        personId,
-      });
-    });
-
-    it('removeAttendee invokes correct channel', async () => {
-      const noteId = 'meeting-id' as import('@scribe/shared').NoteId;
-      const personId = 'person-id' as import('@scribe/shared').NoteId;
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.meeting.removeAttendee(noteId, personId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.MEETING_REMOVE_ATTENDEE, {
-        noteId,
-        personId,
-      });
-    });
-  });
-
-  describe('Dictionary API', () => {
-    it('addWord invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.dictionary.addWord('customword');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DICTIONARY_ADD_WORD, 'customword');
-    });
-
-    it('removeWord invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.dictionary.removeWord('customword');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DICTIONARY_REMOVE_WORD, 'customword');
-    });
-
-    it('getLanguages invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue(['en-US']);
-      await capturedApi.dictionary.getLanguages();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DICTIONARY_GET_LANGUAGES);
-    });
-
-    it('setLanguages invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.dictionary.setLanguages(['en-US', 'es']);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DICTIONARY_SET_LANGUAGES, [
-        'en-US',
-        'es',
-      ]);
-    });
-
-    it('getAvailableLanguages invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue(['en-US', 'es', 'fr']);
-      await capturedApi.dictionary.getAvailableLanguages();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DICTIONARY_GET_AVAILABLE_LANGUAGES);
-    });
-  });
-
-  describe('Tasks API', () => {
-    it('list invokes correct channel without filter', async () => {
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.tasks.list();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.TASKS_LIST, undefined);
-    });
-
-    it('list invokes correct channel with filter', async () => {
-      const filter = { completed: false } as import('@scribe/shared').TaskFilter;
-      mockInvoke.mockResolvedValue([]);
-      await capturedApi.tasks.list(filter);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.TASKS_LIST, filter);
-    });
-
-    it('toggle invokes correct channel with taskId', async () => {
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.tasks.toggle('task-123');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.TASKS_TOGGLE, { taskId: 'task-123' });
-    });
-
-    it('reorder invokes correct channel with taskIds', async () => {
-      mockInvoke.mockResolvedValue(undefined);
-      await capturedApi.tasks.reorder(['task-1', 'task-2', 'task-3']);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.TASKS_REORDER, {
-        taskIds: ['task-1', 'task-2', 'task-3'],
-      });
-    });
-
-    it('get invokes correct channel with taskId', async () => {
-      mockInvoke.mockResolvedValue({ id: 'task-123' });
-      await capturedApi.tasks.get('task-123');
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.TASKS_GET, { taskId: 'task-123' });
-    });
-
-    it('onChange registers event listener and returns cleanup function', () => {
-      const callback = vi.fn();
-      const cleanup = capturedApi.tasks.onChange(callback);
-
-      expect(mockOn).toHaveBeenCalledWith(IPC_CHANNELS.TASKS_CHANGED, expect.any(Function));
-      expect(typeof cleanup).toBe('function');
-
-      // Call cleanup
-      cleanup();
-      expect(mockRemoveListener).toHaveBeenCalledWith(
-        IPC_CHANNELS.TASKS_CHANGED,
-        expect.any(Function)
-      );
-    });
-
-    it('onChange callback receives events', () => {
-      const callback = vi.fn();
-      capturedApi.tasks.onChange(callback);
-
-      // Get the handler that was registered
-      const handler = mockOn.mock.calls.find((call) => call[0] === IPC_CHANNELS.TASKS_CHANGED)?.[1];
-      expect(handler).toBeDefined();
-
-      // Simulate event
-      const events = [{ type: 'toggle', taskId: 'task-1' }];
-      handler({} as Electron.IpcRendererEvent, events);
-
-      expect(callback).toHaveBeenCalledWith(events);
+      await capturedApi.app.relaunch();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.APP_RELAUNCH);
     });
   });
 
@@ -493,38 +237,158 @@ describe('Preload Security Boundary', () => {
     });
   });
 
-  describe('CLI API', () => {
-    it('install invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue({ success: true });
-      await capturedApi.cli.install();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.CLI_INSTALL);
+  describe('Dialog API', () => {
+    it('selectFolder invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue('/selected/path');
+      await capturedApi.dialog.selectFolder();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DIALOG_SELECT_FOLDER, undefined);
     });
 
-    it('isInstalled invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue(true);
-      await capturedApi.cli.isInstalled();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.CLI_IS_INSTALLED);
-    });
-
-    it('uninstall invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue({ success: true });
-      await capturedApi.cli.uninstall();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.CLI_UNINSTALL);
-    });
-
-    it('getStatus invokes correct channel', async () => {
-      mockInvoke.mockResolvedValue({ installed: true, path: '/usr/local/bin/scribe' });
-      await capturedApi.cli.getStatus();
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.CLI_GET_STATUS);
+    it('selectFolder invokes with options', async () => {
+      mockInvoke.mockResolvedValue('/selected/path');
+      await capturedApi.dialog.selectFolder({ title: 'Select', defaultPath: '/home' });
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.DIALOG_SELECT_FOLDER, {
+        title: 'Select',
+        defaultPath: '/home',
+      });
     });
   });
 
-  describe('Export API', () => {
-    it('toMarkdown invokes correct channel with noteId', async () => {
-      const noteId = 'test-note-id' as import('@scribe/shared').NoteId;
+  describe('Vault API', () => {
+    it('getPath invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue('/vault/path');
+      await capturedApi.vault.getPath();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.VAULT_GET_PATH);
+    });
+
+    it('setPath invokes correct channel with path', async () => {
+      mockInvoke.mockResolvedValue({ success: true, path: '/new/path' });
+      await capturedApi.vault.setPath('/new/path');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.VAULT_SET_PATH, '/new/path');
+    });
+
+    it('create invokes correct channel with path', async () => {
+      mockInvoke.mockResolvedValue({ success: true, path: '/new/vault' });
+      await capturedApi.vault.create('/new/vault');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.VAULT_CREATE, '/new/vault');
+    });
+
+    it('validate invokes correct channel with path', async () => {
+      mockInvoke.mockResolvedValue({ valid: true });
+      await capturedApi.vault.validate('/vault/path');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.VAULT_VALIDATE, '/vault/path');
+    });
+  });
+
+  describe('DeepLink API', () => {
+    it('onDeepLink registers listener and returns cleanup', () => {
+      const callback = vi.fn();
+      const cleanup = capturedApi.deepLink.onDeepLink(callback);
+
+      expect(mockOn).toHaveBeenCalledWith(IPC_CHANNELS.DEEP_LINK_RECEIVED, expect.any(Function));
+      expect(typeof cleanup).toBe('function');
+
+      cleanup();
+      expect(mockRemoveListener).toHaveBeenCalled();
+    });
+
+    it('onDeepLink callback receives parsed action', () => {
+      const callback = vi.fn();
+      capturedApi.deepLink.onDeepLink(callback);
+
+      const handler = mockOn.mock.calls.find(
+        (call) => call[0] === IPC_CHANNELS.DEEP_LINK_RECEIVED
+      )?.[1];
+      expect(handler).toBeDefined();
+
+      const action = { type: 'note' as const, noteId: 'test-id' };
+      handler({} as Electron.IpcRendererEvent, action);
+      expect(callback).toHaveBeenCalledWith(action);
+    });
+  });
+
+  describe('Assets API', () => {
+    it('save invokes correct channel with data', async () => {
+      const data = new ArrayBuffer(8);
+      mockInvoke.mockResolvedValue({ success: true, assetId: 'uuid' });
+      await capturedApi.assets.save(data, 'image/png', 'test.png');
+      expect(mockInvoke).toHaveBeenCalledWith(
+        IPC_CHANNELS.ASSETS_SAVE,
+        data,
+        'image/png',
+        'test.png'
+      );
+    });
+
+    it('load invokes correct channel with assetId', async () => {
+      mockInvoke.mockResolvedValue(new ArrayBuffer(8));
+      await capturedApi.assets.load('asset-id');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.ASSETS_LOAD, 'asset-id');
+    });
+
+    it('delete invokes correct channel with assetId', async () => {
+      mockInvoke.mockResolvedValue(true);
+      await capturedApi.assets.delete('asset-id');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.ASSETS_DELETE, 'asset-id');
+    });
+
+    it('getPath invokes correct channel with assetId', async () => {
+      mockInvoke.mockResolvedValue('/path/to/asset');
+      await capturedApi.assets.getPath('asset-id');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.ASSETS_GET_PATH, 'asset-id');
+    });
+  });
+
+  describe('Window API', () => {
+    it('new invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+      await capturedApi.window.new();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_NEW);
+    });
+
+    it('openNote invokes correct channel with noteId', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+      await capturedApi.window.openNote('note-id');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_OPEN_NOTE, 'note-id');
+    });
+
+    it('getId invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue(1);
+      await capturedApi.window.getId();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_GET_ID);
+    });
+
+    it('close invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+      await capturedApi.window.close();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_CLOSE);
+    });
+
+    it('focus invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue(undefined);
+      await capturedApi.window.focus();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_FOCUS);
+    });
+
+    it('reportCurrentNote invokes correct channel with noteId', async () => {
       mockInvoke.mockResolvedValue({ success: true });
-      await capturedApi.export.toMarkdown(noteId);
-      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.EXPORT_TO_MARKDOWN, noteId);
+      await capturedApi.window.reportCurrentNote('note-id');
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_REPORT_CURRENT_NOTE, 'note-id');
+    });
+
+    it('reportCurrentNote handles null', async () => {
+      mockInvoke.mockResolvedValue({ success: true });
+      await capturedApi.window.reportCurrentNote(null);
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW_REPORT_CURRENT_NOTE, null);
+    });
+  });
+
+  describe('Scribe Daemon API', () => {
+    it('getDaemonPort invokes correct channel', async () => {
+      mockInvoke.mockResolvedValue(4455);
+      const port = await capturedApi.scribe.getDaemonPort();
+      expect(mockInvoke).toHaveBeenCalledWith(IPC_CHANNELS.SCRIBE_GET_DAEMON_PORT);
+      expect(port).toBe(4455);
     });
   });
 });

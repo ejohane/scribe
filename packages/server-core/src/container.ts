@@ -34,6 +34,7 @@ import { DocumentService } from './services/document.service.js';
 import { GraphService } from './services/graph.service.js';
 import { SearchService } from './services/search.service.js';
 import { CollaborationService } from './services/collaboration.service.js';
+import { createExportService, type ExportService } from './services/export.service.js';
 
 /**
  * Configuration for the service container.
@@ -80,6 +81,8 @@ export interface Services {
   searchService: SearchService;
   /** Yjs collaboration management */
   collaborationService: CollaborationService;
+  /** Export notes to various formats */
+  exportService: ExportService;
 }
 
 /**
@@ -156,6 +159,11 @@ export function createServices(config: ServiceConfig): Services {
     documentService,
   });
 
+  // ExportService depends on DocumentService
+  const exportService = createExportService({
+    documentService,
+  });
+
   return {
     db,
     notesRepo,
@@ -168,6 +176,7 @@ export function createServices(config: ServiceConfig): Services {
     graphService,
     searchService,
     collaborationService,
+    exportService,
   };
 }
 

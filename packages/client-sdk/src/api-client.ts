@@ -46,6 +46,7 @@ export type ApiClient = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
  * - `notes`: CRUD operations for notes
  * - `search`: Full-text search
  * - `graph`: Knowledge graph queries (backlinks, tags, etc.)
+ * - `export`: Export notes to various formats
  *
  * @param options - Client options (port required)
  * @returns tRPC proxy client with full type inference
@@ -69,6 +70,10 @@ export type ApiClient = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
  * // Graph queries
  * const backlinks = await api.graph.backlinks.query('note-id');
  * const tags = await api.graph.tags.query();
+ *
+ * // Export
+ * const exported = await api.export.toMarkdown.query({ noteId: 'note-id' });
+ * console.log(exported.markdown);
  * ```
  */
 export function createApiClient(options: ApiClientOptions): ApiClient {

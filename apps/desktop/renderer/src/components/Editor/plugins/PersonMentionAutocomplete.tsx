@@ -1,29 +1,16 @@
 /**
  * PersonMentionAutocomplete
  *
- * Autocomplete popup component for person mentions (@username).
- * Handles search, display, and selection of people in the vault.
- * Uses the shared AutocompleteList component for consistent rendering patterns.
+ * NOTE: People feature temporarily disabled during thin shell refactor.
+ * This component is stubbed out until the feature is re-implemented
+ * via the daemon service.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import type { NoteId } from '@scribe/shared';
-import { createLogger } from '@scribe/shared';
-import { FloatingMenu, FloatingMenuItem, FloatingMenuAction } from '@scribe/design-system';
+import { FloatingMenu } from '@scribe/design-system';
 
-const log = createLogger({ prefix: 'PersonMentionAutocomplete' });
 import { AutocompleteList } from './AutocompleteList';
-
-/**
- * Get initials from a person's name (up to 2 characters)
- */
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) {
-    return parts[0].substring(0, 2).toUpperCase();
-  }
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 /**
  * Represents a person result in the autocomplete dropdown
@@ -64,100 +51,26 @@ export interface PersonMentionAutocompleteProps {
 }
 
 /**
- * Autocomplete component that manages search and reports results
- * back to the plugin for keyboard navigation support.
+ * Stubbed autocomplete component - people feature is temporarily disabled.
  */
 export function PersonMentionAutocomplete({
-  query,
   position,
-  selectedIndex,
-  onSelect,
-  onCreate,
-  currentNoteId,
   onResultsChange,
 }: PersonMentionAutocompleteProps) {
-  const [results, setResults] = useState<PersonResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Check if an exact match exists (case-insensitive)
-  const hasExactMatch = results.some((r) => r.name.toLowerCase() === query.toLowerCase());
-
-  // Should show create option: query exists and no exact match
-  const showCreateOption = query.trim().length > 0 && !hasExactMatch;
-
-  // Check if create option is selected
-  const isCreateSelected = showCreateOption && selectedIndex === results.length;
-
-  // Search for people when query changes
-  const searchPeople = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const searchResults = await window.scribe.people.search(query);
-      // Map SearchResult to PersonResult and exclude currentNoteId
-      const personResults: PersonResult[] = searchResults
-        .filter((r) => r.id !== currentNoteId)
-        .map((r) => ({
-          id: r.id,
-          name: r.title || 'Untitled',
-        }));
-      setResults(personResults);
-    } catch (error) {
-      log.error('Failed to search people', { query, error });
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [query, currentNoteId]);
-
-  // Debounce search to reduce IPC calls during rapid typing
+  // Report empty results to parent
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      searchPeople();
-    }, 150);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchPeople]);
-
-  // Notify parent when results change
-  useEffect(() => {
-    onResultsChange(results, hasExactMatch);
-  }, [results, hasExactMatch, onResultsChange]);
-
-  // Render create action as footer when applicable
-  const createActionFooter = showCreateOption ? (
-    <FloatingMenuAction
-      selected={isCreateSelected}
-      onClick={() => onCreate(query.trim())}
-      icon="+"
-      iconShape="circle"
-      iconVariant="muted"
-    >
-      Create &quot;{query.trim()}&quot;
-    </FloatingMenuAction>
-  ) : undefined;
+    onResultsChange([], false);
+  }, [onResultsChange]);
 
   return (
     <FloatingMenu position={position} ariaLabel="Person suggestions" width="sm">
       <AutocompleteList
-        items={results}
-        selectedIndex={selectedIndex}
-        onSelect={onSelect}
-        isLoading={isLoading}
-        loadingMessage="Searching..."
-        emptyMessage="No matching people"
-        footer={createActionFooter}
-        renderItem={(person, isSelected) => (
-          <FloatingMenuItem
-            key={person.id}
-            selected={isSelected}
-            onClick={() => onSelect(person)}
-            icon={getInitials(person.name)}
-            iconShape="circle"
-            iconVariant="accent"
-          >
-            {person.name}
-          </FloatingMenuItem>
-        )}
+        items={[]}
+        selectedIndex={0}
+        onSelect={() => {}}
+        isLoading={false}
+        emptyMessage="People feature coming soon"
+        renderItem={() => null}
       />
     </FloatingMenu>
   );

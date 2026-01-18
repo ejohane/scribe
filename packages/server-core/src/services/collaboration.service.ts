@@ -136,6 +136,7 @@ export class CollaborationService {
     // Return cached doc if exists
     const existing = this.docs.get(noteId);
     if (existing) {
+      console.log(`[CollabService] getDoc ${noteId}: returning cached doc`);
       return existing;
     }
 
@@ -144,9 +145,11 @@ export class CollaborationService {
 
     // Try to load persisted state
     const hasState = this.loadPersistedState(noteId, doc);
+    console.log(`[CollabService] getDoc ${noteId}: hasPersistedState=${hasState}`);
 
     // If no Yjs state, initialize from note content
     if (!hasState) {
+      console.log(`[CollabService] getDoc ${noteId}: initializing from note content`);
       const note = await this.documentService.read(noteId);
       if (note) {
         this.initializeDocFromContent(doc, note.content);
@@ -467,6 +470,7 @@ export class CollaborationService {
    */
   private saveDocState(noteId: string, doc: Y.Doc): void {
     const state = Y.encodeStateAsUpdate(doc);
+    console.log(`[CollabService] saveDocState for ${noteId}, ${state.length} bytes`);
     this.yjsRepo.save({
       noteId,
       state: Buffer.from(state),
@@ -477,21 +481,21 @@ export class CollaborationService {
   /**
    * Initialize Y.Doc from Lexical content.
    *
-   * Stores the serialized Lexical content in a Y.Map for now.
-   * The actual Yjs-Lexical binding structure will be refined
-   * in the collab package.
+   * Stores the serialized Lexical content in a Y.Map using the same
+   * structure as LexicalYjsPlugin (map name 'lexical', key 'editorState').
    */
   private initializeDocFromContent(doc: Y.Doc, content: EditorContent): void {
-    const yContent = doc.getMap('content');
-    yContent.set('lexical', JSON.stringify(content));
+    const yContent = doc.getMap('lexical');
+    yContent.set('editorState', JSON.stringify(content));
   }
 
   /**
    * Convert Y.Doc to Lexical content.
+   * Uses the same structure as LexicalYjsPlugin (map name 'lexical', key 'editorState').
    */
   private docToLexicalContent(doc: Y.Doc): EditorContent {
-    const yContent = doc.getMap('content');
-    const serialized = yContent.get('lexical') as string | undefined;
+    const yContent = doc.getMap('lexical');
+    const serialized = yContent.get('editorState') as string | undefined;
     return serialized ? JSON.parse(serialized) : this.createEmptyContent();
   }
 

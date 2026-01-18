@@ -60,6 +60,8 @@ export interface ScribeEditorProps {
   readOnly?: boolean;
   /** Whether to auto-focus the editor on mount */
   autoFocus?: boolean;
+  /** Whether to show the toolbar (defaults to true) */
+  showToolbar?: boolean;
   /** Additional CSS class name */
   className?: string;
   /** Yjs document for collaborative editing (optional) */
@@ -114,6 +116,7 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
   placeholder = 'Start writing...',
   readOnly = false,
   autoFocus = true,
+  showToolbar = true,
   className,
   yjsDoc,
   YjsPlugin,
@@ -163,7 +166,7 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
         aria-readonly={readOnly}
         aria-multiline="true"
       >
-        {!readOnly && <EditorToolbar />}
+        {showToolbar && !readOnly && <EditorToolbar />}
 
         <div className="scribe-editor-content">
           <RichTextPlugin

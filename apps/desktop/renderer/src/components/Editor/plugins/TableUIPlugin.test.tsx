@@ -650,12 +650,6 @@ describe('TableUIPlugin - Edge Cases', () => {
 });
 
 describe('TableUIPlugin - Button Attributes', () => {
-  let editorRef: React.MutableRefObject<LexicalEditor | null>;
-
-  beforeEach(() => {
-    editorRef = { current: null };
-  });
-
   afterEach(() => {
     cleanup();
   });
@@ -700,12 +694,6 @@ describe('TableUIPlugin - Button Attributes', () => {
 });
 
 describe('TableUIPlugin - Button Logic', () => {
-  let editorRef: React.MutableRefObject<LexicalEditor | null>;
-
-  beforeEach(() => {
-    editorRef = { current: null };
-  });
-
   afterEach(() => {
     cleanup();
   });

@@ -85,15 +85,31 @@ export function LexicalYjsPlugin({
 
         // Skip if state hasn't changed
         if (json === lastSyncedStateRef.current) {
+          console.log('[LexicalYjsPlugin] syncToYjs: State unchanged, skipping');
           return;
         }
 
+        console.log('[LexicalYjsPlugin] syncToYjs: Syncing to Yjs, doc.guid:', doc.guid);
         lastSyncedStateRef.current = json;
 
+        console.log('[LexicalYjsPlugin] syncToYjs: About to call doc.transact()');
+        // Check if there are update listeners on the doc
+        const listenerCount = (doc as unknown as { on: { length?: number } }).on?.length;
+        console.log(
+          '[LexicalYjsPlugin] syncToYjs: doc event listeners:',
+          listenerCount,
+          'destroyed:',
+          (doc as unknown as { _destroyed?: boolean })._destroyed
+        );
         doc.transact(() => {
           const yContent = doc.getMap('lexical');
           yContent.set(stateKey, json);
+          console.log('[LexicalYjsPlugin] syncToYjs: Y.Map.set() called');
         }, LOCAL_ORIGIN);
+        console.log(
+          '[LexicalYjsPlugin] syncToYjs: Transaction completed, origin was:',
+          LOCAL_ORIGIN
+        );
       }, debounceMs);
     },
     [doc, debounceMs, stateKey]
@@ -119,6 +135,7 @@ export function LexicalYjsPlugin({
   }, []);
 
   useEffect(() => {
+    console.log('[LexicalYjsPlugin] useEffect running, doc.guid:', doc.guid);
     const yContent = doc.getMap('lexical');
 
     // 1. Initialize editor from Yjs state (if available)
@@ -154,16 +171,21 @@ export function LexicalYjsPlugin({
 
     // 3. Listen for Yjs changes → update Lexical
     const observeHandler = (event: Y.YMapEvent<unknown>, transaction: Y.Transaction) => {
+      console.log('[LexicalYjsPlugin] Y.Map observed, origin:', transaction.origin);
+
       // Skip our own transactions
       if (transaction.origin === LOCAL_ORIGIN) {
+        console.log('[LexicalYjsPlugin] Skipping local origin transaction');
         return;
       }
 
       const newState = yContent.get(stateKey) as string | undefined;
       if (!newState) {
+        console.log('[LexicalYjsPlugin] No new state found in Y.Map');
         return;
       }
 
+      console.log('[LexicalYjsPlugin] Applying remote state to Lexical');
       applyRemoteState(editor, newState);
     };
 

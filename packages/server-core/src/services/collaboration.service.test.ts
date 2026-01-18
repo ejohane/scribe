@@ -153,10 +153,10 @@ describe('CollaborationService', () => {
       });
 
       const doc = await service.getDoc(note.id);
-      const yContent = doc.getMap('content');
+      const yContent = doc.getMap('lexical');
 
-      expect(yContent.get('lexical')).toBeDefined();
-      const lexicalContent = JSON.parse(yContent.get('lexical') as string);
+      expect(yContent.get('editorState')).toBeDefined();
+      const lexicalContent = JSON.parse(yContent.get('editorState') as string);
       expect(lexicalContent.root.children[0].children[0].text).toBe('Initial content');
     });
   });
@@ -445,10 +445,10 @@ describe('CollaborationService', () => {
 
       const doc = await service.getDoc(note.id);
 
-      // Modify the Yjs content
-      const yContent = doc.getMap('content');
+      // Modify the Yjs content (uses 'lexical' map with 'editorState' key)
+      const yContent = doc.getMap('lexical');
       const newContent = createTestContent('Updated via Yjs');
-      yContent.set('lexical', JSON.stringify(newContent));
+      yContent.set('editorState', JSON.stringify(newContent));
 
       const result = await service.syncToFile(note.id);
 

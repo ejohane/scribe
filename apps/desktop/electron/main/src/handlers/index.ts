@@ -9,59 +9,41 @@
  * | Module | Channels | Description |
  * |--------|----------|-------------|
  * | {@link setupAppHandlers} | `ping`, `app:*`, `shell:*` | App configuration, devtools, shell operations |
- * | {@link setupNotesHandlers} | `notes:*` | Notes CRUD, title search, date-based queries |
- * | {@link setupSearchHandlers} | `search:*` | Full-text search across notes |
- * | {@link setupGraphHandlers} | `graph:*` | Graph traversal, backlinks, tag queries |
- * | {@link setupPeopleHandlers} | `people:*` | Person note management |
- * | {@link setupDictionaryHandlers} | `dictionary:*` | Spellcheck dictionary management |
- * | {@link setupDailyHandlers} | `daily:*` | Daily note get-or-create |
- * | {@link setupMeetingHandlers} | `meeting:*` | Meeting note creation and attendees |
- * | {@link setupTasksHandlers} | `tasks:*` | Task toggle, list, reorder |
- * | {@link setupCLIHandlers} | `cli:*` | CLI installation and management |
- * | {@link setupExportHandlers} | `export:*` | Export notes to external formats |
- * | {@link setupSyncHandlers} | `sync:*` | Multi-device sync operations |
  * | {@link setupAssetHandlers} | `assets:*` | Binary asset management (images) |
  * | {@link setupWindowHandlers} | `window:*` | Multi-window management |
+ *
+ * ## Daemon-Provided Functionality
+ *
+ * The following functionality is now provided by the daemon via tRPC:
+ * - Notes CRUD: `notes.router.ts` (was notesHandlers.ts)
+ * - Search: `search.router.ts` (was searchHandlers.ts)
+ * - Graph: `graph.router.ts` (was graphHandlers.ts)
+ * - Export: `export.router.ts` (was exportHandlers.ts)
  *
  * ## IPC Channel Naming Convention
  *
  * All channels follow the pattern `domain:action`:
- * - Domain groups related functionality (e.g., `notes`, `tasks`)
- * - Action describes the operation (e.g., `list`, `create`, `toggle`)
+ * - Domain groups related functionality (e.g., `notes`)
+ * - Action describes the operation (e.g., `list`, `create`)
  *
  * ## Error Handling
  *
- * All handlers may throw if dependencies are not initialized (vault, graph, search, etc.).
- * Some handlers wrap errors using {@link ScribeError} for user-friendly messages.
+ * All handlers may throw if dependencies are not initialized.
  *
  * @module handlers
  */
 
-export { setupNotesHandlers } from './notesHandlers';
-export { setupSearchHandlers } from './searchHandlers';
-export { setupGraphHandlers } from './graphHandlers';
-export { setupPeopleHandlers } from './peopleHandlers';
 export { setupAppHandlers } from './appHandlers';
-export { setupDictionaryHandlers } from './dictionaryHandlers';
-export { setupDailyHandlers } from './dailyHandlers';
-export { setupMeetingHandlers } from './meetingHandlers';
-export { setupTasksHandlers } from './tasksHandlers';
-export { setupCLIHandlers } from './cliHandlers';
-export { setupExportHandlers } from './exportHandlers';
 export { setupDialogHandlers } from './dialogHandlers';
 export { setupVaultHandlers } from './vaultHandlers';
-export { setupSyncHandlers, setupSyncStatusForwarding } from './syncHandlers';
-export { setupRecentOpensHandlers } from './recentOpensHandlers';
 export {
   parseDeepLink,
   extractDeepLinkFromArgv,
   registerProtocolHandler,
   DEEP_LINK_PROTOCOL,
 } from './deepLinkHandlers';
-export { setupRaycastHandlers } from './raycastHandlers';
 export { setupAssetHandlers, registerAssetProtocol } from './assetHandlers';
 export { setupWindowHandlers } from './windowHandlers';
 
-export type { HandlerDependencies, AppConfig, Engines } from './types';
-export { withEngines } from './types';
+export type { HandlerDependencies, AppConfig } from './types';
 export { loadConfig, saveConfig, getVaultPath, DEFAULT_VAULT_PATH } from './config';

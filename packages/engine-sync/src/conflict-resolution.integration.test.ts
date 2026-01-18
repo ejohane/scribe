@@ -121,7 +121,7 @@ const createMockTransport = (): { transport: MockTransport; state: MockServerSta
 /**
  * Set up mock transport to accept all pushes.
  */
-const setupMockTransportAcceptAll = (transport: MockTransport, state: MockServerState): void => {
+const _setupMockTransportAcceptAll = (transport: MockTransport, state: MockServerState): void => {
   transport.push.mockImplementation(async (request: SyncPushRequest): Promise<SyncPushResponse> => {
     state.pushCount++;
     const accepted = request.changes.map((change) => {
@@ -142,7 +142,7 @@ const setupMockTransportAcceptAll = (transport: MockTransport, state: MockServer
 /**
  * Set up mock transport with no changes to pull.
  */
-const setupMockTransportEmptyPull = (transport: MockTransport, state: MockServerState): void => {
+const _setupMockTransportEmptyPull = (transport: MockTransport, state: MockServerState): void => {
   transport.pull.mockImplementation(async (): Promise<SyncPullResponse> => {
     state.pullCount++;
     return {

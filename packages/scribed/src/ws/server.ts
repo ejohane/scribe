@@ -236,6 +236,10 @@ export class YjsWebSocketServer {
     noteId: string,
     update: Uint8Array
   ): Promise<void> {
+    console.log(
+      `[WS] Received sync-update from ${connection.clientId} for note ${noteId}, ${update.length} bytes`
+    );
+
     // Verify client has joined this document
     if (!connection.noteIds.has(noteId)) {
       this.sendError(connection.ws, 'Not joined to this document', 'NOT_JOINED');
@@ -260,7 +264,14 @@ export class YjsWebSocketServer {
    */
   private broadcastUpdate(noteId: string, update: Uint8Array, origin: string): void {
     const clients = this.noteClients.get(noteId);
-    if (!clients) return;
+    if (!clients) {
+      console.log(`[WS] No clients for note ${noteId}, skipping broadcast`);
+      return;
+    }
+
+    console.log(
+      `[WS] Broadcasting to ${clients.size} clients for note ${noteId} (origin: ${origin})`
+    );
 
     const message: ServerMessage = {
       type: 'sync-update',
@@ -268,13 +279,16 @@ export class YjsWebSocketServer {
       update: encodeBytes(update),
     };
 
+    let sentCount = 0;
     for (const ws of clients) {
       const conn = this.connections.get(ws);
       // Don't send update back to the originator
       if (conn && conn.clientId !== origin) {
         this.send(ws, message);
+        sentCount++;
       }
     }
+    console.log(`[WS] Sent update to ${sentCount} clients`);
   }
 
   /**

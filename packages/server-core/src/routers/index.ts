@@ -14,6 +14,7 @@ import { router } from './trpc.js';
 import { notesRouter } from './notes.router.js';
 import { searchRouter } from './search.router.js';
 import { graphRouter } from './graph.router.js';
+import { exportRouter } from './export.router.js';
 
 // Re-export tRPC utilities
 export { router, publicProcedure, procedure, createContextFactory, type Context } from './trpc.js';
@@ -22,6 +23,8 @@ export { router, publicProcedure, procedure, createContextFactory, type Context 
 export { notesRouter } from './notes.router.js';
 export { searchRouter } from './search.router.js';
 export { graphRouter } from './graph.router.js';
+export { exportRouter } from './export.router.js';
+export type { ExportRouter } from './export.router.js';
 
 /**
  * Combined application router.
@@ -30,6 +33,7 @@ export { graphRouter } from './graph.router.js';
  * - notes: CRUD operations for notes
  * - search: Full-text search
  * - graph: Knowledge graph queries (backlinks, tags, etc.)
+ * - export: Export notes to various formats
  *
  * @example
  * ```typescript
@@ -53,6 +57,8 @@ export const appRouter = router({
   search: searchRouter,
   /** Graph queries (backlinks, tags, stats) */
   graph: graphRouter,
+  /** Export notes to various formats */
+  export: exportRouter,
 });
 
 /**

@@ -6,14 +6,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GraphEngine } from './graph-engine.js';
-import type {
-  Note,
-  NoteMetadata,
-  NoteType,
-  NoteId,
-  MeetingNoteData,
-  DailyNoteData,
-} from '@scribe/shared';
+import type { Note, NoteMetadata, NoteType } from '@scribe/shared';
 import { createNoteId } from '@scribe/shared';
 
 /**

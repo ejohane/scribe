@@ -114,6 +114,9 @@ export class CollabClient {
   /** Map of noteId → Y.Doc */
   private documents: Map<string, Y.Doc> = new Map();
 
+  /** Map of noteId → reference count (for React StrictMode compatibility) */
+  private docRefCounts: Map<string, number> = new Map();
+
   /** Map of noteId → update handler bound to that doc */
   private updateHandlers: Map<string, (update: Uint8Array, origin: unknown) => void> = new Map();
 
@@ -224,7 +227,11 @@ export class CollabClient {
       } else {
         this.ws.removeAllListeners?.();
       }
-      this.ws.close();
+      // Only close if connection was established (readyState > 0)
+      // ws library throws if close() is called during CONNECTING state
+      if (this.ws.readyState !== 0) {
+        this.ws.close();
+      }
       this.ws = null;
     }
 
@@ -238,6 +245,7 @@ export class CollabClient {
     }
     this.documents.clear();
     this.updateHandlers.clear();
+    this.docRefCounts.clear();
 
     // Reject any pending syncs
     for (const [, pending] of this.pendingSyncs) {
@@ -279,9 +287,14 @@ export class CollabClient {
       throw new Error('Not connected to collaboration server');
     }
 
-    // Check if already joined
+    // Check if already joined - increment ref count and return existing
     const existing = this.documents.get(noteId);
     if (existing) {
+      const currentCount = this.docRefCounts.get(noteId) ?? 0;
+      this.docRefCounts.set(noteId, currentCount + 1);
+      console.log(
+        `[CollabClient] Returning existing doc ${existing.guid}, refCount: ${currentCount + 1}`
+      );
       return {
         noteId,
         doc: existing,
@@ -291,17 +304,26 @@ export class CollabClient {
 
     // Create local Y.Doc
     const doc = new Y.Doc();
+    console.log(`[CollabClient] Created Y.Doc with guid: ${doc.guid}`);
     this.documents.set(noteId, doc);
+    this.docRefCounts.set(noteId, 1); // Initial ref count = 1
 
     // Set up local change handler
     const updateHandler = (update: Uint8Array, origin: unknown) => {
+      console.log(
+        `[CollabClient] Doc update event, origin: ${origin}, update size: ${update.length} bytes`
+      );
       if (origin !== 'remote') {
         // Send local changes to server
+        console.log(`[CollabClient] Sending update (origin != 'remote')`);
         this.sendUpdate(noteId, update);
+      } else {
+        console.log(`[CollabClient] Skipping remote origin update`);
       }
     };
     this.updateHandlers.set(noteId, updateHandler);
     doc.on('update', updateHandler);
+    console.log(`[CollabClient] Update handler registered for doc ${doc.guid}`);
 
     // Send join message
     this.send({ type: 'join', noteId });
@@ -330,7 +352,23 @@ export class CollabClient {
    */
   leaveDocument(noteId: string): void {
     const doc = this.documents.get(noteId);
+    const currentCount = this.docRefCounts.get(noteId) ?? 0;
+    console.log(
+      `[CollabClient] leaveDocument called for ${noteId}, hasDoc: ${!!doc}, refCount: ${currentCount}`
+    );
     if (!doc) return;
+
+    // Decrement ref count
+    const newCount = currentCount - 1;
+    this.docRefCounts.set(noteId, newCount);
+
+    // Only destroy if no more references
+    if (newCount > 0) {
+      console.log(`[CollabClient] Doc ${doc.guid} still has ${newCount} refs, keeping alive`);
+      return;
+    }
+
+    console.log(`[CollabClient] Doc ${doc.guid} refCount is 0, destroying`);
 
     // Send leave message
     if (this.ws && this.isOpen()) {
@@ -340,13 +378,16 @@ export class CollabClient {
     // Clean up update handler
     const handler = this.updateHandlers.get(noteId);
     if (handler) {
+      console.log(`[CollabClient] Removing update handler for doc ${doc.guid}`);
       doc.off('update', handler);
       this.updateHandlers.delete(noteId);
     }
 
     // Clean up doc
+    console.log(`[CollabClient] Destroying doc ${doc.guid}`);
     doc.destroy();
     this.documents.delete(noteId);
+    this.docRefCounts.delete(noteId);
   }
 
   /**
@@ -459,15 +500,18 @@ export class CollabClient {
       switch (message.type) {
         case 'joined':
           // Document join confirmed - state will follow
+          console.log(`[CollabClient] Joined note: ${message.noteId}`);
           break;
 
         case 'sync-state':
           // Apply initial state
+          console.log(`[CollabClient] Received sync-state for note: ${message.noteId}`);
           this.applyState(message.noteId, this.decodeBytes(message.state));
           break;
 
         case 'sync-update':
           // Apply incremental update
+          console.log(`[CollabClient] Received sync-update for note: ${message.noteId}`);
           this.applyUpdate(message.noteId, this.decodeBytes(message.update));
           break;
 
@@ -512,6 +556,7 @@ export class CollabClient {
    * Send a local update to the server.
    */
   private sendUpdate(noteId: string, update: Uint8Array): void {
+    console.log(`[CollabClient] Sending sync-update for note: ${noteId}, ${update.length} bytes`);
     this.send({
       type: 'sync-update',
       noteId,

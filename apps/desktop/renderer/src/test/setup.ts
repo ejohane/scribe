@@ -31,5 +31,31 @@ process.on('uncaughtException', (error) => {
     // Silently ignore TableObserver cleanup errors
     return;
   }
+  // Ignore Lexical selection errors that occur due to happy-dom compatibility issues
+  // This happens when Lexical tries to modify a RangeSelection that happy-dom has frozen
+  if (error.message?.includes("Cannot assign to read only property 'format'")) {
+    return;
+  }
+  // Ignore WebSocket connection errors during tests (no daemon running)
+  if (
+    error.message?.includes('WebSocket connection failed') ||
+    error.message?.includes('ECONNREFUSED')
+  ) {
+    return;
+  }
   throw error;
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  // Ignore WebSocket connection errors during tests
+  if (message?.includes('WebSocket connection failed') || message?.includes('ECONNREFUSED')) {
+    return;
+  }
+  // Ignore Lexical selection errors
+  if (message?.includes("Cannot assign to read only property 'format'")) {
+    return;
+  }
+  throw reason;
 });

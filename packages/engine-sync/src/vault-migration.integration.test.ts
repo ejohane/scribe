@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { SyncEngine, type SyncEngineConfig } from './sync-engine.js';
+import { SyncEngine } from './sync-engine.js';
 import { SyncDatabase } from './sync-database.js';
 import { VaultMigrator } from './vault-migrator.js';
 import { loadSyncConfig, saveSyncConfig, createDefaultSyncConfig } from './sync-config.js';
@@ -508,9 +508,8 @@ describe('Vault Migration Integration', () => {
       expect(unsyncedState?.status).toBe('pending');
 
       // Previously synced notes should not be in the sync state table
-      // (unless we explicitly tracked them)
-      const syncedState = db.getSyncState('synced-note');
-      // This depends on implementation - may or may not be present
+      // (unless we explicitly tracked them).
+      // syncedState depends on implementation - may or may not be present
 
       db.close();
     });

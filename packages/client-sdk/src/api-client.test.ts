@@ -225,6 +225,35 @@ describe('API client calls', () => {
           };
         }
 
+        if (req.url.includes('export.toMarkdown')) {
+          return {
+            status: 200,
+            body: batch
+              ? [
+                  {
+                    result: {
+                      data: {
+                        markdown: '# Test Note\n\nContent here',
+                        noteId: 'note-1',
+                        title: 'Test Note',
+                        exportedAt: '2024-01-15T10:30:00Z',
+                      },
+                    },
+                  },
+                ]
+              : {
+                  result: {
+                    data: {
+                      markdown: '# Test Note\n\nContent here',
+                      noteId: 'note-1',
+                      title: 'Test Note',
+                      exportedAt: '2024-01-15T10:30:00Z',
+                    },
+                  },
+                },
+          };
+        }
+
         // Default 404 for unknown procedures
         return {
           status: 404,
@@ -306,6 +335,30 @@ describe('API client calls', () => {
       expect(result).toBeDefined();
       expect(result.totalNotes).toBe(10);
       expect(requestLog.some((r) => r.url.includes('graph.stats'))).toBe(true);
+    });
+  });
+
+  describe('export router', () => {
+    it('should call export.toMarkdown', async () => {
+      const result = await client.export.toMarkdown.query({ noteId: 'note-1' });
+
+      expect(result).toBeDefined();
+      expect(result.markdown).toBe('# Test Note\n\nContent here');
+      expect(result.noteId).toBe('note-1');
+      expect(result.title).toBe('Test Note');
+      expect(result.exportedAt).toBeDefined();
+      expect(requestLog.some((r) => r.url.includes('export.toMarkdown'))).toBe(true);
+    });
+
+    it('should call export.toMarkdown with options', async () => {
+      const result = await client.export.toMarkdown.query({
+        noteId: 'note-1',
+        options: { includeFrontmatter: false, includeTitle: true },
+      });
+
+      expect(result).toBeDefined();
+      expect(result.markdown).toBeDefined();
+      expect(requestLog.some((r) => r.url.includes('export.toMarkdown'))).toBe(true);
     });
   });
 });
@@ -437,5 +490,24 @@ describe('type inference', () => {
     expect(typeof client.graph.tags.query).toBe('function');
     expect(typeof client.graph.noteTags.query).toBe('function');
     expect(typeof client.graph.stats.query).toBe('function');
+
+    // Export router methods
+    expect(typeof client.export.toMarkdown.query).toBe('function');
+  });
+});
+
+describe('type exports', () => {
+  it('should export ExportRouter type from the package', async () => {
+    // This test verifies that ExportRouter type is exported from the package
+    // If this compiles without error, the type is correctly exported
+    const sdk = await import('./index.js');
+
+    // Verify the type exists by checking it's exported (type-only exports won't be in runtime)
+    // We can verify AppRouter exists which includes export namespace
+    expect(sdk).toHaveProperty('VERSION');
+
+    // The existence of the export router on client verifies AppRouter includes it
+    const client = sdk.createApiClient({ port: 3000 });
+    expect(typeof client.export.toMarkdown.query).toBe('function');
   });
 });

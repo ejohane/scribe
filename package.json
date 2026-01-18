@@ -17,6 +17,7 @@
     "dev:daemon": "cd packages/scribed && bunx tsx src/cli.ts start",
     "dev:web": "cd apps/web && bun run dev",
     "dev:server": "/bin/sh -c 'bun run dev:daemon & bun run dev:web'",
+    "dev:remote": "TAILWIND_IP=0.0.0.0 /bin/sh -c 'bun run dev:daemon & bun run dev:web'",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

@@ -13,13 +13,7 @@
  * @since 1.0.0
  */
 
-import type {
-  BaseNote,
-  SyncPushRequest,
-  SyncPullRequest,
-  SyncConflict,
-  SyncResult,
-} from '@scribe/shared';
+import type { BaseNote, SyncPushRequest, SyncPullRequest, SyncResult } from '@scribe/shared';
 import type { SyncDatabase } from './sync-database.js';
 import type { SyncTransport } from './sync-transport.js';
 import type { ChangeTracker } from './change-tracker.js';

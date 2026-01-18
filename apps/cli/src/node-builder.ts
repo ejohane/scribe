@@ -3,7 +3,7 @@
  * Used by CLI write operations to generate valid note content.
  */
 
-import { deepClone, createEmptyContent } from '@scribe/shared';
+import { deepClone } from '@scribe/shared';
 import type { EditorContent, EditorNode } from '@scribe/shared';
 
 // Re-export for consumers

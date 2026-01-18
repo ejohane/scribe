@@ -30,3 +30,10 @@ export {
   type CollabUpdate,
   type UpdateHandler,
 } from './collaboration.service.js';
+export {
+  createExportService,
+  type ExportService,
+  type ExportServiceDeps,
+  type ExportMarkdownResult,
+  type ExportMarkdownOptions,
+} from './export.service.js';
