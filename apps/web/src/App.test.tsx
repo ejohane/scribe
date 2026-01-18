@@ -51,7 +51,7 @@ vi.mock('@trpc/client', () => ({
 }));
 
 // Import pages from app-shell (they're the same ones used in App)
-import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/app-shell';
+import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/web-core';
 
 // Sample note data
 const mockNotes = [

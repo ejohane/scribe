@@ -296,8 +296,9 @@ export class Daemon {
    * Start listening on the specified port.
    */
   private listen(preferredPort: number): Promise<number> {
+    const host = process.env.TAILWIND_IP ? '0.0.0.0' : '127.0.0.1';
     return new Promise((resolve, reject) => {
-      this.server!.listen(preferredPort, '127.0.0.1', () => {
+      this.server!.listen(preferredPort, host, () => {
         const address = this.server!.address();
         if (typeof address === 'object' && address) {
           resolve(address.port);

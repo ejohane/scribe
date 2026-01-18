@@ -18,7 +18,7 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
-    "@scribe/app-shell": "workspace:*",
+    "@scribe/web-core": "workspace:*",
     "@scribe/client-sdk": "workspace:*",
     "@scribe/editor": "workspace:*",
     "@scribe/plugin-core": "workspace:*",

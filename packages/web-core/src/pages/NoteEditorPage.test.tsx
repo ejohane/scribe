@@ -1,0 +1,444 @@
+/**
+ * Tests for NoteEditorPage component.
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+
+// Mock navigation
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+// Create mockTrpc as a stable reference that the factory will return
+const mockTrpc = {
+  notes: {
+    get: {
+      query: vi.fn(),
+    },
+    update: {
+      mutate: vi.fn(),
+    },
+  },
+};
+
+// Mock @tanstack/react-query
+vi.mock('@tanstack/react-query', () => ({
+  QueryClient: vi.fn().mockImplementation(() => ({})),
+  QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// Mock @trpc/client - the factory function captures mockTrpc
+vi.mock('@trpc/client', () => ({
+  createTRPCProxyClient: () => mockTrpc,
+  httpBatchLink: () => ({}),
+}));
+
+// Import after mocks
+import { NoteEditorPage } from './NoteEditorPage';
+import { ScribeProvider } from '../providers/ScribeProvider';
+import { PlatformProvider } from '../providers/PlatformProvider';
+import type { EditorContent } from '@scribe/client-sdk';
+
+// Sample note data
+const mockNote = {
+  id: 'test-note-123',
+  title: 'Test Note Title',
+  type: 'note' as const,
+  date: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  content: { root: { children: [], type: 'root' as const, version: 1 } },
+  wordCount: 0,
+};
+
+// Helper to render with providers
+function renderNoteEditorPage(options?: {
+  noteId?: string;
+  note?: typeof mockNote | null;
+  renderEditor?: (
+    content: EditorContent,
+    onChange: (content: EditorContent) => void
+  ) => React.ReactNode;
+  renderMenuButton?: () => React.ReactNode;
+  onSave?: (noteId: string, content: EditorContent) => void;
+  onError?: (error: Error) => void;
+  skipMockSetup?: boolean;
+}) {
+  const {
+    noteId = 'test-note-123',
+    note = mockNote,
+    renderEditor,
+    renderMenuButton,
+    onSave,
+    onError,
+    skipMockSetup = false,
+  } = options ?? {};
+
+  // Only set up mock if not skipped (allows tests to set up their own mock behavior)
+  if (!skipMockSetup) {
+    if (note === null) {
+      mockTrpc.notes.get.query.mockResolvedValue(null);
+    } else {
+      mockTrpc.notes.get.query.mockResolvedValue(note);
+    }
+  }
+
+  return render(
+    <MemoryRouter initialEntries={[`/note/${noteId}`]}>
+      <ScribeProvider daemonUrl="http://localhost:3000">
+        <PlatformProvider platform="web" capabilities={{}}>
+          <Routes>
+            <Route
+              path="/note/:id"
+              element={
+                <NoteEditorPage
+                  renderEditor={renderEditor}
+                  renderMenuButton={renderMenuButton}
+                  onSave={onSave}
+                  onError={onError}
+                />
+              }
+            />
+          </Routes>
+        </PlatformProvider>
+      </ScribeProvider>
+    </MemoryRouter>
+  );
+}
+
+describe('NoteEditorPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockTrpc.notes.update.mutate.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  describe('Basic rendering', () => {
+    it('renders without crashing', async () => {
+      renderNoteEditorPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      });
+    });
+
+    it('displays loading state initially', () => {
+      mockTrpc.notes.get.query.mockImplementation(() => new Promise(() => {}));
+      renderNoteEditorPage({ skipMockSetup: true });
+
+      // Loading state is minimal - just the container without content
+      expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      expect(screen.queryByTestId('note-editor-content')).not.toBeInTheDocument();
+    });
+
+    it('shows no editor message when renderEditor not provided', async () => {
+      renderNoteEditorPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('no-editor-provided')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Error state', () => {
+    it('displays error when note not found', async () => {
+      renderNoteEditorPage({ note: null });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-state')).toBeInTheDocument();
+      });
+    });
+
+    it('displays error on fetch failure', async () => {
+      mockTrpc.notes.get.query.mockRejectedValue(new Error('Test error'));
+      renderNoteEditorPage({ skipMockSetup: true });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-state')).toBeInTheDocument();
+        expect(screen.getByText('Test error')).toBeInTheDocument();
+      });
+    });
+
+    it('has back button in error state', async () => {
+      renderNoteEditorPage({ note: null });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('back-button')).toBeInTheDocument();
+      });
+    });
+
+    it('navigates back on back button click in error state', async () => {
+      renderNoteEditorPage({ note: null });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('back-button')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('back-button'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+  });
+
+  describe('Menu button', () => {
+    it('renders menu button when provided', async () => {
+      renderNoteEditorPage({
+        renderMenuButton: () => <button data-testid="custom-menu">Menu</button>,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-menu')).toBeInTheDocument();
+      });
+    });
+
+    it('renders menu button in loading state', () => {
+      mockTrpc.notes.get.query.mockImplementation(() => new Promise(() => {}));
+      renderNoteEditorPage({
+        skipMockSetup: true,
+        renderMenuButton: () => <button data-testid="custom-menu">Menu</button>,
+      });
+
+      expect(screen.getByTestId('custom-menu')).toBeInTheDocument();
+    });
+
+    it('renders menu button in error state', async () => {
+      renderNoteEditorPage({
+        note: null,
+        renderMenuButton: () => <button data-testid="custom-menu">Menu</button>,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-menu')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Custom editor', () => {
+    it('renders custom editor with content', async () => {
+      renderNoteEditorPage({
+        renderEditor: (content) => <div data-testid="custom-editor">{JSON.stringify(content)}</div>,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+    });
+
+    it('receives onChange handler', async () => {
+      const onChangeCalls: unknown[] = [];
+      renderNoteEditorPage({
+        renderEditor: (content, onChange) => (
+          <button
+            data-testid="custom-editor"
+            onClick={() => {
+              const newContent = { root: { children: [], type: 'root' as const, version: 1 } };
+              onChangeCalls.push(newContent);
+              onChange(newContent);
+            }}
+          >
+            Change
+          </button>
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('custom-editor'));
+
+      expect(onChangeCalls).toHaveLength(1);
+    });
+  });
+
+  describe('Auto-save', () => {
+    it('saves content after debounce delay', async () => {
+      renderNoteEditorPage({
+        renderEditor: (content, onChange) => (
+          <button
+            data-testid="custom-editor"
+            onClick={() =>
+              onChange({
+                root: { children: [{ type: 'text', text: 'new' }], type: 'root', version: 1 },
+              })
+            }
+          >
+            Change
+          </button>
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('custom-editor'));
+
+      // Not yet saved
+      expect(mockTrpc.notes.update.mutate).not.toHaveBeenCalled();
+
+      // Advance timer past debounce delay
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      expect(mockTrpc.notes.update.mutate).toHaveBeenCalledWith({
+        id: 'test-note-123',
+        content: { root: { children: [{ type: 'text', text: 'new' }], type: 'root', version: 1 } },
+      });
+    });
+
+    it('shows saving indicator while saving', async () => {
+      let resolveUpdate: () => void = () => {};
+      mockTrpc.notes.update.mutate.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve as () => void;
+          })
+      );
+
+      renderNoteEditorPage({
+        renderEditor: (content, onChange) => (
+          <button
+            data-testid="custom-editor"
+            onClick={() => onChange({ root: { children: [], type: 'root', version: 1 } })}
+          >
+            Change
+          </button>
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('custom-editor'));
+
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      expect(screen.getByTestId('saving-indicator')).toBeInTheDocument();
+
+      await act(async () => {
+        resolveUpdate();
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('saving-indicator')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Callbacks', () => {
+    it('calls onSave callback when note is saved', async () => {
+      const onSave = vi.fn();
+      renderNoteEditorPage({
+        onSave,
+        renderEditor: (content, onChange) => (
+          <button
+            data-testid="custom-editor"
+            onClick={() => onChange({ root: { children: [], type: 'root', version: 1 } })}
+          >
+            Change
+          </button>
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('custom-editor'));
+
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      await waitFor(() => {
+        expect(onSave).toHaveBeenCalledWith('test-note-123', {
+          root: { children: [], type: 'root', version: 1 },
+        });
+      });
+    });
+
+    it('calls onError callback when save fails', async () => {
+      const onError = vi.fn();
+      mockTrpc.notes.update.mutate.mockRejectedValue(new Error('Save failed'));
+
+      renderNoteEditorPage({
+        onError,
+        renderEditor: (content, onChange) => (
+          <button
+            data-testid="custom-editor"
+            onClick={() => onChange({ root: { children: [], type: 'root', version: 1 } })}
+          >
+            Change
+          </button>
+        ),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-editor')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('custom-editor'));
+
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalled();
+        expect(onError.mock.calls[0][0].message).toBe('Save failed');
+      });
+    });
+
+    it('calls onError callback when fetch fails', async () => {
+      const onError = vi.fn();
+      mockTrpc.notes.get.query.mockRejectedValue(new Error('Fetch failed'));
+
+      renderNoteEditorPage({
+        onError,
+        skipMockSetup: true,
+      });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalled();
+        expect(onError.mock.calls[0][0].message).toBe('Fetch failed');
+      });
+    });
+  });
+
+  describe('Note ID prop', () => {
+    it('uses noteId prop over URL param', async () => {
+      render(
+        <MemoryRouter initialEntries={['/note/url-id']}>
+          <ScribeProvider daemonUrl="http://localhost:3000">
+            <PlatformProvider platform="web" capabilities={{}}>
+              <Routes>
+                <Route path="/note/:id" element={<NoteEditorPage noteId="prop-id" />} />
+              </Routes>
+            </PlatformProvider>
+          </ScribeProvider>
+        </MemoryRouter>
+      );
+
+      await waitFor(() => {
+        expect(mockTrpc.notes.get.query).toHaveBeenCalledWith('prop-id');
+      });
+    });
+  });
+});

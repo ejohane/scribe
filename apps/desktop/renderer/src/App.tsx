@@ -8,8 +8,8 @@
 
 import { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
-import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/app-shell';
-import type { PlatformCapabilities, UpdateInfo } from '@scribe/app-shell';
+import { ScribeProvider, PlatformProvider, NoteListPage, NoteEditorPage } from '@scribe/web-core';
+import type { PlatformCapabilities, UpdateInfo } from '@scribe/web-core';
 import type { EditorContent } from '@scribe/client-sdk';
 import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe/editor';
 

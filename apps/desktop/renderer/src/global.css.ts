@@ -49,3 +49,30 @@ globalStyle(':focus-visible', {
   outline: `2px solid ${vars.color.accent}`,
   outlineOffset: '2px',
 });
+
+// Note editor page layout - centered content
+globalStyle('[data-testid="note-editor-page"]', {
+  minHeight: '100vh',
+  width: '100%',
+  backgroundColor: vars.color.background,
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+});
+
+// Note editor content - centered with max width, responsive padding
+globalStyle('[data-testid="note-editor-content"]', {
+  width: '100%',
+  maxWidth: '750px',
+  paddingLeft: '1rem',
+  paddingRight: '1rem',
+  paddingTop: '100px',
+  paddingBottom: '200px',
+  '@media': {
+    '(min-width: 640px)': {
+      paddingLeft: '1.5rem',
+      paddingRight: '1.5rem',
+    },
+  },
+});

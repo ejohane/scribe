@@ -1,5 +1,5 @@
 /**
- * @scribe/app-shell
+ * @scribe/web-core
  *
  * Shared React components and providers for Scribe applications.
  * This package provides the UI layer that both web and Electron apps use,
@@ -13,7 +13,7 @@
  *
  * Usage:
  * ```tsx
- * import { ScribeProvider, PlatformProvider, NoteListPage } from '@scribe/app-shell';
+ * import { ScribeProvider, PlatformProvider, NoteListPage } from '@scribe/web-core';
  *
  * function App() {
  *   return (
@@ -26,7 +26,7 @@
  * }
  * ```
  *
- * @module @scribe/app-shell
+ * @module @scribe/web-core
  */
 
 // Providers

@@ -10,7 +10,7 @@
 import { useEffect, useRef, type FC, type ReactNode } from 'react';
 // Import from /client to avoid pulling in server-side code (@trpc/server)
 import { initializeClientPlugin as initTodoPlugin } from '@scribe/plugin-todo/client';
-import { useTrpc } from '@scribe/app-shell';
+import { useTrpc } from '@scribe/web-core';
 
 /**
  * Props for the PluginClientInitializer component.

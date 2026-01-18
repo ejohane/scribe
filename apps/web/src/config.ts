@@ -22,9 +22,9 @@ export const DAEMON_PORT = parseInt(import.meta.env.VITE_DAEMON_PORT ?? '47832',
 /**
  * Host for connecting to the Scribe daemon.
  *
- * Almost always localhost/127.0.0.1 since the daemon runs locally.
- * Set via VITE_DAEMON_HOST environment variable.
- *
- * @default '127.0.0.1'
+ * Defaults to the hostname serving the web app (same origin).
+ * Override via VITE_DAEMON_HOST environment variable.
  */
-export const DAEMON_HOST = import.meta.env.VITE_DAEMON_HOST ?? '127.0.0.1';
+export const DAEMON_HOST =
+  import.meta.env.VITE_DAEMON_HOST ??
+  (typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1');

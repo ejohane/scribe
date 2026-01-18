@@ -11,9 +11,9 @@
  *
  * Phase 0.4 of Sync Engine Epic (scribe-hao.4)
  *
- * NOTE: After the app-shell refactoring, most UI components are in the
- * @scribe/app-shell package. The desktop app now primarily contains
- * App.tsx which delegates to app-shell components.
+ * NOTE: After the web-core refactoring, most UI components are in the
+ * @scribe/web-core package. The desktop app now primarily contains
+ * App.tsx which delegates to web-core components.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -29,10 +29,10 @@ function getBasePath(): string {
 }
 
 /**
- * Get the app-shell package path
+ * Get the web-core package path
  */
 function getAppShellPath(): string {
-  return path.resolve(getBasePath(), '../../packages/app-shell');
+  return path.resolve(getBasePath(), '../../packages/web-core');
 }
 
 /**
@@ -180,8 +180,8 @@ function extractStringLiterals(content: string): string[] {
 
 describe('No sync prompts when sync is disabled', () => {
   describe('Component audit', () => {
-    // After app-shell refactoring, components live in app-shell package.
-    // These tests now verify app-shell pages don't contain sync prompts.
+    // After web-core refactoring, components live in web-core package.
+    // These tests now verify web-core pages don't contain sync prompts.
 
     it('NoteListPage does not contain sync prompts', async () => {
       const pagesDir = path.join(getAppShellPath(), 'src/pages');
@@ -301,8 +301,8 @@ describe('No sync prompts when sync is disabled', () => {
   describe('User flows (structural verification)', () => {
     it('First launch shows no sync modals - verified by component structure', async () => {
       // This test verifies that the App component structure does not include
-      // any first-launch sync modals. After app-shell refactoring, App.tsx
-      // uses app-shell providers and pages.
+      // any first-launch sync modals. After web-core refactoring, App.tsx
+      // uses web-core providers and pages.
 
       const appFile = path.join(getBasePath(), 'renderer/src/App.tsx');
       const content = await fs.readFile(appFile, 'utf-8');
@@ -310,7 +310,7 @@ describe('No sync prompts when sync is disabled', () => {
       // App should render directly to main content, not a gated experience
       expect(content).toMatch(/function App\(\)/);
 
-      // Should have app-shell pages as primary content (via Routes)
+      // Should have web-core pages as primary content (via Routes)
       expect(content).toMatch(/NoteListPage|NoteEditorPage/);
 
       // Should NOT have any gating components
@@ -320,7 +320,7 @@ describe('No sync prompts when sync is disabled', () => {
     });
 
     it('Note operations do not trigger sync prompts - verified by handler structure', async () => {
-      // After refactoring, note handlers are in app-shell.
+      // After refactoring, note handlers are in web-core.
       // Verify desktop App.tsx doesn't add sync prompts
       const appFile = path.join(getBasePath(), 'renderer/src/App.tsx');
       const content = await fs.readFile(appFile, 'utf-8');
@@ -332,7 +332,7 @@ describe('No sync prompts when sync is disabled', () => {
     });
 
     it('App-shell pages do not show sync prompts', async () => {
-      // Verify app-shell pages don't contain sync prompts
+      // Verify web-core pages don't contain sync prompts
       const pagesDir = path.join(getAppShellPath(), 'src/pages');
       const files = await readTsxFiles(pagesDir);
 
