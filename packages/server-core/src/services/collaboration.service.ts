@@ -481,21 +481,21 @@ export class CollaborationService {
   /**
    * Initialize Y.Doc from Lexical content.
    *
-   * Stores the serialized Lexical content in a Y.Map for now.
-   * The actual Yjs-Lexical binding structure will be refined
-   * in the collab package.
+   * Stores the serialized Lexical content in a Y.Map using the same
+   * structure as LexicalYjsPlugin (map name 'lexical', key 'editorState').
    */
   private initializeDocFromContent(doc: Y.Doc, content: EditorContent): void {
-    const yContent = doc.getMap('content');
-    yContent.set('lexical', JSON.stringify(content));
+    const yContent = doc.getMap('lexical');
+    yContent.set('editorState', JSON.stringify(content));
   }
 
   /**
    * Convert Y.Doc to Lexical content.
+   * Uses the same structure as LexicalYjsPlugin (map name 'lexical', key 'editorState').
    */
   private docToLexicalContent(doc: Y.Doc): EditorContent {
-    const yContent = doc.getMap('content');
-    const serialized = yContent.get('lexical') as string | undefined;
+    const yContent = doc.getMap('lexical');
+    const serialized = yContent.get('editorState') as string | undefined;
     return serialized ? JSON.parse(serialized) : this.createEmptyContent();
   }
 

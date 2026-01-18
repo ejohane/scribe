@@ -89,15 +89,27 @@ export function LexicalYjsPlugin({
           return;
         }
 
-        console.log('[LexicalYjsPlugin] syncToYjs: Syncing to Yjs');
+        console.log('[LexicalYjsPlugin] syncToYjs: Syncing to Yjs, doc.guid:', doc.guid);
         lastSyncedStateRef.current = json;
 
+        console.log('[LexicalYjsPlugin] syncToYjs: About to call doc.transact()');
+        // Check if there are update listeners on the doc
+        const listenerCount = (doc as unknown as { on: { length?: number } }).on?.length;
+        console.log(
+          '[LexicalYjsPlugin] syncToYjs: doc event listeners:',
+          listenerCount,
+          'destroyed:',
+          (doc as unknown as { _destroyed?: boolean })._destroyed
+        );
         doc.transact(() => {
           const yContent = doc.getMap('lexical');
           yContent.set(stateKey, json);
           console.log('[LexicalYjsPlugin] syncToYjs: Y.Map.set() called');
         }, LOCAL_ORIGIN);
-        console.log('[LexicalYjsPlugin] syncToYjs: Transaction completed');
+        console.log(
+          '[LexicalYjsPlugin] syncToYjs: Transaction completed, origin was:',
+          LOCAL_ORIGIN
+        );
       }, debounceMs);
     },
     [doc, debounceMs, stateKey]

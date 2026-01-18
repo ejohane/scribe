@@ -289,8 +289,13 @@ export function NoteEditorPage({
       )}
 
       {/* Editor - minimal centered layout */}
-      {/* onKeyDown detects user typing to enable auto-save (vs Yjs sync) */}
-      <main data-testid="note-editor-content" onKeyDown={handleUserInteraction}>
+      {/* Multiple handlers detect user interaction to enable auto-save (vs Yjs sync) */}
+      <main
+        data-testid="note-editor-content"
+        onKeyDown={handleUserInteraction}
+        onPointerDown={handleUserInteraction}
+        onFocus={handleUserInteraction}
+      >
         {renderEditor ? (
           collaborative && id ? (
             <CollaborativeEditor noteId={id}>
