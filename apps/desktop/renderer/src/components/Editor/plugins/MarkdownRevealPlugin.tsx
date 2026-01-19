@@ -85,9 +85,11 @@ export interface RevealedRegion {
 /**
  * Debounce delay in milliseconds for cursor movement handling.
  * This prevents excessive updates during rapid cursor movement (e.g., holding arrow keys).
- * A small delay improves performance without noticeable lag in the UI.
+ * 16ms corresponds to one frame at 60fps, providing responsive feel without excessive processing.
+ * For high-frequency operations like typing and arrow key navigation, this is the sweet spot
+ * between responsiveness and performance.
  */
-const CURSOR_DEBOUNCE_MS = 50;
+const CURSOR_DEBOUNCE_MS = 16;
 
 /**
  * Tracks the state of a currently revealed node for restoration.
@@ -263,6 +265,13 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * Stores the timeout ID so we can cancel pending updates.
    */
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Ref to track the previous cursor position for optimization.
+   * Used to skip processing when the cursor position hasn't actually changed.
+   * Tracks the anchor node key and offset to detect actual movement.
+   */
+  const prevCursorRef = useRef<{ nodeKey: string; offset: number } | null>(null);
 
   /**
    * Checks if the cursor is adjacent to (immediately before or after) a MarkdownRevealNode.
@@ -675,8 +684,13 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
-   * Handles cursor position changes with debouncing.
+   * Handles cursor position changes with debouncing and performance optimizations.
    * Updates the revealed region state based on current cursor position.
+   *
+   * Performance optimizations:
+   * - Early exit if cursor position hasn't actually changed (same node and offset)
+   * - Debounced processing to batch rapid cursor movements
+   * - Batched state updates to reduce React reconciliation cycles
    *
    * This function coordinates multiple scenarios:
    * 1. Cursor enters a new formatted region → reveal inline markdown
@@ -696,6 +710,31 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     // Debounce the detection to prevent excessive updates
     debounceTimeoutRef.current = setTimeout(() => {
       editor.getEditorState().read(() => {
+        // PERFORMANCE OPTIMIZATION: Early exit if cursor hasn't moved
+        const selection = $getSelection();
+        if ($isRangeSelection(selection) && selection.isCollapsed()) {
+          const anchor = selection.anchor;
+          const anchorNode = anchor.getNode();
+          const currentCursor = {
+            nodeKey: anchorNode.getKey(),
+            offset: anchor.offset,
+          };
+
+          // Check if cursor position is exactly the same as before
+          const prev = prevCursorRef.current;
+          if (
+            prev &&
+            prev.nodeKey === currentCursor.nodeKey &&
+            prev.offset === currentCursor.offset
+          ) {
+            // Cursor hasn't moved, skip all processing
+            return;
+          }
+
+          // Update the previous cursor position
+          prevCursorRef.current = currentCursor;
+        }
+
         const newRegion = detectFormattedRegion();
         const newHeadingFocus = detectHeadingFocus();
         const newBlockquoteFocus = detectBlockquoteFocus();
@@ -978,6 +1017,8 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
+      // Reset cursor tracking
+      prevCursorRef.current = null;
     };
   }, []);
 
@@ -1141,9 +1182,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * Effect that manages the heading prefix reveal via DOM manipulation.
    * When cursor is on a heading line, shows the markdown prefix (e.g., "## ").
    * When cursor exits the heading, removes the prefix.
+   *
+   * Uses requestAnimationFrame to schedule DOM updates for optimal performance.
    */
   useEffect(() => {
-    // Remove any existing prefix first
+    // Remove any existing prefix first (synchronous for cleanup)
     if (headingPrefixRef.current) {
       headingPrefixRef.current.remove();
       headingPrefixRef.current = null;
@@ -1154,36 +1197,40 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       return;
     }
 
-    // Get the DOM element for the heading
-    const headingElement = editor.getElementByKey(focusedHeading.nodeKey);
-    if (!headingElement) {
-      log.debug('Could not find heading element', { nodeKey: focusedHeading.nodeKey });
-      return;
-    }
+    // Schedule DOM update in next animation frame for optimal performance
+    const rafId = requestAnimationFrame(() => {
+      // Get the DOM element for the heading
+      const headingElement = editor.getElementByKey(focusedHeading.nodeKey);
+      if (!headingElement) {
+        log.debug('Could not find heading element', { nodeKey: focusedHeading.nodeKey });
+        return;
+      }
 
-    // Create the prefix span element
-    const prefix = getHeadingPrefix(focusedHeading.tag);
-    const prefixSpan = document.createElement('span');
-    prefixSpan.className = 'heading-reveal-prefix';
-    prefixSpan.textContent = prefix;
-    // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
-    // The prefix is read-only for now. Users can change heading level via:
-    // - The formatting toolbar
-    // - Markdown shortcuts (e.g., typing "## " at the start of a new line)
-    // Future enhancement: implement editable prefix that updates heading level.
+      // Create the prefix span element
+      const prefix = getHeadingPrefix(focusedHeading.tag);
+      const prefixSpan = document.createElement('span');
+      prefixSpan.className = 'heading-reveal-prefix';
+      prefixSpan.textContent = prefix;
+      // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
+      // The prefix is read-only for now. Users can change heading level via:
+      // - The formatting toolbar
+      // - Markdown shortcuts (e.g., typing "## " at the start of a new line)
+      // Future enhancement: implement editable prefix that updates heading level.
 
-    // Insert at the start of the heading
-    headingElement.insertBefore(prefixSpan, headingElement.firstChild);
-    headingPrefixRef.current = prefixSpan;
+      // Insert at the start of the heading
+      headingElement.insertBefore(prefixSpan, headingElement.firstChild);
+      headingPrefixRef.current = prefixSpan;
 
-    log.debug('Revealed heading prefix', {
-      nodeKey: focusedHeading.nodeKey,
-      tag: focusedHeading.tag,
-      prefix,
+      log.debug('Revealed heading prefix', {
+        nodeKey: focusedHeading.nodeKey,
+        tag: focusedHeading.tag,
+        prefix,
+      });
     });
 
-    // Cleanup function: remove the prefix when effect re-runs or unmounts
+    // Cleanup function: cancel pending RAF and remove the prefix
     return () => {
+      cancelAnimationFrame(rafId);
       if (headingPrefixRef.current) {
         headingPrefixRef.current.remove();
         headingPrefixRef.current = null;
@@ -1207,9 +1254,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * When cursor is in a blockquote, shows the markdown prefix (e.g., "> ").
    * For nested blockquotes, shows multiple prefixes (e.g., ">> ").
    * When cursor exits the blockquote, removes the prefix.
+   *
+   * Uses requestAnimationFrame to schedule DOM updates for optimal performance.
    */
   useEffect(() => {
-    // Remove any existing prefix first
+    // Remove any existing prefix first (synchronous for cleanup)
     if (blockquotePrefixRef.current) {
       blockquotePrefixRef.current.remove();
       blockquotePrefixRef.current = null;
@@ -1220,35 +1269,39 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       return;
     }
 
-    // Get the DOM element for the blockquote
-    const blockquoteElement = editor.getElementByKey(focusedBlockquote.nodeKey);
-    if (!blockquoteElement) {
-      log.debug('Could not find blockquote element', { nodeKey: focusedBlockquote.nodeKey });
-      return;
-    }
+    // Schedule DOM update in next animation frame for optimal performance
+    const rafId = requestAnimationFrame(() => {
+      // Get the DOM element for the blockquote
+      const blockquoteElement = editor.getElementByKey(focusedBlockquote.nodeKey);
+      if (!blockquoteElement) {
+        log.debug('Could not find blockquote element', { nodeKey: focusedBlockquote.nodeKey });
+        return;
+      }
 
-    // Create the prefix span element
-    const prefix = getBlockquotePrefix(focusedBlockquote.nestingLevel);
-    const prefixSpan = document.createElement('span');
-    prefixSpan.className = 'blockquote-reveal-prefix';
-    prefixSpan.textContent = prefix;
-    // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
-    // The prefix is read-only. Users can create blockquotes via:
-    // - The formatting toolbar
-    // - Markdown shortcuts (e.g., typing "> " at the start of a new line)
+      // Create the prefix span element
+      const prefix = getBlockquotePrefix(focusedBlockquote.nestingLevel);
+      const prefixSpan = document.createElement('span');
+      prefixSpan.className = 'blockquote-reveal-prefix';
+      prefixSpan.textContent = prefix;
+      // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
+      // The prefix is read-only. Users can create blockquotes via:
+      // - The formatting toolbar
+      // - Markdown shortcuts (e.g., typing "> " at the start of a new line)
 
-    // Insert at the start of the blockquote
-    blockquoteElement.insertBefore(prefixSpan, blockquoteElement.firstChild);
-    blockquotePrefixRef.current = prefixSpan;
+      // Insert at the start of the blockquote
+      blockquoteElement.insertBefore(prefixSpan, blockquoteElement.firstChild);
+      blockquotePrefixRef.current = prefixSpan;
 
-    log.debug('Revealed blockquote prefix', {
-      nodeKey: focusedBlockquote.nodeKey,
-      nestingLevel: focusedBlockquote.nestingLevel,
-      prefix,
+      log.debug('Revealed blockquote prefix', {
+        nodeKey: focusedBlockquote.nodeKey,
+        nestingLevel: focusedBlockquote.nestingLevel,
+        prefix,
+      });
     });
 
-    // Cleanup function: remove the prefix when effect re-runs or unmounts
+    // Cleanup function: cancel pending RAF and remove the prefix
     return () => {
+      cancelAnimationFrame(rafId);
       if (blockquotePrefixRef.current) {
         blockquotePrefixRef.current.remove();
         blockquotePrefixRef.current = null;
@@ -1287,9 +1340,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * When cursor is on a list item, shows the markdown prefix (e.g., "- " or "1. ").
    * For nested list items, shows indentation prefix.
    * When cursor exits the list item, removes the prefix.
+   *
+   * Uses requestAnimationFrame to schedule DOM updates for optimal performance.
    */
   useEffect(() => {
-    // Remove any existing prefix first
+    // Remove any existing prefix first (synchronous for cleanup)
     if (listItemPrefixRef.current) {
       listItemPrefixRef.current.remove();
       listItemPrefixRef.current = null;
@@ -1300,41 +1355,45 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       return;
     }
 
-    // Get the DOM element for the list item
-    const listItemElement = editor.getElementByKey(focusedListItem.nodeKey);
-    if (!listItemElement) {
-      log.debug('Could not find list item element', { nodeKey: focusedListItem.nodeKey });
-      return;
-    }
+    // Schedule DOM update in next animation frame for optimal performance
+    const rafId = requestAnimationFrame(() => {
+      // Get the DOM element for the list item
+      const listItemElement = editor.getElementByKey(focusedListItem.nodeKey);
+      if (!listItemElement) {
+        log.debug('Could not find list item element', { nodeKey: focusedListItem.nodeKey });
+        return;
+      }
 
-    // Create the prefix span element
-    const prefix = getListItemPrefix(
-      focusedListItem.listType,
-      focusedListItem.itemIndex,
-      focusedListItem.nestingLevel,
-      focusedListItem.isChecked
-    );
-    const prefixSpan = document.createElement('span');
-    prefixSpan.className = 'listitem-reveal-prefix';
-    prefixSpan.textContent = prefix;
-    // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
-    // The prefix is read-only. Users can create/modify lists via:
-    // - The formatting toolbar
-    // - Markdown shortcuts (e.g., typing "- " at the start of a new line)
+      // Create the prefix span element
+      const prefix = getListItemPrefix(
+        focusedListItem.listType,
+        focusedListItem.itemIndex,
+        focusedListItem.nestingLevel,
+        focusedListItem.isChecked
+      );
+      const prefixSpan = document.createElement('span');
+      prefixSpan.className = 'listitem-reveal-prefix';
+      prefixSpan.textContent = prefix;
+      // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
+      // The prefix is read-only. Users can create/modify lists via:
+      // - The formatting toolbar
+      // - Markdown shortcuts (e.g., typing "- " at the start of a new line)
 
-    // Insert at the start of the list item
-    listItemElement.insertBefore(prefixSpan, listItemElement.firstChild);
-    listItemPrefixRef.current = prefixSpan;
+      // Insert at the start of the list item
+      listItemElement.insertBefore(prefixSpan, listItemElement.firstChild);
+      listItemPrefixRef.current = prefixSpan;
 
-    log.debug('Revealed list item prefix', {
-      nodeKey: focusedListItem.nodeKey,
-      listType: focusedListItem.listType,
-      itemIndex: focusedListItem.itemIndex,
-      prefix,
+      log.debug('Revealed list item prefix', {
+        nodeKey: focusedListItem.nodeKey,
+        listType: focusedListItem.listType,
+        itemIndex: focusedListItem.itemIndex,
+        prefix,
+      });
     });
 
-    // Cleanup function: remove the prefix when effect re-runs or unmounts
+    // Cleanup function: cancel pending RAF and remove the prefix
     return () => {
+      cancelAnimationFrame(rafId);
       if (listItemPrefixRef.current) {
         listItemPrefixRef.current.remove();
         listItemPrefixRef.current = null;
@@ -1365,9 +1424,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * When cursor is on the last line, shows the closing fence (```).
    * For empty/single-line code blocks, shows both fences.
    * When cursor exits the code block first/last line, removes the fence(s).
+   *
+   * Uses requestAnimationFrame to schedule DOM updates for optimal performance.
    */
   useEffect(() => {
-    // Remove any existing fences first
+    // Remove any existing fences first (synchronous for cleanup)
     if (codeBlockOpenFenceRef.current) {
       codeBlockOpenFenceRef.current.remove();
       codeBlockOpenFenceRef.current = null;
@@ -1382,48 +1443,52 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       return;
     }
 
-    // Get the DOM element for the code block (it's rendered as a <code> inside <pre>)
-    const codeElement = editor.getElementByKey(focusedCodeBlock.nodeKey);
-    if (!codeElement) {
-      log.debug('Could not find code block element', { nodeKey: focusedCodeBlock.nodeKey });
-      return;
-    }
+    // Schedule DOM update in next animation frame for optimal performance
+    const rafId = requestAnimationFrame(() => {
+      // Get the DOM element for the code block (it's rendered as a <code> inside <pre>)
+      const codeElement = editor.getElementByKey(focusedCodeBlock.nodeKey);
+      if (!codeElement) {
+        log.debug('Could not find code block element', { nodeKey: focusedCodeBlock.nodeKey });
+        return;
+      }
 
-    // Show opening fence if needed
-    if (focusedCodeBlock.fenceType === 'open' || focusedCodeBlock.fenceType === 'both') {
-      const openFence = getCodeBlockOpenFence(focusedCodeBlock.language);
-      const openFenceSpan = document.createElement('span');
-      openFenceSpan.className = 'codeblock-reveal-fence codeblock-reveal-fence-open';
-      openFenceSpan.textContent = openFence;
-      // Insert at the start of the code block
-      codeElement.insertBefore(openFenceSpan, codeElement.firstChild);
-      codeBlockOpenFenceRef.current = openFenceSpan;
+      // Show opening fence if needed
+      if (focusedCodeBlock.fenceType === 'open' || focusedCodeBlock.fenceType === 'both') {
+        const openFence = getCodeBlockOpenFence(focusedCodeBlock.language);
+        const openFenceSpan = document.createElement('span');
+        openFenceSpan.className = 'codeblock-reveal-fence codeblock-reveal-fence-open';
+        openFenceSpan.textContent = openFence;
+        // Insert at the start of the code block
+        codeElement.insertBefore(openFenceSpan, codeElement.firstChild);
+        codeBlockOpenFenceRef.current = openFenceSpan;
 
-      log.debug('Revealed code block opening fence', {
-        nodeKey: focusedCodeBlock.nodeKey,
-        language: focusedCodeBlock.language,
-        fence: openFence,
-      });
-    }
+        log.debug('Revealed code block opening fence', {
+          nodeKey: focusedCodeBlock.nodeKey,
+          language: focusedCodeBlock.language,
+          fence: openFence,
+        });
+      }
 
-    // Show closing fence if needed
-    if (focusedCodeBlock.fenceType === 'close' || focusedCodeBlock.fenceType === 'both') {
-      const closeFence = getCodeBlockCloseFence();
-      const closeFenceSpan = document.createElement('span');
-      closeFenceSpan.className = 'codeblock-reveal-fence codeblock-reveal-fence-close';
-      closeFenceSpan.textContent = closeFence;
-      // Append at the end of the code block
-      codeElement.appendChild(closeFenceSpan);
-      codeBlockCloseFenceRef.current = closeFenceSpan;
+      // Show closing fence if needed
+      if (focusedCodeBlock.fenceType === 'close' || focusedCodeBlock.fenceType === 'both') {
+        const closeFence = getCodeBlockCloseFence();
+        const closeFenceSpan = document.createElement('span');
+        closeFenceSpan.className = 'codeblock-reveal-fence codeblock-reveal-fence-close';
+        closeFenceSpan.textContent = closeFence;
+        // Append at the end of the code block
+        codeElement.appendChild(closeFenceSpan);
+        codeBlockCloseFenceRef.current = closeFenceSpan;
 
-      log.debug('Revealed code block closing fence', {
-        nodeKey: focusedCodeBlock.nodeKey,
-        fence: closeFence,
-      });
-    }
+        log.debug('Revealed code block closing fence', {
+          nodeKey: focusedCodeBlock.nodeKey,
+          fence: closeFence,
+        });
+      }
+    });
 
-    // Cleanup function: remove the fences when effect re-runs or unmounts
+    // Cleanup function: cancel pending RAF and remove the fences
     return () => {
+      cancelAnimationFrame(rafId);
       if (codeBlockOpenFenceRef.current) {
         codeBlockOpenFenceRef.current.remove();
         codeBlockOpenFenceRef.current = null;
