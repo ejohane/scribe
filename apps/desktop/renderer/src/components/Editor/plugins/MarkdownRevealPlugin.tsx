@@ -9,6 +9,7 @@
  * Features:
  * - Cursor position tracking via SELECTION_CHANGE_COMMAND
  * - Formatted region detection (bold, italic, code, links, etc.)
+ * - Heading prefix reveal (# prefix) when cursor is on heading line
  * - Coordination with DecoratorNodes to show/hide raw markdown
  * - Smooth state transitions with debouncing
  * - Boundary-aware reveal logic (only reveals when strictly inside)
@@ -18,6 +19,9 @@
  * region (if any) contains the cursor. It then coordinates with custom nodes
  * to reveal the raw markdown syntax for that region while keeping other
  * formatted text rendered normally.
+ *
+ * For headings, it uses DOM manipulation to show the prefix (e.g., "## ") at
+ * the start of the heading line when the cursor is anywhere on that line.
  *
  * @see CollapsibleHeadingPlugin for similar plugin patterns
  */
@@ -35,7 +39,15 @@ import {
 } from 'lexical';
 import { createLogger } from '@scribe/shared';
 import { $createMarkdownRevealNode, $isMarkdownRevealNode } from './MarkdownRevealNode';
-import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_CODE } from './markdownReconstruction';
+import {
+  IS_BOLD,
+  IS_ITALIC,
+  IS_STRIKETHROUGH,
+  IS_CODE,
+  BLOCK_PREFIXES,
+} from './markdownReconstruction';
+import { $isCollapsibleHeadingNode } from './CollapsibleHeadingNode';
+import type { HeadingTagType } from '@lexical/rich-text';
 
 const log = createLogger({ prefix: 'MarkdownRevealPlugin' });
 
@@ -87,6 +99,17 @@ interface RevealedNodeState {
 }
 
 /**
+ * Tracks the currently focused heading for prefix reveal.
+ * When the cursor is on a heading line, we show the markdown prefix (e.g., "## ").
+ */
+interface FocusedHeading {
+  /** The Lexical node key of the heading */
+  nodeKey: string;
+  /** The heading tag (h1, h2, ..., h6) */
+  tag: HeadingTagType;
+}
+
+/**
  * MarkdownRevealPlugin - Main plugin component for hybrid markdown editing.
  *
  * This plugin orchestrates the reveal/hide behavior for markdown syntax.
@@ -127,11 +150,23 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const [revealedRegion, setRevealedRegion] = useState<RevealedRegion | null>(null);
 
   /**
+   * Currently focused heading for prefix reveal, or null if cursor is not on a heading.
+   * When set, the heading prefix (e.g., "## ") should be visible.
+   */
+  const [focusedHeading, setFocusedHeading] = useState<FocusedHeading | null>(null);
+
+  /**
    * Tracks the currently revealed MarkdownRevealNode and its original state.
    * Used to restore the original TextNode when the cursor exits.
    * Using a ref to avoid triggering re-renders on every state change.
    */
   const revealedNodeStateRef = useRef<RevealedNodeState | null>(null);
+
+  /**
+   * Ref to track the DOM element of the currently revealed heading prefix.
+   * Used to clean up the prefix element when cursor exits the heading.
+   */
+  const headingPrefixRef = useRef<HTMLSpanElement | null>(null);
 
   /**
    * Ref for debouncing cursor movement updates.
@@ -256,13 +291,54 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
+   * Detects if the current selection is inside a heading line.
+   * Returns the heading details if found, or null if not on a heading.
+   *
+   * Unlike inline formats where cursor must be strictly inside,
+   * for headings we reveal when cursor is ANYWHERE on that line.
+   *
+   * @returns FocusedHeading if cursor is on a heading line, null otherwise
+   */
+  const detectHeadingFocus = useCallback((): FocusedHeading | null => {
+    const selection = $getSelection();
+
+    // Only handle collapsed selections (cursor position, not text selection)
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchor = selection.anchor;
+    const anchorNode = anchor.getNode();
+
+    // Check if the anchor node's parent is a CollapsibleHeadingNode
+    const parent = anchorNode.getParent();
+    if ($isCollapsibleHeadingNode(parent)) {
+      return {
+        nodeKey: parent.getKey(),
+        tag: parent.getTag(),
+      };
+    }
+
+    // Check if the anchor node itself is a CollapsibleHeadingNode (empty heading case)
+    if ($isCollapsibleHeadingNode(anchorNode)) {
+      return {
+        nodeKey: anchorNode.getKey(),
+        tag: anchorNode.getTag(),
+      };
+    }
+
+    return null;
+  }, []);
+
+  /**
    * Handles cursor position changes with debouncing.
    * Updates the revealed region state based on current cursor position.
    *
-   * This function coordinates three scenarios:
-   * 1. Cursor enters a new formatted region → reveal markdown
+   * This function coordinates multiple scenarios:
+   * 1. Cursor enters a new formatted region → reveal inline markdown
    * 2. Cursor stays adjacent to current reveal → keep revealed
    * 3. Cursor moves away from reveal → hide markdown
+   * 4. Cursor enters/exits a heading → show/hide heading prefix
    */
   const handleSelectionChange = useCallback(() => {
     // Clear any pending debounce timeout
@@ -274,6 +350,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     debounceTimeoutRef.current = setTimeout(() => {
       editor.getEditorState().read(() => {
         const newRegion = detectFormattedRegion();
+        const newHeadingFocus = detectHeadingFocus();
         const currentRevealState = revealedNodeStateRef.current;
 
         // If we have a currently revealed node, check if we're still adjacent to it
@@ -283,11 +360,51 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           // If cursor is adjacent to our current reveal node, keep it revealed
           if (adjacentRevealKey === currentRevealState.revealNodeKey) {
             log.debug('Cursor adjacent to reveal, keeping visible');
-            return; // Don't change state, keep current reveal
+            // Still update heading focus even if keeping inline reveal
+            setFocusedHeading((prevHeading) => {
+              if (!prevHeading && !newHeadingFocus) return null;
+              if (!prevHeading || !newHeadingFocus) return newHeadingFocus;
+              if (prevHeading.nodeKey !== newHeadingFocus.nodeKey) return newHeadingFocus;
+              return prevHeading;
+            });
+            return; // Don't change inline reveal state
           }
         }
 
-        // Only update state if the region has changed
+        // Update heading focus state
+        setFocusedHeading((prevHeading) => {
+          // Both null - no change
+          if (!prevHeading && !newHeadingFocus) {
+            return null;
+          }
+
+          // Heading changed from null to something, or vice versa
+          if (!prevHeading || !newHeadingFocus) {
+            if (newHeadingFocus) {
+              log.debug('Focusing heading', {
+                nodeKey: newHeadingFocus.nodeKey,
+                tag: newHeadingFocus.tag,
+              });
+            } else {
+              log.debug('Unfocusing heading');
+            }
+            return newHeadingFocus;
+          }
+
+          // Check if the heading actually changed
+          if (prevHeading.nodeKey !== newHeadingFocus.nodeKey) {
+            log.debug('Heading focus changed', {
+              from: prevHeading.nodeKey,
+              to: newHeadingFocus.nodeKey,
+            });
+            return newHeadingFocus;
+          }
+
+          // No change
+          return prevHeading;
+        });
+
+        // Only update inline region state if the region has changed
         setRevealedRegion((prevRegion) => {
           // Both null - no change
           if (!prevRegion && !newRegion) {
@@ -326,7 +443,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
         });
       });
     }, CURSOR_DEBOUNCE_MS);
-  }, [editor, detectFormattedRegion, getAdjacentRevealNodeKey]);
+  }, [editor, detectFormattedRegion, detectHeadingFocus, getAdjacentRevealNodeKey]);
 
   /**
    * Register SELECTION_CHANGE_COMMAND handler to track cursor position.
@@ -514,6 +631,70 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       }
     };
   }, [hideRevealedMarkdown]);
+
+  /**
+   * Gets the markdown prefix for a heading tag.
+   * @param tag - The heading tag (h1-h6)
+   * @returns The markdown prefix (e.g., "## " for h2)
+   */
+  const getHeadingPrefix = useCallback((tag: HeadingTagType): string => {
+    const level = parseInt(tag.replace('h', ''), 10) as 1 | 2 | 3 | 4 | 5 | 6;
+    return BLOCK_PREFIXES[`h${level}`];
+  }, []);
+
+  /**
+   * Effect that manages the heading prefix reveal via DOM manipulation.
+   * When cursor is on a heading line, shows the markdown prefix (e.g., "## ").
+   * When cursor exits the heading, removes the prefix.
+   */
+  useEffect(() => {
+    // Remove any existing prefix first
+    if (headingPrefixRef.current) {
+      headingPrefixRef.current.remove();
+      headingPrefixRef.current = null;
+    }
+
+    // If no heading is focused, we're done
+    if (!focusedHeading) {
+      return;
+    }
+
+    // Get the DOM element for the heading
+    const headingElement = editor.getElementByKey(focusedHeading.nodeKey);
+    if (!headingElement) {
+      log.debug('Could not find heading element', { nodeKey: focusedHeading.nodeKey });
+      return;
+    }
+
+    // Create the prefix span element
+    const prefix = getHeadingPrefix(focusedHeading.tag);
+    const prefixSpan = document.createElement('span');
+    prefixSpan.className = 'heading-reveal-prefix';
+    prefixSpan.textContent = prefix;
+    // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
+    // The prefix is read-only for now. Users can change heading level via:
+    // - The formatting toolbar
+    // - Markdown shortcuts (e.g., typing "## " at the start of a new line)
+    // Future enhancement: implement editable prefix that updates heading level.
+
+    // Insert at the start of the heading
+    headingElement.insertBefore(prefixSpan, headingElement.firstChild);
+    headingPrefixRef.current = prefixSpan;
+
+    log.debug('Revealed heading prefix', {
+      nodeKey: focusedHeading.nodeKey,
+      tag: focusedHeading.tag,
+      prefix,
+    });
+
+    // Cleanup function: remove the prefix when effect re-runs or unmounts
+    return () => {
+      if (headingPrefixRef.current) {
+        headingPrefixRef.current.remove();
+        headingPrefixRef.current = null;
+      }
+    };
+  }, [editor, focusedHeading, getHeadingPrefix]);
 
   // This plugin has no visual output
   return null;

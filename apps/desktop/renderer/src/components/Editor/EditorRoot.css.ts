@@ -587,3 +587,27 @@ globalStyle(
     textDecoration: 'line-through',
   }
 );
+
+// === Heading Reveal styles ===
+// These styles are used for the heading prefix reveal feature.
+// When cursor is on a heading line, the markdown prefix (e.g., "## ") is shown.
+
+/**
+ * Heading reveal prefix - shown at the start of the heading when focused.
+ * Styled muted to indicate it's syntax, not content.
+ */
+globalStyle(`${editorInput} .heading-reveal-prefix`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Don't inherit heading font size for the prefix - keep it proportional
+  // but not as large as the actual heading text
+  fontSize: '0.7em',
+  // Use monospace font for the hash marks to look more like markdown
+  fontFamily: vars.typography.fontFamily.mono,
+  // Add small margin to separate from heading text
+  marginRight: vars.spacing['1'],
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+});
