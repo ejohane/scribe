@@ -17,6 +17,7 @@ import {
   LexicalEditor,
 } from 'lexical';
 import { MarkdownRevealPlugin } from './MarkdownRevealPlugin';
+import { MarkdownRevealNode } from './MarkdownRevealNode';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
@@ -41,7 +42,7 @@ function TestEditorWithLists({
     <LexicalComposer
       initialConfig={{
         namespace: 'test-list-reveal',
-        nodes: [ListNode, ListItemNode],
+        nodes: [ListNode, ListItemNode, MarkdownRevealNode],
         onError: (error) => {
           throw error;
         },

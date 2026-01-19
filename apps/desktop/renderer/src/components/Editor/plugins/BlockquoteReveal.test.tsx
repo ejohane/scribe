@@ -16,6 +16,7 @@ import {
   LexicalEditor,
 } from 'lexical';
 import { MarkdownRevealPlugin } from './MarkdownRevealPlugin';
+import { MarkdownRevealNode } from './MarkdownRevealNode';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
@@ -40,7 +41,7 @@ function TestEditorWithBlockquotes({
     <LexicalComposer
       initialConfig={{
         namespace: 'test-blockquote-reveal',
-        nodes: [QuoteNode],
+        nodes: [QuoteNode, MarkdownRevealNode],
         onError: (error) => {
           throw error;
         },
