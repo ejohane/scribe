@@ -81,6 +81,7 @@ export type {
   SearchResult,
   GraphNode,
   GraphEdge,
+  RecentNote,
 } from './types.js';
 
 // Migration exports
