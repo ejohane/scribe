@@ -419,3 +419,110 @@
   background-color: #e0e0e0;
   margin: 0 4px;
 }
+
+/* === Markdown Reveal Styles === */
+/* These styles support the Typora-style hybrid markdown editing feature.
+   When cursor enters formatted text, the raw markdown syntax is revealed. */
+
+/* Container for the entire revealed markdown */
+.markdown-reveal {
+  display: inline;
+}
+
+/* Content wrapper for the revealed markdown string */
+.markdown-reveal-content {
+  display: inline;
+}
+
+/* Delimiter style - applied to syntax characters (**, *, ~~, `, etc.) */
+.markdown-reveal-delimiter {
+  opacity: 0.5;
+  color: #666;
+  transition: opacity 100ms ease-in-out;
+}
+
+/* Text content style - inherits normal text styling */
+.markdown-reveal-text {
+  /* Inherits normal text styling - no special styles needed */
+}
+
+/* Inline code reveal - monospace font for code content */
+.markdown-reveal[data-format-code='true'] .markdown-reveal-text {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+}
+
+.markdown-reveal[data-format-code='true'] .markdown-reveal-delimiter {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+}
+
+/* Strikethrough reveal - preserve line-through on content */
+.markdown-reveal[data-format-strikethrough='true'] .markdown-reveal-text {
+  text-decoration: line-through;
+}
+
+/* === Heading Reveal Styles === */
+/* When cursor is on a heading line, the markdown prefix (e.g., "## ") is shown */
+
+.heading-reveal-prefix {
+  opacity: 0.5;
+  color: #666;
+  font-weight: normal;
+  transition: opacity 100ms ease-in-out;
+  font-size: 0.7em;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  margin-right: 4px;
+  white-space: pre;
+}
+
+/* === Blockquote Reveal Styles === */
+/* When cursor is in a blockquote, the markdown prefix (e.g., "> ") is shown */
+
+.blockquote-reveal-prefix {
+  opacity: 0.5;
+  color: #666;
+  font-style: normal;
+  font-weight: normal;
+  transition: opacity 100ms ease-in-out;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  margin-right: 4px;
+  white-space: pre;
+}
+
+/* === List Item Reveal Styles === */
+/* When cursor is on a list item, the markdown prefix (e.g., "- " or "1. ") is shown */
+
+.listitem-reveal-prefix {
+  opacity: 0.5;
+  color: #666;
+  font-weight: normal;
+  transition: opacity 100ms ease-in-out;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  margin-right: 4px;
+  white-space: pre;
+  position: absolute;
+  left: -2em;
+}
+
+/* === Code Block Fence Reveal Styles === */
+/* When cursor is on first/last line of code block, the fence is shown */
+
+.codeblock-reveal-fence {
+  opacity: 0.5;
+  color: #666;
+  font-weight: normal;
+  transition: opacity 100ms ease-in-out;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  display: block;
+  white-space: pre;
+}
+
+.codeblock-reveal-fence-open {
+  margin-bottom: 4px;
+}
+
+.codeblock-reveal-fence-close {
+  margin-top: 4px;
+}

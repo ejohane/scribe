@@ -21,3 +21,31 @@ export type { EditorErrorBoundaryProps } from './components/EditorErrorBoundary.
 
 // Theme
 export { editorTheme } from './theme.js';
+
+// Plugins
+export {
+  // Markdown reveal plugin for Typora-style hybrid editing
+  MarkdownRevealPlugin,
+  MarkdownRevealNode,
+  $createMarkdownRevealNode,
+  $isMarkdownRevealNode,
+  // Markdown reconstruction utilities
+  IS_BOLD,
+  IS_ITALIC,
+  IS_UNDERLINE,
+  IS_STRIKETHROUGH,
+  IS_CODE,
+  BLOCK_PREFIXES,
+  reconstructInlineMarkdown,
+  reconstructMarkdownSegments,
+  // Collapsible heading node
+  CollapsibleHeadingNode,
+  $createCollapsibleHeadingNode,
+  $isCollapsibleHeadingNode,
+} from './plugins/index.js';
+export type {
+  SerializedMarkdownRevealNode,
+  MarkdownRevealComponentProps,
+  MarkdownSegment,
+  SerializedCollapsibleHeadingNode,
+} from './plugins/index.js';
