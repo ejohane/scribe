@@ -157,18 +157,6 @@ export function CommandPalette({ className }: CommandPaletteProps) {
               ))
             )}
           </div>
-
-          <div className={styles.footer}>
-            <span className={styles.footerHint}>
-              <span className={styles.footerKey}>↑↓</span> navigate
-            </span>
-            <span className={styles.footerHint}>
-              <span className={styles.footerKey}>↵</span> select
-            </span>
-            <span className={styles.footerHint}>
-              <span className={styles.footerKey}>esc</span> close
-            </span>
-          </div>
         </div>
       </div>
     </Portal>

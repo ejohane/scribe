@@ -11,6 +11,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTrpc } from '../providers/ScribeProvider.js';
+import { useIsElectron } from '../providers/PlatformProvider.js';
 import { CollaborativeEditor, type CollabEditorProps } from '../components/CollaborativeEditor.js';
 import type { NoteDocument, EditorContent } from '@scribe/client-sdk';
 
@@ -68,6 +69,7 @@ export function NoteEditorPage({
   const navigate = useNavigate();
   const trpc = useTrpc();
   const queryClient = useQueryClient();
+  const isElectron = useIsElectron();
 
   const [note, setNote] = useState<NoteDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -240,6 +242,22 @@ export function NoteEditorPage({
   if (isLoading) {
     return (
       <div className={className} data-testid="note-editor-page" data-typing={isTyping}>
+        {isElectron && (
+          <div
+            style={
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '40px',
+                WebkitAppRegion: 'drag',
+                zIndex: 40,
+              } as React.CSSProperties
+            }
+            data-testid="titlebar-drag-region"
+          />
+        )}
         {renderMenuButton && (
           <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 50 }}>
             {renderMenuButton()}
@@ -253,6 +271,22 @@ export function NoteEditorPage({
   if (error || !note) {
     return (
       <div className={className} data-testid="note-editor-page" data-typing={isTyping}>
+        {isElectron && (
+          <div
+            style={
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '40px',
+                WebkitAppRegion: 'drag',
+                zIndex: 40,
+              } as React.CSSProperties
+            }
+            data-testid="titlebar-drag-region"
+          />
+        )}
         {renderMenuButton && (
           <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 50 }}>
             {renderMenuButton()}
@@ -283,6 +317,23 @@ export function NoteEditorPage({
 
   return (
     <div className={className} data-testid="note-editor-page" data-typing={isTyping}>
+      {/* Titlebar drag region for Electron - clears macOS traffic lights */}
+      {isElectron && (
+        <div
+          style={
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '40px',
+              WebkitAppRegion: 'drag',
+              zIndex: 40,
+            } as React.CSSProperties
+          }
+          data-testid="titlebar-drag-region"
+        />
+      )}
       {/* Menu button - upper left corner */}
       {renderMenuButton && (
         <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 50 }}>

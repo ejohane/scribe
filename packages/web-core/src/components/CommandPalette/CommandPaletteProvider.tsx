@@ -33,6 +33,69 @@ import { filterCommands } from './fuzzyFilter';
 import { builtInCommands, SEARCH_NOTES_COMMAND_ID } from './builtInCommands';
 
 // ============================================================================
+// Shortcut Parsing Utilities
+// ============================================================================
+
+interface ShortcutMatcher {
+  metaKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  key: string;
+}
+
+/**
+ * Parse a display shortcut string (e.g., "⌘N", "⌘⇧F", "⌘,") into a matcher object.
+ * Returns null if the shortcut is invalid.
+ */
+function parseShortcutToMatcher(shortcut: string): ShortcutMatcher | null {
+  let metaKey = false;
+  let shiftKey = false;
+  let altKey = false;
+  let key = '';
+
+  let i = 0;
+  while (i < shortcut.length) {
+    const char = shortcut[i];
+    if (char === '⌘' || char === '⌃') {
+      // Treat both ⌘ (Command) and ⌃ (Control) as meta/ctrl
+      metaKey = true;
+      i++;
+    } else if (char === '⇧') {
+      shiftKey = true;
+      i++;
+    } else if (char === '⌥') {
+      altKey = true;
+      i++;
+    } else {
+      // Rest is the main key
+      key = shortcut.slice(i).toLowerCase();
+      break;
+    }
+  }
+
+  if (!key) return null;
+  return { metaKey, shiftKey, altKey, key };
+}
+
+/**
+ * Check if a KeyboardEvent matches a shortcut matcher.
+ * Supports both metaKey (Mac) and ctrlKey (Windows/Linux).
+ */
+function matchesShortcut(event: KeyboardEvent, matcher: ShortcutMatcher): boolean {
+  // For meta shortcuts, accept either metaKey (Mac) or ctrlKey (Windows/Linux)
+  const modifierMatches = matcher.metaKey
+    ? event.metaKey || event.ctrlKey
+    : !event.metaKey && !event.ctrlKey;
+
+  return (
+    modifierMatches &&
+    event.shiftKey === matcher.shiftKey &&
+    event.altKey === matcher.altKey &&
+    event.key.toLowerCase() === matcher.key
+  );
+}
+
+// ============================================================================
 // Context
 // ============================================================================
 
@@ -352,28 +415,53 @@ export function CommandPaletteProvider({
     }
   }, [getSelectedItem, commandContext, close, navigate, setView]);
 
-  // Global keyboard shortcut (Cmd+K / Ctrl+K)
+  // Build shortcut matchers for all commands with shortcuts
+  const shortcutMap = useMemo(() => {
+    const map: Array<{ matcher: ShortcutMatcher; command: CommandItem }> = [];
+    for (const cmd of allCommands) {
+      if (cmd.shortcut) {
+        const matcher = parseShortcutToMatcher(cmd.shortcut);
+        if (matcher) {
+          map.push({ matcher, command: cmd });
+        }
+      }
+    }
+    return map;
+  }, [allCommands]);
+
+  // Global keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      // Cmd+K or Ctrl+K to toggle
-      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      // Cmd+K or Ctrl+K to toggle (case-insensitive for key)
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
+        event.stopPropagation();
         toggle('command');
         return;
       }
 
-      // Cmd+Shift+F or Ctrl+Shift+F to open note search
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'f') {
-        event.preventDefault();
-        open('note-search');
-        return;
+      // Check all registered command shortcuts
+      for (const { matcher, command } of shortcutMap) {
+        if (matchesShortcut(event, matcher)) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          // Special case: search notes command opens note-search view
+          if (command.id === SEARCH_NOTES_COMMAND_ID) {
+            open('note-search');
+          } else {
+            // Execute the command directly
+            command.handler.execute(commandContext);
+          }
+          return;
+        }
       }
     }
 
     // Use capture phase to intercept before editor or other handlers
-    document.addEventListener('keydown', handleKeyDown, { capture: true });
-    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [toggle, open]);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [toggle, open, shortcutMap, commandContext]);
 
   // Context value
   const value: CommandPaletteContextValue = useMemo(

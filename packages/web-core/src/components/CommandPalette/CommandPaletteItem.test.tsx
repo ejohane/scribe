@@ -96,26 +96,31 @@ describe('CommandPaletteItem', () => {
 
       render(<CommandPaletteItem item={item} selected={false} onClick={vi.fn()} />);
 
-      expect(screen.getByText('⌘N')).toBeInTheDocument();
+      // Shortcuts are rendered as separate key elements
+      expect(screen.getByText('⌘')).toBeInTheDocument();
+      expect(screen.getByText('N')).toBeInTheDocument();
     });
 
     it('does not display shortcut for note items', () => {
       const item = createNoteItem();
 
-      render(<CommandPaletteItem item={item} selected={false} onClick={vi.fn()} />);
+      const { container } = render(
+        <CommandPaletteItem item={item} selected={false} onClick={vi.fn()} />
+      );
 
-      // Note items don't have shortcuts
-      expect(screen.queryByText('⌘')).not.toBeInTheDocument();
+      // Note items don't have shortcuts - no shortcut container should exist
+      expect(container.querySelector('[class*="itemShortcut"]')).not.toBeInTheDocument();
     });
 
     it('does not display shortcut when not provided', () => {
       const item = createCommandItem({ shortcut: undefined });
 
-      render(<CommandPaletteItem item={item} selected={false} onClick={vi.fn()} />);
+      const { container } = render(
+        <CommandPaletteItem item={item} selected={false} onClick={vi.fn()} />
+      );
 
-      // Should not have a shortcut element with ⌘
-      const text = screen.getByText('Test Command');
-      expect(text).toBeInTheDocument();
+      // Should not have a shortcut element
+      expect(container.querySelector('[class*="itemShortcut"]')).not.toBeInTheDocument();
     });
   });
 

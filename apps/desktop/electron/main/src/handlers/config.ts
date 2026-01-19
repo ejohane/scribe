@@ -47,10 +47,18 @@ export async function saveConfig(config: AppConfig): Promise<void> {
 
 /**
  * Get the configured vault path, or the default if none configured.
+ * In development mode, uses .dev-vault in the project root to match the dev daemon.
  *
  * @returns The vault path to use
  */
 export async function getVaultPath(): Promise<string> {
+  // In development mode, use .dev-vault to match the dev daemon
+  if (process.env.NODE_ENV === 'development') {
+    // Navigate from bundled main.js location to project root
+    // Built path: apps/desktop/electron/main/dist/main.js -> 5 levels up
+    const projectRoot = path.resolve(__dirname, '..', '..', '..', '..', '..');
+    return path.join(projectRoot, '.dev-vault');
+  }
   const config = await loadConfig();
   return config.vaultPath || DEFAULT_VAULT_PATH;
 }

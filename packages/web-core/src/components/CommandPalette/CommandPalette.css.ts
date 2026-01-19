@@ -50,8 +50,8 @@ export const backdrop = style({
   justifyContent: 'center',
   paddingTop: '15vh',
   backgroundColor: vars.color.backdropLight,
-  backdropFilter: `blur(${vars.blur.sm})`,
-  WebkitBackdropFilter: `blur(${vars.blur.sm})`,
+  backdropFilter: `blur(${vars.blur.lg})`,
+  WebkitBackdropFilter: `blur(${vars.blur.lg})`,
 });
 
 /**
@@ -59,16 +59,16 @@ export const backdrop = style({
  */
 export const container = style({
   width: '100%',
-  maxWidth: '560px',
-  maxHeight: '70vh',
+  maxWidth: '520px',
+  maxHeight: '60vh',
   display: 'flex',
   flexDirection: 'column',
   backgroundColor: vars.color.background,
-  borderRadius: vars.radius.xl,
+  borderRadius: vars.radius['2xl'],
   boxShadow: vars.shadow.xl,
   border: `1px solid ${vars.color.border}`,
   overflow: 'hidden',
-  animation: `${slideUp} 150ms ${vars.animation.easing.default}`,
+  animation: `${slideUp} 150ms ${vars.animation.easing.smooth}`,
 });
 
 // ============================================================================
@@ -82,8 +82,12 @@ export const inputWrapper = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['3'],
-  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['4']} ${vars.spacing['4']}`,
   borderBottom: `1px solid ${vars.color.border}`,
+  outline: 'none',
+  ':focus-within': {
+    outline: 'none',
+  },
 });
 
 /**
@@ -102,9 +106,15 @@ export const input = style({
   border: 'none',
   background: 'transparent',
   outline: 'none',
+  boxShadow: 'none',
   fontSize: vars.typography.size.md,
   fontFamily: vars.typography.fontFamily.ui,
   color: vars.color.foreground,
+
+  ':focus': {
+    outline: 'none',
+    boxShadow: 'none',
+  },
 
   '::placeholder': {
     color: vars.color.foregroundMuted,
@@ -191,7 +201,7 @@ export const section = style({
  * Section label/header.
  */
 export const sectionLabel = style({
-  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['6']}`,
   fontSize: vars.typography.size.xs,
   fontWeight: vars.typography.weight.medium,
   color: vars.color.foregroundMuted,
@@ -210,12 +220,14 @@ export const item = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['3'],
-  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
   cursor: 'pointer',
+  borderRadius: vars.radius.lg,
+  margin: `0 ${vars.spacing['2']}`,
   transition: `background-color ${vars.animation.duration.fast}`,
 
   ':hover': {
-    backgroundColor: vars.color.backgroundAlt,
+    backgroundColor: vars.color.surface,
   },
 });
 
@@ -233,12 +245,9 @@ export const itemIcon = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: vars.component.menu.iconSize,
-  height: vars.component.menu.iconSize,
-  borderRadius: vars.radius.md,
-  backgroundColor: vars.color.surface,
+  width: '20px',
+  height: '20px',
   color: vars.color.foregroundMuted,
-  fontSize: vars.typography.size.md,
   flexShrink: 0,
 });
 
@@ -247,28 +256,22 @@ export const itemIcon = style({
  */
 export const itemIconVariant = styleVariants({
   default: {
-    backgroundColor: vars.color.surface,
     color: vars.color.foregroundMuted,
   },
   accent: {
-    backgroundColor: vars.color.accent,
-    color: vars.color.accentForeground,
-  },
-  note: {
-    backgroundColor: vars.color.surface,
     color: vars.color.accent,
   },
+  note: {
+    color: vars.color.foregroundMuted,
+  },
   daily: {
-    backgroundColor: vars.color.surface,
-    color: vars.color.success,
+    color: vars.color.foregroundMuted,
   },
   meeting: {
-    backgroundColor: vars.color.surface,
-    color: vars.color.secondary,
+    color: vars.color.foregroundMuted,
   },
   person: {
-    backgroundColor: vars.color.surface,
-    color: vars.color.tertiary,
+    color: vars.color.foregroundMuted,
   },
 });
 
@@ -306,16 +309,31 @@ export const itemDescription = style({
 });
 
 /**
- * Item shortcut badge.
+ * Item shortcut container - aligns to right with unified background.
  */
 export const itemShortcut = style({
-  color: vars.color.foregroundMuted,
-  fontSize: vars.typography.size.xs,
-  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
-  backgroundColor: vars.color.surface,
-  borderRadius: vars.radius.sm,
-  fontFamily: vars.typography.fontFamily.mono,
+  display: 'flex',
+  alignItems: 'center',
+  gap: '3px',
   flexShrink: 0,
+  marginLeft: 'auto',
+  padding: '4px 8px',
+  backgroundColor: vars.color.surface,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: vars.radius.md,
+});
+
+/**
+ * Individual keyboard key character.
+ */
+export const keyboardKey = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '12px',
+  fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+  color: vars.color.foregroundMuted,
+  lineHeight: 1,
 });
 
 // ============================================================================

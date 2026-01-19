@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrpc } from '../providers/ScribeProvider';
+import { useIsElectron } from '../providers/PlatformProvider';
 import type { NoteMetadata } from '@scribe/client-sdk';
 
 /**
@@ -46,6 +47,7 @@ function formatDate(isoString: string): string {
 export function NoteListPage({ className = '', onNoteSelect, selectedNoteId }: NoteListPageProps) {
   const trpc = useTrpc();
   const navigate = useNavigate();
+  const isElectron = useIsElectron();
 
   const [notes, setNotes] = useState<NoteMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,6 +124,14 @@ export function NoteListPage({ className = '', onNoteSelect, selectedNoteId }: N
 
   return (
     <div className={`flex flex-col h-full ${className}`} data-testid="note-list-page">
+      {/* Titlebar drag region for Electron - clears macOS traffic lights */}
+      {isElectron && (
+        <div
+          className="h-10 flex-shrink-0"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+          data-testid="titlebar-drag-region"
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
         <h1 className="text-sm font-medium text-foreground/70">Notes</h1>
