@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.42.0](https://github.com/ejohane/scribe/compare/v1.41.0...v1.42.0) (2026-01-19)
+
+### Features
+
+* **engine:** add command palette command registration capability ([38fd961](https://github.com/ejohane/scribe/commit/38fd9618bf1e14f29aac4bf2bcfb69b69354f90f))
+* **palette:** add createTask command to plugin-todo ([1816c6e](https://github.com/ejohane/scribe/commit/1816c6e633a8e2afecd37a0743050f9828b89512))
+* **palette:** add plugin commands and keyboard navigation improvements ([a535829](https://github.com/ejohane/scribe/commit/a53582944eb7abed363431f5797f5da7c9ba2357))
+* **palette:** add tRPC procedures for recent notes tracking ([39630b6](https://github.com/ejohane/scribe/commit/39630b68ae32cda58e27f77d5fb5ea229fec5504))
+* **palette:** call markAccessed on NoteEditorPage mount ([2a36d7a](https://github.com/ejohane/scribe/commit/2a36d7a90384a63812f202f5334f9041b830eadc))
+* **palette:** create barrel exports for CommandPalette module ([96bf870](https://github.com/ejohane/scribe/commit/96bf87069ebddc614c94f6148be122078f7b4f8f))
+* **palette:** implement command palette UI components ([50ec870](https://github.com/ejohane/scribe/commit/50ec870a1184f779d79969a79e965062129a9ab3))
+* **palette:** improve e2e test stability and plugin command support ([2224f26](https://github.com/ejohane/scribe/commit/2224f2657fdab4bc36730626a9a7ec81eb44390e))
+* **palette:** integrate command palette UI with apps and plugins ([79ba744](https://github.com/ejohane/scribe/commit/79ba744576d02ad69ed5ad1d77fe3c491c1fee10))
+* **storage:** add last_accessed_at tracking for notes ([7e5bb5e](https://github.com/ejohane/scribe/commit/7e5bb5e941a0becab5190f9369d31c6bd60fb4be))
+
+### Bug Fixes
+
+* **ci:** resolve race condition in WebSocket server tests ([cf0324d](https://github.com/ejohane/scribe/commit/cf0324d61fe935df4c60bdece87c2312d33a58f9))
+* **desktop:** add connect-src to CSP for daemon connections ([7cd2721](https://github.com/ejohane/scribe/commit/7cd272149425306c7491bdf758095583bfcba272))
+* **desktop:** hide editor toolbar to match web app UI ([73c0f3d](https://github.com/ejohane/scribe/commit/73c0f3da0ead07eba3a203943de235945b81ac7f))
+* **desktop:** remove focus outline from editor contenteditable ([630d253](https://github.com/ejohane/scribe/commit/630d2533dd088d8283efc08f3fceb6f5ad453a1d))
+* **palette:** restore editor cursor position when closing command palette ([6d608d6](https://github.com/ejohane/scribe/commit/6d608d6cd507dcee97c49b364cc71ef0220a1894))
+
 ## [1.41.0](https://github.com/ejohane/scribe/compare/v1.40.0...v1.41.0) (2026-01-18)
 
 ### Features
