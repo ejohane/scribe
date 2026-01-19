@@ -76,6 +76,17 @@ vi.mock('./useNoteSearch', () => ({
   })),
 }));
 
+// Mock the ScribeProvider's useTrpc hook
+vi.mock('../../providers/ScribeProvider', () => ({
+  useTrpc: vi.fn(() => ({
+    notes: {
+      create: {
+        mutate: vi.fn().mockResolvedValue({ id: 'mock-note-id' }),
+      },
+    },
+  })),
+}));
+
 // Helper to create mock commands
 function createMockCommand(overrides: Partial<CommandItem> = {}): CommandItem {
   return {

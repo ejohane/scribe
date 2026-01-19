@@ -7,7 +7,7 @@
  * @module
  */
 
-import { useEffect, useState, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, useRef, type ReactNode } from 'react';
 import {
   PluginRegistry,
   PluginLoader,
@@ -74,7 +74,16 @@ export function PluginProvider({ children }: PluginProviderProps) {
   // Create registry once - it persists across renders
   const registry = useMemo(() => new PluginRegistry(), []);
 
+  // Track if plugins have been loaded to handle React StrictMode double-mounting
+  const hasLoadedRef = useRef(false);
+
   useEffect(() => {
+    // Skip if already loaded (handles StrictMode double-mounting)
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
+
     async function loadPlugins() {
       // Create context factory for client plugins
       const contextFactory = {

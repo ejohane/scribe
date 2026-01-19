@@ -601,6 +601,17 @@ export interface CommandContext {
    * @param type - The type of toast (default: 'info')
    */
   toast: (message: string, type?: 'success' | 'error' | 'info') => void;
+
+  /**
+   * Create a new note and navigate to it.
+   *
+   * @param options - Options for creating the note
+   * @returns The ID of the created note, or null if creation failed
+   */
+  createNote: (options?: {
+    title?: string;
+    type?: 'note' | 'daily' | 'meeting' | 'person';
+  }) => Promise<string | null>;
 }
 
 /**

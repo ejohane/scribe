@@ -4,7 +4,7 @@
  * Tests for the default commands in the command palette.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { builtInCommands, SEARCH_NOTES_COMMAND_ID } from './builtInCommands';
 import type { CommandContext } from '@scribe/plugin-core';
 
@@ -14,15 +14,28 @@ function createMockContext(overrides: Partial<CommandContext> = {}): CommandCont
     noteId: null,
     navigate: vi.fn(),
     toast: vi.fn(),
+    createNote: vi.fn().mockResolvedValue('mock-note-id'),
     ...overrides,
   };
 }
 
 describe('builtInCommands', () => {
+  const originalDate = global.Date;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
+    // Mock Date to return a fixed time for testing
+    const mockDate = new Date('2024-01-15T10:00:00Z');
+    vi.spyOn(global, 'Date').mockImplementation((...args: unknown[]) => {
+      if (args.length === 0) {
+        return mockDate;
+      }
+      return new originalDate(...(args as ConstructorParameters<typeof Date>));
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('structure', () => {
@@ -61,13 +74,26 @@ describe('builtInCommands', () => {
       expect(cmd?.shortcut).toBe('⌘N');
     });
 
-    it('navigates to /notes/new', () => {
+    it('creates a note and navigates to it', async () => {
       const cmd = builtInCommands.find((c) => c.id === 'core.newNote')!;
       const ctx = createMockContext();
 
-      cmd.execute(ctx);
+      await cmd.execute(ctx);
 
-      expect(ctx.navigate).toHaveBeenCalledWith('/notes/new');
+      expect(ctx.createNote).toHaveBeenCalledWith({ type: 'note' });
+      expect(ctx.navigate).toHaveBeenCalledWith('/note/mock-note-id');
+    });
+
+    it('does not navigate if note creation fails', async () => {
+      const cmd = builtInCommands.find((c) => c.id === 'core.newNote')!;
+      const ctx = createMockContext({
+        createNote: vi.fn().mockResolvedValue(null),
+      });
+
+      await cmd.execute(ctx);
+
+      expect(ctx.createNote).toHaveBeenCalled();
+      expect(ctx.navigate).not.toHaveBeenCalled();
     });
   });
 
@@ -108,13 +134,14 @@ describe('builtInCommands', () => {
       expect(cmd?.category).toBe('Notes');
     });
 
-    it('navigates to /daily/[today]', () => {
+    it("creates a daily note with today's date and navigates to it", async () => {
       const cmd = builtInCommands.find((c) => c.id === 'core.newDailyNote')!;
       const ctx = createMockContext();
 
-      cmd.execute(ctx);
+      await cmd.execute(ctx);
 
-      expect(ctx.navigate).toHaveBeenCalledWith('/daily/2024-01-15');
+      expect(ctx.createNote).toHaveBeenCalledWith({ title: '2024-01-15', type: 'daily' });
+      expect(ctx.navigate).toHaveBeenCalledWith('/note/mock-note-id');
     });
   });
 
@@ -128,13 +155,14 @@ describe('builtInCommands', () => {
       expect(cmd?.category).toBe('Notes');
     });
 
-    it('navigates to /notes/new?type=meeting', () => {
+    it('creates a meeting note and navigates to it', async () => {
       const cmd = builtInCommands.find((c) => c.id === 'core.newMeeting')!;
       const ctx = createMockContext();
 
-      cmd.execute(ctx);
+      await cmd.execute(ctx);
 
-      expect(ctx.navigate).toHaveBeenCalledWith('/notes/new?type=meeting');
+      expect(ctx.createNote).toHaveBeenCalledWith({ title: 'Meeting', type: 'meeting' });
+      expect(ctx.navigate).toHaveBeenCalledWith('/note/mock-note-id');
     });
   });
 
@@ -149,13 +177,14 @@ describe('builtInCommands', () => {
       expect(cmd?.shortcut).toBe('⌘,');
     });
 
-    it('navigates to /settings', () => {
+    it('shows a toast that settings is coming soon', () => {
       const cmd = builtInCommands.find((c) => c.id === 'core.settings')!;
       const ctx = createMockContext();
 
       cmd.execute(ctx);
 
-      expect(ctx.navigate).toHaveBeenCalledWith('/settings');
+      expect(ctx.toast).toHaveBeenCalledWith('Settings coming soon!', 'info');
+      expect(ctx.navigate).not.toHaveBeenCalled();
     });
   });
 

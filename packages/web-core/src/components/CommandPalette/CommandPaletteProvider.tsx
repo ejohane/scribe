@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTrpc } from '../../providers/ScribeProvider';
 import type { CommandContext } from '@scribe/plugin-core';
 import type {
   CommandPaletteState,
@@ -156,6 +157,7 @@ export function CommandPaletteProvider({
   toast = () => {},
 }: CommandPaletteProviderProps) {
   const navigate = useNavigate();
+  const trpc = useTrpc();
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // Fetch recent notes when in note-search view with empty query
@@ -173,14 +175,33 @@ export function CommandPaletteProvider({
     dispatch({ type: 'SET_SEARCHING', isSearching });
   }, [isSearching]);
 
+  // Create note helper for command context
+  const createNote = useCallback(
+    async (options?: { title?: string; type?: 'note' | 'daily' | 'meeting' | 'person' }) => {
+      try {
+        const newNote = await trpc.notes.create.mutate({
+          title: options?.title ?? 'Untitled',
+          type: options?.type ?? 'note',
+        });
+        return newNote.id;
+      } catch (err) {
+        console.error('[CommandPalette] Failed to create note:', err);
+        toast('Failed to create note', 'error');
+        return null;
+      }
+    },
+    [trpc, toast]
+  );
+
   // Create command context
   const commandContext: CommandContext = useMemo(
     () => ({
       noteId: currentNoteId,
       navigate,
       toast,
+      createNote,
     }),
-    [currentNoteId, navigate, toast]
+    [currentNoteId, navigate, toast, createNote]
   );
 
   // Convert built-in commands to CommandItems
@@ -326,7 +347,7 @@ export function CommandPaletteProvider({
       close();
     } else if (item.type === 'note') {
       // Navigate to the note
-      navigate(`/notes/${item.id}`);
+      navigate(`/note/${item.id}`);
       close();
     }
   }, [getSelectedItem, commandContext, close, navigate, setView]);
@@ -349,8 +370,9 @@ export function CommandPaletteProvider({
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    // Use capture phase to intercept before editor or other handlers
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [toggle, open]);
 
   // Context value

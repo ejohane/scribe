@@ -21,8 +21,11 @@ export const builtInCommands: BuiltInCommand[] = [
     shortcut: '⌘N',
     category: BUILTIN_CATEGORIES.NOTES,
     priority: 10,
-    execute: (ctx) => {
-      ctx.navigate('/notes/new');
+    execute: async (ctx) => {
+      const noteId = await ctx.createNote({ type: 'note' });
+      if (noteId) {
+        ctx.navigate(`/note/${noteId}`);
+      }
     },
   },
   {
@@ -45,9 +48,12 @@ export const builtInCommands: BuiltInCommand[] = [
     icon: 'Calendar',
     category: BUILTIN_CATEGORIES.NOTES,
     priority: 30,
-    execute: (ctx) => {
+    execute: async (ctx) => {
       const today = new Date().toISOString().split('T')[0];
-      ctx.navigate(`/daily/${today}`);
+      const noteId = await ctx.createNote({ title: today, type: 'daily' });
+      if (noteId) {
+        ctx.navigate(`/note/${noteId}`);
+      }
     },
   },
   {
@@ -57,8 +63,11 @@ export const builtInCommands: BuiltInCommand[] = [
     icon: 'Users',
     category: BUILTIN_CATEGORIES.NOTES,
     priority: 40,
-    execute: (ctx) => {
-      ctx.navigate('/notes/new?type=meeting');
+    execute: async (ctx) => {
+      const noteId = await ctx.createNote({ title: 'Meeting', type: 'meeting' });
+      if (noteId) {
+        ctx.navigate(`/note/${noteId}`);
+      }
     },
   },
   {
@@ -70,7 +79,8 @@ export const builtInCommands: BuiltInCommand[] = [
     category: BUILTIN_CATEGORIES.GENERAL,
     priority: 100,
     execute: (ctx) => {
-      ctx.navigate('/settings');
+      // Settings page doesn't exist yet - show a toast instead
+      ctx.toast('Settings coming soon!', 'info');
     },
   },
 ];

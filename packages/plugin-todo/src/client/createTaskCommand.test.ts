@@ -39,11 +39,13 @@ const mockUseScribeClient = vi.fn(() => mockClientObject);
 describe('createTaskHandler (command palette)', () => {
   let mockToast: ReturnType<typeof vi.fn>;
   let mockNavigate: ReturnType<typeof vi.fn>;
+  let mockCreateNote: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockToast = vi.fn();
     mockNavigate = vi.fn();
+    mockCreateNote = vi.fn().mockResolvedValue('new-note-id');
 
     // Set up the client injector
     setCommandPaletteClient(mockUseScribeClient);
@@ -72,6 +74,7 @@ describe('createTaskHandler (command palette)', () => {
         noteId: 'note-1',
         navigate: mockNavigate,
         toast: mockToast,
+        createNote: mockCreateNote,
       };
 
       await handler.execute(ctx);
@@ -88,6 +91,7 @@ describe('createTaskHandler (command palette)', () => {
         noteId: null,
         navigate: mockNavigate,
         toast: mockToast,
+        createNote: mockCreateNote,
       };
 
       await handler.execute(ctx);
@@ -104,6 +108,7 @@ describe('createTaskHandler (command palette)', () => {
         noteId: 'note-1',
         navigate: mockNavigate,
         toast: mockToast,
+        createNote: mockCreateNote,
       };
 
       await handler.execute(ctx);
@@ -123,6 +128,7 @@ describe('createTaskHandler (command palette)', () => {
         noteId: 'note-1',
         navigate: mockNavigate,
         toast: mockToast,
+        createNote: mockCreateNote,
       };
 
       await handler.execute(ctx);
@@ -139,6 +145,7 @@ describe('createTaskHandler (command palette)', () => {
         noteId: 'note-1',
         navigate: mockNavigate,
         toast: mockToast,
+        createNote: mockCreateNote,
       };
 
       await handler.execute(ctx);
@@ -154,6 +161,7 @@ describe('createTaskHandler (command palette)', () => {
         noteId: 'note-1',
         navigate: mockNavigate,
         toast: mockToast,
+        createNote: mockCreateNote,
       };
 
       await handler.execute(ctx);
@@ -193,6 +201,7 @@ describe('setCommandPaletteClient', () => {
       noteId: 'note-1',
       navigate: vi.fn(),
       toast: vi.fn(),
+      createNote: vi.fn().mockResolvedValue('new-note-id'),
     };
 
     await handler?.execute(ctx);
