@@ -193,39 +193,39 @@ describe('MarkdownRevealNode', () => {
     });
   });
 
-  describe('getTextContent', () => {
-    it('returns bold markdown syntax', async () => {
+  describe('getTextContent (clipboard plain text)', () => {
+    it('returns plain text for bold formatted text (no markdown delimiters)', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello', IS_BOLD);
-        expect(node.getTextContent()).toBe('**hello**');
+        expect(node.getTextContent()).toBe('hello');
       });
     });
 
-    it('returns italic markdown syntax', async () => {
+    it('returns plain text for italic formatted text', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello', IS_ITALIC);
-        expect(node.getTextContent()).toBe('*hello*');
+        expect(node.getTextContent()).toBe('hello');
       });
     });
 
-    it('returns strikethrough markdown syntax', async () => {
+    it('returns plain text for strikethrough formatted text', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello', IS_STRIKETHROUGH);
-        expect(node.getTextContent()).toBe('~~hello~~');
+        expect(node.getTextContent()).toBe('hello');
       });
     });
 
-    it('returns code markdown syntax', async () => {
+    it('returns plain text for code formatted text', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello', IS_CODE);
-        expect(node.getTextContent()).toBe('`hello`');
+        expect(node.getTextContent()).toBe('hello');
       });
     });
 
-    it('returns combined bold+italic markdown syntax', async () => {
+    it('returns plain text for combined bold+italic', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello', IS_BOLD | IS_ITALIC);
-        expect(node.getTextContent()).toBe('***hello***');
+        expect(node.getTextContent()).toBe('hello');
       });
     });
 
@@ -233,6 +233,102 @@ describe('MarkdownRevealNode', () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello', 0);
         expect(node.getTextContent()).toBe('hello');
+      });
+    });
+
+    it('does not include any markdown delimiters', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode(
+          'test',
+          IS_BOLD | IS_ITALIC | IS_CODE | IS_STRIKETHROUGH
+        );
+        const text = node.getTextContent();
+        expect(text).not.toContain('**');
+        expect(text).not.toContain('*');
+        expect(text).not.toContain('`');
+        expect(text).not.toContain('~~');
+        expect(text).toBe('test');
+      });
+    });
+  });
+
+  describe('exportDOM (clipboard HTML)', () => {
+    it('exports bold text with <strong> tag', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('bold', IS_BOLD);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).toBe('<strong>bold</strong>');
+      });
+    });
+
+    it('exports italic text with <em> tag', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('italic', IS_ITALIC);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).toBe('<em>italic</em>');
+      });
+    });
+
+    it('exports code text with <code> tag', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('code', IS_CODE);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).toBe('<code>code</code>');
+      });
+    });
+
+    it('exports strikethrough text with <s> tag', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('struck', IS_STRIKETHROUGH);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).toBe('<s>struck</s>');
+      });
+    });
+
+    it('exports bold+italic with nested tags', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('both', IS_BOLD | IS_ITALIC);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).toBe('<strong><em>both</em></strong>');
+      });
+    });
+
+    it('exports all formats with proper nesting', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode(
+          'all',
+          IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE
+        );
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).toBe(
+          '<strong><em><s><code>all</code></s></em></strong>'
+        );
+      });
+    });
+
+    it('exports plain text when no format is applied', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('plain', 0);
+        const { element } = node.exportDOM();
+        expect(element?.textContent).toBe('plain');
+        expect((element as HTMLElement)?.innerHTML).toBe('plain');
+      });
+    });
+
+    it('does not include markdown delimiters in HTML', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_BOLD | IS_CODE);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.innerHTML).not.toContain('**');
+        expect((element as HTMLElement)?.innerHTML).not.toContain('`');
+      });
+    });
+
+    it('returns a span element as the root', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_BOLD);
+        const { element } = node.exportDOM();
+        expect((element as HTMLElement)?.tagName).toBe('SPAN');
       });
     });
   });
@@ -332,6 +428,15 @@ describe('MarkdownRevealNode', () => {
     });
   });
 
+  describe('importDOM (paste behavior)', () => {
+    it('returns null to prevent pasted HTML from creating MarkdownRevealNodes', () => {
+      // MarkdownRevealNode is a transient visual node - it should NOT be created
+      // from pasted HTML. When users paste <strong>bold</strong>, it should become
+      // a regular TextNode with bold formatting, not a MarkdownRevealNode.
+      expect(MarkdownRevealNode.importDOM()).toBeNull();
+    });
+  });
+
   describe('decorate', () => {
     it('returns a React element with correct props', async () => {
       await editor.update(() => {
@@ -392,7 +497,8 @@ describe('MarkdownRevealNode', () => {
         const node = $createMarkdownRevealNode('editor test', IS_BOLD);
         $insertNodes([node]);
 
-        expect(root.getTextContent()).toBe('**editor test**');
+        // getTextContent returns plain text, not markdown syntax
+        expect(root.getTextContent()).toBe('editor test');
       });
     });
 
@@ -403,8 +509,11 @@ describe('MarkdownRevealNode', () => {
         const node2 = $createMarkdownRevealNode('italic', IS_ITALIC);
         $insertNodes([node1, node2]);
 
-        expect(root.getTextContent()).toContain('**bold**');
-        expect(root.getTextContent()).toContain('*italic*');
+        // getTextContent returns plain text, not markdown syntax
+        expect(root.getTextContent()).toContain('bold');
+        expect(root.getTextContent()).toContain('italic');
+        expect(root.getTextContent()).not.toContain('**');
+        expect(root.getTextContent()).not.toContain('*italic*');
       });
     });
   });
@@ -413,28 +522,32 @@ describe('MarkdownRevealNode', () => {
     it('handles text with special characters', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello *world*', IS_BOLD);
-        expect(node.getTextContent()).toBe('**hello *world***');
+        // getTextContent returns plain text only
+        expect(node.getTextContent()).toBe('hello *world*');
       });
     });
 
     it('handles text with backticks', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello `code`', IS_BOLD);
-        expect(node.getTextContent()).toBe('**hello `code`**');
+        // getTextContent returns plain text only
+        expect(node.getTextContent()).toBe('hello `code`');
       });
     });
 
     it('handles text with newlines', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello\nworld', IS_BOLD);
-        expect(node.getTextContent()).toBe('**hello\nworld**');
+        // getTextContent returns plain text only
+        expect(node.getTextContent()).toBe('hello\nworld');
       });
     });
 
     it('handles text with spaces', async () => {
       await editor.update(() => {
         const node = $createMarkdownRevealNode('hello world', IS_ITALIC);
-        expect(node.getTextContent()).toBe('*hello world*');
+        // getTextContent returns plain text only
+        expect(node.getTextContent()).toBe('hello world');
       });
     });
 
@@ -442,7 +555,24 @@ describe('MarkdownRevealNode', () => {
       await editor.update(() => {
         const format = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
         const node = $createMarkdownRevealNode('all', format);
-        expect(node.getTextContent()).toBe('***~~`all`~~***');
+        // getTextContent returns plain text only
+        expect(node.getTextContent()).toBe('all');
+      });
+    });
+
+    it('exportDOM preserves text with special characters', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('hello *world*', IS_BOLD);
+        const { element } = node.exportDOM();
+        expect(element?.textContent).toBe('hello *world*');
+      });
+    });
+
+    it('exportDOM preserves text with newlines', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('hello\nworld', IS_BOLD);
+        const { element } = node.exportDOM();
+        expect(element?.textContent).toBe('hello\nworld');
       });
     });
   });

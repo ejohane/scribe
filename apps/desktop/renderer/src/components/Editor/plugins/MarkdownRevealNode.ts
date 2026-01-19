@@ -16,11 +16,14 @@ import {
   SerializedLexicalNode,
   Spread,
   $applyNodeReplacement,
+  DOMExportOutput,
+  DOMConversionMap,
 } from 'lexical';
 import { ReactNode, createElement } from 'react';
 import {
-  reconstructInlineMarkdown,
   reconstructMarkdownSegments,
+  IS_BOLD,
+  IS_ITALIC,
   IS_CODE,
   IS_STRIKETHROUGH,
 } from './markdownReconstruction';
@@ -182,6 +185,24 @@ export class MarkdownRevealNode extends DecoratorNode<ReactNode> {
   }
 
   /**
+   * Returns null to indicate this node should NOT be created from pasted HTML.
+   *
+   * MarkdownRevealNode is a transient visual node - it only exists while the
+   * cursor is inside a formatted region. When users paste HTML with formatting
+   * (e.g., <strong>bold</strong>), it should become a regular TextNode with
+   * formatting applied, not a MarkdownRevealNode.
+   *
+   * This is intentional and matches the node's transient nature: the reveal
+   * nodes are created dynamically by MarkdownRevealPlugin when needed, not
+   * from external content.
+   *
+   * @returns null - do not create this node from pasted HTML
+   */
+  static importDOM(): DOMConversionMap | null {
+    return null;
+  }
+
+  /**
    * Indicates that this node is inline (flows with text).
    * @returns true - this node is inline
    */
@@ -191,11 +212,60 @@ export class MarkdownRevealNode extends DecoratorNode<ReactNode> {
 
   /**
    * Returns the text content for copy/paste and search operations.
-   * Returns the reconstructed markdown syntax.
-   * @returns The markdown representation of the text
+   * Returns ONLY the plain text content, not the markdown syntax.
+   * This ensures that when users copy revealed text, they get the content
+   * without markdown delimiters (**, *, ~~, `).
+   * @returns The plain text content
    */
   getTextContent(): string {
-    return reconstructInlineMarkdown(this.__text, this.__format);
+    return this.__text;
+  }
+
+  /**
+   * Exports this node to DOM for clipboard operations.
+   * Returns the text with appropriate HTML formatting applied,
+   * so that when copied to rich text editors, formatting is preserved.
+   * @returns The DOM export output with formatted HTML
+   */
+  exportDOM(): DOMExportOutput {
+    const element = document.createElement('span');
+
+    // Apply HTML formatting based on the format bitmask
+    // We need to create nested elements for proper HTML semantics
+    let current: HTMLElement = element;
+
+    // Check for bold
+    if (this.__format & IS_BOLD) {
+      const strong = document.createElement('strong');
+      current.appendChild(strong);
+      current = strong;
+    }
+
+    // Check for italic
+    if (this.__format & IS_ITALIC) {
+      const em = document.createElement('em');
+      current.appendChild(em);
+      current = em;
+    }
+
+    // Check for strikethrough
+    if (this.__format & IS_STRIKETHROUGH) {
+      const s = document.createElement('s');
+      current.appendChild(s);
+      current = s;
+    }
+
+    // Check for code
+    if (this.__format & IS_CODE) {
+      const code = document.createElement('code');
+      current.appendChild(code);
+      current = code;
+    }
+
+    // Set the text content on the innermost element
+    current.textContent = this.__text;
+
+    return { element };
   }
 }
 
