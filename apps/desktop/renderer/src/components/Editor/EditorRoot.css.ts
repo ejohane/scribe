@@ -577,3 +577,13 @@ globalStyle(`${editorInput} .markdown-reveal[data-format-code="true"] .markdown-
   fontFamily: vars.typography.fontFamily.mono,
   fontSize: vars.typography.size.sm,
 });
+
+// Strikethrough reveal styles - preserve line-through on content when revealed
+// When a markdown-reveal node has data-format-strikethrough="true", apply strikethrough to the content
+// The delimiters (~~) appear muted but the text content keeps its strikethrough styling
+globalStyle(
+  `${editorInput} .markdown-reveal[data-format-strikethrough="true"] .markdown-reveal-text`,
+  {
+    textDecoration: 'line-through',
+  }
+);

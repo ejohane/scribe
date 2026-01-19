@@ -134,6 +134,45 @@ describe('MarkdownRevealNode', () => {
         expect(dom.getAttribute('data-format-code')).toBeNull();
       });
     });
+
+    it('adds data-format-strikethrough attribute for strikethrough format', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_STRIKETHROUGH);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.tagName).toBe('SPAN');
+        expect(dom.className).toBe('markdown-reveal');
+        expect(dom.getAttribute('data-format-strikethrough')).toBe('true');
+      });
+    });
+
+    it('adds data-format-strikethrough attribute for combined formats including strikethrough', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_BOLD | IS_STRIKETHROUGH);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.getAttribute('data-format-strikethrough')).toBe('true');
+      });
+    });
+
+    it('does not add data-format-strikethrough attribute when strikethrough format is not present', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_BOLD | IS_ITALIC);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.getAttribute('data-format-strikethrough')).toBeNull();
+      });
+    });
+
+    it('adds both data-format-code and data-format-strikethrough when both formats present', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_CODE | IS_STRIKETHROUGH);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.getAttribute('data-format-code')).toBe('true');
+        expect(dom.getAttribute('data-format-strikethrough')).toBe('true');
+      });
+    });
   });
 
   describe('updateDOM', () => {

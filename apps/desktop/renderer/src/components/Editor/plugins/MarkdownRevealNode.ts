@@ -22,6 +22,7 @@ import {
   reconstructInlineMarkdown,
   reconstructMarkdownSegments,
   IS_CODE,
+  IS_STRIKETHROUGH,
 } from './markdownReconstruction';
 
 /**
@@ -112,6 +113,10 @@ export class MarkdownRevealNode extends DecoratorNode<ReactNode> {
     // Add data attribute for code format to enable monospace styling
     if (this.__format & IS_CODE) {
       span.setAttribute('data-format-code', 'true');
+    }
+    // Add data attribute for strikethrough format to preserve line-through styling
+    if (this.__format & IS_STRIKETHROUGH) {
+      span.setAttribute('data-format-strikethrough', 'true');
     }
     return span;
   }

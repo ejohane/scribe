@@ -248,6 +248,47 @@ describe('MarkdownRevealPlugin', () => {
       });
     });
 
+    it('handles cursor in strikethrough formatted text', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create paragraph with strikethrough text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('strikethrough text');
+          textNode.toggleFormat('strikethrough');
+          paragraph.append(textNode);
+          root.append(paragraph);
+
+          // Place cursor in the middle
+          const selection = $createRangeSelection();
+          selection.anchor.set(textNode.getKey(), 6, 'text');
+          selection.focus.set(textNode.getKey(), 6, 'text');
+          $setSelection(selection);
+        });
+      });
+
+      // Verify text has strikethrough formatting
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild();
+        if ($isElementNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode;
+          expect(textNode.hasFormat('strikethrough')).toBe(true);
+        }
+      });
+    });
+
     it('handles cursor in code formatted text', async () => {
       render(
         <TestEditor editorRef={editorRef}>
@@ -518,6 +559,49 @@ describe('MarkdownRevealPlugin', () => {
           const textNode = paragraph.getFirstChild() as TextNode;
           expect(textNode.hasFormat('bold')).toBe(true);
           expect(textNode.hasFormat('italic')).toBe(true);
+        }
+      });
+    });
+
+    it('handles text with bold + strikethrough', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create paragraph with bold+strikethrough text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('bold strikethrough');
+          textNode.toggleFormat('bold');
+          textNode.toggleFormat('strikethrough');
+          paragraph.append(textNode);
+          root.append(paragraph);
+
+          // Place cursor inside
+          const selection = $createRangeSelection();
+          selection.anchor.set(textNode.getKey(), 5, 'text');
+          selection.focus.set(textNode.getKey(), 5, 'text');
+          $setSelection(selection);
+        });
+      });
+
+      // Verify both formats are present
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild();
+        if ($isElementNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode;
+          expect(textNode.hasFormat('bold')).toBe(true);
+          expect(textNode.hasFormat('strikethrough')).toBe(true);
         }
       });
     });
