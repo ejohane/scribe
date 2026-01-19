@@ -19,7 +19,7 @@ export type { IconProps } from './Icon';
 export { Button } from './Button';
 export type { ButtonProps } from './Button';
 
-export { Overlay } from './Overlay';
+export { Overlay, Portal } from './Overlay';
 export type { OverlayProps } from './Overlay';
 
 export {
