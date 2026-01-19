@@ -611,3 +611,26 @@ globalStyle(`${editorInput} .heading-reveal-prefix`, {
   // Make it non-selectable to prevent accidental selection
   userSelect: 'none',
 });
+
+// === Blockquote Reveal styles ===
+// These styles are used for the blockquote prefix reveal feature.
+// When cursor is in a blockquote, the markdown prefix (e.g., "> ") is shown.
+
+/**
+ * Blockquote reveal prefix - shown at the start of the blockquote when focused.
+ * Styled muted to indicate it's syntax, not content.
+ * Similar styling to heading prefix but without font size reduction.
+ */
+globalStyle(`${editorInput} .blockquote-reveal-prefix`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontStyle: 'normal', // Override blockquote's italic style for the prefix
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Use monospace font for the > character to look more like markdown
+  fontFamily: vars.typography.fontFamily.mono,
+  // Add small margin to separate from blockquote text
+  marginRight: vars.spacing['1'],
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+});

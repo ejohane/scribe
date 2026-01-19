@@ -47,6 +47,7 @@ import {
   BLOCK_PREFIXES,
 } from './markdownReconstruction';
 import { $isCollapsibleHeadingNode } from './CollapsibleHeadingNode';
+import { $isQuoteNode } from '@lexical/rich-text';
 import type { HeadingTagType } from '@lexical/rich-text';
 
 const log = createLogger({ prefix: 'MarkdownRevealPlugin' });
@@ -110,6 +111,18 @@ interface FocusedHeading {
 }
 
 /**
+ * Tracks the currently focused blockquote for prefix reveal.
+ * When the cursor is on a blockquote line, we show the markdown prefix (e.g., "> ").
+ * For nested blockquotes, we show multiple prefixes (e.g., ">> ").
+ */
+interface FocusedBlockquote {
+  /** The Lexical node key of the blockquote (the innermost QuoteNode containing cursor) */
+  nodeKey: string;
+  /** The nesting level (1 for single quote, 2 for nested, etc.) */
+  nestingLevel: number;
+}
+
+/**
  * MarkdownRevealPlugin - Main plugin component for hybrid markdown editing.
  *
  * This plugin orchestrates the reveal/hide behavior for markdown syntax.
@@ -156,6 +169,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const [focusedHeading, setFocusedHeading] = useState<FocusedHeading | null>(null);
 
   /**
+   * Currently focused blockquote for prefix reveal, or null if cursor is not in a blockquote.
+   * When set, the blockquote prefix (e.g., "> ") should be visible.
+   */
+  const [focusedBlockquote, setFocusedBlockquote] = useState<FocusedBlockquote | null>(null);
+
+  /**
    * Tracks the currently revealed MarkdownRevealNode and its original state.
    * Used to restore the original TextNode when the cursor exits.
    * Using a ref to avoid triggering re-renders on every state change.
@@ -167,6 +186,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * Used to clean up the prefix element when cursor exits the heading.
    */
   const headingPrefixRef = useRef<HTMLSpanElement | null>(null);
+
+  /**
+   * Ref to track the DOM element of the currently revealed blockquote prefix.
+   * Used to clean up the prefix element when cursor exits the blockquote.
+   */
+  const blockquotePrefixRef = useRef<HTMLSpanElement | null>(null);
 
   /**
    * Ref for debouncing cursor movement updates.
@@ -331,6 +356,61 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
+   * Detects if the current selection is inside a blockquote.
+   * Returns the blockquote details if found, or null if not in a blockquote.
+   *
+   * Unlike inline formats where cursor must be strictly inside,
+   * for blockquotes we reveal when cursor is ANYWHERE on that line.
+   * Also calculates the nesting level for nested blockquotes (>> prefix).
+   *
+   * @returns FocusedBlockquote if cursor is in a blockquote, null otherwise
+   */
+  const detectBlockquoteFocus = useCallback((): FocusedBlockquote | null => {
+    const selection = $getSelection();
+
+    // Only handle collapsed selections (cursor position, not text selection)
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchor = selection.anchor;
+    const anchorNode = anchor.getNode();
+
+    // Walk up the tree to find the innermost QuoteNode and count nesting levels
+    let currentNode = anchorNode.getParent();
+    let quoteNode = null;
+    let nestingLevel = 0;
+
+    while (currentNode) {
+      if ($isQuoteNode(currentNode)) {
+        // Track the innermost quote node (first one we encounter)
+        if (!quoteNode) {
+          quoteNode = currentNode;
+        }
+        nestingLevel++;
+      }
+      currentNode = currentNode.getParent();
+    }
+
+    // Also check if the anchor node itself is a QuoteNode (empty blockquote case)
+    if ($isQuoteNode(anchorNode)) {
+      return {
+        nodeKey: anchorNode.getKey(),
+        nestingLevel: 1,
+      };
+    }
+
+    if (quoteNode) {
+      return {
+        nodeKey: quoteNode.getKey(),
+        nestingLevel,
+      };
+    }
+
+    return null;
+  }, []);
+
+  /**
    * Handles cursor position changes with debouncing.
    * Updates the revealed region state based on current cursor position.
    *
@@ -339,6 +419,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * 2. Cursor stays adjacent to current reveal → keep revealed
    * 3. Cursor moves away from reveal → hide markdown
    * 4. Cursor enters/exits a heading → show/hide heading prefix
+   * 5. Cursor enters/exits a blockquote → show/hide blockquote prefix
    */
   const handleSelectionChange = useCallback(() => {
     // Clear any pending debounce timeout
@@ -351,6 +432,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       editor.getEditorState().read(() => {
         const newRegion = detectFormattedRegion();
         const newHeadingFocus = detectHeadingFocus();
+        const newBlockquoteFocus = detectBlockquoteFocus();
         const currentRevealState = revealedNodeStateRef.current;
 
         // If we have a currently revealed node, check if we're still adjacent to it
@@ -360,12 +442,18 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           // If cursor is adjacent to our current reveal node, keep it revealed
           if (adjacentRevealKey === currentRevealState.revealNodeKey) {
             log.debug('Cursor adjacent to reveal, keeping visible');
-            // Still update heading focus even if keeping inline reveal
+            // Still update heading and blockquote focus even if keeping inline reveal
             setFocusedHeading((prevHeading) => {
               if (!prevHeading && !newHeadingFocus) return null;
               if (!prevHeading || !newHeadingFocus) return newHeadingFocus;
               if (prevHeading.nodeKey !== newHeadingFocus.nodeKey) return newHeadingFocus;
               return prevHeading;
+            });
+            setFocusedBlockquote((prevBlockquote) => {
+              if (!prevBlockquote && !newBlockquoteFocus) return null;
+              if (!prevBlockquote || !newBlockquoteFocus) return newBlockquoteFocus;
+              if (prevBlockquote.nodeKey !== newBlockquoteFocus.nodeKey) return newBlockquoteFocus;
+              return prevBlockquote;
             });
             return; // Don't change inline reveal state
           }
@@ -402,6 +490,42 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
 
           // No change
           return prevHeading;
+        });
+
+        // Update blockquote focus state
+        setFocusedBlockquote((prevBlockquote) => {
+          // Both null - no change
+          if (!prevBlockquote && !newBlockquoteFocus) {
+            return null;
+          }
+
+          // Blockquote changed from null to something, or vice versa
+          if (!prevBlockquote || !newBlockquoteFocus) {
+            if (newBlockquoteFocus) {
+              log.debug('Focusing blockquote', {
+                nodeKey: newBlockquoteFocus.nodeKey,
+                nestingLevel: newBlockquoteFocus.nestingLevel,
+              });
+            } else {
+              log.debug('Unfocusing blockquote');
+            }
+            return newBlockquoteFocus;
+          }
+
+          // Check if the blockquote actually changed
+          if (
+            prevBlockquote.nodeKey !== newBlockquoteFocus.nodeKey ||
+            prevBlockquote.nestingLevel !== newBlockquoteFocus.nestingLevel
+          ) {
+            log.debug('Blockquote focus changed', {
+              from: prevBlockquote.nodeKey,
+              to: newBlockquoteFocus.nodeKey,
+            });
+            return newBlockquoteFocus;
+          }
+
+          // No change
+          return prevBlockquote;
         });
 
         // Only update inline region state if the region has changed
@@ -443,7 +567,13 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
         });
       });
     }, CURSOR_DEBOUNCE_MS);
-  }, [editor, detectFormattedRegion, detectHeadingFocus, getAdjacentRevealNodeKey]);
+  }, [
+    editor,
+    detectFormattedRegion,
+    detectHeadingFocus,
+    detectBlockquoteFocus,
+    getAdjacentRevealNodeKey,
+  ]);
 
   /**
    * Register SELECTION_CHANGE_COMMAND handler to track cursor position.
@@ -695,6 +825,71 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       }
     };
   }, [editor, focusedHeading, getHeadingPrefix]);
+
+  /**
+   * Gets the markdown prefix for a blockquote based on nesting level.
+   * @param nestingLevel - The nesting level (1 for single quote, 2 for nested, etc.)
+   * @returns The markdown prefix (e.g., "> " for level 1, ">> " for level 2)
+   */
+  const getBlockquotePrefix = useCallback((nestingLevel: number): string => {
+    // Generate the prefix based on nesting level
+    // Level 1: "> ", Level 2: ">> ", etc.
+    return '>'.repeat(nestingLevel) + ' ';
+  }, []);
+
+  /**
+   * Effect that manages the blockquote prefix reveal via DOM manipulation.
+   * When cursor is in a blockquote, shows the markdown prefix (e.g., "> ").
+   * For nested blockquotes, shows multiple prefixes (e.g., ">> ").
+   * When cursor exits the blockquote, removes the prefix.
+   */
+  useEffect(() => {
+    // Remove any existing prefix first
+    if (blockquotePrefixRef.current) {
+      blockquotePrefixRef.current.remove();
+      blockquotePrefixRef.current = null;
+    }
+
+    // If no blockquote is focused, we're done
+    if (!focusedBlockquote) {
+      return;
+    }
+
+    // Get the DOM element for the blockquote
+    const blockquoteElement = editor.getElementByKey(focusedBlockquote.nodeKey);
+    if (!blockquoteElement) {
+      log.debug('Could not find blockquote element', { nodeKey: focusedBlockquote.nodeKey });
+      return;
+    }
+
+    // Create the prefix span element
+    const prefix = getBlockquotePrefix(focusedBlockquote.nestingLevel);
+    const prefixSpan = document.createElement('span');
+    prefixSpan.className = 'blockquote-reveal-prefix';
+    prefixSpan.textContent = prefix;
+    // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
+    // The prefix is read-only. Users can create blockquotes via:
+    // - The formatting toolbar
+    // - Markdown shortcuts (e.g., typing "> " at the start of a new line)
+
+    // Insert at the start of the blockquote
+    blockquoteElement.insertBefore(prefixSpan, blockquoteElement.firstChild);
+    blockquotePrefixRef.current = prefixSpan;
+
+    log.debug('Revealed blockquote prefix', {
+      nodeKey: focusedBlockquote.nodeKey,
+      nestingLevel: focusedBlockquote.nestingLevel,
+      prefix,
+    });
+
+    // Cleanup function: remove the prefix when effect re-runs or unmounts
+    return () => {
+      if (blockquotePrefixRef.current) {
+        blockquotePrefixRef.current.remove();
+        blockquotePrefixRef.current = null;
+      }
+    };
+  }, [editor, focusedBlockquote, getBlockquotePrefix]);
 
   // This plugin has no visual output
   return null;
