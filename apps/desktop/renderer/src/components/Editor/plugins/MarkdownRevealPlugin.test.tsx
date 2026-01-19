@@ -660,6 +660,200 @@ describe('MarkdownRevealPlugin', () => {
         }
       });
     });
+
+    it('handles triple format combo (bold + italic + strikethrough)', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create paragraph with bold+italic+strikethrough text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('triple format');
+          textNode.toggleFormat('bold');
+          textNode.toggleFormat('italic');
+          textNode.toggleFormat('strikethrough');
+          paragraph.append(textNode);
+          root.append(paragraph);
+
+          // Place cursor inside
+          const selection = $createRangeSelection();
+          selection.anchor.set(textNode.getKey(), 6, 'text');
+          selection.focus.set(textNode.getKey(), 6, 'text');
+          $setSelection(selection);
+        });
+      });
+
+      // Verify all three formats are present
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild();
+        if ($isElementNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode;
+          expect(textNode.hasFormat('bold')).toBe(true);
+          expect(textNode.hasFormat('italic')).toBe(true);
+          expect(textNode.hasFormat('strikethrough')).toBe(true);
+        }
+      });
+    });
+
+    it('handles triple format combo (bold + italic + code)', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create paragraph with bold+italic+code text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('code combo');
+          textNode.toggleFormat('bold');
+          textNode.toggleFormat('italic');
+          textNode.toggleFormat('code');
+          paragraph.append(textNode);
+          root.append(paragraph);
+
+          // Place cursor inside
+          const selection = $createRangeSelection();
+          selection.anchor.set(textNode.getKey(), 4, 'text');
+          selection.focus.set(textNode.getKey(), 4, 'text');
+          $setSelection(selection);
+        });
+      });
+
+      // Verify all three formats are present
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild();
+        if ($isElementNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode;
+          expect(textNode.hasFormat('bold')).toBe(true);
+          expect(textNode.hasFormat('italic')).toBe(true);
+          expect(textNode.hasFormat('code')).toBe(true);
+        }
+      });
+    });
+
+    it('handles all four formats combined', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create paragraph with all four formats
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('all formats');
+          textNode.toggleFormat('bold');
+          textNode.toggleFormat('italic');
+          textNode.toggleFormat('strikethrough');
+          textNode.toggleFormat('code');
+          paragraph.append(textNode);
+          root.append(paragraph);
+
+          // Place cursor inside
+          const selection = $createRangeSelection();
+          selection.anchor.set(textNode.getKey(), 5, 'text');
+          selection.focus.set(textNode.getKey(), 5, 'text');
+          $setSelection(selection);
+        });
+      });
+
+      // Verify all four formats are present
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild();
+        if ($isElementNode(paragraph)) {
+          const textNode = paragraph.getFirstChild() as TextNode;
+          expect(textNode.hasFormat('bold')).toBe(true);
+          expect(textNode.hasFormat('italic')).toBe(true);
+          expect(textNode.hasFormat('strikethrough')).toBe(true);
+          expect(textNode.hasFormat('code')).toBe(true);
+        }
+      });
+    });
+
+    it('handles adjacent differently-formatted text (bold next to italic)', async () => {
+      render(
+        <TestEditor editorRef={editorRef}>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create paragraph with adjacent bold and italic text: "**bold***italic*"
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+
+          const boldText = $createTextNode('bold');
+          boldText.toggleFormat('bold');
+          const italicText = $createTextNode('italic');
+          italicText.toggleFormat('italic');
+
+          paragraph.append(boldText);
+          paragraph.append(italicText);
+          root.append(paragraph);
+
+          // Place cursor inside the bold text only
+          const selection = $createRangeSelection();
+          selection.anchor.set(boldText.getKey(), 2, 'text');
+          selection.focus.set(boldText.getKey(), 2, 'text');
+          $setSelection(selection);
+        });
+      });
+
+      // Verify both text nodes have different formats
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const paragraph = root.getFirstChild();
+        if ($isElementNode(paragraph)) {
+          const children = paragraph.getChildren();
+          expect(children.length).toBe(2);
+
+          const boldNode = children[0] as TextNode;
+          const italicNode = children[1] as TextNode;
+
+          // Bold node should have bold format only
+          expect(boldNode.hasFormat('bold')).toBe(true);
+          expect(boldNode.hasFormat('italic')).toBe(false);
+
+          // Italic node should have italic format only
+          expect(italicNode.hasFormat('bold')).toBe(false);
+          expect(italicNode.hasFormat('italic')).toBe(true);
+        }
+      });
+    });
   });
 
   describe('cleanup', () => {
