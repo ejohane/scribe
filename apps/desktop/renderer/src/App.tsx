@@ -14,6 +14,8 @@ import {
   CollabProvider,
   NoteListPage,
   NoteEditorPage,
+  CommandPaletteProvider,
+  CommandPalette,
 } from '@scribe/web-core';
 import type { PlatformCapabilities, UpdateInfo, CollabEditorProps } from '@scribe/web-core';
 import type { EditorContent } from '@scribe/client-sdk';
@@ -144,6 +146,8 @@ export function App() {
         initialContent={content as ScribeEditorContent}
         onChange={onChange as (content: ScribeEditorContent) => void}
         autoFocus
+        showToolbar={false}
+        placeholder=""
         yjsDoc={collabProps?.yjsDoc}
         YjsPlugin={collabProps?.YjsPlugin}
       />
@@ -155,11 +159,14 @@ export function App() {
       <PlatformProvider platform="electron" capabilities={capabilities}>
         <ScribeProvider daemonUrl={daemonUrl}>
           <CollabProvider daemonUrl={daemonUrl}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/notes" element={<NotesPage />} />
-              <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
-            </Routes>
+            <CommandPaletteProvider>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/notes" element={<NotesPage />} />
+                <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
+              </Routes>
+              <CommandPalette />
+            </CommandPaletteProvider>
           </CollabProvider>
         </ScribeProvider>
       </PlatformProvider>

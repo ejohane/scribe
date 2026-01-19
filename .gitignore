@@ -51,3 +51,5 @@ history/
 # Local development artifacts
 .scribe/
 notes/
+.dev-vault/
+.playwright-mcp/

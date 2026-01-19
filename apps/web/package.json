@@ -33,6 +33,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@vanilla-extract/vite-plugin": "^4.0.20",
     "@playwright/test": "^1.57.0",
     "@scribe/eslint-config": "workspace:*",
     "@scribe/scribed": "workspace:*",

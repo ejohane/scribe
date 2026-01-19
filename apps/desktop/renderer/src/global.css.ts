@@ -50,6 +50,11 @@ globalStyle(':focus-visible', {
   outlineOffset: '2px',
 });
 
+// Remove focus outline from editor (contenteditable) - not needed for text editing
+globalStyle('.scribe-editor-input:focus-visible', {
+  outline: 'none',
+});
+
 // Note editor page layout - centered content
 globalStyle('[data-testid="note-editor-page"]', {
   minHeight: '100vh',

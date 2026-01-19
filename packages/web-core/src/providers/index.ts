@@ -11,3 +11,7 @@ export {
 export type { PlatformCapabilities, Platform, UpdateInfo } from './PlatformProvider';
 export { CollabProvider, useCollab } from './CollabProvider';
 export type { CollabContextValue, CollabProviderProps } from './CollabProvider';
+
+// Command Palette Provider
+export { CommandPaletteProvider, useCommandPalette } from '../components/CommandPalette';
+export type { CommandPaletteProviderProps } from '../components/CommandPalette';

@@ -543,4 +543,145 @@ describe('NotesRepository', () => {
       expect(contentHash).toBeDefined();
     });
   });
+
+  describe('updateLastAccessedAt', () => {
+    it('should update last_accessed_at timestamp for existing note', () => {
+      const note = repo.create(createTestNoteInput());
+      const db = scribeDb.getDb();
+
+      // Initially should be null
+      const beforeRow = db
+        .prepare('SELECT last_accessed_at FROM notes WHERE id = ?')
+        .get(note.id) as {
+        last_accessed_at: string | null;
+      };
+      expect(beforeRow.last_accessed_at).toBeNull();
+
+      // Update last accessed
+      repo.updateLastAccessedAt(note.id);
+
+      // Should now have a timestamp
+      const afterRow = db
+        .prepare('SELECT last_accessed_at FROM notes WHERE id = ?')
+        .get(note.id) as {
+        last_accessed_at: string | null;
+      };
+      expect(afterRow.last_accessed_at).not.toBeNull();
+    });
+
+    it('should not throw for non-existent note (fire-and-forget pattern)', () => {
+      // Should not throw
+      expect(() => repo.updateLastAccessedAt('non-existent-id')).not.toThrow();
+    });
+
+    it('should update timestamp to current time', () => {
+      const note = repo.create(createTestNoteInput());
+      const db = scribeDb.getDb();
+
+      repo.updateLastAccessedAt(note.id);
+
+      const row = db.prepare('SELECT last_accessed_at FROM notes WHERE id = ?').get(note.id) as {
+        last_accessed_at: string;
+      };
+
+      // SQLite datetime('now') returns UTC time in format "YYYY-MM-DD HH:MM:SS"
+      // Verify the timestamp is a valid date string and is recent (within last minute)
+      expect(row.last_accessed_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+      // Parse as UTC since SQLite stores UTC
+      const accessTime = new Date(row.last_accessed_at + 'Z').getTime();
+      const now = Date.now();
+      // Allow up to 60 seconds tolerance to account for timing differences
+      expect(Math.abs(now - accessTime)).toBeLessThan(60000);
+    });
+  });
+
+  describe('findRecentlyAccessed', () => {
+    it('should return empty array when no notes have been accessed', () => {
+      repo.create(createTestNoteInput());
+      repo.create(createTestNoteInput());
+
+      const recent = repo.findRecentlyAccessed();
+      expect(recent).toHaveLength(0);
+    });
+
+    it('should return recently accessed notes sorted by access time descending', async () => {
+      const note1 = repo.create(createTestNoteInput({ title: 'Note 1' }));
+      const note2 = repo.create(createTestNoteInput({ title: 'Note 2' }));
+      const note3 = repo.create(createTestNoteInput({ title: 'Note 3' }));
+
+      // Access notes in order: note1, note2, note3
+      // Use raw SQL to set specific timestamps for predictable ordering
+      const db = scribeDb.getDb();
+      db.prepare(
+        "UPDATE notes SET last_accessed_at = datetime('now', '-2 seconds') WHERE id = ?"
+      ).run(note1.id);
+      db.prepare(
+        "UPDATE notes SET last_accessed_at = datetime('now', '-1 seconds') WHERE id = ?"
+      ).run(note2.id);
+      db.prepare("UPDATE notes SET last_accessed_at = datetime('now') WHERE id = ?").run(note3.id);
+
+      const recent = repo.findRecentlyAccessed();
+
+      expect(recent).toHaveLength(3);
+      expect(recent[0].id).toBe(note3.id); // Most recent first
+      expect(recent[1].id).toBe(note2.id);
+      expect(recent[2].id).toBe(note1.id);
+    });
+
+    it('should respect the limit parameter', () => {
+      const note1 = repo.create(createTestNoteInput({ title: 'Note 1' }));
+      const note2 = repo.create(createTestNoteInput({ title: 'Note 2' }));
+      const note3 = repo.create(createTestNoteInput({ title: 'Note 3' }));
+
+      repo.updateLastAccessedAt(note1.id);
+      repo.updateLastAccessedAt(note2.id);
+      repo.updateLastAccessedAt(note3.id);
+
+      const recent = repo.findRecentlyAccessed(2);
+      expect(recent).toHaveLength(2);
+    });
+
+    it('should use default limit of 5', () => {
+      // Create and access 7 notes
+      for (let i = 0; i < 7; i++) {
+        const note = repo.create(createTestNoteInput({ title: `Note ${i}` }));
+        repo.updateLastAccessedAt(note.id);
+      }
+
+      const recent = repo.findRecentlyAccessed();
+      expect(recent).toHaveLength(5);
+    });
+
+    it('should return RecentNote type with correct fields', () => {
+      const note = repo.create(
+        createTestNoteInput({
+          title: 'Test Recent Note',
+          type: 'meeting',
+        })
+      );
+      repo.updateLastAccessedAt(note.id);
+
+      const recent = repo.findRecentlyAccessed();
+
+      expect(recent).toHaveLength(1);
+      expect(recent[0]).toHaveProperty('id', note.id);
+      expect(recent[0]).toHaveProperty('title', 'Test Recent Note');
+      expect(recent[0]).toHaveProperty('type', 'meeting');
+      expect(recent[0]).toHaveProperty('lastAccessedAt');
+      expect(typeof recent[0].lastAccessedAt).toBe('string');
+    });
+
+    it('should only include notes that have been accessed (not null)', () => {
+      const note1 = repo.create(createTestNoteInput({ title: 'Accessed Note' }));
+      repo.create(createTestNoteInput({ title: 'Never Accessed Note' }));
+
+      repo.updateLastAccessedAt(note1.id);
+
+      const recent = repo.findRecentlyAccessed();
+
+      expect(recent).toHaveLength(1);
+      expect(recent[0].title).toBe('Accessed Note');
+    });
+  });
 });

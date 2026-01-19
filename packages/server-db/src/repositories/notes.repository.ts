@@ -6,7 +6,7 @@
  */
 
 import type { Database } from 'better-sqlite3';
-import type { Note, NoteType, CreateNoteInput, UpdateNoteInput } from '../types.js';
+import type { Note, NoteType, CreateNoteInput, UpdateNoteInput, RecentNote } from '../types.js';
 import { wrapError } from '../errors.js';
 
 /**
@@ -42,6 +42,17 @@ interface NoteRow {
   word_count: number;
   file_path: string;
   content_hash: string | null;
+  last_accessed_at: string | null;
+}
+
+/**
+ * Raw row structure for recent note queries
+ */
+interface RecentNoteRow {
+  id: string;
+  title: string;
+  type: NoteType;
+  last_accessed_at: string;
 }
 
 /**
@@ -306,6 +317,59 @@ export class NotesRepository {
       return result !== undefined;
     } catch (error) {
       throw wrapError(error, 'QUERY_FAILED', `Failed to check existence of file path ${filePath}`);
+    }
+  }
+
+  /**
+   * Update the last accessed timestamp for a note.
+   *
+   * This is called when a note is opened/viewed to track recent access.
+   * Uses a fire-and-forget pattern - does not throw if note doesn't exist.
+   *
+   * @param noteId - The ID of the note to update
+   */
+  updateLastAccessedAt(noteId: string): void {
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE notes SET last_accessed_at = datetime('now') WHERE id = ?
+      `);
+      stmt.run(noteId);
+    } catch (error) {
+      throw wrapError(
+        error,
+        'QUERY_FAILED',
+        `Failed to update last_accessed_at for note ${noteId}`
+      );
+    }
+  }
+
+  /**
+   * Find recently accessed notes, sorted by most recent first.
+   *
+   * Returns notes that have been accessed (last_accessed_at IS NOT NULL),
+   * ordered by access time descending.
+   *
+   * @param limit - Maximum number of notes to return (default: 5)
+   * @returns Array of recently accessed notes
+   */
+  findRecentlyAccessed(limit: number = 5): RecentNote[] {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT id, title, type, last_accessed_at
+        FROM notes
+        WHERE last_accessed_at IS NOT NULL
+        ORDER BY last_accessed_at DESC
+        LIMIT ?
+      `);
+      const rows = stmt.all(limit) as RecentNoteRow[];
+      return rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        type: row.type,
+        lastAccessedAt: row.last_accessed_at,
+      }));
+    } catch (error) {
+      throw wrapError(error, 'QUERY_FAILED', 'Failed to find recently accessed notes');
     }
   }
 

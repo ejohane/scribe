@@ -7,11 +7,14 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ThemeProvider } from '@scribe/design-system';
 import { App } from './App';
 import './styles/global.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider defaultTheme="dark">
+      <App />
+    </ThemeProvider>
   </React.StrictMode>
 );

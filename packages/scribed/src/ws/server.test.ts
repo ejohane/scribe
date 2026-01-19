@@ -309,12 +309,16 @@ describe('YjsWebSocketServer', () => {
       const client1 = await createClient(serverPort);
       const client2 = await createClient(serverPort);
 
+      // Set up listeners BEFORE sending to avoid race conditions
+      const messages1Promise = collectMessages(client1, 2, 10000);
+      const messages2Promise = collectMessages(client2, 2, 10000);
+
       // Both join
       sendMessage(client1, { type: 'join', noteId: note.id });
       sendMessage(client2, { type: 'join', noteId: note.id });
 
-      await collectMessages(client1, 2, 10000);
-      await collectMessages(client2, 2, 10000);
+      await messages1Promise;
+      await messages2Promise;
 
       // Create update from client1
       const clientDoc = new Y.Doc();
@@ -486,12 +490,16 @@ describe('YjsWebSocketServer', () => {
       const client1 = await createClient(serverPort);
       const client2 = await createClient(serverPort);
 
+      // Set up listeners BEFORE sending to avoid race conditions
+      const joined1Promise = waitForMessage(client1, 'joined', 10000);
+      const joined2Promise = waitForMessage(client2, 'joined', 10000);
+
       // Both join
       sendMessage(client1, { type: 'join', noteId: note.id });
       sendMessage(client2, { type: 'join', noteId: note.id });
 
-      await waitForMessage(client1, 'joined', 10000);
-      await waitForMessage(client2, 'joined', 10000);
+      await joined1Promise;
+      await joined2Promise;
 
       expect(wsServer.getNoteClientCount(note.id)).toBe(2);
 

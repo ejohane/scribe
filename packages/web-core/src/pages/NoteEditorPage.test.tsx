@@ -25,13 +25,23 @@ const mockTrpc = {
     update: {
       mutate: vi.fn(),
     },
+    markAccessed: {
+      mutate: vi.fn(),
+    },
   },
+};
+
+// Mock query client for cache invalidation
+const mockInvalidateQueries = vi.fn();
+const mockQueryClient = {
+  invalidateQueries: mockInvalidateQueries,
 };
 
 // Mock @tanstack/react-query
 vi.mock('@tanstack/react-query', () => ({
   QueryClient: vi.fn().mockImplementation(() => ({})),
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+  useQueryClient: () => mockQueryClient,
 }));
 
 // Mock @trpc/client - the factory function captures mockTrpc
@@ -121,6 +131,8 @@ describe('NoteEditorPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mockTrpc.notes.update.mutate.mockResolvedValue(undefined);
+    mockTrpc.notes.markAccessed.mutate.mockResolvedValue({ success: true });
+    mockInvalidateQueries.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -490,6 +502,82 @@ describe('NoteEditorPage', () => {
       await waitFor(() => {
         expect(mockTrpc.notes.get.query).toHaveBeenCalledWith('prop-id');
       });
+    });
+  });
+
+  describe('Mark accessed tracking', () => {
+    it('marks note as accessed when page mounts', async () => {
+      renderNoteEditorPage();
+
+      await waitFor(() => {
+        expect(mockTrpc.notes.markAccessed.mutate).toHaveBeenCalledWith({
+          noteId: 'test-note-123',
+        });
+      });
+    });
+
+    it('invalidates recentlyAccessed cache after marking accessed', async () => {
+      renderNoteEditorPage();
+
+      await waitFor(() => {
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({
+          queryKey: ['notes', 'recentlyAccessed'],
+        });
+      });
+    });
+
+    it('does not mark accessed when note not found', async () => {
+      renderNoteEditorPage({ note: null });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-state')).toBeInTheDocument();
+      });
+
+      expect(mockTrpc.notes.markAccessed.mutate).not.toHaveBeenCalled();
+    });
+
+    it('handles markAccessed failure gracefully', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mockTrpc.notes.markAccessed.mutate.mockRejectedValue(new Error('Network error'));
+
+      renderNoteEditorPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('note-editor-page')).toBeInTheDocument();
+      });
+
+      // Should still render the page despite markAccessed failure
+      await waitFor(() => {
+        expect(screen.getByTestId('note-editor-content')).toBeInTheDocument();
+      });
+
+      // Should log warning
+      await waitFor(() => {
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'Failed to mark note as accessed:',
+          expect.any(Error)
+        );
+      });
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not invalidate cache when markAccessed fails', async () => {
+      mockTrpc.notes.markAccessed.mutate.mockRejectedValue(new Error('Network error'));
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      renderNoteEditorPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('note-editor-content')).toBeInTheDocument();
+      });
+
+      // Wait a bit to ensure all promises have resolved
+      await act(async () => {
+        vi.advanceTimersByTime(100);
+      });
+
+      expect(mockInvalidateQueries).not.toHaveBeenCalled();
     });
   });
 });

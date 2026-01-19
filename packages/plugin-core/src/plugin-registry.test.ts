@@ -18,6 +18,7 @@ import type {
   ClientPlugin,
   PluginManifest,
   SlashCommandHandler,
+  CommandPaletteCommandHandler,
 } from './plugin-types.js';
 import type { ComponentType } from 'react';
 
@@ -54,6 +55,11 @@ const MockComponent: ComponentType = () => null;
 
 // Mock slash command handler
 const mockHandler: SlashCommandHandler = {
+  execute: () => {},
+};
+
+// Mock command palette command handler
+const mockPaletteHandler: CommandPaletteCommandHandler = {
   execute: () => {},
 };
 
@@ -435,6 +441,104 @@ describe('PluginRegistry', () => {
       });
     });
 
+    describe('command-palette-command', () => {
+      it('indexes command-palette-command capabilities', () => {
+        const plugin = createServerPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-palette',
+            capabilities: [
+              {
+                type: 'command-palette-command',
+                id: 'todo.createTask',
+                label: 'Create Task',
+                description: 'Create a new task',
+                icon: 'CheckSquare',
+                shortcut: '⌘T',
+                category: 'Tasks',
+                priority: 10,
+              },
+            ],
+          }),
+        });
+
+        registry.register(plugin);
+
+        const paletteCommands = registry.getCapabilities('command-palette-command');
+        expect(paletteCommands).toHaveLength(1);
+        expect(paletteCommands[0].id).toBe('todo.createTask');
+        expect(paletteCommands[0].label).toBe('Create Task');
+        expect(paletteCommands[0].description).toBe('Create a new task');
+        expect(paletteCommands[0].icon).toBe('CheckSquare');
+        expect(paletteCommands[0].shortcut).toBe('⌘T');
+        expect(paletteCommands[0].category).toBe('Tasks');
+        expect(paletteCommands[0].priority).toBe(10);
+        expect(paletteCommands[0].pluginId).toBe('@scribe/plugin-palette');
+      });
+
+      it('uses default category of "General" when not specified', () => {
+        const plugin = createServerPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-palette-default-cat',
+            capabilities: [
+              {
+                type: 'command-palette-command',
+                id: 'test.command',
+                label: 'Test Command',
+              },
+            ],
+          }),
+        });
+
+        registry.register(plugin);
+
+        const paletteCommands = registry.getCapabilities('command-palette-command');
+        expect(paletteCommands[0].category).toBe('General');
+      });
+
+      it('uses default priority of 100 when not specified', () => {
+        const plugin = createServerPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-palette-default-pri',
+            capabilities: [
+              {
+                type: 'command-palette-command',
+                id: 'test.command',
+                label: 'Test Command',
+              },
+            ],
+          }),
+        });
+
+        registry.register(plugin);
+
+        const paletteCommands = registry.getCapabilities('command-palette-command');
+        expect(paletteCommands[0].priority).toBe(100);
+      });
+
+      it('extracts handler from client plugin', () => {
+        const plugin = createClientPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-palette-handler',
+            capabilities: [
+              {
+                type: 'command-palette-command',
+                id: 'todo.createTask',
+                label: 'Create Task',
+              },
+            ],
+          }),
+          commandPaletteCommands: {
+            'todo.createTask': mockPaletteHandler,
+          },
+        });
+
+        registry.register(plugin);
+
+        const paletteCommands = registry.getCapabilities('command-palette-command');
+        expect(paletteCommands[0].handler).toBe(mockPaletteHandler);
+      });
+    });
+
     it('getCapabilities returns frozen array', () => {
       const plugin = createServerPlugin({
         manifest: createManifest({
@@ -576,6 +680,41 @@ describe('PluginRegistry', () => {
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('Capability conflict: slash-command:task')
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('warns and skips conflicting command-palette-command', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const pluginA = createServerPlugin({
+        manifest: createManifest({
+          id: '@scribe/plugin-a',
+          capabilities: [
+            { type: 'command-palette-command', id: 'todo.createTask', label: 'Create Task A' },
+          ],
+        }),
+      });
+
+      const pluginB = createServerPlugin({
+        manifest: createManifest({
+          id: '@scribe/plugin-b',
+          capabilities: [
+            { type: 'command-palette-command', id: 'todo.createTask', label: 'Create Task B' },
+          ],
+        }),
+      });
+
+      registry.register(pluginA);
+      registry.register(pluginB);
+
+      const paletteCommands = registry.getCapabilities('command-palette-command');
+      expect(paletteCommands).toHaveLength(1);
+      expect(paletteCommands[0].label).toBe('Create Task A'); // First registration wins
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Capability conflict: command-palette-command:todo.createTask')
       );
 
       warnSpy.mockRestore();
@@ -768,6 +907,7 @@ describe('PluginRegistry', () => {
             { type: 'event-hook', events: ['note:created'] },
             { type: 'sidebar-panel', id: 'all-panel', label: 'All', icon: 'All' },
             { type: 'slash-command', command: 'all', label: 'All Command' },
+            { type: 'command-palette-command', id: 'all.command', label: 'All Palette Command' },
           ],
         }),
       });
@@ -779,6 +919,7 @@ describe('PluginRegistry', () => {
       expect(registry.getCapabilities('event-hook')).toHaveLength(1);
       expect(registry.getCapabilities('sidebar-panel')).toHaveLength(1);
       expect(registry.getCapabilities('slash-command')).toHaveLength(1);
+      expect(registry.getCapabilities('command-palette-command')).toHaveLength(1);
     });
   });
 });

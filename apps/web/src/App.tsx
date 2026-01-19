@@ -5,7 +5,7 @@
  * Minimal design: full-screen editor with push-out notes sidebar.
  */
 
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, useMemo, type FC, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import {
   ScribeProvider,
@@ -13,13 +13,16 @@ import {
   CollabProvider,
   NoteListPage,
   NoteEditorPage,
+  CommandPaletteProvider,
+  CommandPalette,
   type CollabEditorProps,
 } from '@scribe/web-core';
 import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe/editor';
 import type { EditorContent } from '@scribe/client-sdk';
 import { Button } from './components/ui/button';
 import { Menu } from 'lucide-react';
-import { PluginProvider, PluginClientInitializer } from './plugins';
+import { PluginProvider, PluginClientInitializer, useCommandPaletteCommands } from './plugins';
+import type { CommandItem } from '@scribe/web-core';
 import { DAEMON_PORT, DAEMON_HOST } from './config';
 
 const DAEMON_URL = `http://${DAEMON_HOST}:${DAEMON_PORT}`;
@@ -113,6 +116,44 @@ function NotesPage() {
 }
 
 /**
+ * Wrapper component that integrates plugin commands with the CommandPalette.
+ *
+ * This component:
+ * 1. Fetches command palette commands from loaded plugins
+ * 2. Converts them to the format expected by CommandPaletteProvider
+ * 3. Passes them as pluginCommands prop
+ */
+function CommandPaletteWithPlugins({ children }: { children: ReactNode }) {
+  const { commands: pluginCommands, isLoading } = useCommandPaletteCommands();
+
+  // Convert plugin commands to CommandItem format
+  const convertedCommands = useMemo<CommandItem[]>(() => {
+    if (isLoading) return [];
+
+    return pluginCommands
+      .filter((cmd) => cmd.handler !== undefined)
+      .map((cmd) => ({
+        type: 'command' as const,
+        id: cmd.id,
+        label: cmd.label,
+        description: cmd.description,
+        icon: cmd.icon,
+        shortcut: cmd.shortcut,
+        category: cmd.category,
+        priority: cmd.priority,
+        handler: cmd.handler!,
+      }));
+  }, [pluginCommands, isLoading]);
+
+  return (
+    <CommandPaletteProvider pluginCommands={convertedCommands}>
+      {children}
+      <CommandPalette />
+    </CommandPaletteProvider>
+  );
+}
+
+/**
  * Main App component.
  */
 export const App: FC = () => {
@@ -123,13 +164,15 @@ export const App: FC = () => {
           <CollabProvider daemonUrl={DAEMON_URL}>
             <PluginClientInitializer>
               <PluginProvider>
-                <div className="h-screen w-screen bg-background">
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/notes" element={<NotesPage />} />
-                    <Route path="/note/:id" element={<EditorLayout />} />
-                  </Routes>
-                </div>
+                <CommandPaletteWithPlugins>
+                  <div className="h-screen w-screen bg-background">
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/notes" element={<NotesPage />} />
+                      <Route path="/note/:id" element={<EditorLayout />} />
+                    </Routes>
+                  </div>
+                </CommandPaletteWithPlugins>
               </PluginProvider>
             </PluginClientInitializer>
           </CollabProvider>

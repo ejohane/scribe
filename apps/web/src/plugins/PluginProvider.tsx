@@ -7,7 +7,7 @@
  * @module
  */
 
-import { useEffect, useState, useMemo, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, useRef, type ReactNode } from 'react';
 import {
   PluginRegistry,
   PluginLoader,
@@ -15,6 +15,7 @@ import {
   type PluginLoadFailure,
   type SidebarPanelEntry,
   type SlashCommandEntry,
+  type CommandPaletteCommandEntry,
   type ClientPluginContext,
   type PluginManifest,
 } from '@scribe/plugin-core';
@@ -73,7 +74,16 @@ export function PluginProvider({ children }: PluginProviderProps) {
   // Create registry once - it persists across renders
   const registry = useMemo(() => new PluginRegistry(), []);
 
+  // Track if plugins have been loaded to handle React StrictMode double-mounting
+  const hasLoadedRef = useRef(false);
+
   useEffect(() => {
+    // Skip if already loaded (handles StrictMode double-mounting)
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
+
     async function loadPlugins() {
       // Create context factory for client plugins
       const contextFactory = {
@@ -152,6 +162,12 @@ export function PluginProvider({ children }: PluginProviderProps) {
 
       getSlashCommands(): SlashCommandEntry[] {
         return [...registry.getCapabilities('slash-command')];
+      },
+
+      getCommandPaletteCommands(): CommandPaletteCommandEntry[] {
+        const commands = registry.getCapabilities('command-palette-command');
+        // Sort by priority (lower values first)
+        return [...commands].sort((a, b) => a.priority - b.priority);
       },
     }),
     [plugins, registry, isLoading, errors]

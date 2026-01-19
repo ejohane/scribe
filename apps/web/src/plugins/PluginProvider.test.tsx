@@ -19,7 +19,13 @@ vi.mock('./installed', () => ({
 
 // Import after mocks
 import { PluginProvider } from './PluginProvider';
-import { usePlugins, useSidebarPanels, useSlashCommands, usePluginLoading } from './usePlugins';
+import {
+  usePlugins,
+  useSidebarPanels,
+  useSlashCommands,
+  usePluginLoading,
+  useCommandPaletteCommands,
+} from './usePlugins';
 import { getInstalledPlugins } from './installed';
 
 // Helper to get mocked function
@@ -31,6 +37,15 @@ function createMockPluginModule(
   options: {
     sidebarPanels?: Array<{ id: string; label: string; icon: string; priority?: number }>;
     slashCommands?: Array<{ command: string; label: string; description?: string; icon?: string }>;
+    commandPaletteCommands?: Array<{
+      id: string;
+      label: string;
+      description?: string;
+      icon?: string;
+      shortcut?: string;
+      category?: string;
+      priority?: number;
+    }>;
     shouldFail?: boolean;
   } = {}
 ): PluginModule {
@@ -53,6 +68,16 @@ function createMockPluginModule(
         description: cmd.description,
         icon: cmd.icon,
       })) ?? []),
+      ...(options.commandPaletteCommands?.map((cmd) => ({
+        type: 'command-palette-command' as const,
+        id: cmd.id,
+        label: cmd.label,
+        description: cmd.description,
+        icon: cmd.icon,
+        shortcut: cmd.shortcut,
+        category: cmd.category,
+        priority: cmd.priority,
+      })) ?? []),
     ],
   };
 
@@ -71,10 +96,17 @@ function createMockPluginModule(
       slashCommands[cmd.command] = { execute: () => {} };
     }
 
+    const commandPaletteCommands: Record<string, { execute: () => void }> = {};
+    for (const cmd of options.commandPaletteCommands ?? []) {
+      commandPaletteCommands[cmd.id] = { execute: () => {} };
+    }
+
     return {
       manifest: ctx.manifest,
       sidebarPanels: Object.keys(sidebarPanels).length > 0 ? sidebarPanels : undefined,
       slashCommands: Object.keys(slashCommands).length > 0 ? slashCommands : undefined,
+      commandPaletteCommands:
+        Object.keys(commandPaletteCommands).length > 0 ? commandPaletteCommands : undefined,
     };
   };
 
@@ -535,6 +567,143 @@ describe('getSlashCommands', () => {
       command: 'test',
       label: 'Test Command',
       description: 'A test command',
+    });
+    expect(commands[0].handler).toBeDefined();
+
+    consoleLogSpy.mockRestore();
+  });
+});
+
+describe('useCommandPaletteCommands', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetInstalledPlugins.mockReturnValue([]);
+  });
+
+  it('returns empty commands when no plugins', async () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => useCommandPaletteCommands(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.commands).toHaveLength(0);
+  });
+
+  it('returns command palette commands from plugins', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const plugin = createMockPluginModule('@test/plugin', {
+      commandPaletteCommands: [
+        {
+          id: 'test.viewTasks',
+          label: 'View Tasks',
+          description: 'Open tasks panel',
+          icon: 'CheckSquare',
+          category: 'Tasks',
+          priority: 10,
+        },
+        {
+          id: 'test.createNote',
+          label: 'Create Note',
+          description: 'Create a new note',
+          icon: 'Plus',
+          category: 'Notes',
+          priority: 5,
+        },
+      ],
+    });
+
+    mockGetInstalledPlugins.mockReturnValue([plugin]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => useCommandPaletteCommands(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.commands).toHaveLength(2);
+    expect(result.current.commands.map((c) => c.id)).toContain('test.viewTasks');
+    expect(result.current.commands.map((c) => c.id)).toContain('test.createNote');
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it('returns commands sorted by priority', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const plugin = createMockPluginModule('@test/plugin', {
+      commandPaletteCommands: [
+        { id: 'test.cmdC', label: 'Command C', category: 'Test', priority: 300 },
+        { id: 'test.cmdA', label: 'Command A', category: 'Test', priority: 100 },
+        { id: 'test.cmdB', label: 'Command B', category: 'Test', priority: 200 },
+      ],
+    });
+
+    mockGetInstalledPlugins.mockReturnValue([plugin]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => useCommandPaletteCommands(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.commands).toHaveLength(3);
+    expect(result.current.commands[0].id).toBe('test.cmdA');
+    expect(result.current.commands[1].id).toBe('test.cmdB');
+    expect(result.current.commands[2].id).toBe('test.cmdC');
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it('returns commands with handler references', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const plugin = createMockPluginModule('@test/plugin', {
+      commandPaletteCommands: [
+        {
+          id: 'test.cmd',
+          label: 'Test Command',
+          description: 'A test command',
+          category: 'Test',
+          priority: 10,
+        },
+      ],
+    });
+
+    mockGetInstalledPlugins.mockReturnValue([plugin]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => usePlugins(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const commands = result.current.getCommandPaletteCommands();
+    expect(commands).toHaveLength(1);
+    expect(commands[0]).toMatchObject({
+      pluginId: '@test/plugin',
+      id: 'test.cmd',
+      label: 'Test Command',
+      description: 'A test command',
+      category: 'Test',
+      priority: 10,
     });
     expect(commands[0].handler).toBeDefined();
 

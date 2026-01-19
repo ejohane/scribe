@@ -41,6 +41,9 @@ import {
 import { setupSingleInstance, setWindowManager, processPendingDeepLink } from './deep-link-router';
 
 const isDev = process.env.NODE_ENV === 'development';
+const externalDaemonPort = process.env.EXTERNAL_DAEMON_PORT
+  ? parseInt(process.env.EXTERNAL_DAEMON_PORT, 10)
+  : undefined;
 
 // ============================================================================
 // Single Instance Lock
@@ -74,19 +77,24 @@ app.whenReady().then(async () => {
   mainLogger.info(`Using vault path: ${configuredPath}`);
   const vaultPath = await initializeVault(createVaultPath(configuredPath));
 
-  // Start embedded daemon
-  try {
-    embeddedDaemon = await startEmbeddedDaemon({ vaultPath });
-    deps.daemonPort = embeddedDaemon.port;
-    mainLogger.info('Embedded daemon ready', { port: deps.daemonPort });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    mainLogger.error('Failed to start embedded daemon', { error });
-    await showErrorAndQuit(
-      'Failed to Start Scribe',
-      `Could not start the Scribe daemon: ${message}`
-    );
-    return;
+  // Start embedded daemon (or use external if EXTERNAL_DAEMON_PORT is set)
+  if (externalDaemonPort) {
+    deps.daemonPort = externalDaemonPort;
+    mainLogger.info('Using external daemon', { port: deps.daemonPort });
+  } else {
+    try {
+      embeddedDaemon = await startEmbeddedDaemon({ vaultPath });
+      deps.daemonPort = embeddedDaemon.port;
+      mainLogger.info('Embedded daemon ready', { port: deps.daemonPort });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      mainLogger.error('Failed to start embedded daemon', { error });
+      await showErrorAndQuit(
+        'Failed to Start Scribe',
+        `Could not start the Scribe daemon: ${message}`
+      );
+      return;
+    }
   }
 
   // Register asset protocol and IPC handlers

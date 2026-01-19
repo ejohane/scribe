@@ -190,4 +190,36 @@ export const notesRouter = router({
         : undefined;
     return ctx.services.documentService.count(countType);
   }),
+
+  /**
+   * Mark a note as accessed (updates last_accessed_at timestamp).
+   *
+   * Called when a user opens/views a note to track recent access.
+   * Uses fire-and-forget semantics - clients don't need to wait.
+   */
+  markAccessed: procedure
+    .input(z.object({ noteId: z.string().min(1, 'Note ID is required') }))
+    .mutation(async ({ ctx, input }) => {
+      ctx.services.notesRepo.updateLastAccessedAt(input.noteId);
+      return { success: true };
+    }),
+
+  /**
+   * Get recently accessed notes.
+   *
+   * Returns notes that have been accessed, sorted by most recent first.
+   * Used by command palette when search is empty.
+   */
+  recentlyAccessed: procedure
+    .input(
+      z
+        .object({
+          limit: z.number().min(1).max(20).default(5),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = input?.limit ?? 5;
+      return ctx.services.notesRepo.findRecentlyAccessed(limit);
+    }),
 });

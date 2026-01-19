@@ -39,11 +39,18 @@ export { PluginContext } from './context';
 export type { PluginContextValue, PluginLoadError } from './context';
 
 // Hooks
-export { usePlugins, useSidebarPanels, useSlashCommands, usePluginLoading } from './usePlugins';
+export {
+  usePlugins,
+  useSidebarPanels,
+  useSlashCommands,
+  usePluginLoading,
+  useCommandPaletteCommands,
+} from './usePlugins';
 export type {
   UseSidebarPanelsResult,
   UseSlashCommandsResult,
   UsePluginLoadingResult,
+  UseCommandPaletteCommandsResult,
 } from './usePlugins';
 
 // Installed plugins registry

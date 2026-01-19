@@ -301,6 +301,125 @@ describe('tRPC Routers', () => {
         expect(dailyCount).toBe(1);
       });
     });
+
+    describe('markAccessed', () => {
+      it('should mark an existing note as accessed', async () => {
+        const note = await caller.notes.create({
+          title: 'Test Note',
+          type: 'note',
+        });
+
+        const result = await caller.notes.markAccessed({ noteId: note.id });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should handle non-existent note gracefully (fire-and-forget)', async () => {
+        // markAccessed uses fire-and-forget semantics - it doesn't throw for non-existent notes
+        const result = await caller.notes.markAccessed({ noteId: 'non-existent-id' });
+
+        expect(result.success).toBe(true);
+      });
+
+      it('should reject empty noteId', async () => {
+        await expect(caller.notes.markAccessed({ noteId: '' })).rejects.toThrow();
+      });
+    });
+
+    describe('recentlyAccessed', () => {
+      it('should return empty array when no notes have been accessed', async () => {
+        await caller.notes.create({ title: 'Note 1', type: 'note' });
+        await caller.notes.create({ title: 'Note 2', type: 'note' });
+
+        const recent = await caller.notes.recentlyAccessed();
+
+        expect(recent).toEqual([]);
+      });
+
+      it('should return recently accessed notes in correct order', async () => {
+        const note1 = await caller.notes.create({ title: 'Note 1', type: 'note' });
+        const note2 = await caller.notes.create({ title: 'Note 2', type: 'note' });
+        const note3 = await caller.notes.create({ title: 'Note 3', type: 'note' });
+
+        // Access notes in order: 1, 2, 3 with sufficient delay between each
+        // SQLite datetime('now') has second-level precision, so we need 1s delays
+        await caller.notes.markAccessed({ noteId: note1.id });
+        await new Promise((resolve) => setTimeout(resolve, 1100)); // > 1 second for distinct timestamps
+        await caller.notes.markAccessed({ noteId: note2.id });
+        await new Promise((resolve) => setTimeout(resolve, 1100));
+        await caller.notes.markAccessed({ noteId: note3.id });
+
+        const recent = await caller.notes.recentlyAccessed();
+
+        // Most recently accessed should be first
+        expect(recent.length).toBe(3);
+        expect(recent[0].id).toBe(note3.id);
+        expect(recent[1].id).toBe(note2.id);
+        expect(recent[2].id).toBe(note1.id);
+      });
+
+      it('should respect limit parameter', async () => {
+        // Create 5 notes and mark them all as accessed
+        const notes = [];
+        for (let i = 0; i < 5; i++) {
+          const note = await caller.notes.create({ title: `Note ${i}`, type: 'note' });
+          notes.push(note);
+          await caller.notes.markAccessed({ noteId: note.id });
+        }
+
+        const recent = await caller.notes.recentlyAccessed({ limit: 2 });
+
+        // Should only return 2 notes
+        expect(recent.length).toBe(2);
+        // Both notes should be from our created notes
+        const noteIds = notes.map((n) => n.id);
+        expect(noteIds).toContain(recent[0].id);
+        expect(noteIds).toContain(recent[1].id);
+      });
+
+      it('should use default limit of 5', async () => {
+        // Create 10 notes and mark them all as accessed
+        const notes = [];
+        for (let i = 0; i < 10; i++) {
+          const note = await caller.notes.create({ title: `Note ${i}`, type: 'note' });
+          notes.push(note);
+          await caller.notes.markAccessed({ noteId: note.id });
+        }
+
+        const recent = await caller.notes.recentlyAccessed();
+
+        // Default limit should be 5
+        expect(recent.length).toBe(5);
+      });
+
+      it('should work with optional empty input', async () => {
+        const note = await caller.notes.create({ title: 'Test', type: 'note' });
+        await caller.notes.markAccessed({ noteId: note.id });
+
+        // Call with no input
+        const recent = await caller.notes.recentlyAccessed();
+
+        expect(recent.length).toBe(1);
+        expect(recent[0].title).toBe('Test');
+      });
+
+      it('should return correct note properties', async () => {
+        const note = await caller.notes.create({
+          title: 'Test Note',
+          type: 'meeting',
+        });
+        await caller.notes.markAccessed({ noteId: note.id });
+
+        const recent = await caller.notes.recentlyAccessed();
+
+        expect(recent[0]).toMatchObject({
+          id: note.id,
+          title: 'Test Note',
+          type: 'meeting',
+        });
+        expect(recent[0].lastAccessedAt).toBeDefined();
+      });
+    });
   });
 
   describe('Search Router', () => {
