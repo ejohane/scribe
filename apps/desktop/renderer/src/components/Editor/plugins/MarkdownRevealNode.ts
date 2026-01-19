@@ -18,7 +18,7 @@ import {
   $applyNodeReplacement,
 } from 'lexical';
 import { ReactNode, createElement } from 'react';
-import { reconstructInlineMarkdown } from './markdownReconstruction';
+import { reconstructInlineMarkdown, reconstructMarkdownSegments } from './markdownReconstruction';
 
 /**
  * Serialized form of MarkdownRevealNode for JSON export/import.
@@ -190,21 +190,41 @@ export class MarkdownRevealNode extends DecoratorNode<ReactNode> {
  * React component that renders the revealed markdown.
  *
  * The component displays the reconstructed markdown syntax with
- * distinct styling for delimiters vs content.
- *
- * TODO: Parse markdown string to separately style delimiters vs content.
- * Currently renders the entire string with a single style.
+ * distinct styling for delimiters vs content:
+ * - Delimiters (**, *, ~~, `) are rendered muted/gray
+ * - Content is rendered with normal text styling
  *
  * @param props - The component props
  * @param props.text - The original text content
  * @param props.format - The Lexical format bitmask
  */
 function MarkdownRevealComponent({ text, format }: MarkdownRevealComponentProps): ReactNode {
-  const markdown = reconstructInlineMarkdown(text, format);
+  const segments = reconstructMarkdownSegments(text, format);
 
-  // TODO: Parse markdown string to separately style delimiters vs content
-  // For now, render the entire string with the reveal style
-  return createElement('span', { className: 'markdown-reveal-content' }, markdown);
+  // Render each segment with appropriate styling
+  const children = segments.map((segment, index) => {
+    if (segment.type === 'delimiter') {
+      return createElement(
+        'span',
+        {
+          key: index,
+          className: 'markdown-reveal-delimiter',
+        },
+        segment.value
+      );
+    }
+    // Content segment - render without special styling
+    return createElement(
+      'span',
+      {
+        key: index,
+        className: 'markdown-reveal-text',
+      },
+      segment.value
+    );
+  });
+
+  return createElement('span', { className: 'markdown-reveal-content' }, ...children);
 }
 
 /**

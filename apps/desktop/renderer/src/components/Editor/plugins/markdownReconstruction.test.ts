@@ -10,6 +10,8 @@ import {
   reconstructInlineMarkdown,
   reconstructHeadingPrefix,
   hasHandledFormat,
+  reconstructMarkdownSegments,
+  type MarkdownSegment,
 } from './markdownReconstruction';
 
 describe('Format bit constants', () => {
@@ -243,5 +245,151 @@ describe('hasHandledFormat', () => {
 
   it('returns true when underline combined with handled format', () => {
     expect(hasHandledFormat(IS_UNDERLINE | IS_BOLD)).toBe(true);
+  });
+});
+
+describe('reconstructMarkdownSegments', () => {
+  describe('no formatting', () => {
+    it('returns only content segment when no format', () => {
+      const segments = reconstructMarkdownSegments('hello', 0);
+      expect(segments).toEqual([{ type: 'content', value: 'hello' }]);
+    });
+  });
+
+  describe('single formats', () => {
+    it('returns segments for bold text', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_BOLD);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '**' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '**' },
+      ]);
+    });
+
+    it('returns segments for italic text', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_ITALIC);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '*' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '*' },
+      ]);
+    });
+
+    it('returns segments for strikethrough text', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_STRIKETHROUGH);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '~~' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '~~' },
+      ]);
+    });
+
+    it('returns segments for code text', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_CODE);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '`' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '`' },
+      ]);
+    });
+
+    it('ignores underline (no markdown equivalent)', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_UNDERLINE);
+      expect(segments).toEqual([{ type: 'content', value: 'hello' }]);
+    });
+  });
+
+  describe('combined formats', () => {
+    it('returns combined delimiters for bold + italic', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_BOLD | IS_ITALIC);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '***' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '***' },
+      ]);
+    });
+
+    it('returns combined delimiters for bold + strikethrough', () => {
+      const segments = reconstructMarkdownSegments('hello', IS_BOLD | IS_STRIKETHROUGH);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '**~~' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '~~**' },
+      ]);
+    });
+
+    it('returns combined delimiters for all formats', () => {
+      const format = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
+      const segments = reconstructMarkdownSegments('hello', format);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '***~~`' },
+        { type: 'content', value: 'hello' },
+        { type: 'delimiter', value: '`~~***' },
+      ]);
+    });
+  });
+
+  describe('delimiter order', () => {
+    it('opening order is: bold, italic, strikethrough, code (outermost to innermost)', () => {
+      const format = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
+      const segments = reconstructMarkdownSegments('x', format);
+      // Bold (**) first, then italic (*), then strikethrough (~~), then code (`)
+      expect(segments[0].value).toBe('***~~`');
+    });
+
+    it('closing order is reverse: code, strikethrough, italic, bold (innermost to outermost)', () => {
+      const format = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
+      const segments = reconstructMarkdownSegments('x', format);
+      // Code (`) first, then strikethrough (~~), then italic (*), then bold (**)
+      expect(segments[2].value).toBe('`~~***');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles empty string', () => {
+      const segments = reconstructMarkdownSegments('', IS_BOLD);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '**' },
+        { type: 'content', value: '' },
+        { type: 'delimiter', value: '**' },
+      ]);
+    });
+
+    it('handles text with special characters', () => {
+      const segments = reconstructMarkdownSegments('hello *world*', IS_BOLD);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '**' },
+        { type: 'content', value: 'hello *world*' },
+        { type: 'delimiter', value: '**' },
+      ]);
+    });
+
+    it('handles multiline text', () => {
+      const segments = reconstructMarkdownSegments('hello\nworld', IS_BOLD);
+      expect(segments).toEqual([
+        { type: 'delimiter', value: '**' },
+        { type: 'content', value: 'hello\nworld' },
+        { type: 'delimiter', value: '**' },
+      ]);
+    });
+  });
+
+  describe('consistency with reconstructInlineMarkdown', () => {
+    it('concatenated segments match reconstructInlineMarkdown output', () => {
+      const testCases = [
+        { text: 'hello', format: IS_BOLD },
+        { text: 'world', format: IS_ITALIC },
+        { text: 'foo', format: IS_BOLD | IS_ITALIC },
+        { text: 'bar', format: IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE },
+        { text: 'plain', format: 0 },
+      ];
+
+      for (const { text, format } of testCases) {
+        const segments = reconstructMarkdownSegments(text, format);
+        const fromSegments = segments.map((s) => s.value).join('');
+        const fromInline = reconstructInlineMarkdown(text, format);
+        expect(fromSegments).toBe(fromInline);
+      }
+    });
   });
 });

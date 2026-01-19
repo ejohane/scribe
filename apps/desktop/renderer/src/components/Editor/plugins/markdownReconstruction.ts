@@ -111,3 +111,90 @@ export function reconstructHeadingPrefix(level: 1 | 2 | 3 | 4 | 5 | 6): string {
 export function hasHandledFormat(format: number): boolean {
   return Boolean(format & (IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE));
 }
+
+/**
+ * A segment of reconstructed markdown, either a delimiter or content.
+ */
+export interface MarkdownSegment {
+  /** The type of segment */
+  type: 'delimiter' | 'content';
+  /** The text value */
+  value: string;
+}
+
+/**
+ * Reconstructs markdown as structured segments for styled rendering.
+ *
+ * This function returns an array of segments that can be rendered with
+ * different styles for delimiters vs content. The delimiters appear in
+ * the correct order (outermost to innermost for opening, reverse for closing).
+ *
+ * @param text - The plain text content
+ * @param format - Lexical format bitmask
+ * @returns Array of segments with type ('delimiter' | 'content') and value
+ *
+ * @example
+ * reconstructMarkdownSegments('hello', IS_BOLD)
+ * // Returns: [
+ * //   { type: 'delimiter', value: '**' },
+ * //   { type: 'content', value: 'hello' },
+ * //   { type: 'delimiter', value: '**' }
+ * // ]
+ *
+ * @example
+ * reconstructMarkdownSegments('hello', IS_BOLD | IS_ITALIC)
+ * // Returns: [
+ * //   { type: 'delimiter', value: '***' },
+ * //   { type: 'content', value: 'hello' },
+ * //   { type: 'delimiter', value: '***' }
+ * // ]
+ */
+export function reconstructMarkdownSegments(text: string, format: number): MarkdownSegment[] {
+  // Collect opening delimiters (outermost first: bold, italic, strikethrough, code)
+  const openingDelimiters: string[] = [];
+  const closingDelimiters: string[] = [];
+
+  // Bold is outermost
+  if (format & IS_BOLD) {
+    openingDelimiters.push(MARKDOWN_DELIMITERS.bold);
+    closingDelimiters.unshift(MARKDOWN_DELIMITERS.bold);
+  }
+
+  // Then italic
+  if (format & IS_ITALIC) {
+    openingDelimiters.push(MARKDOWN_DELIMITERS.italic);
+    closingDelimiters.unshift(MARKDOWN_DELIMITERS.italic);
+  }
+
+  // Then strikethrough
+  if (format & IS_STRIKETHROUGH) {
+    openingDelimiters.push(MARKDOWN_DELIMITERS.strikethrough);
+    closingDelimiters.unshift(MARKDOWN_DELIMITERS.strikethrough);
+  }
+
+  // Code is innermost
+  if (format & IS_CODE) {
+    openingDelimiters.push(MARKDOWN_DELIMITERS.code);
+    closingDelimiters.unshift(MARKDOWN_DELIMITERS.code);
+  }
+
+  // Build segments array
+  const segments: MarkdownSegment[] = [];
+
+  // Opening delimiter (combined for cleaner rendering)
+  const openingStr = openingDelimiters.join('');
+  if (openingStr) {
+    segments.push({ type: 'delimiter', value: openingStr });
+  }
+
+  // Content
+  segments.push({ type: 'content', value: text });
+
+  // Closing delimiter (combined)
+  const closingStr = closingDelimiters.join('');
+  if (closingStr) {
+    segments.push({ type: 'delimiter', value: closingStr });
+  }
+
+  return segments;
+}

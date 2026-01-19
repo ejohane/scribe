@@ -511,3 +511,56 @@ globalStyle('.collapsed-content', {
 globalStyle('.collapsible-heading', {
   position: 'relative',
 });
+
+// === Markdown Reveal styles ===
+// These styles are used by MarkdownRevealNode to visually distinguish
+// revealed markdown syntax, making delimiters appear muted while keeping content readable.
+
+/**
+ * Container for the entire revealed markdown.
+ * Ensures inline display to flow with surrounding text.
+ */
+export const markdownReveal = style({
+  display: 'inline',
+});
+
+/**
+ * Styles for markdown delimiter characters (**, *, ~~, `, etc.).
+ * Uses muted opacity to create visual distinction from content.
+ * The delimiter is visible but de-emphasized, showing "these are syntax markers."
+ */
+export const markdownDelimiter = style({
+  opacity: 0.5,
+  transition: 'opacity 100ms ease-in-out',
+});
+
+/**
+ * Styles for the actual text content between delimiters.
+ * Inherits normal text styling - content should look the same as regular text.
+ */
+export const markdownContent = style({
+  // Inherits normal text styling
+});
+
+// Global styles for markdown reveal - using globalStyle because MarkdownRevealNode uses hardcoded class names
+// Container style for the reveal node
+globalStyle(`${editorInput} .markdown-reveal`, {
+  display: 'inline',
+});
+
+// Content wrapper style - the entire revealed markdown string
+globalStyle(`${editorInput} .markdown-reveal-content`, {
+  display: 'inline',
+});
+
+// Delimiter style - applied to syntax characters when parsed
+globalStyle(`${editorInput} .markdown-reveal-delimiter`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  transition: 'opacity 100ms ease-in-out',
+});
+
+// Text content style - inherits normal text styling
+globalStyle(`${editorInput} .markdown-reveal-text`, {
+  // Inherits normal text styling - no special styles needed
+});
