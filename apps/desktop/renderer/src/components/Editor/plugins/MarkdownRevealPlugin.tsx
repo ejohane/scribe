@@ -28,12 +28,22 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  $getNodeByKey,
+  $createTextNode,
   SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_LOW,
 } from 'lexical';
 import { createLogger } from '@scribe/shared';
+import { $createMarkdownRevealNode, $isMarkdownRevealNode } from './MarkdownRevealNode';
+import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_CODE } from './markdownReconstruction';
 
 const log = createLogger({ prefix: 'MarkdownRevealPlugin' });
+
+/**
+ * Bitmask of formats we handle for markdown reveal.
+ * Only these formats will trigger reveal behavior.
+ */
+const HANDLED_FORMATS = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
 
 /**
  * Tracks which formatted region (if any) the cursor is currently inside.
@@ -61,6 +71,20 @@ export interface RevealedRegion {
  * A small delay improves performance without noticeable lag in the UI.
  */
 const CURSOR_DEBOUNCE_MS = 50;
+
+/**
+ * Tracks the state of a currently revealed node for restoration.
+ * When a TextNode is replaced with a MarkdownRevealNode, we store the
+ * original text and format so we can restore it when the cursor exits.
+ */
+interface RevealedNodeState {
+  /** The key of the MarkdownRevealNode that replaced the original TextNode */
+  revealNodeKey: string;
+  /** The original text content */
+  text: string;
+  /** The original Lexical format bitmask */
+  format: number;
+}
 
 /**
  * MarkdownRevealPlugin - Main plugin component for hybrid markdown editing.
@@ -99,19 +123,84 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   /**
    * Currently revealed region, or null if no region is being revealed.
    * When set, the corresponding markdown syntax should be visible.
-   *
-   * Note: This state is currently tracked but not yet consumed by other components.
-   * Future tasks will use this state to coordinate with MarkdownRevealNode for
-   * actual reveal/hide rendering.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [revealedRegion, setRevealedRegion] = useState<RevealedRegion | null>(null);
+
+  /**
+   * Tracks the currently revealed MarkdownRevealNode and its original state.
+   * Used to restore the original TextNode when the cursor exits.
+   * Using a ref to avoid triggering re-renders on every state change.
+   */
+  const revealedNodeStateRef = useRef<RevealedNodeState | null>(null);
 
   /**
    * Ref for debouncing cursor movement updates.
    * Stores the timeout ID so we can cancel pending updates.
    */
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Checks if the cursor is adjacent to (immediately before or after) a MarkdownRevealNode.
+   * This is used to determine if we should keep the reveal visible when the cursor
+   * moves to the boundary of the revealed region.
+   *
+   * @returns The key of the adjacent MarkdownRevealNode, or null if not adjacent
+   */
+  const getAdjacentRevealNodeKey = useCallback((): string | null => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchor = selection.anchor;
+    const anchorNode = anchor.getNode();
+
+    // If we're directly in a MarkdownRevealNode (shouldn't happen but check)
+    if ($isMarkdownRevealNode(anchorNode)) {
+      return anchorNode.getKey();
+    }
+
+    // Check if we're in an element and adjacent to a MarkdownRevealNode
+    if ($isTextNode(anchorNode)) {
+      const offset = anchor.offset;
+      const textLength = anchorNode.getTextContentSize();
+
+      // At the end of a text node, check the next sibling
+      if (offset === textLength) {
+        const nextSibling = anchorNode.getNextSibling();
+        if ($isMarkdownRevealNode(nextSibling)) {
+          return nextSibling.getKey();
+        }
+      }
+
+      // At the start of a text node, check the previous sibling
+      if (offset === 0) {
+        const prevSibling = anchorNode.getPreviousSibling();
+        if ($isMarkdownRevealNode(prevSibling)) {
+          return prevSibling.getKey();
+        }
+      }
+    }
+
+    // Check siblings at the element level
+    const parent = anchorNode.getParent();
+    if (parent) {
+      // If anchor is at start of its node, check previous sibling
+      if (anchor.offset === 0) {
+        const prevSibling = anchorNode.getPreviousSibling();
+        if ($isMarkdownRevealNode(prevSibling)) {
+          return prevSibling.getKey();
+        }
+      }
+
+      // Check if the anchor node itself is a MarkdownRevealNode
+      if ($isMarkdownRevealNode(anchorNode)) {
+        return anchorNode.getKey();
+      }
+    }
+
+    return null;
+  }, []);
 
   /**
    * Detects if the current selection is inside a formatted region.
@@ -143,8 +232,8 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
 
     const format = anchorNode.getFormat();
 
-    // No formatting applied to this text node
-    if (format === 0) {
+    // No formatting applied to this text node, or format is not one we handle
+    if (format === 0 || !(format & HANDLED_FORMATS)) {
       return null;
     }
 
@@ -169,6 +258,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   /**
    * Handles cursor position changes with debouncing.
    * Updates the revealed region state based on current cursor position.
+   *
+   * This function coordinates three scenarios:
+   * 1. Cursor enters a new formatted region → reveal markdown
+   * 2. Cursor stays adjacent to current reveal → keep revealed
+   * 3. Cursor moves away from reveal → hide markdown
    */
   const handleSelectionChange = useCallback(() => {
     // Clear any pending debounce timeout
@@ -180,6 +274,18 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     debounceTimeoutRef.current = setTimeout(() => {
       editor.getEditorState().read(() => {
         const newRegion = detectFormattedRegion();
+        const currentRevealState = revealedNodeStateRef.current;
+
+        // If we have a currently revealed node, check if we're still adjacent to it
+        if (currentRevealState) {
+          const adjacentRevealKey = getAdjacentRevealNodeKey();
+
+          // If cursor is adjacent to our current reveal node, keep it revealed
+          if (adjacentRevealKey === currentRevealState.revealNodeKey) {
+            log.debug('Cursor adjacent to reveal, keeping visible');
+            return; // Don't change state, keep current reveal
+          }
+        }
 
         // Only update state if the region has changed
         setRevealedRegion((prevRegion) => {
@@ -220,7 +326,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
         });
       });
     }, CURSOR_DEBOUNCE_MS);
-  }, [editor, detectFormattedRegion]);
+  }, [editor, detectFormattedRegion, getAdjacentRevealNodeKey]);
 
   /**
    * Register SELECTION_CHANGE_COMMAND handler to track cursor position.
@@ -263,13 +369,151 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     };
   }, []);
 
-  // TODO: In future tasks, this plugin will coordinate with MarkdownRevealNode
-  // to actually reveal/hide the markdown syntax. For now, it only tracks state.
-  //
-  // The revealedRegion state can be consumed by:
-  // 1. A context provider to share with child components
-  // 2. Direct coordination with custom DecoratorNodes
-  // 3. CSS class manipulation similar to CollapsibleHeadingPlugin
+  /**
+   * Reveals markdown syntax for a formatted text node.
+   * Replaces the TextNode with a MarkdownRevealNode showing raw markdown.
+   *
+   * @param nodeKey - The key of the TextNode to reveal
+   */
+  const revealFormattedText = useCallback(
+    (nodeKey: string) => {
+      editor.update(
+        () => {
+          const textNode = $getNodeByKey(nodeKey);
+
+          // Verify it's still a TextNode (might have changed)
+          if (!$isTextNode(textNode)) {
+            log.debug('Node is no longer a TextNode, skipping reveal', { nodeKey });
+            return;
+          }
+
+          const text = textNode.getTextContent();
+          const format = textNode.getFormat();
+
+          // Double-check this is a format we handle
+          if (!(format & HANDLED_FORMATS)) {
+            log.debug('Node format not handled, skipping reveal', { nodeKey, format });
+            return;
+          }
+
+          // Create the reveal node
+          const revealNode = $createMarkdownRevealNode(text, format);
+
+          // Replace the text node with reveal node
+          textNode.replace(revealNode);
+
+          // Store state for restoration
+          revealedNodeStateRef.current = {
+            revealNodeKey: revealNode.getKey(),
+            text,
+            format,
+          };
+
+          log.debug('Revealed markdown', {
+            nodeKey: revealNode.getKey(),
+            text,
+            format,
+          });
+        },
+        {
+          // Use discrete to prevent this from being added to undo history
+          discrete: true,
+        }
+      );
+    },
+    [editor]
+  );
+
+  /**
+   * Hides the revealed markdown and restores the original TextNode.
+   * Called when cursor exits the revealed region.
+   */
+  const hideRevealedMarkdown = useCallback(() => {
+    const state = revealedNodeStateRef.current;
+    if (!state) {
+      return;
+    }
+
+    editor.update(
+      () => {
+        const revealNode = $getNodeByKey(state.revealNodeKey);
+
+        // Verify it's still a MarkdownRevealNode
+        if (!$isMarkdownRevealNode(revealNode)) {
+          log.debug('Node is no longer a MarkdownRevealNode, skipping hide', {
+            nodeKey: state.revealNodeKey,
+          });
+          revealedNodeStateRef.current = null;
+          return;
+        }
+
+        // Create a new TextNode with the original text and format
+        const textNode = $createTextNode(state.text);
+        textNode.setFormat(state.format);
+
+        // Replace the reveal node with the text node
+        revealNode.replace(textNode);
+
+        log.debug('Hid markdown', {
+          nodeKey: textNode.getKey(),
+          text: state.text,
+          format: state.format,
+        });
+
+        // Clear the stored state
+        revealedNodeStateRef.current = null;
+      },
+      {
+        // Use discrete to prevent this from being added to undo history
+        discrete: true,
+      }
+    );
+  }, [editor]);
+
+  /**
+   * Effect that triggers reveal/hide based on revealedRegion changes.
+   * This is the main coordination point between cursor tracking and node replacement.
+   *
+   * Handles three scenarios:
+   * 1. revealedRegion goes from null to a region → reveal that region
+   * 2. revealedRegion goes from a region to null → hide current reveal
+   * 3. revealedRegion changes to a different region → hide current, reveal new
+   */
+  useEffect(() => {
+    const currentState = revealedNodeStateRef.current;
+
+    // Case 1 & 3: If revealedRegion is null, hide any current reveal
+    if (!revealedRegion) {
+      if (currentState) {
+        hideRevealedMarkdown();
+      }
+      return;
+    }
+
+    // Case 2: revealedRegion is set, check if we need to reveal
+    // If we already have a reveal for a different node, hide it first
+    if (currentState) {
+      // We already have a reveal - this might be a transition to a new region
+      // The handleSelectionChange logic should prevent this from running
+      // when we're still adjacent to the current reveal, but just in case:
+      hideRevealedMarkdown();
+    }
+
+    // Now reveal the new region
+    revealFormattedText(revealedRegion.nodeKey);
+  }, [revealedRegion, hideRevealedMarkdown, revealFormattedText]);
+
+  /**
+   * Cleanup: ensure we restore any revealed nodes when the plugin unmounts.
+   */
+  useEffect(() => {
+    return () => {
+      // On unmount, restore any revealed markdown
+      if (revealedNodeStateRef.current) {
+        hideRevealedMarkdown();
+      }
+    };
+  }, [hideRevealedMarkdown]);
 
   // This plugin has no visual output
   return null;
