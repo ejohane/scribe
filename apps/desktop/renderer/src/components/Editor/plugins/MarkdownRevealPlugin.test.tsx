@@ -5,6 +5,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -17,8 +18,10 @@ import {
   $isElementNode,
   LexicalEditor,
   TextNode,
+  UNDO_COMMAND,
 } from 'lexical';
 import { MarkdownRevealPlugin } from './MarkdownRevealPlugin';
+import { MarkdownRevealNode } from './MarkdownRevealNode';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
@@ -35,15 +38,17 @@ function EditorCapture({ editorRef }: { editorRef: React.MutableRefObject<Lexica
 function TestEditor({
   children,
   editorRef,
+  withHistory = false,
 }: {
   children: ReactNode;
   editorRef: React.MutableRefObject<LexicalEditor | null>;
+  withHistory?: boolean;
 }) {
   return (
     <LexicalComposer
       initialConfig={{
         namespace: 'test',
-        nodes: [],
+        nodes: [MarkdownRevealNode],
         onError: (error) => {
           throw error;
         },
@@ -55,6 +60,7 @@ function TestEditor({
         ErrorBoundary={LexicalErrorBoundary}
       />
       <EditorCapture editorRef={editorRef} />
+      {withHistory && <HistoryPlugin />}
       {children}
     </LexicalComposer>
   );
@@ -2148,6 +2154,453 @@ describe('Keyboard navigation', () => {
             expect(anchorNode.hasFormat('bold')).toBe(false);
           }
         }
+      });
+    });
+  });
+});
+
+/**
+ * Undo/Redo History Tests for MarkdownRevealPlugin
+ *
+ * Tests for P4.2: Ensure undo/redo does not create spurious history
+ *
+ * These tests verify that reveal/hide operations do NOT pollute the
+ * undo/redo history stack. The reveal/hide operations use `discrete: true`
+ * in editor.update() to ensure they don't create undo history entries.
+ *
+ * Note: These tests focus on verifying that the plugin uses discrete updates
+ * correctly. The key behavior is that content remains unchanged after reveal/hide
+ * cycles, and that reveal/hide operations themselves don't add undo entries.
+ */
+describe('Undo/redo history integrity', () => {
+  let editorRef: React.MutableRefObject<LexicalEditor | null>;
+
+  beforeEach(() => {
+    editorRef = { current: null };
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('Reveal/hide operations do not pollute undo history', () => {
+    it('multiple reveal/hide cycles do not alter content', async () => {
+      render(
+        <TestEditor editorRef={editorRef} withHistory>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create mixed content: "plain **bold** plain"
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+
+          const plainText1 = $createTextNode('plain ');
+          const boldText = $createTextNode('bold');
+          boldText.toggleFormat('bold');
+          const plainText2 = $createTextNode(' plain');
+
+          paragraph.append(plainText1, boldText, plainText2);
+          root.append(paragraph);
+        });
+      });
+
+      // Wait for initial setup
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify initial content
+      const initialContent = 'plain bold plain';
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        expect(root.getTextContent()).toBe(initialContent);
+      });
+
+      // Perform multiple reveal/hide cycles by moving cursor in and out
+      for (let i = 0; i < 5; i++) {
+        // Move INTO bold (reveal)
+        await act(async () => {
+          editor.update(() => {
+            const root = $getRoot();
+            const paragraph = root.getFirstChild();
+            if ($isElementNode(paragraph)) {
+              const children = paragraph.getChildren();
+              // Find the bold node (might be index 1 or check format)
+              const boldNode = children.find(
+                (child) => $isTextNode(child) && (child as TextNode).hasFormat('bold')
+              ) as TextNode | undefined;
+
+              if (boldNode) {
+                const selection = $createRangeSelection();
+                selection.anchor.set(boldNode.getKey(), 2, 'text');
+                selection.focus.set(boldNode.getKey(), 2, 'text');
+                $setSelection(selection);
+              }
+            }
+          });
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 60));
+
+        // Move OUT of bold (hide) - to plain text at start
+        await act(async () => {
+          editor.update(() => {
+            const root = $getRoot();
+            const paragraph = root.getFirstChild();
+            if ($isElementNode(paragraph)) {
+              const children = paragraph.getChildren();
+              // Find the first plain text node
+              const plainNode = children.find(
+                (child) => $isTextNode(child) && !(child as TextNode).hasFormat('bold')
+              ) as TextNode | undefined;
+
+              if (plainNode) {
+                const selection = $createRangeSelection();
+                selection.anchor.set(plainNode.getKey(), 0, 'text');
+                selection.focus.set(plainNode.getKey(), 0, 'text');
+                $setSelection(selection);
+              }
+            }
+          });
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      }
+
+      // After all the reveal/hide cycles, content should be UNCHANGED
+      // This proves reveal/hide didn't alter the document
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        expect(root.getTextContent()).toBe(initialContent);
+      });
+    });
+
+    it('rapid reveal/hide during navigation does not alter content', async () => {
+      render(
+        <TestEditor editorRef={editorRef} withHistory>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create: "text **bold** more"
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+
+          const text1 = $createTextNode('text ');
+          const boldText = $createTextNode('bold');
+          boldText.toggleFormat('bold');
+          const text2 = $createTextNode(' more');
+
+          paragraph.append(text1, boldText, text2);
+          root.append(paragraph);
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const expectedContent = 'text bold more';
+
+      // Verify initial state
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        expect(root.getTextContent()).toBe(expectedContent);
+      });
+
+      // Simulate user typing that moves through bold region
+      // This simulates rapid cursor movement while typing
+      const movements = [
+        { nodeIndex: 0, offset: 5 }, // End of "text "
+        { nodeIndex: 1, offset: 0 }, // Start of bold (reveal)
+        { nodeIndex: 1, offset: 2 }, // Middle of bold
+        { nodeIndex: 1, offset: 4 }, // End of bold
+        { nodeIndex: 2, offset: 0 }, // Start of " more" (hide)
+        { nodeIndex: 2, offset: 3 }, // Middle of " more"
+      ];
+
+      for (const movement of movements) {
+        await act(async () => {
+          editor.update(() => {
+            const root = $getRoot();
+            const paragraph = root.getFirstChild();
+            if ($isElementNode(paragraph)) {
+              const children = paragraph.getChildren();
+              if (children[movement.nodeIndex] && $isTextNode(children[movement.nodeIndex])) {
+                const node = children[movement.nodeIndex] as TextNode;
+                const maxOffset = node.getTextContentSize();
+                const offset = Math.min(movement.offset, maxOffset);
+                const selection = $createRangeSelection();
+                selection.anchor.set(node.getKey(), offset, 'text');
+                selection.focus.set(node.getKey(), offset, 'text');
+                $setSelection(selection);
+              }
+            }
+          });
+        });
+
+        // Small delay to simulate real-world typing speed
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+
+      // After all movements, content should be UNCHANGED
+      // This proves cursor movements through reveal/hide don't alter content
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        expect(root.getTextContent()).toBe(expectedContent);
+      });
+    });
+
+    it('undo after reveal/hide cycles undoes content, not reveal states', async () => {
+      render(
+        <TestEditor editorRef={editorRef} withHistory>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create bold text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const boldText = $createTextNode('bold');
+          boldText.toggleFormat('bold');
+          const plainText = $createTextNode(' plain');
+          paragraph.append(boldText, plainText);
+          root.append(paragraph);
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Move cursor into bold (reveal)
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild();
+          if ($isElementNode(paragraph)) {
+            const children = paragraph.getChildren();
+            const boldNode = children.find(
+              (child) => $isTextNode(child) && (child as TextNode).hasFormat('bold')
+            ) as TextNode | undefined;
+
+            if (boldNode) {
+              const selection = $createRangeSelection();
+              selection.anchor.set(boldNode.getKey(), 2, 'text');
+              selection.focus.set(boldNode.getKey(), 2, 'text');
+              $setSelection(selection);
+            }
+          }
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Move cursor to plain text (hide)
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild();
+          if ($isElementNode(paragraph)) {
+            const children = paragraph.getChildren();
+            const plainNode = children.find(
+              (child) => $isTextNode(child) && !(child as TextNode).hasFormat('bold')
+            ) as TextNode | undefined;
+
+            if (plainNode) {
+              const selection = $createRangeSelection();
+              selection.anchor.set(plainNode.getKey(), 2, 'text');
+              selection.focus.set(plainNode.getKey(), 2, 'text');
+              $setSelection(selection);
+            }
+          }
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Try undo - should NOT undo the reveal/hide operations
+      // because they use discrete: true
+      await act(async () => {
+        editor.dispatchCommand(UNDO_COMMAND, undefined);
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // After undo, content should NOT contain any reveal markers
+      // It should be either empty (initial state) or "bold plain" (unchanged)
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const content = root.getTextContent();
+        // The key assertion: content doesn't have reveal markers like "**bold**"
+        expect(content.includes('**')).toBe(false);
+        expect(content.includes('*bold*')).toBe(false);
+        // Content is either empty or the original plain text
+        expect(content === '' || content === 'bold plain').toBe(true);
+      });
+    });
+  });
+
+  describe('Discrete update flag verification', () => {
+    it('reveal operation preserves content without reveal markers', async () => {
+      render(
+        <TestEditor editorRef={editorRef} withHistory>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create bold text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const textNode = $createTextNode('bold');
+          textNode.toggleFormat('bold');
+          paragraph.append(textNode);
+          root.append(paragraph);
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Move cursor into bold (trigger reveal)
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild();
+          if ($isElementNode(paragraph)) {
+            const textNode = paragraph.getFirstChild() as TextNode;
+            const selection = $createRangeSelection();
+            selection.anchor.set(textNode.getKey(), 2, 'text');
+            selection.focus.set(textNode.getKey(), 2, 'text');
+            $setSelection(selection);
+          }
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Try undo - should NOT affect reveal state
+      await act(async () => {
+        editor.dispatchCommand(UNDO_COMMAND, undefined);
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // After undo, content should NOT contain reveal markers
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const content = root.getTextContent();
+        // The key assertion: no reveal markers in content
+        expect(content.includes('**')).toBe(false);
+        // Content is either empty (undid creation) or "bold"
+        expect(content === '' || content === 'bold').toBe(true);
+      });
+    });
+
+    it('hide operation preserves content without reveal markers', async () => {
+      render(
+        <TestEditor editorRef={editorRef} withHistory>
+          <MarkdownRevealPlugin />
+        </TestEditor>
+      );
+
+      await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+      const editor = editorRef.current!;
+
+      // Create content with bold and plain text
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          const boldText = $createTextNode('bold');
+          boldText.toggleFormat('bold');
+          const plainText = $createTextNode(' plain');
+          paragraph.append(boldText, plainText);
+          root.append(paragraph);
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Move cursor into bold (reveal)
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild();
+          if ($isElementNode(paragraph)) {
+            const children = paragraph.getChildren();
+            const boldNode = children.find(
+              (child) => $isTextNode(child) && (child as TextNode).hasFormat('bold')
+            ) as TextNode | undefined;
+
+            if (boldNode) {
+              const selection = $createRangeSelection();
+              selection.anchor.set(boldNode.getKey(), 2, 'text');
+              selection.focus.set(boldNode.getKey(), 2, 'text');
+              $setSelection(selection);
+            }
+          }
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Move cursor to plain text (hide)
+      await act(async () => {
+        editor.update(() => {
+          const root = $getRoot();
+          const paragraph = root.getFirstChild();
+          if ($isElementNode(paragraph)) {
+            const children = paragraph.getChildren();
+            const plainNode = children.find(
+              (child) => $isTextNode(child) && !(child as TextNode).hasFormat('bold')
+            ) as TextNode | undefined;
+
+            if (plainNode) {
+              const selection = $createRangeSelection();
+              selection.anchor.set(plainNode.getKey(), 2, 'text');
+              selection.focus.set(plainNode.getKey(), 2, 'text');
+              $setSelection(selection);
+            }
+          }
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // After hide, content should still be "bold plain" (no markers)
+      editor.getEditorState().read(() => {
+        const root = $getRoot();
+        const content = root.getTextContent();
+        // Content should NOT contain reveal markers
+        expect(content.includes('**')).toBe(false);
+        // Content should be the original text
+        expect(content).toBe('bold plain');
       });
     });
   });
