@@ -146,6 +146,8 @@ export function App() {
         initialContent={content as ScribeEditorContent}
         onChange={onChange as (content: ScribeEditorContent) => void}
         autoFocus
+        showToolbar={false}
+        placeholder=""
         yjsDoc={collabProps?.yjsDoc}
         YjsPlugin={collabProps?.YjsPlugin}
       />
