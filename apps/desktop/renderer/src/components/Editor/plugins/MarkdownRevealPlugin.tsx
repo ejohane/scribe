@@ -362,14 +362,20 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       return null;
     }
 
-    const offset = anchor.offset;
     const textLength = anchorNode.getTextContentSize();
 
-    // Boundary check: don't reveal at the very start or end of the formatted text
-    // This allows users to easily exit the formatted region
-    if (offset === 0 || offset === textLength) {
-      return null;
-    }
+    // Per spec: cursor anywhere INSIDE a formatted TextNode triggers reveal.
+    // The formatting markers (**bold**) are NOT stored in the TextNode - only the
+    // text content exists. So any position within the TextNode (including offset 0
+    // and textLength) is "inside" the formatted region.
+    //
+    // The "boundary" where we don't reveal is BEFORE or AFTER the TextNode entirely,
+    // not at the edges of its text content. This is handled automatically because:
+    // - Position before the TextNode = cursor is in a different node (previous sibling or element)
+    // - Position after the TextNode = cursor is in a different node (next sibling or element)
+    //
+    // Edge case: empty formatted text (textLength === 0) should still reveal
+    // so the user can see and edit the delimiters.
 
     // Cursor is inside a formatted region
     return {
