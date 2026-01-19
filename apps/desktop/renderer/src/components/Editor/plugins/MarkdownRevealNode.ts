@@ -18,7 +18,11 @@ import {
   $applyNodeReplacement,
 } from 'lexical';
 import { ReactNode, createElement } from 'react';
-import { reconstructInlineMarkdown, reconstructMarkdownSegments } from './markdownReconstruction';
+import {
+  reconstructInlineMarkdown,
+  reconstructMarkdownSegments,
+  IS_CODE,
+} from './markdownReconstruction';
 
 /**
  * Serialized form of MarkdownRevealNode for JSON export/import.
@@ -105,6 +109,10 @@ export class MarkdownRevealNode extends DecoratorNode<ReactNode> {
   createDOM(_config: EditorConfig): HTMLElement {
     const span = document.createElement('span');
     span.className = 'markdown-reveal';
+    // Add data attribute for code format to enable monospace styling
+    if (this.__format & IS_CODE) {
+      span.setAttribute('data-format-code', 'true');
+    }
     return span;
   }
 

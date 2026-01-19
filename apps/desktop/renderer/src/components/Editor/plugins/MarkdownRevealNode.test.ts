@@ -105,6 +105,35 @@ describe('MarkdownRevealNode', () => {
         expect(dom.className).toBe('markdown-reveal');
       });
     });
+
+    it('adds data-format-code attribute for code format', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_CODE);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.tagName).toBe('SPAN');
+        expect(dom.className).toBe('markdown-reveal');
+        expect(dom.getAttribute('data-format-code')).toBe('true');
+      });
+    });
+
+    it('adds data-format-code attribute for combined formats including code', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_BOLD | IS_CODE);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.getAttribute('data-format-code')).toBe('true');
+      });
+    });
+
+    it('does not add data-format-code attribute when code format is not present', async () => {
+      await editor.update(() => {
+        const node = $createMarkdownRevealNode('test', IS_BOLD | IS_ITALIC);
+        const dom = node.createDOM({} as never);
+
+        expect(dom.getAttribute('data-format-code')).toBeNull();
+      });
+    });
   });
 
   describe('updateDOM', () => {

@@ -564,3 +564,16 @@ globalStyle(`${editorInput} .markdown-reveal-delimiter`, {
 globalStyle(`${editorInput} .markdown-reveal-text`, {
   // Inherits normal text styling - no special styles needed
 });
+
+// Inline code reveal styles - monospace font for code content
+// When a markdown-reveal node has data-format-code="true", apply monospace to the content
+globalStyle(`${editorInput} .markdown-reveal[data-format-code="true"] .markdown-reveal-text`, {
+  fontFamily: vars.typography.fontFamily.mono,
+  fontSize: vars.typography.size.sm,
+});
+
+// Also style the delimiters (backticks) for code - keep them slightly smaller to not be too prominent
+globalStyle(`${editorInput} .markdown-reveal[data-format-code="true"] .markdown-reveal-delimiter`, {
+  fontFamily: vars.typography.fontFamily.mono,
+  fontSize: vars.typography.size.sm,
+});
