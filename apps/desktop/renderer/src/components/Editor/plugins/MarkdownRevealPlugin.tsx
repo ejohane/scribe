@@ -49,8 +49,10 @@ import {
 import { $isCollapsibleHeadingNode } from './CollapsibleHeadingNode';
 import { $isQuoteNode } from '@lexical/rich-text';
 import { $isListItemNode, $isListNode } from '@lexical/list';
+import { $isCodeNode, $isCodeHighlightNode } from '@lexical/code';
 import type { HeadingTagType } from '@lexical/rich-text';
 import type { ListType } from '@lexical/list';
+import type { CodeNode } from '@lexical/code';
 
 const log = createLogger({ prefix: 'MarkdownRevealPlugin' });
 
@@ -142,6 +144,20 @@ interface FocusedListItem {
 }
 
 /**
+ * Tracks the currently focused code block for fence reveal.
+ * When the cursor is on the first line of a code block, we show the opening fence (```lang).
+ * When the cursor is on the last line, we show the closing fence (```).
+ */
+interface FocusedCodeBlock {
+  /** The Lexical node key of the CodeNode containing the cursor */
+  nodeKey: string;
+  /** The programming language (e.g., "typescript", "python", or empty string) */
+  language: string;
+  /** Which fence to show: 'open', 'close', or 'both' (for empty/single-line code blocks) */
+  fenceType: 'open' | 'close' | 'both';
+}
+
+/**
  * MarkdownRevealPlugin - Main plugin component for hybrid markdown editing.
  *
  * This plugin orchestrates the reveal/hide behavior for markdown syntax.
@@ -200,6 +216,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const [focusedListItem, setFocusedListItem] = useState<FocusedListItem | null>(null);
 
   /**
+   * Currently focused code block for fence reveal, or null if cursor is not in a code block.
+   * When set, the appropriate fence(s) should be visible.
+   */
+  const [focusedCodeBlock, setFocusedCodeBlock] = useState<FocusedCodeBlock | null>(null);
+
+  /**
    * Tracks the currently revealed MarkdownRevealNode and its original state.
    * Used to restore the original TextNode when the cursor exits.
    * Using a ref to avoid triggering re-renders on every state change.
@@ -223,6 +245,18 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * Used to clean up the prefix element when cursor exits the list item.
    */
   const listItemPrefixRef = useRef<HTMLSpanElement | null>(null);
+
+  /**
+   * Ref to track the DOM element of the currently revealed code block opening fence.
+   * Used to clean up the fence element when cursor exits the code block.
+   */
+  const codeBlockOpenFenceRef = useRef<HTMLSpanElement | null>(null);
+
+  /**
+   * Ref to track the DOM element of the currently revealed code block closing fence.
+   * Used to clean up the fence element when cursor exits the code block.
+   */
+  const codeBlockCloseFenceRef = useRef<HTMLSpanElement | null>(null);
 
   /**
    * Ref for debouncing cursor movement updates.
@@ -516,6 +550,125 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
+   * Detects if the current selection is inside a code block.
+   * Returns the code block details if found, including which fence(s) to show.
+   *
+   * Code blocks have unique reveal rules:
+   * - First line focused: show opening fence ```language
+   * - Last line focused: show closing fence ```
+   * - Empty code block (single line): show both fences
+   * - Middle lines: no additional reveal needed
+   *
+   * @returns FocusedCodeBlock if cursor is in a code block on first/last line, null otherwise
+   */
+  const detectCodeBlockFocus = useCallback((): FocusedCodeBlock | null => {
+    const selection = $getSelection();
+
+    // Only handle collapsed selections (cursor position, not text selection)
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchor = selection.anchor;
+    const anchorNode = anchor.getNode();
+
+    // Find the CodeNode parent
+    let codeNode: CodeNode | null = null;
+
+    // Check if the anchor node is directly a CodeNode (empty code block case)
+    if ($isCodeNode(anchorNode)) {
+      codeNode = anchorNode;
+    }
+    // Check if the anchor node's parent is a CodeNode
+    else if ($isCodeHighlightNode(anchorNode) || $isTextNode(anchorNode)) {
+      const parent = anchorNode.getParent();
+      if ($isCodeNode(parent)) {
+        codeNode = parent;
+      }
+    }
+    // Check grandparent for nested structure
+    else {
+      const parent = anchorNode.getParent();
+      if (parent && $isCodeNode(parent)) {
+        codeNode = parent;
+      }
+    }
+
+    if (!codeNode) {
+      return null;
+    }
+
+    // Get the language for the opening fence
+    const language = codeNode.getLanguage() || '';
+
+    // Get the text content to determine line information
+    const textContent = codeNode.getTextContent();
+    const lines = textContent.split('\n');
+    const totalLines = lines.length;
+
+    // Calculate which line the cursor is on
+    // We need to find the cursor's position within the code block
+    let cursorLine = 0;
+
+    if ($isCodeNode(anchorNode)) {
+      // Cursor is directly in the CodeNode (empty or element selection)
+      // This typically means an empty code block
+      cursorLine = 0;
+    } else {
+      // Find the cursor position by examining children
+      const children = codeNode.getChildren();
+      let charCount = 0;
+      let foundNode = false;
+
+      for (const child of children) {
+        if (child.getKey() === anchorNode.getKey()) {
+          // Found our node, add the offset within this node
+          charCount += anchor.offset;
+          foundNode = true;
+          break;
+        }
+        charCount += child.getTextContentSize();
+      }
+
+      if (foundNode) {
+        // Count newlines up to cursor position
+        let newlineCount = 0;
+        let pos = 0;
+        for (let i = 0; i < textContent.length && pos < charCount; i++) {
+          if (textContent[i] === '\n') {
+            newlineCount++;
+          }
+          pos++;
+        }
+        cursorLine = newlineCount;
+      }
+    }
+
+    // Determine which fence to show
+    let fenceType: 'open' | 'close' | 'both';
+
+    if (totalLines <= 1) {
+      // Empty or single-line code block - show both fences
+      fenceType = 'both';
+    } else if (cursorLine === 0) {
+      // First line - show opening fence
+      fenceType = 'open';
+    } else if (cursorLine === totalLines - 1) {
+      // Last line - show closing fence
+      fenceType = 'close';
+    } else {
+      // Middle line - no fence reveal needed
+      return null;
+    }
+
+    return {
+      nodeKey: codeNode.getKey(),
+      language,
+      fenceType,
+    };
+  }, []);
+
+  /**
    * Handles cursor position changes with debouncing.
    * Updates the revealed region state based on current cursor position.
    *
@@ -526,6 +679,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * 4. Cursor enters/exits a heading → show/hide heading prefix
    * 5. Cursor enters/exits a blockquote → show/hide blockquote prefix
    * 6. Cursor enters/exits a list item → show/hide list item prefix
+   * 7. Cursor enters/exits a code block first/last line → show/hide fence
    */
   const handleSelectionChange = useCallback(() => {
     // Clear any pending debounce timeout
@@ -540,6 +694,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
         const newHeadingFocus = detectHeadingFocus();
         const newBlockquoteFocus = detectBlockquoteFocus();
         const newListItemFocus = detectListItemFocus();
+        const newCodeBlockFocus = detectCodeBlockFocus();
         const currentRevealState = revealedNodeStateRef.current;
 
         // If we have a currently revealed node, check if we're still adjacent to it
@@ -567,6 +722,16 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
               if (!prevListItem || !newListItemFocus) return newListItemFocus;
               if (prevListItem.nodeKey !== newListItemFocus.nodeKey) return newListItemFocus;
               return prevListItem;
+            });
+            setFocusedCodeBlock((prevCodeBlock) => {
+              if (!prevCodeBlock && !newCodeBlockFocus) return null;
+              if (!prevCodeBlock || !newCodeBlockFocus) return newCodeBlockFocus;
+              if (
+                prevCodeBlock.nodeKey !== newCodeBlockFocus.nodeKey ||
+                prevCodeBlock.fenceType !== newCodeBlockFocus.fenceType
+              )
+                return newCodeBlockFocus;
+              return prevCodeBlock;
             });
             return; // Don't change inline reveal state
           }
@@ -681,6 +846,45 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           return prevListItem;
         });
 
+        // Update code block focus state
+        setFocusedCodeBlock((prevCodeBlock) => {
+          // Both null - no change
+          if (!prevCodeBlock && !newCodeBlockFocus) {
+            return null;
+          }
+
+          // Code block changed from null to something, or vice versa
+          if (!prevCodeBlock || !newCodeBlockFocus) {
+            if (newCodeBlockFocus) {
+              log.debug('Focusing code block', {
+                nodeKey: newCodeBlockFocus.nodeKey,
+                language: newCodeBlockFocus.language,
+                fenceType: newCodeBlockFocus.fenceType,
+              });
+            } else {
+              log.debug('Unfocusing code block');
+            }
+            return newCodeBlockFocus;
+          }
+
+          // Check if the code block actually changed
+          if (
+            prevCodeBlock.nodeKey !== newCodeBlockFocus.nodeKey ||
+            prevCodeBlock.fenceType !== newCodeBlockFocus.fenceType ||
+            prevCodeBlock.language !== newCodeBlockFocus.language
+          ) {
+            log.debug('Code block focus changed', {
+              from: prevCodeBlock.nodeKey,
+              to: newCodeBlockFocus.nodeKey,
+              fenceType: newCodeBlockFocus.fenceType,
+            });
+            return newCodeBlockFocus;
+          }
+
+          // No change
+          return prevCodeBlock;
+        });
+
         // Only update inline region state if the region has changed
         setRevealedRegion((prevRegion) => {
           // Both null - no change
@@ -726,6 +930,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     detectHeadingFocus,
     detectBlockquoteFocus,
     detectListItemFocus,
+    detectCodeBlockFocus,
     getAdjacentRevealNodeKey,
   ]);
 
@@ -1130,6 +1335,99 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       }
     };
   }, [editor, focusedListItem, getListItemPrefix]);
+
+  /**
+   * Gets the opening fence for a code block with optional language.
+   * @param language - The programming language (e.g., "typescript", "python")
+   * @returns The opening fence (e.g., "```typescript" or "```")
+   */
+  const getCodeBlockOpenFence = useCallback((language: string): string => {
+    return '```' + language;
+  }, []);
+
+  /**
+   * Gets the closing fence for a code block.
+   * @returns The closing fence "```"
+   */
+  const getCodeBlockCloseFence = useCallback((): string => {
+    return '```';
+  }, []);
+
+  /**
+   * Effect that manages the code block fence reveal via DOM manipulation.
+   * When cursor is on the first line of a code block, shows the opening fence (```lang).
+   * When cursor is on the last line, shows the closing fence (```).
+   * For empty/single-line code blocks, shows both fences.
+   * When cursor exits the code block first/last line, removes the fence(s).
+   */
+  useEffect(() => {
+    // Remove any existing fences first
+    if (codeBlockOpenFenceRef.current) {
+      codeBlockOpenFenceRef.current.remove();
+      codeBlockOpenFenceRef.current = null;
+    }
+    if (codeBlockCloseFenceRef.current) {
+      codeBlockCloseFenceRef.current.remove();
+      codeBlockCloseFenceRef.current = null;
+    }
+
+    // If no code block is focused, we're done
+    if (!focusedCodeBlock) {
+      return;
+    }
+
+    // Get the DOM element for the code block (it's rendered as a <code> inside <pre>)
+    const codeElement = editor.getElementByKey(focusedCodeBlock.nodeKey);
+    if (!codeElement) {
+      log.debug('Could not find code block element', { nodeKey: focusedCodeBlock.nodeKey });
+      return;
+    }
+
+    // Show opening fence if needed
+    if (focusedCodeBlock.fenceType === 'open' || focusedCodeBlock.fenceType === 'both') {
+      const openFence = getCodeBlockOpenFence(focusedCodeBlock.language);
+      const openFenceSpan = document.createElement('span');
+      openFenceSpan.className = 'codeblock-reveal-fence codeblock-reveal-fence-open';
+      openFenceSpan.textContent = openFence;
+      // Insert at the start of the code block
+      codeElement.insertBefore(openFenceSpan, codeElement.firstChild);
+      codeBlockOpenFenceRef.current = openFenceSpan;
+
+      log.debug('Revealed code block opening fence', {
+        nodeKey: focusedCodeBlock.nodeKey,
+        language: focusedCodeBlock.language,
+        fence: openFence,
+      });
+    }
+
+    // Show closing fence if needed
+    if (focusedCodeBlock.fenceType === 'close' || focusedCodeBlock.fenceType === 'both') {
+      const closeFence = getCodeBlockCloseFence();
+      const closeFenceSpan = document.createElement('span');
+      closeFenceSpan.className = 'codeblock-reveal-fence codeblock-reveal-fence-close';
+      closeFenceSpan.textContent = closeFence;
+      // Append at the end of the code block
+      codeElement.appendChild(closeFenceSpan);
+      codeBlockCloseFenceRef.current = closeFenceSpan;
+
+      log.debug('Revealed code block closing fence', {
+        nodeKey: focusedCodeBlock.nodeKey,
+        fence: closeFence,
+      });
+    }
+
+    // Cleanup function: remove the fences when effect re-runs or unmounts
+    return () => {
+      if (codeBlockOpenFenceRef.current) {
+        codeBlockOpenFenceRef.current.remove();
+        codeBlockOpenFenceRef.current = null;
+      }
+      if (codeBlockCloseFenceRef.current) {
+        codeBlockCloseFenceRef.current.remove();
+        codeBlockCloseFenceRef.current = null;
+      }
+    };
+  }, [editor, focusedCodeBlock, getCodeBlockOpenFence, getCodeBlockCloseFence]);
 
   // This plugin has no visual output
   return null;

@@ -657,3 +657,42 @@ globalStyle(`${editorInput} .listitem-reveal-prefix`, {
   // Preserve whitespace for proper indentation display
   whiteSpace: 'pre',
 });
+
+// === Code Block Fence Reveal styles ===
+// These styles are used for the code block fence reveal feature.
+// When cursor is on the first line of a code block, the opening fence (```lang) is shown.
+// When cursor is on the last line, the closing fence (```) is shown.
+
+/**
+ * Base style for code block fence reveal - shared by opening and closing fences.
+ * Styled muted to indicate it's syntax, not content.
+ */
+globalStyle(`${editorInput} .codeblock-reveal-fence`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Use monospace font to match code block styling
+  fontFamily: vars.typography.fontFamily.mono,
+  fontSize: vars.typography.size.sm,
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+  // Display as block for proper positioning
+  display: 'block',
+});
+
+/**
+ * Opening fence style - shown at the start of the code block.
+ * Includes margin bottom to separate from code content.
+ */
+globalStyle(`${editorInput} .codeblock-reveal-fence-open`, {
+  marginBottom: vars.spacing['1'],
+});
+
+/**
+ * Closing fence style - shown at the end of the code block.
+ * Includes margin top to separate from code content.
+ */
+globalStyle(`${editorInput} .codeblock-reveal-fence-close`, {
+  marginTop: vars.spacing['1'],
+});
