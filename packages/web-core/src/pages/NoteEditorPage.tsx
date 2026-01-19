@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTrpc } from '../providers/ScribeProvider.js';
 import { CollaborativeEditor, type CollabEditorProps } from '../components/CollaborativeEditor.js';
 import type { NoteDocument, EditorContent } from '@scribe/client-sdk';
@@ -66,6 +67,7 @@ export function NoteEditorPage({
   const id = propNoteId || paramId;
   const navigate = useNavigate();
   const trpc = useTrpc();
+  const queryClient = useQueryClient();
 
   const [note, setNote] = useState<NoteDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,9 +109,16 @@ export function NoteEditorPage({
         hasUserEditedRef.current = false;
 
         // Mark note as accessed (fire-and-forget, don't block rendering)
-        trpc.notes.markAccessed.mutate({ noteId: id }).catch(() => {
-          // Silently ignore errors - this is non-critical tracking
-        });
+        trpc.notes.markAccessed
+          .mutate({ noteId: id })
+          .then(() => {
+            // Invalidate recent notes cache so palette shows updated order
+            queryClient.invalidateQueries({ queryKey: ['notes', 'recentlyAccessed'] });
+          })
+          .catch((err) => {
+            // Non-critical, just log
+            console.warn('Failed to mark note as accessed:', err);
+          });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load note';
@@ -118,7 +127,7 @@ export function NoteEditorPage({
     } finally {
       setIsLoading(false);
     }
-  }, [id, trpc, onError]);
+  }, [id, trpc, queryClient, onError]);
 
   useEffect(() => {
     fetchNote();
