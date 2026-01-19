@@ -15,6 +15,7 @@ import {
   type PluginLoadFailure,
   type SidebarPanelEntry,
   type SlashCommandEntry,
+  type CommandPaletteCommandEntry,
   type ClientPluginContext,
   type PluginManifest,
 } from '@scribe/plugin-core';
@@ -152,6 +153,12 @@ export function PluginProvider({ children }: PluginProviderProps) {
 
       getSlashCommands(): SlashCommandEntry[] {
         return [...registry.getCapabilities('slash-command')];
+      },
+
+      getCommandPaletteCommands(): CommandPaletteCommandEntry[] {
+        const commands = registry.getCapabilities('command-palette-command');
+        // Sort by priority (lower values first)
+        return [...commands].sort((a, b) => a.priority - b.priority);
       },
     }),
     [plugins, registry, isLoading, errors]

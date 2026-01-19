@@ -9,7 +9,11 @@
 
 import { useContext } from 'react';
 import { PluginContext, type PluginContextValue } from './context';
-import type { SidebarPanelEntry, SlashCommandEntry } from '@scribe/plugin-core';
+import type {
+  SidebarPanelEntry,
+  SlashCommandEntry,
+  CommandPaletteCommandEntry,
+} from '@scribe/plugin-core';
 
 /**
  * Access the full plugin context.
@@ -193,5 +197,53 @@ export function usePluginLoading(): UsePluginLoadingResult {
     isLoading,
     hasErrors: errors.length > 0,
     errorCount: errors.length,
+  };
+}
+
+/**
+ * Result from useCommandPaletteCommands hook.
+ */
+export interface UseCommandPaletteCommandsResult {
+  /** Command palette commands from plugins sorted by priority */
+  commands: CommandPaletteCommandEntry[];
+  /** Whether plugins are still loading */
+  isLoading: boolean;
+}
+
+/**
+ * Get all command palette commands provided by plugins.
+ *
+ * Returns commands sorted by priority (lower values first).
+ * Includes loading state to handle commands not being available yet.
+ *
+ * @returns Object with commands array and loading state
+ *
+ * @example
+ * ```tsx
+ * function CommandPaletteWithPlugins() {
+ *   const { commands, isLoading } = useCommandPaletteCommands();
+ *
+ *   if (isLoading) {
+ *     return null; // Don't include plugin commands until loaded
+ *   }
+ *
+ *   // Convert to CommandPaletteProvider's expected format
+ *   const pluginCommands = commands.map(cmd => ({
+ *     type: 'command' as const,
+ *     id: cmd.id,
+ *     label: cmd.label,
+ *     // ...
+ *   }));
+ *
+ *   return <CommandPaletteProvider pluginCommands={pluginCommands}>...</CommandPaletteProvider>;
+ * }
+ * ```
+ */
+export function useCommandPaletteCommands(): UseCommandPaletteCommandsResult {
+  const { getCommandPaletteCommands, isLoading } = usePlugins();
+
+  return {
+    commands: getCommandPaletteCommands(),
+    isLoading,
   };
 }

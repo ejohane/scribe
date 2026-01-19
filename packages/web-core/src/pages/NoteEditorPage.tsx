@@ -105,6 +105,11 @@ export function NoteEditorPage({
         // Track initial content to detect Yjs sync overwrites
         initialContentRef.current = result.content;
         hasUserEditedRef.current = false;
+
+        // Mark note as accessed (fire-and-forget, don't block rendering)
+        trpc.notes.markAccessed.mutate({ noteId: id }).catch(() => {
+          // Silently ignore errors - this is non-critical tracking
+        });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load note';

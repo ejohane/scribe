@@ -13,6 +13,7 @@ import type {
   PluginRegistry,
   SidebarPanelEntry,
   SlashCommandEntry,
+  CommandPaletteCommandEntry,
 } from '@scribe/plugin-core';
 
 /**
@@ -60,6 +61,14 @@ export interface PluginContextValue {
    * @returns Array of slash command entries
    */
   getSlashCommands(): SlashCommandEntry[];
+
+  /**
+   * Get all command palette command capabilities sorted by priority.
+   * Lower priority values appear first in the list.
+   *
+   * @returns Array of command palette command entries sorted by priority
+   */
+  getCommandPaletteCommands(): CommandPaletteCommandEntry[];
 }
 
 /**

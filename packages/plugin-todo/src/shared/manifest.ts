@@ -27,5 +27,14 @@ export const manifest: PluginManifest = {
     { type: 'event-hook', events: ['note:deleted'] },
     { type: 'sidebar-panel', id: 'todo-panel', label: 'Tasks', icon: 'CheckSquare' },
     { type: 'slash-command', command: 'task', label: 'Add Task', description: 'Add a todo item' },
+    {
+      type: 'command-palette-command',
+      id: 'todo.viewTasks',
+      label: 'View Tasks',
+      description: 'Open the tasks sidebar panel',
+      icon: 'CheckSquare',
+      category: 'Tasks',
+      priority: 10,
+    },
   ],
 };

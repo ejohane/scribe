@@ -6,7 +6,11 @@
  * @module
  */
 
-import type { ClientPlugin, ClientPluginContext } from '@scribe/plugin-core';
+import type {
+  ClientPlugin,
+  ClientPluginContext,
+  CommandPaletteCommandHandler,
+} from '@scribe/plugin-core';
 import { manifest } from '../shared/manifest.js';
 import { TasksSidebarPanel, setUseScribeClient } from './TasksSidebarPanel.js';
 import { taskCommandHandler, setTaskCommandClient } from './taskSlashCommand.js';
@@ -38,6 +42,19 @@ export {
  * const plugin = createClientPlugin(context);
  * ```
  */
+/**
+ * Command handler for viewing tasks via command palette.
+ *
+ * Opens the sidebar or navigates to tasks view and shows a toast confirmation.
+ */
+const viewTasksHandler: CommandPaletteCommandHandler = {
+  execute(ctx) {
+    ctx.toast('Opening tasks panel', 'info');
+    // Note: Actual sidebar panel opening would be handled by the UI layer
+    // This command serves as a test/demo of command palette integration
+  },
+};
+
 export function createClientPlugin(_context: ClientPluginContext): ClientPlugin {
   return {
     manifest,
@@ -49,6 +66,9 @@ export function createClientPlugin(_context: ClientPluginContext): ClientPlugin 
     },
     slashCommands: {
       task: taskCommandHandler,
+    },
+    commandPaletteCommands: {
+      'todo.viewTasks': viewTasksHandler,
     },
   };
 }

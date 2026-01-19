@@ -25,6 +25,9 @@ const mockTrpc = {
     update: {
       mutate: vi.fn(),
     },
+    markAccessed: {
+      mutate: vi.fn(),
+    },
   },
 };
 
@@ -121,6 +124,7 @@ describe('NoteEditorPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mockTrpc.notes.update.mutate.mockResolvedValue(undefined);
+    mockTrpc.notes.markAccessed.mutate.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
