@@ -634,3 +634,26 @@ globalStyle(`${editorInput} .blockquote-reveal-prefix`, {
   // Make it non-selectable to prevent accidental selection
   userSelect: 'none',
 });
+
+// === List Item Reveal styles ===
+// These styles are used for the list item prefix reveal feature.
+// When cursor is on a list item, the markdown prefix (e.g., "- " or "1. ") is shown.
+
+/**
+ * List item reveal prefix - shown at the start of the list item when focused.
+ * Styled muted to indicate it's syntax, not content.
+ */
+globalStyle(`${editorInput} .listitem-reveal-prefix`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Use monospace font for the marker to look more like markdown
+  fontFamily: vars.typography.fontFamily.mono,
+  // Add small margin to separate from list item text
+  marginRight: vars.spacing['1'],
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+  // Preserve whitespace for proper indentation display
+  whiteSpace: 'pre',
+});

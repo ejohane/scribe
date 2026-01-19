@@ -48,7 +48,9 @@ import {
 } from './markdownReconstruction';
 import { $isCollapsibleHeadingNode } from './CollapsibleHeadingNode';
 import { $isQuoteNode } from '@lexical/rich-text';
+import { $isListItemNode, $isListNode } from '@lexical/list';
 import type { HeadingTagType } from '@lexical/rich-text';
+import type { ListType } from '@lexical/list';
 
 const log = createLogger({ prefix: 'MarkdownRevealPlugin' });
 
@@ -123,6 +125,23 @@ interface FocusedBlockquote {
 }
 
 /**
+ * Tracks the currently focused list item for prefix reveal.
+ * When the cursor is on a list item, we show the markdown prefix (e.g., "- " or "1. ").
+ */
+interface FocusedListItem {
+  /** The Lexical node key of the ListItemNode containing the cursor */
+  nodeKey: string;
+  /** The type of list (bullet, number, or check) */
+  listType: ListType;
+  /** The 1-based index of the item in the list (only used for numbered lists) */
+  itemIndex: number;
+  /** The nesting level (1 for top-level, 2 for nested, etc.) */
+  nestingLevel: number;
+  /** Whether the item is checked (only for checklist items) */
+  isChecked: boolean;
+}
+
+/**
  * MarkdownRevealPlugin - Main plugin component for hybrid markdown editing.
  *
  * This plugin orchestrates the reveal/hide behavior for markdown syntax.
@@ -175,6 +194,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const [focusedBlockquote, setFocusedBlockquote] = useState<FocusedBlockquote | null>(null);
 
   /**
+   * Currently focused list item for prefix reveal, or null if cursor is not on a list item.
+   * When set, the list prefix (e.g., "- " or "1. ") should be visible.
+   */
+  const [focusedListItem, setFocusedListItem] = useState<FocusedListItem | null>(null);
+
+  /**
    * Tracks the currently revealed MarkdownRevealNode and its original state.
    * Used to restore the original TextNode when the cursor exits.
    * Using a ref to avoid triggering re-renders on every state change.
@@ -192,6 +217,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * Used to clean up the prefix element when cursor exits the blockquote.
    */
   const blockquotePrefixRef = useRef<HTMLSpanElement | null>(null);
+
+  /**
+   * Ref to track the DOM element of the currently revealed list item prefix.
+   * Used to clean up the prefix element when cursor exits the list item.
+   */
+  const listItemPrefixRef = useRef<HTMLSpanElement | null>(null);
 
   /**
    * Ref for debouncing cursor movement updates.
@@ -411,6 +442,80 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
+   * Detects if the current selection is inside a list item.
+   * Returns the list item details if found, or null if not in a list item.
+   *
+   * Unlike inline formats where cursor must be strictly inside,
+   * for list items we reveal when cursor is ANYWHERE on that line.
+   * Also calculates the nesting level and item index for proper prefix generation.
+   *
+   * @returns FocusedListItem if cursor is on a list item, null otherwise
+   */
+  const detectListItemFocus = useCallback((): FocusedListItem | null => {
+    const selection = $getSelection();
+
+    // Only handle collapsed selections (cursor position, not text selection)
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchor = selection.anchor;
+    const anchorNode = anchor.getNode();
+
+    // Walk up the tree to find the ListItemNode
+    let currentNode = anchorNode.getParent();
+    let listItemNode = null;
+
+    while (currentNode) {
+      if ($isListItemNode(currentNode)) {
+        listItemNode = currentNode;
+        break;
+      }
+      currentNode = currentNode.getParent();
+    }
+
+    // Also check if the anchor node itself is a ListItemNode (empty list item case)
+    if (!listItemNode && $isListItemNode(anchorNode)) {
+      listItemNode = anchorNode;
+    }
+
+    if (!listItemNode) {
+      return null;
+    }
+
+    // Get the parent list to determine type and item index
+    const listNode = listItemNode.getParent();
+    if (!$isListNode(listNode)) {
+      return null;
+    }
+
+    const listType = listNode.getListType();
+    const itemIndex = listItemNode.getIndexWithinParent() + 1; // 1-based index
+    const isChecked = listType === 'check' ? Boolean(listItemNode.getChecked()) : false;
+
+    // Calculate nesting level by counting ancestor ListNodes
+    let nestingLevel = 1;
+    let parent = listNode.getParent();
+    while (parent) {
+      if ($isListItemNode(parent)) {
+        const parentList = parent.getParent();
+        if ($isListNode(parentList)) {
+          nestingLevel++;
+        }
+      }
+      parent = parent.getParent();
+    }
+
+    return {
+      nodeKey: listItemNode.getKey(),
+      listType,
+      itemIndex,
+      nestingLevel,
+      isChecked,
+    };
+  }, []);
+
+  /**
    * Handles cursor position changes with debouncing.
    * Updates the revealed region state based on current cursor position.
    *
@@ -420,6 +525,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * 3. Cursor moves away from reveal → hide markdown
    * 4. Cursor enters/exits a heading → show/hide heading prefix
    * 5. Cursor enters/exits a blockquote → show/hide blockquote prefix
+   * 6. Cursor enters/exits a list item → show/hide list item prefix
    */
   const handleSelectionChange = useCallback(() => {
     // Clear any pending debounce timeout
@@ -433,6 +539,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
         const newRegion = detectFormattedRegion();
         const newHeadingFocus = detectHeadingFocus();
         const newBlockquoteFocus = detectBlockquoteFocus();
+        const newListItemFocus = detectListItemFocus();
         const currentRevealState = revealedNodeStateRef.current;
 
         // If we have a currently revealed node, check if we're still adjacent to it
@@ -454,6 +561,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
               if (!prevBlockquote || !newBlockquoteFocus) return newBlockquoteFocus;
               if (prevBlockquote.nodeKey !== newBlockquoteFocus.nodeKey) return newBlockquoteFocus;
               return prevBlockquote;
+            });
+            setFocusedListItem((prevListItem) => {
+              if (!prevListItem && !newListItemFocus) return null;
+              if (!prevListItem || !newListItemFocus) return newListItemFocus;
+              if (prevListItem.nodeKey !== newListItemFocus.nodeKey) return newListItemFocus;
+              return prevListItem;
             });
             return; // Don't change inline reveal state
           }
@@ -528,6 +641,46 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           return prevBlockquote;
         });
 
+        // Update list item focus state
+        setFocusedListItem((prevListItem) => {
+          // Both null - no change
+          if (!prevListItem && !newListItemFocus) {
+            return null;
+          }
+
+          // List item changed from null to something, or vice versa
+          if (!prevListItem || !newListItemFocus) {
+            if (newListItemFocus) {
+              log.debug('Focusing list item', {
+                nodeKey: newListItemFocus.nodeKey,
+                listType: newListItemFocus.listType,
+                itemIndex: newListItemFocus.itemIndex,
+              });
+            } else {
+              log.debug('Unfocusing list item');
+            }
+            return newListItemFocus;
+          }
+
+          // Check if the list item actually changed
+          if (
+            prevListItem.nodeKey !== newListItemFocus.nodeKey ||
+            prevListItem.listType !== newListItemFocus.listType ||
+            prevListItem.itemIndex !== newListItemFocus.itemIndex ||
+            prevListItem.nestingLevel !== newListItemFocus.nestingLevel ||
+            prevListItem.isChecked !== newListItemFocus.isChecked
+          ) {
+            log.debug('List item focus changed', {
+              from: prevListItem.nodeKey,
+              to: newListItemFocus.nodeKey,
+            });
+            return newListItemFocus;
+          }
+
+          // No change
+          return prevListItem;
+        });
+
         // Only update inline region state if the region has changed
         setRevealedRegion((prevRegion) => {
           // Both null - no change
@@ -572,6 +725,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     detectFormattedRegion,
     detectHeadingFocus,
     detectBlockquoteFocus,
+    detectListItemFocus,
     getAdjacentRevealNodeKey,
   ]);
 
@@ -890,6 +1044,92 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       }
     };
   }, [editor, focusedBlockquote, getBlockquotePrefix]);
+
+  /**
+   * Gets the markdown prefix for a list item based on type and position.
+   * @param listType - The type of list (bullet, number, or check)
+   * @param itemIndex - The 1-based index of the item in the list
+   * @param nestingLevel - The nesting level (1 for top-level, 2 for nested, etc.)
+   * @param isChecked - Whether the item is checked (only for checklist items)
+   * @returns The markdown prefix (e.g., "- ", "1. ", "- [ ] ", "  - " for nested)
+   */
+  const getListItemPrefix = useCallback(
+    (listType: ListType, itemIndex: number, nestingLevel: number, isChecked: boolean): string => {
+      // Generate indentation for nested items (2 spaces per level)
+      const indent = '  '.repeat(nestingLevel - 1);
+
+      switch (listType) {
+        case 'number':
+          return `${indent}${itemIndex}. `;
+        case 'check':
+          return `${indent}- [${isChecked ? 'x' : ' '}] `;
+        case 'bullet':
+        default:
+          return `${indent}- `;
+      }
+    },
+    []
+  );
+
+  /**
+   * Effect that manages the list item prefix reveal via DOM manipulation.
+   * When cursor is on a list item, shows the markdown prefix (e.g., "- " or "1. ").
+   * For nested list items, shows indentation prefix.
+   * When cursor exits the list item, removes the prefix.
+   */
+  useEffect(() => {
+    // Remove any existing prefix first
+    if (listItemPrefixRef.current) {
+      listItemPrefixRef.current.remove();
+      listItemPrefixRef.current = null;
+    }
+
+    // If no list item is focused, we're done
+    if (!focusedListItem) {
+      return;
+    }
+
+    // Get the DOM element for the list item
+    const listItemElement = editor.getElementByKey(focusedListItem.nodeKey);
+    if (!listItemElement) {
+      log.debug('Could not find list item element', { nodeKey: focusedListItem.nodeKey });
+      return;
+    }
+
+    // Create the prefix span element
+    const prefix = getListItemPrefix(
+      focusedListItem.listType,
+      focusedListItem.itemIndex,
+      focusedListItem.nestingLevel,
+      focusedListItem.isChecked
+    );
+    const prefixSpan = document.createElement('span');
+    prefixSpan.className = 'listitem-reveal-prefix';
+    prefixSpan.textContent = prefix;
+    // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
+    // The prefix is read-only. Users can create/modify lists via:
+    // - The formatting toolbar
+    // - Markdown shortcuts (e.g., typing "- " at the start of a new line)
+
+    // Insert at the start of the list item
+    listItemElement.insertBefore(prefixSpan, listItemElement.firstChild);
+    listItemPrefixRef.current = prefixSpan;
+
+    log.debug('Revealed list item prefix', {
+      nodeKey: focusedListItem.nodeKey,
+      listType: focusedListItem.listType,
+      itemIndex: focusedListItem.itemIndex,
+      prefix,
+    });
+
+    // Cleanup function: remove the prefix when effect re-runs or unmounts
+    return () => {
+      if (listItemPrefixRef.current) {
+        listItemPrefixRef.current.remove();
+        listItemPrefixRef.current = null;
+      }
+    };
+  }, [editor, focusedListItem, getListItemPrefix]);
 
   // This plugin has no visual output
   return null;
