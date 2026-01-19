@@ -215,3 +215,13 @@ export interface GraphEdge {
   target: string;
   label: string | null;
 }
+
+/**
+ * Recently accessed note - minimal info for command palette
+ */
+export interface RecentNote {
+  id: string;
+  title: string;
+  type: NoteType;
+  lastAccessedAt: string; // ISO timestamp
+}
