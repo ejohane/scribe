@@ -14,6 +14,7 @@ import {
   isEventHookCapability,
   isSidebarPanelCapability,
   isSlashCommandCapability,
+  isCommandPaletteCommandCapability,
   hasCapability,
   getCapabilitiesByType,
   type PluginManifest,
@@ -23,6 +24,7 @@ import {
   type EventHookCapability,
   type SidebarPanelCapability,
   type SlashCommandCapability,
+  type CommandPaletteCommandCapability,
   type PluginEvent,
   type ServerPlugin,
   type ClientPlugin,
@@ -63,6 +65,17 @@ const slashCommandCapability: SlashCommandCapability = {
   icon: 'Plus',
 };
 
+const commandPaletteCommandCapability: CommandPaletteCommandCapability = {
+  type: 'command-palette-command',
+  id: 'todo.createTask',
+  label: 'Create Task',
+  description: 'Create a new task in the current note',
+  icon: 'CheckSquare',
+  shortcut: '⌘T',
+  category: 'Tasks',
+  priority: 10,
+};
+
 const testManifest: PluginManifest = {
   id: '@scribe/plugin-todo',
   version: '1.0.0',
@@ -75,6 +88,7 @@ const testManifest: PluginManifest = {
     eventHookCapability,
     sidebarPanelCapability,
     slashCommandCapability,
+    commandPaletteCommandCapability,
   ],
   scribeVersion: '>=1.0.0',
 };
@@ -153,6 +167,21 @@ describe('Type Guards', () => {
       expect(isSlashCommandCapability(storageCapability)).toBe(false);
       expect(isSlashCommandCapability(eventHookCapability)).toBe(false);
       expect(isSlashCommandCapability(sidebarPanelCapability)).toBe(false);
+      expect(isSlashCommandCapability(commandPaletteCommandCapability)).toBe(false);
+    });
+  });
+
+  describe('isCommandPaletteCommandCapability', () => {
+    it('returns true for command-palette-command capability', () => {
+      expect(isCommandPaletteCommandCapability(commandPaletteCommandCapability)).toBe(true);
+    });
+
+    it('returns false for other capability types', () => {
+      expect(isCommandPaletteCommandCapability(trpcCapability)).toBe(false);
+      expect(isCommandPaletteCommandCapability(storageCapability)).toBe(false);
+      expect(isCommandPaletteCommandCapability(eventHookCapability)).toBe(false);
+      expect(isCommandPaletteCommandCapability(sidebarPanelCapability)).toBe(false);
+      expect(isCommandPaletteCommandCapability(slashCommandCapability)).toBe(false);
     });
   });
 });
@@ -168,6 +197,7 @@ describe('hasCapability', () => {
     expect(hasCapability(testManifest, 'event-hook')).toBe(true);
     expect(hasCapability(testManifest, 'sidebar-panel')).toBe(true);
     expect(hasCapability(testManifest, 'slash-command')).toBe(true);
+    expect(hasCapability(testManifest, 'command-palette-command')).toBe(true);
   });
 
   it('returns false when manifest does not have the capability type', () => {
@@ -176,6 +206,7 @@ describe('hasCapability', () => {
     expect(hasCapability(minimalManifest, 'event-hook')).toBe(false);
     expect(hasCapability(minimalManifest, 'sidebar-panel')).toBe(false);
     expect(hasCapability(minimalManifest, 'slash-command')).toBe(false);
+    expect(hasCapability(minimalManifest, 'command-palette-command')).toBe(false);
   });
 });
 
@@ -314,6 +345,8 @@ describe('PluginCapability discriminated union', () => {
           return `Panel: ${cap.label}`;
         case 'slash-command':
           return `Command: /${cap.command}`;
+        case 'command-palette-command':
+          return `Palette: ${cap.id}`;
       }
     }
 
@@ -322,6 +355,7 @@ describe('PluginCapability discriminated union', () => {
     expect(describeCapability(eventHookCapability)).toBe('Hooks for note:created, note:updated');
     expect(describeCapability(sidebarPanelCapability)).toBe('Panel: Tasks');
     expect(describeCapability(slashCommandCapability)).toBe('Command: /task');
+    expect(describeCapability(commandPaletteCommandCapability)).toBe('Palette: todo.createTask');
   });
 });
 
@@ -425,5 +459,18 @@ describe('Optional capability fields', () => {
     };
     expect(cap.description).toBeUndefined();
     expect(cap.icon).toBeUndefined();
+  });
+
+  it('command-palette-command optional fields are optional', () => {
+    const cap: CommandPaletteCommandCapability = {
+      type: 'command-palette-command',
+      id: 'test.command',
+      label: 'Test Command',
+    };
+    expect(cap.description).toBeUndefined();
+    expect(cap.icon).toBeUndefined();
+    expect(cap.shortcut).toBeUndefined();
+    expect(cap.category).toBeUndefined();
+    expect(cap.priority).toBeUndefined();
   });
 });

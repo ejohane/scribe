@@ -52,6 +52,7 @@ export type {
   EventHookCapability,
   SidebarPanelCapability,
   SlashCommandCapability,
+  CommandPaletteCommandCapability,
 } from './plugin-types.js';
 
 // ============================================================================
@@ -89,6 +90,8 @@ export type {
   ClientPlugin,
   SlashCommandHandler,
   SlashCommandArgs,
+  CommandContext,
+  CommandPaletteCommandHandler,
 } from './plugin-types.js';
 
 // ============================================================================
@@ -107,6 +110,7 @@ export {
   isEventHookCapability,
   isSidebarPanelCapability,
   isSlashCommandCapability,
+  isCommandPaletteCommandCapability,
   hasCapability,
   getCapabilitiesByType,
 } from './plugin-types.js';
@@ -124,6 +128,7 @@ export {
   eventHookCapabilitySchema,
   sidebarPanelCapabilitySchema,
   slashCommandCapabilitySchema,
+  commandPaletteCommandCapabilitySchema,
   // Validation helpers
   validateManifest,
   safeValidateManifest,
@@ -151,6 +156,7 @@ export type {
   EventHookEntry,
   SidebarPanelEntry,
   SlashCommandEntry,
+  CommandPaletteCommandEntry,
   CapabilityEntry,
   CapabilityTypeMap,
   CapabilityIndex,

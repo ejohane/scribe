@@ -74,6 +74,27 @@ export const slashCommandCapabilitySchema = z.object({
 });
 
 /**
+ * Schema for command palette command capability.
+ * Validates the command ID, label, and optional fields.
+ */
+export const commandPaletteCommandCapabilitySchema = z.object({
+  type: z.literal('command-palette-command'),
+  id: z
+    .string()
+    .min(1, 'Command ID cannot be empty')
+    .regex(
+      /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*$/,
+      'Command ID must use dot notation (e.g., "todo.createTask")'
+    ),
+  label: z.string().min(1, 'Command label cannot be empty'),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  shortcut: z.string().optional(),
+  category: z.string().optional(),
+  priority: z.number().int('Priority must be an integer').optional(),
+});
+
+/**
  * Combined capability schema using discriminated union.
  * The 'type' field determines which capability schema is applied.
  */
@@ -83,6 +104,7 @@ export const pluginCapabilitySchema = z.discriminatedUnion('type', [
   eventHookCapabilitySchema,
   sidebarPanelCapabilitySchema,
   slashCommandCapabilitySchema,
+  commandPaletteCommandCapabilitySchema,
 ]);
 
 // ============================================================================

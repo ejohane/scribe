@@ -17,6 +17,7 @@ import {
   eventHookCapabilitySchema,
   sidebarPanelCapabilitySchema,
   slashCommandCapabilitySchema,
+  commandPaletteCommandCapabilitySchema,
   validateManifest,
   safeValidateManifest,
   validateCapability,
@@ -74,6 +75,23 @@ const validSlashCommandCapabilityFull = {
   label: 'Add Task',
   description: 'Adds a new task to the note',
   icon: 'Plus',
+};
+
+const validCommandPaletteCommandCapability = {
+  type: 'command-palette-command',
+  id: 'todo.createTask',
+  label: 'Create Task',
+};
+
+const validCommandPaletteCommandCapabilityFull = {
+  type: 'command-palette-command',
+  id: 'todo.createTask',
+  label: 'Create Task',
+  description: 'Create a new task in the current note',
+  icon: 'CheckSquare',
+  shortcut: '⌘T',
+  category: 'Tasks',
+  priority: 10,
 };
 
 const validManifestFull = {
@@ -168,12 +186,13 @@ describe('pluginManifestSchema - valid manifests', () => {
         validEventHookCapability,
         validSidebarPanelCapability,
         validSlashCommandCapability,
+        validCommandPaletteCommandCapability,
       ],
     };
     const result = pluginManifestSchema.safeParse(manifest);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.capabilities).toHaveLength(5);
+      expect(result.data.capabilities).toHaveLength(6);
     }
   });
 });
@@ -547,6 +566,108 @@ describe('slashCommandCapabilitySchema', () => {
 });
 
 // ============================================================================
+// Capability Schema Tests - command-palette-command
+// ============================================================================
+
+describe('commandPaletteCommandCapabilitySchema', () => {
+  it('accepts valid command palette command', () => {
+    const result = commandPaletteCommandCapabilitySchema.safeParse(
+      validCommandPaletteCommandCapability
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts command palette command with all optional fields', () => {
+    const result = commandPaletteCommandCapabilitySchema.safeParse(
+      validCommandPaletteCommandCapabilityFull
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.description).toBe('Create a new task in the current note');
+      expect(result.data.icon).toBe('CheckSquare');
+      expect(result.data.shortcut).toBe('⌘T');
+      expect(result.data.category).toBe('Tasks');
+      expect(result.data.priority).toBe(10);
+    }
+  });
+
+  it('accepts valid command ID formats (dot notation)', () => {
+    const validIds = ['todo.createTask', 'notes.archive', 'app.settings.open', 'search'];
+    for (const id of validIds) {
+      const cap = { ...validCommandPaletteCommandCapability, id };
+      const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+      expect(result.success, `Expected ${id} to be valid`).toBe(true);
+    }
+  });
+
+  it('rejects ID starting with uppercase', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: 'Todo.createTask' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.errors[0].message).toContain('dot notation');
+    }
+  });
+
+  it('rejects ID with hyphens', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: 'todo-create-task' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects ID with spaces', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: 'todo create task' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects ID with underscores', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: 'todo_create_task' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty ID', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: '' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty label', () => {
+    const cap = { ...validCommandPaletteCommandCapability, label: '' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects ID starting with number', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: '123todo.create' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects ID with segment starting with number', () => {
+    const cap = { ...validCommandPaletteCommandCapability, id: 'todo.123create' };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-integer priority', () => {
+    const cap = { ...validCommandPaletteCommandCapability, priority: 10.5 };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.errors[0].message).toContain('integer');
+    }
+  });
+
+  it('accepts negative priority', () => {
+    const cap = { ...validCommandPaletteCommandCapability, priority: -10 };
+    const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(true);
+  });
+});
+
+// ============================================================================
 // Discriminated Union Tests
 // ============================================================================
 
@@ -588,6 +709,14 @@ describe('pluginCapabilitySchema - discriminated union', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.type).toBe('slash-command');
+    }
+  });
+
+  it('correctly identifies command-palette-command type', () => {
+    const result = pluginCapabilitySchema.safeParse(validCommandPaletteCommandCapability);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe('command-palette-command');
     }
   });
 
@@ -748,19 +877,21 @@ describe('Type compatibility with plugin-types.ts', () => {
         { type: 'event-hook', events: ['note:created'] },
         { type: 'sidebar-panel', id: 'p1', label: 'Panel', icon: 'Icon' },
         { type: 'slash-command', command: 'cmd', label: 'Cmd' },
+        { type: 'command-palette-command', id: 'test.cmd', label: 'Test Command' },
       ],
     });
 
-    expect(manifest.capabilities).toHaveLength(5);
+    expect(manifest.capabilities).toHaveLength(6);
 
     // Verify each capability has the expected structure
-    const [trpc, storage, event, panel, cmd] = manifest.capabilities;
+    const [trpc, storage, event, panel, cmd, paletteCmd] = manifest.capabilities;
 
     expect(trpc.type).toBe('trpc-router');
     expect(storage.type).toBe('storage');
     expect(event.type).toBe('event-hook');
     expect(panel.type).toBe('sidebar-panel');
     expect(cmd.type).toBe('slash-command');
+    expect(paletteCmd.type).toBe('command-palette-command');
   });
 });
 

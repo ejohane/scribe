@@ -15,6 +15,7 @@ import type {
   ServerPlugin,
   ClientPlugin,
   SlashCommandHandler,
+  CommandPaletteCommandHandler,
 } from './plugin-types.js';
 
 // ============================================================================
@@ -116,6 +117,22 @@ export interface SlashCommandEntry {
 }
 
 /**
+ * Entry for a command palette command capability.
+ */
+export interface CommandPaletteCommandEntry {
+  pluginId: string;
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  shortcut?: string;
+  category: string;
+  priority: number;
+  /** Command handler - only present on client side */
+  handler?: CommandPaletteCommandHandler;
+}
+
+/**
  * Union type for all capability entries.
  */
 export type CapabilityEntry =
@@ -123,7 +140,8 @@ export type CapabilityEntry =
   | StorageEntry
   | EventHookEntry
   | SidebarPanelEntry
-  | SlashCommandEntry;
+  | SlashCommandEntry
+  | CommandPaletteCommandEntry;
 
 /**
  * Map from capability type to its entry type.
@@ -134,6 +152,7 @@ export interface CapabilityTypeMap {
   'event-hook': EventHookEntry;
   'sidebar-panel': SidebarPanelEntry;
   'slash-command': SlashCommandEntry;
+  'command-palette-command': CommandPaletteCommandEntry;
 }
 
 /**
@@ -145,6 +164,7 @@ export interface CapabilityIndex {
   'event-hook': Map<string, EventHookEntry>;
   'sidebar-panel': Map<string, SidebarPanelEntry>;
   'slash-command': Map<string, SlashCommandEntry>;
+  'command-palette-command': Map<string, CommandPaletteCommandEntry>;
 }
 
 // ============================================================================
@@ -184,6 +204,7 @@ export class PluginRegistry {
     'event-hook': new Map(),
     'sidebar-panel': new Map(),
     'slash-command': new Map(),
+    'command-palette-command': new Map(),
   };
 
   /**
@@ -359,6 +380,8 @@ export class PluginRegistry {
         return capability.id;
       case 'slash-command':
         return capability.command;
+      case 'command-palette-command':
+        return capability.id;
     }
   }
 
@@ -431,6 +454,27 @@ export class PluginRegistry {
         this.capabilityIndex['slash-command'].set(capability.command, commandEntry);
         break;
       }
+
+      case 'command-palette-command': {
+        const paletteCommandEntry: CommandPaletteCommandEntry = {
+          pluginId,
+          id: capability.id,
+          label: capability.label,
+          description: capability.description,
+          icon: capability.icon,
+          shortcut: capability.shortcut,
+          category: capability.category ?? 'General',
+          priority: capability.priority ?? 100,
+        };
+
+        // If it's a client plugin, extract the handler
+        if ('commandPaletteCommands' in plugin && plugin.commandPaletteCommands) {
+          paletteCommandEntry.handler = plugin.commandPaletteCommands[capability.id];
+        }
+
+        this.capabilityIndex['command-palette-command'].set(capability.id, paletteCommandEntry);
+        break;
+      }
     }
   }
 
@@ -494,6 +538,7 @@ export class PluginRegistry {
       'event-hook': new Map(),
       'sidebar-panel': new Map(),
       'slash-command': new Map(),
+      'command-palette-command': new Map(),
     };
   }
 }

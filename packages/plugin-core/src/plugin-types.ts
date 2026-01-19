@@ -104,7 +104,8 @@ export type PluginCapability =
   | StorageCapability
   | EventHookCapability
   | SidebarPanelCapability
-  | SlashCommandCapability;
+  | SlashCommandCapability
+  | CommandPaletteCommandCapability;
 
 /**
  * Capability for plugins that expose a tRPC router.
@@ -215,6 +216,71 @@ export interface SlashCommandCapability {
    * Optional Lucide icon name
    */
   icon?: string;
+}
+
+/**
+ * Capability for plugins that provide commands in the command palette (cmd+k).
+ *
+ * Plugins declare commands; the palette owns the UX. This ensures visual consistency
+ * across all commands, prevents plugin UI chaos, and keeps the API surface small.
+ *
+ * @example
+ * ```typescript
+ * const capability: CommandPaletteCommandCapability = {
+ *   type: 'command-palette-command',
+ *   id: 'todo.createTask',
+ *   label: 'Create Task',
+ *   description: 'Create a new task in the current note',
+ *   icon: 'CheckSquare',
+ *   category: 'Tasks',
+ *   priority: 10,
+ * };
+ * ```
+ */
+export interface CommandPaletteCommandCapability {
+  /**
+   * Discriminator for TypeScript narrowing
+   */
+  type: 'command-palette-command';
+
+  /**
+   * Unique identifier for this command.
+   * Convention: use dot notation like "pluginName.commandName" (e.g., "todo.createTask")
+   */
+  id: string;
+
+  /**
+   * Display label shown in the command palette
+   */
+  label: string;
+
+  /**
+   * Optional description shown below the label
+   */
+  description?: string;
+
+  /**
+   * Optional Lucide icon name to display (e.g., "CheckSquare", "Calendar")
+   */
+  icon?: string;
+
+  /**
+   * Display hint for keyboard shortcut (display only, not functional).
+   * E.g., "⌘T" or "Ctrl+T"
+   */
+  shortcut?: string;
+
+  /**
+   * Category for grouping commands in the palette.
+   * Default: "General"
+   */
+  category?: string;
+
+  /**
+   * Sort priority within the category (lower values appear higher).
+   * Default: 100
+   */
+  priority?: number;
 }
 
 // ============================================================================
@@ -495,6 +561,74 @@ export interface SlashCommandArgs {
 }
 
 /**
+ * Context provided to command palette command handlers.
+ *
+ * This context gives commands access to navigation, notifications, and
+ * the current note context without coupling to specific UI implementations.
+ *
+ * @example
+ * ```typescript
+ * const handler: CommandPaletteCommandHandler = {
+ *   execute(ctx) {
+ *     if (!ctx.noteId) {
+ *       ctx.toast('Please open a note first', 'info');
+ *       return;
+ *     }
+ *     // Do something with the note
+ *     ctx.toast('Task created!', 'success');
+ *     ctx.navigate('/tasks');
+ *   },
+ * };
+ * ```
+ */
+export interface CommandContext {
+  /**
+   * The ID of the currently open note, or null if no note is open.
+   */
+  noteId: string | null;
+
+  /**
+   * Navigate to a different route in the application.
+   *
+   * @param path - The path to navigate to (e.g., '/notes/123', '/settings')
+   */
+  navigate: (path: string) => void;
+
+  /**
+   * Show a toast notification to the user.
+   *
+   * @param message - The message to display
+   * @param type - The type of toast (default: 'info')
+   */
+  toast: (message: string, type?: 'success' | 'error' | 'info') => void;
+}
+
+/**
+ * Handler for a command palette command.
+ *
+ * @example
+ * ```typescript
+ * const createTaskHandler: CommandPaletteCommandHandler = {
+ *   execute(ctx) {
+ *     if (ctx.noteId) {
+ *       // Create task associated with current note
+ *       ctx.toast('Task created!', 'success');
+ *     }
+ *   },
+ * };
+ * ```
+ */
+export interface CommandPaletteCommandHandler {
+  /**
+   * Execute the command.
+   *
+   * @param ctx - The command context providing navigation, toast, and note info
+   * @returns void or Promise<void> for async commands
+   */
+  execute(ctx: CommandContext): void | Promise<void>;
+}
+
+/**
  * A fully initialized server-side plugin instance.
  *
  * This is what a plugin's factory function returns after initialization.
@@ -587,6 +721,12 @@ export interface ClientPlugin {
    * Keys must match the 'command' field from SlashCommandCapability.
    */
   slashCommands?: Record<string, SlashCommandHandler>;
+
+  /**
+   * Command palette command handlers.
+   * Keys must match the 'id' field from CommandPaletteCommandCapability.
+   */
+  commandPaletteCommands?: Record<string, CommandPaletteCommandHandler>;
 }
 
 // ============================================================================
@@ -660,6 +800,15 @@ export function isSidebarPanelCapability(cap: PluginCapability): cap is SidebarP
  */
 export function isSlashCommandCapability(cap: PluginCapability): cap is SlashCommandCapability {
   return cap.type === 'slash-command';
+}
+
+/**
+ * Type guard to check if a capability is a command palette command capability.
+ */
+export function isCommandPaletteCommandCapability(
+  cap: PluginCapability
+): cap is CommandPaletteCommandCapability {
+  return cap.type === 'command-palette-command';
 }
 
 /**
