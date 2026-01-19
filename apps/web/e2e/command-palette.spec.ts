@@ -12,7 +12,7 @@
  * - [x] Recently opened notes (max 5) when search empty
  * - [x] Keyboard navigation (arrows, enter, escape)
  * - [x] Commands show keyboard shortcut hints
- * - [ ] Plugin can register custom command (todo plugin) - tested separately
+ * - [x] Plugin can register custom command (todo plugin)
  * - [x] Works identically in web and desktop - web tested here
  * - [x] Accessible (ARIA attributes, focus management)
  */
@@ -484,5 +484,76 @@ test.describe('Command Palette: Command Categories', () => {
     // Should have Notes and General categories
     await expect(page.locator('text=Notes')).toBeVisible();
     await expect(page.locator('text=General')).toBeVisible();
+  });
+});
+
+test.describe('Command Palette: Plugin Commands', () => {
+  test('shows Create Task command from todo plugin', async ({ page }) => {
+    await page.goto('/');
+    await waitForConnection(page);
+
+    await openCommandPalette(page);
+
+    // Type to search for the task command
+    await page.keyboard.type('create task');
+
+    // Should show the Create Task command from the todo plugin
+    await expect(page.locator('text=Create Task')).toBeVisible();
+  });
+
+  test('shows View Tasks command from todo plugin', async ({ page }) => {
+    await page.goto('/');
+    await waitForConnection(page);
+
+    await openCommandPalette(page);
+
+    // Type to search for the view tasks command
+    await page.keyboard.type('view tasks');
+
+    // Should show the View Tasks command from the todo plugin
+    await expect(page.locator('text=View Tasks')).toBeVisible();
+  });
+
+  test('shows Todo category for plugin commands', async ({ page }) => {
+    await page.goto('/');
+    await waitForConnection(page);
+
+    await openCommandPalette(page);
+
+    // Type to search for todo commands
+    await page.keyboard.type('task');
+
+    // Should show the Todo category
+    await expect(page.locator('text=Todo')).toBeVisible();
+  });
+
+  test('Create Task command shows keyboard shortcut hint', async ({ page }) => {
+    await page.goto('/');
+    await waitForConnection(page);
+
+    await openCommandPalette(page);
+
+    // Type to search for the create task command
+    await page.keyboard.type('create task');
+
+    // Should show the keyboard shortcut hint
+    await expect(page.locator('text=⌘⇧T')).toBeVisible();
+  });
+
+  test('executing Create Task command creates a task', async ({ page }) => {
+    await page.goto('/');
+    await waitForConnection(page);
+
+    await openCommandPalette(page);
+
+    // Search for and execute Create Task
+    await page.keyboard.type('create task');
+    await page.keyboard.press('Enter');
+
+    // Palette should close
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+
+    // Should show success toast
+    await expect(page.locator('text=Task created!')).toBeVisible({ timeout: 5000 });
   });
 });

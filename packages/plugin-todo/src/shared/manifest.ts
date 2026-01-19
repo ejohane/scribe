@@ -36,5 +36,15 @@ export const manifest: PluginManifest = {
       category: 'Tasks',
       priority: 10,
     },
+    {
+      type: 'command-palette-command',
+      id: 'todo.createTask',
+      label: 'Create Task',
+      description: 'Create a new task in the todo list',
+      icon: 'CheckSquare',
+      shortcut: '⌘⇧T',
+      category: 'Todo',
+      priority: 0,
+    },
   ],
 };
