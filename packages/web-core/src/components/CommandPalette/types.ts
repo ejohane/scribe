@@ -197,3 +197,33 @@ export const BUILTIN_CATEGORIES = {
   NAVIGATION: 'Navigation',
   GENERAL: 'General',
 } as const;
+
+/**
+ * Built-in command IDs for easy reference.
+ */
+export const BUILTIN_COMMAND_IDS = {
+  NEW_NOTE: 'core.newNote',
+  SEARCH_NOTES: 'core.searchNotes',
+  NEW_DAILY_NOTE: 'core.newDailyNote',
+  NEW_MEETING: 'core.newMeeting',
+  SETTINGS: 'core.settings',
+} as const;
+
+/**
+ * Keyboard shortcuts used in the command palette.
+ */
+export const KEYBOARD_SHORTCUTS = {
+  OPEN_PALETTE: '⌘K',
+  CLOSE: 'Escape',
+  SELECT_NEXT: 'ArrowDown',
+  SELECT_PREVIOUS: 'ArrowUp',
+  EXECUTE: 'Enter',
+  NEW_NOTE: '⌘N',
+  SEARCH_NOTES: '⌘⇧F',
+  SETTINGS: '⌘,',
+} as const;
+
+/**
+ * Alias for CommandPaletteItem for convenience.
+ */
+export type PaletteItem = CommandPaletteItem;
