@@ -14,6 +14,7 @@ import {
   useReducer,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -223,6 +224,32 @@ export function CommandPaletteProvider({
   const trpc = useTrpc();
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // Store previously focused element and selection for focus restoration
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const previousSelectionRef = useRef<Range | null>(null);
+
+  // Helper to save current selection
+  const saveSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      previousSelectionRef.current = selection.getRangeAt(0).cloneRange();
+    } else {
+      previousSelectionRef.current = null;
+    }
+  }, []);
+
+  // Helper to restore saved selection
+  const restoreSelection = useCallback(() => {
+    if (previousSelectionRef.current) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(previousSelectionRef.current);
+      }
+      previousSelectionRef.current = null;
+    }
+  }, []);
+
   // Fetch recent notes when in note-search view with empty query
   const showRecent = state.isOpen && state.view === 'note-search' && !state.query;
   const { data: recentNotes = [] } = useRecentNotes(showRecent);
@@ -366,17 +393,58 @@ export function CommandPaletteProvider({
   }, [sections, state.selectedIndex, totalItems]);
 
   // Actions
-  const open = useCallback((view?: CommandPaletteView) => {
-    dispatch({ type: 'OPEN', view });
-  }, []);
+  const open = useCallback(
+    (view?: CommandPaletteView) => {
+      // Store currently focused element and selection before opening
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+      saveSelection();
+      dispatch({ type: 'OPEN', view });
+    },
+    [saveSelection]
+  );
 
   const close = useCallback(() => {
     dispatch({ type: 'CLOSE' });
-  }, []);
+    // Restore focus and selection to previously focused element
+    // Use requestAnimationFrame to ensure DOM has updated after closing
+    requestAnimationFrame(() => {
+      if (
+        previouslyFocusedRef.current &&
+        typeof previouslyFocusedRef.current.focus === 'function'
+      ) {
+        previouslyFocusedRef.current.focus();
+        previouslyFocusedRef.current = null;
+        // Restore selection after focus
+        restoreSelection();
+      }
+    });
+  }, [restoreSelection]);
 
-  const toggle = useCallback((view?: CommandPaletteView) => {
-    dispatch({ type: 'TOGGLE', view });
-  }, []);
+  const toggle = useCallback(
+    (view?: CommandPaletteView) => {
+      if (state.isOpen) {
+        // Closing - restore focus and selection
+        dispatch({ type: 'TOGGLE', view });
+        requestAnimationFrame(() => {
+          if (
+            previouslyFocusedRef.current &&
+            typeof previouslyFocusedRef.current.focus === 'function'
+          ) {
+            previouslyFocusedRef.current.focus();
+            previouslyFocusedRef.current = null;
+            // Restore selection after focus
+            restoreSelection();
+          }
+        });
+      } else {
+        // Opening - store focused element and selection
+        previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+        saveSelection();
+        dispatch({ type: 'TOGGLE', view });
+      }
+    },
+    [state.isOpen, saveSelection, restoreSelection]
+  );
 
   const setQuery = useCallback((query: string) => {
     dispatch({ type: 'SET_QUERY', query });
