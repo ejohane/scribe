@@ -16,6 +16,8 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
+import { TRANSFORMERS } from '@lexical/markdown';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
@@ -189,6 +191,7 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
           <ListPlugin />
           <LinkPlugin />
           <HistoryPlugin />
+          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <MarkdownRevealPlugin />
 
           {autoFocus && !readOnly && <AutoFocusPlugin />}

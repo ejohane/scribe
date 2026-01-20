@@ -274,6 +274,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const prevCursorRef = useRef<{ nodeKey: string; offset: number } | null>(null);
 
   /**
+   * Ref to track if a reveal/hide operation is in progress.
+   * Prevents re-entrant calls that could cause infinite loops.
+   */
+  const isRevealOperationInProgressRef = useRef(false);
+
+  /**
    * Checks if the cursor is adjacent to (immediately before or after) a MarkdownRevealNode.
    * This is used to determine if we should keep the reveal visible when the cursor
    * moves to the boundary of the revealed region.
@@ -702,6 +708,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * 7. Cursor enters/exits a code block first/last line → show/hide fence
    */
   const handleSelectionChange = useCallback(() => {
+    // Skip if a reveal operation is in progress to prevent loops
+    if (isRevealOperationInProgressRef.current) {
+      return;
+    }
+
     // Clear any pending debounce timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -709,6 +720,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
 
     // Debounce the detection to prevent excessive updates
     debounceTimeoutRef.current = setTimeout(() => {
+      // Double-check the guard in case it changed during the timeout
+      if (isRevealOperationInProgressRef.current) {
+        return;
+      }
+
       editor.getEditorState().read(() => {
         // PERFORMANCE OPTIMIZATION: Early exit if cursor hasn't moved
         const selection = $getSelection();
@@ -1030,6 +1046,14 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    */
   const revealFormattedText = useCallback(
     (nodeKey: string) => {
+      // Guard against re-entrant calls
+      if (isRevealOperationInProgressRef.current) {
+        log.debug('Reveal operation already in progress, skipping', { nodeKey });
+        return;
+      }
+
+      isRevealOperationInProgressRef.current = true;
+
       editor.update(
         () => {
           const textNode = $getNodeByKey(nodeKey);
@@ -1037,6 +1061,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           // Verify it's still a TextNode (might have changed)
           if (!$isTextNode(textNode)) {
             log.debug('Node is no longer a TextNode, skipping reveal', { nodeKey });
+            isRevealOperationInProgressRef.current = false;
             return;
           }
 
@@ -1046,6 +1071,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           // Double-check this is a format we handle
           if (!(format & HANDLED_FORMATS)) {
             log.debug('Node format not handled, skipping reveal', { nodeKey, format });
+            isRevealOperationInProgressRef.current = false;
             return;
           }
 
@@ -1067,6 +1093,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
             text,
             format,
           });
+
+          // Clear the guard after a microtask to allow the DOM to settle
+          queueMicrotask(() => {
+            isRevealOperationInProgressRef.current = false;
+          });
         },
         {
           // Use discrete to prevent this from being added to undo history
@@ -1087,6 +1118,14 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       return;
     }
 
+    // Guard against re-entrant calls
+    if (isRevealOperationInProgressRef.current) {
+      log.debug('Reveal operation already in progress, skipping hide');
+      return;
+    }
+
+    isRevealOperationInProgressRef.current = true;
+
     editor.update(
       () => {
         const revealNode = $getNodeByKey(state.revealNodeKey);
@@ -1097,6 +1136,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
             nodeKey: state.revealNodeKey,
           });
           revealedNodeStateRef.current = null;
+          isRevealOperationInProgressRef.current = false;
           return;
         }
 
@@ -1115,6 +1155,11 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
 
         // Clear the stored state
         revealedNodeStateRef.current = null;
+
+        // Clear the guard after a microtask to allow the DOM to settle
+        queueMicrotask(() => {
+          isRevealOperationInProgressRef.current = false;
+        });
       },
       {
         // Use discrete to prevent this from being added to undo history
@@ -1131,6 +1176,10 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * 1. revealedRegion goes from null to a region → reveal that region
    * 2. revealedRegion goes from a region to null → hide current reveal
    * 3. revealedRegion changes to a different region → hide current, reveal new
+   *
+   * Uses queueMicrotask to defer editor updates out of React's render cycle,
+   * avoiding flushSync conflicts when other plugins (like MarkdownShortcutPlugin)
+   * also update the editor state.
    */
   useEffect(() => {
     const currentState = revealedNodeStateRef.current;
@@ -1138,7 +1187,10 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     // Case 1 & 3: If revealedRegion is null, hide any current reveal
     if (!revealedRegion) {
       if (currentState) {
-        hideRevealedMarkdown();
+        // Defer to avoid flushSync conflict
+        queueMicrotask(() => {
+          hideRevealedMarkdown();
+        });
       }
       return;
     }
@@ -1149,11 +1201,19 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       // We already have a reveal - this might be a transition to a new region
       // The handleSelectionChange logic should prevent this from running
       // when we're still adjacent to the current reveal, but just in case:
-      hideRevealedMarkdown();
+      // Defer to avoid flushSync conflict
+      queueMicrotask(() => {
+        hideRevealedMarkdown();
+        // Now reveal the new region after hiding
+        revealFormattedText(revealedRegion.nodeKey);
+      });
+      return;
     }
 
-    // Now reveal the new region
-    revealFormattedText(revealedRegion.nodeKey);
+    // Now reveal the new region - defer to avoid flushSync conflict
+    queueMicrotask(() => {
+      revealFormattedText(revealedRegion.nodeKey);
+    });
   }, [revealedRegion, hideRevealedMarkdown, revealFormattedText]);
 
   /**
