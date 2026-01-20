@@ -63,6 +63,12 @@ const log = createLogger({ prefix: 'MarkdownRevealPlugin' });
 const HANDLED_FORMATS = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
 
 /**
+ * Tag used to identify editor updates originating from this plugin.
+ * We skip processing these updates to avoid infinite loops.
+ */
+const MARKDOWN_REVEAL_TAG = 'markdown-reveal';
+
+/**
  * Tracks which formatted region (if any) the cursor is currently inside.
  * This drives the reveal/hide behavior for hybrid markdown editing.
  *
@@ -1021,6 +1027,10 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       if (tags.has('history-merge') || tags.has('historic')) {
         return;
       }
+      // Skip our own reveal/hide updates to avoid infinite loops
+      if (tags.has(MARKDOWN_REVEAL_TAG)) {
+        return;
+      }
       handleSelectionChange();
     });
   }, [editor, handleSelectionChange]);
@@ -1102,6 +1112,8 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
         {
           // Use discrete to prevent this from being added to undo history
           discrete: true,
+          // Tag this update so we can skip it in the update listener
+          tag: MARKDOWN_REVEAL_TAG,
         }
       );
     },
@@ -1164,6 +1176,8 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
       {
         // Use discrete to prevent this from being added to undo history
         discrete: true,
+        // Tag this update so we can skip it in the update listener
+        tag: MARKDOWN_REVEAL_TAG,
       }
     );
   }, [editor]);
