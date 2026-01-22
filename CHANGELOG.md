@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.43.0](https://github.com/ejohane/scribe/compare/v1.42.0...v1.43.0) (2026-01-22)
+
+### Features
+
+* **editor:** add CSS styles for revealed markdown syntax ([37db31e](https://github.com/ejohane/scribe/commit/37db31eba8d38803ebac4f32c623e6c6cecbdf02))
+* **editor:** add markdownReconstruction utilities for hybrid markdown editing ([0a39c38](https://github.com/ejohane/scribe/commit/0a39c3879c4ec27966913b9ff59f614b3d053c4c))
+* **editor:** add MarkdownRevealNode DecoratorNode for hybrid markdown editing ([6609356](https://github.com/ejohane/scribe/commit/6609356eaff5e435a59b2fdc4fd511abd657c026))
+* **editor:** add MarkdownRevealPlugin skeleton for hybrid markdown editing ([5b937bb](https://github.com/ejohane/scribe/commit/5b937bb23639a68458c0759f4e66bd77bdc095be))
+* **editor:** add MarkdownRevealPlugin to @scribe/editor package ([10a1f9f](https://github.com/ejohane/scribe/commit/10a1f9f8f1c2bad4c1e077eacd92f40eb9659c74))
+* **editor:** enable editable markdown reveal ([ecd3d2a](https://github.com/ejohane/scribe/commit/ecd3d2adc3afaf5a12274c1375f3c31ec3e905e6))
+* **editor:** implement blockquote reveal (> prefix) on focus ([7f9dee9](https://github.com/ejohane/scribe/commit/7f9dee963aee67c0e17de0423a980c4cf310ec2d))
+* **editor:** implement bold format reveal with reveal-on-focus behavior ([a19cb8f](https://github.com/ejohane/scribe/commit/a19cb8fb3536ae06ab5d5cc6ecaff0e794ce1d98))
+* **editor:** implement code block fence reveal (``` prefix/suffix) on focus ([a151848](https://github.com/ejohane/scribe/commit/a151848bc33c051013b23f7b69ab7e70ca50c3f5))
+* **editor:** implement heading reveal (# prefix) on focus ([3e8a79b](https://github.com/ejohane/scribe/commit/3e8a79b8f4725cda94db43edeb302c0889112553))
+* **editor:** implement inline code format reveal with monospace styling ([7a13d7d](https://github.com/ejohane/scribe/commit/7a13d7d4f43b2b0e5128ddb32eb4ded3fe5f6a4b))
+* **editor:** implement list item reveal (- and 1. prefix) on focus ([e6f1191](https://github.com/ejohane/scribe/commit/e6f1191a309b637538270b0925d666904f81dc7c))
+* **editor:** implement strikethrough format reveal with line-through styling ([b8cca03](https://github.com/ejohane/scribe/commit/b8cca03ba034fbae8a295787ae4545b7932cd15c))
+* **editor:** register MarkdownRevealNode and plugin in EditorRoot ([0109f74](https://github.com/ejohane/scribe/commit/0109f741c47508f0e02090853a60be2615233992))
+
+### Bug Fixes
+
+* **editor:** add MarkdownRevealNode to test editor configurations ([f21fc68](https://github.com/ejohane/scribe/commit/f21fc682f5725f5e920b6d8386a05522d9ce1503))
+* **editor:** add missing MarkdownShortcutPlugin and fix flushSync error loop ([c5a6c7e](https://github.com/ejohane/scribe/commit/c5a6c7e69d9da05c774862f2b875e3212ffa7f5b))
+* **editor:** correct cursor boundary detection to reveal at text edges ([4473e4a](https://github.com/ejohane/scribe/commit/4473e4a4a092e9d6ce27794c84d7c17b905eed4b))
+* **editor:** ensure copy/paste from MarkdownRevealNode copies content not markdown syntax ([5061f26](https://github.com/ejohane/scribe/commit/5061f26e8a228f428d9914231ac1c41631a4ece2))
+* **editor:** prevent infinite loop in MarkdownRevealPlugin ([8db8c91](https://github.com/ejohane/scribe/commit/8db8c91e7e193e52676e6e15ed9a0a25bd196035))
+
+### Performance Improvements
+
+* **editor:** optimize MarkdownRevealPlugin for large documents ([cee7dc7](https://github.com/ejohane/scribe/commit/cee7dc760eac24cda43f4f4d4d05222890b5e647))
+
 ## [1.42.0](https://github.com/ejohane/scribe/compare/v1.41.0...v1.42.0) (2026-01-19)
 
 ### Features
