@@ -25,6 +25,7 @@ export { editorTheme } from './theme.js';
 // Plugins
 export {
   // Markdown reveal plugin for Typora-style hybrid editing
+  MarkdownAutoFormatPlugin,
   MarkdownRevealPlugin,
   MarkdownRevealNode,
   $createMarkdownRevealNode,

@@ -28,6 +28,7 @@ import type * as Y from 'yjs';
 import { editorTheme } from '../theme.js';
 import { EditorToolbar } from './EditorToolbar.js';
 import { EditorErrorBoundary } from './EditorErrorBoundary.js';
+import { MarkdownAutoFormatPlugin } from '../plugins/MarkdownAutoFormatPlugin.js';
 import { MarkdownRevealPlugin } from '../plugins/MarkdownRevealPlugin.js';
 import { MarkdownRevealNode } from '../plugins/MarkdownRevealNode.js';
 import { CollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode.js';
@@ -192,6 +193,7 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
           <LinkPlugin />
           <HistoryPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          <MarkdownAutoFormatPlugin />
           <MarkdownRevealPlugin />
 
           {autoFocus && !readOnly && <AutoFocusPlugin />}

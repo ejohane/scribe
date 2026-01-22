@@ -526,3 +526,60 @@
 .codeblock-reveal-fence-close {
   margin-top: 4px;
 }
+
+/* === Inline Format Delimiter Reveal Styles === */
+/* When cursor is inside formatted text (bold, italic, etc.), the markdown
+   delimiters (e.g., "**" for bold) are shown around the text */
+
+.inline-reveal-active::before {
+  content: attr(data-delimiter-open);
+  opacity: 0.5;
+  color: #666;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  transition: opacity 100ms ease-in-out;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  margin-right: 1px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.inline-reveal-active::after {
+  content: attr(data-delimiter-close);
+  opacity: 0.5;
+  color: #666;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  transition: opacity 100ms ease-in-out;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  margin-left: 1px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.inline-reveal-delimiter {
+  opacity: 0.5;
+  color: #666;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  transition: opacity 100ms ease-in-out;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875em;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Opening delimiter (e.g., "**" before bold text) */
+.inline-reveal-delimiter-open {
+  margin-right: 1px;
+}
+
+/* Closing delimiter (e.g., "**" after bold text) */
+.inline-reveal-delimiter-close {
+  margin-left: 1px;
+}

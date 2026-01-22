@@ -10,18 +10,13 @@
  * - Cursor position tracking via SELECTION_CHANGE_COMMAND
  * - Formatted region detection (bold, italic, code, links, etc.)
  * - Heading prefix reveal (# prefix) when cursor is on heading line
- * - Coordination with DecoratorNodes to show/hide raw markdown
+ * - Converts formatted nodes to raw markdown text on focus
  * - Smooth state transitions with debouncing
  * - Boundary-aware reveal logic (only reveals when strictly inside)
  *
- * Architecture:
- * The plugin listens to cursor position changes and determines which formatted
- * region (if any) contains the cursor. It then coordinates with custom nodes
- * to reveal the raw markdown syntax for that region while keeping other
- * formatted text rendered normally.
- *
- * For headings, it uses DOM manipulation to show the prefix (e.g., "## ") at
- * the start of the heading line when the cursor is anywhere on that line.
+ * For headings and blockquotes, it temporarily replaces the block with a
+ * paragraph containing the markdown prefix so users can edit it inline.
+
  *
  * @see CollapsibleHeadingPlugin for similar plugin patterns
  */
@@ -29,27 +24,33 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
+  $createParagraphNode,
+  $createTextNode,
+  $getNodeByKey,
   $getSelection,
+  $isElementNode,
+  $isLineBreakNode,
   $isRangeSelection,
   $isTextNode,
-  $getNodeByKey,
-  $createTextNode,
-  SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_LOW,
+  SELECTION_CHANGE_COMMAND,
+  type LexicalNode,
+  type RangeSelection,
 } from 'lexical';
 import { createLogger } from '@scribe/shared';
-import { $createMarkdownRevealNode, $isMarkdownRevealNode } from './MarkdownRevealNode';
 import {
   IS_BOLD,
   IS_ITALIC,
   IS_STRIKETHROUGH,
   IS_CODE,
   BLOCK_PREFIXES,
+  MARKDOWN_DELIMITERS,
 } from './markdownReconstruction';
 import { $isCollapsibleHeadingNode } from './CollapsibleHeadingNode';
-import { $isQuoteNode } from '@lexical/rich-text';
+import { $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $isCodeNode, $isCodeHighlightNode } from '@lexical/code';
+import { $isLinkNode } from '@lexical/link';
 import type { HeadingTagType } from '@lexical/rich-text';
 import type { ListType } from '@lexical/list';
 import type { CodeNode } from '@lexical/code';
@@ -67,6 +68,86 @@ const HANDLED_FORMATS = IS_BOLD | IS_ITALIC | IS_STRIKETHROUGH | IS_CODE;
  * We skip processing these updates to avoid infinite loops.
  */
 const MARKDOWN_REVEAL_TAG = 'markdown-reveal';
+
+interface MarkdownSerializationResult {
+  text: string;
+  selectionOffset: number | null;
+}
+
+function getInlineDelimiters(format: number): { open: string; close: string } {
+  const openParts: string[] = [];
+  const closeParts: string[] = [];
+
+  // Bold is outermost
+  if (format & IS_BOLD) {
+    openParts.push(MARKDOWN_DELIMITERS.bold);
+    closeParts.unshift(MARKDOWN_DELIMITERS.bold);
+  }
+
+  // Then italic
+  if (format & IS_ITALIC) {
+    openParts.push(MARKDOWN_DELIMITERS.italic);
+    closeParts.unshift(MARKDOWN_DELIMITERS.italic);
+  }
+
+  // Then strikethrough
+  if (format & IS_STRIKETHROUGH) {
+    openParts.push(MARKDOWN_DELIMITERS.strikethrough);
+    closeParts.unshift(MARKDOWN_DELIMITERS.strikethrough);
+  }
+
+  // Code is innermost
+  if (format & IS_CODE) {
+    openParts.push(MARKDOWN_DELIMITERS.code);
+    closeParts.unshift(MARKDOWN_DELIMITERS.code);
+  }
+
+  return {
+    open: openParts.join(''),
+    close: closeParts.join(''),
+  };
+}
+
+function serializeNodeToMarkdown(
+  node: LexicalNode,
+  selection: RangeSelection | null
+): MarkdownSerializationResult {
+  let text = '';
+  let selectionOffset: number | null = null;
+
+  const anchorNodeKey = selection?.anchor.getNode().getKey() ?? null;
+  const anchorOffset = selection?.anchor.offset ?? 0;
+
+  const walkNode = (current: LexicalNode): void => {
+    if ($isTextNode(current)) {
+      const { open, close } = getInlineDelimiters(current.getFormat());
+      const content = current.getTextContent();
+
+      if (anchorNodeKey === current.getKey()) {
+        selectionOffset = text.length + open.length + anchorOffset;
+      }
+
+      text += `${open}${content}${close}`;
+      return;
+    }
+
+    if ($isLineBreakNode(current)) {
+      if (anchorNodeKey === current.getKey()) {
+        selectionOffset = text.length;
+      }
+      text += '\n';
+      return;
+    }
+
+    if ($isElementNode(current)) {
+      current.getChildren().forEach((child) => walkNode(child));
+    }
+  };
+
+  walkNode(node);
+
+  return { text, selectionOffset };
+}
 
 /**
  * Tracks which formatted region (if any) the cursor is currently inside.
@@ -98,15 +179,13 @@ export interface RevealedRegion {
 const CURSOR_DEBOUNCE_MS = 16;
 
 /**
- * Tracks the state of a currently revealed node for restoration.
- * When a TextNode is replaced with a MarkdownRevealNode, we store the
- * original text and format so we can restore it when the cursor exits.
+ * Tracks the state of the currently revealed inline markdown node.
+ * When a formatted TextNode is replaced with raw markdown text,
+ * we store the replacement key and format for coordination.
  */
 interface RevealedNodeState {
-  /** The key of the MarkdownRevealNode that replaced the original TextNode */
+  /** The key of the raw markdown TextNode */
   revealNodeKey: string;
-  /** The original text content */
-  text: string;
   /** The original Lexical format bitmask */
   format: number;
 }
@@ -120,6 +199,17 @@ interface FocusedHeading {
   nodeKey: string;
   /** The heading tag (h1, h2, ..., h6) */
   tag: HeadingTagType;
+}
+
+/**
+ * Tracks the currently focused link for markdown reveal.
+ * When the cursor is inside a link, we show the raw markdown syntax.
+ */
+interface FocusedLink {
+  /** The Lexical node key of the link */
+  nodeKey: string;
+  /** The link URL */
+  url: string;
 }
 
 /**
@@ -181,9 +271,9 @@ interface FocusedCodeBlock {
  * 5. **Debouncing**: Prevent flickering during rapid cursor movement
  *
  * Future enhancements (to be implemented in subsequent tasks):
- * - Coordinate with MarkdownRevealNode for actual reveal/hide rendering
- * - Support for block-level markdown (headings, lists, code blocks)
- * - Link URL reveal on focus
+ * - Expand editable markdown to list markers and code fences
+
+
  *
  * @returns null - This plugin has no visual output; it only manages state
  *
@@ -212,6 +302,12 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const [focusedHeading, setFocusedHeading] = useState<FocusedHeading | null>(null);
 
   /**
+   * Currently focused link for markdown reveal, or null if cursor is not in a link.
+   * When set, the link markdown syntax should be visible.
+   */
+  const [focusedLink, setFocusedLink] = useState<FocusedLink | null>(null);
+
+  /**
    * Currently focused blockquote for prefix reveal, or null if cursor is not in a blockquote.
    * When set, the blockquote prefix (e.g., "> ") should be visible.
    */
@@ -230,23 +326,10 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   const [focusedCodeBlock, setFocusedCodeBlock] = useState<FocusedCodeBlock | null>(null);
 
   /**
-   * Tracks the currently revealed MarkdownRevealNode and its original state.
-   * Used to restore the original TextNode when the cursor exits.
-   * Using a ref to avoid triggering re-renders on every state change.
+   * Tracks the currently revealed inline markdown text node.
+   * Used to keep raw markdown visible while editing.
    */
   const revealedNodeStateRef = useRef<RevealedNodeState | null>(null);
-
-  /**
-   * Ref to track the DOM element of the currently revealed heading prefix.
-   * Used to clean up the prefix element when cursor exits the heading.
-   */
-  const headingPrefixRef = useRef<HTMLSpanElement | null>(null);
-
-  /**
-   * Ref to track the DOM element of the currently revealed blockquote prefix.
-   * Used to clean up the prefix element when cursor exits the blockquote.
-   */
-  const blockquotePrefixRef = useRef<HTMLSpanElement | null>(null);
 
   /**
    * Ref to track the DOM element of the currently revealed list item prefix.
@@ -284,69 +367,6 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
    * Prevents re-entrant calls that could cause infinite loops.
    */
   const isRevealOperationInProgressRef = useRef(false);
-
-  /**
-   * Checks if the cursor is adjacent to (immediately before or after) a MarkdownRevealNode.
-   * This is used to determine if we should keep the reveal visible when the cursor
-   * moves to the boundary of the revealed region.
-   *
-   * @returns The key of the adjacent MarkdownRevealNode, or null if not adjacent
-   */
-  const getAdjacentRevealNodeKey = useCallback((): string | null => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-      return null;
-    }
-
-    const anchor = selection.anchor;
-    const anchorNode = anchor.getNode();
-
-    // If we're directly in a MarkdownRevealNode (shouldn't happen but check)
-    if ($isMarkdownRevealNode(anchorNode)) {
-      return anchorNode.getKey();
-    }
-
-    // Check if we're in an element and adjacent to a MarkdownRevealNode
-    if ($isTextNode(anchorNode)) {
-      const offset = anchor.offset;
-      const textLength = anchorNode.getTextContentSize();
-
-      // At the end of a text node, check the next sibling
-      if (offset === textLength) {
-        const nextSibling = anchorNode.getNextSibling();
-        if ($isMarkdownRevealNode(nextSibling)) {
-          return nextSibling.getKey();
-        }
-      }
-
-      // At the start of a text node, check the previous sibling
-      if (offset === 0) {
-        const prevSibling = anchorNode.getPreviousSibling();
-        if ($isMarkdownRevealNode(prevSibling)) {
-          return prevSibling.getKey();
-        }
-      }
-    }
-
-    // Check siblings at the element level
-    const parent = anchorNode.getParent();
-    if (parent) {
-      // If anchor is at start of its node, check previous sibling
-      if (anchor.offset === 0) {
-        const prevSibling = anchorNode.getPreviousSibling();
-        if ($isMarkdownRevealNode(prevSibling)) {
-          return prevSibling.getKey();
-        }
-      }
-
-      // Check if the anchor node itself is a MarkdownRevealNode
-      if ($isMarkdownRevealNode(anchorNode)) {
-        return anchorNode.getKey();
-      }
-    }
-
-    return null;
-  }, []);
 
   /**
    * Detects if the current selection is inside a formatted region.
@@ -427,21 +447,54 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     const anchor = selection.anchor;
     const anchorNode = anchor.getNode();
 
-    // Check if the anchor node's parent is a CollapsibleHeadingNode
-    const parent = anchorNode.getParent();
-    if ($isCollapsibleHeadingNode(parent)) {
-      return {
-        nodeKey: parent.getKey(),
-        tag: parent.getTag(),
-      };
+    const getHeadingFocus = (node: LexicalNode | null): FocusedHeading | null => {
+      if (!node) {
+        return null;
+      }
+
+      if ($isCollapsibleHeadingNode(node) || $isHeadingNode(node)) {
+        return {
+          nodeKey: node.getKey(),
+          tag: node.getTag(),
+        };
+      }
+
+      return null;
+    };
+
+    const parentHeading = getHeadingFocus(anchorNode.getParent());
+    if (parentHeading) {
+      return parentHeading;
     }
 
-    // Check if the anchor node itself is a CollapsibleHeadingNode (empty heading case)
-    if ($isCollapsibleHeadingNode(anchorNode)) {
-      return {
-        nodeKey: anchorNode.getKey(),
-        tag: anchorNode.getTag(),
-      };
+    return getHeadingFocus(anchorNode);
+  }, []);
+
+  /**
+   * Detects if the current selection is inside a link.
+   * Returns the link details if found, or null if not on a link.
+   *
+   * @returns FocusedLink if cursor is inside a link, null otherwise
+   */
+  const detectLinkFocus = useCallback((): FocusedLink | null => {
+    const selection = $getSelection();
+
+    // Only handle collapsed selections (cursor position, not text selection)
+    if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+      return null;
+    }
+
+    const anchor = selection.anchor;
+    let currentNode: LexicalNode | null = anchor.getNode();
+
+    while (currentNode) {
+      if ($isLinkNode(currentNode)) {
+        return {
+          nodeKey: currentNode.getKey(),
+          url: currentNode.getURL(),
+        };
+      }
+      currentNode = currentNode.getParent();
     }
 
     return null;
@@ -757,51 +810,70 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
           prevCursorRef.current = currentCursor;
         }
 
-        const newRegion = detectFormattedRegion();
+        let newRegion = detectFormattedRegion();
         const newHeadingFocus = detectHeadingFocus();
+        const newLinkFocus = detectLinkFocus();
         const newBlockquoteFocus = detectBlockquoteFocus();
         const newListItemFocus = detectListItemFocus();
         const newCodeBlockFocus = detectCodeBlockFocus();
         const currentRevealState = revealedNodeStateRef.current;
 
-        // If we have a currently revealed node, check if we're still adjacent to it
-        if (currentRevealState) {
-          const adjacentRevealKey = getAdjacentRevealNodeKey();
+        if (newLinkFocus) {
+          newRegion = null;
+        }
 
-          // If cursor is adjacent to our current reveal node, keep it revealed
-          if (adjacentRevealKey === currentRevealState.revealNodeKey) {
-            log.debug('Cursor adjacent to reveal, keeping visible');
-            // Still update heading and blockquote focus even if keeping inline reveal
-            setFocusedHeading((prevHeading) => {
-              if (!prevHeading && !newHeadingFocus) return null;
-              if (!prevHeading || !newHeadingFocus) return newHeadingFocus;
-              if (prevHeading.nodeKey !== newHeadingFocus.nodeKey) return newHeadingFocus;
-              return prevHeading;
-            });
-            setFocusedBlockquote((prevBlockquote) => {
-              if (!prevBlockquote && !newBlockquoteFocus) return null;
-              if (!prevBlockquote || !newBlockquoteFocus) return newBlockquoteFocus;
-              if (prevBlockquote.nodeKey !== newBlockquoteFocus.nodeKey) return newBlockquoteFocus;
-              return prevBlockquote;
-            });
-            setFocusedListItem((prevListItem) => {
-              if (!prevListItem && !newListItemFocus) return null;
-              if (!prevListItem || !newListItemFocus) return newListItemFocus;
-              if (prevListItem.nodeKey !== newListItemFocus.nodeKey) return newListItemFocus;
-              return prevListItem;
-            });
-            setFocusedCodeBlock((prevCodeBlock) => {
-              if (!prevCodeBlock && !newCodeBlockFocus) return null;
-              if (!prevCodeBlock || !newCodeBlockFocus) return newCodeBlockFocus;
-              if (
-                prevCodeBlock.nodeKey !== newCodeBlockFocus.nodeKey ||
-                prevCodeBlock.fenceType !== newCodeBlockFocus.fenceType
-              )
-                return newCodeBlockFocus;
-              return prevCodeBlock;
-            });
-            return; // Don't change inline reveal state
+        // If we have a currently revealed node, keep it visible while cursor is inside
+        if (currentRevealState) {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection) && selection.isCollapsed()) {
+            const anchorNode = selection.anchor.getNode();
+            if (
+              $isTextNode(anchorNode) &&
+              anchorNode.getKey() === currentRevealState.revealNodeKey
+            ) {
+              log.debug('Cursor inside revealed markdown, keeping visible');
+              // Still update heading and blockquote focus even if keeping inline reveal
+              setFocusedHeading((prevHeading) => {
+                if (!prevHeading && !newHeadingFocus) return null;
+                if (!prevHeading || !newHeadingFocus) return newHeadingFocus;
+                if (prevHeading.nodeKey !== newHeadingFocus.nodeKey) return newHeadingFocus;
+                return prevHeading;
+              });
+              setFocusedLink((prevLink) => {
+                if (!prevLink && !newLinkFocus) return null;
+                if (!prevLink || !newLinkFocus) return newLinkFocus;
+                if (prevLink.nodeKey !== newLinkFocus.nodeKey) return newLinkFocus;
+                return prevLink;
+              });
+              setFocusedBlockquote((prevBlockquote) => {
+                if (!prevBlockquote && !newBlockquoteFocus) return null;
+                if (!prevBlockquote || !newBlockquoteFocus) return newBlockquoteFocus;
+                if (prevBlockquote.nodeKey !== newBlockquoteFocus.nodeKey)
+                  return newBlockquoteFocus;
+                return prevBlockquote;
+              });
+              setFocusedListItem((prevListItem) => {
+                if (!prevListItem && !newListItemFocus) return null;
+                if (!prevListItem || !newListItemFocus) return newListItemFocus;
+                if (prevListItem.nodeKey !== newListItemFocus.nodeKey) return newListItemFocus;
+                return prevListItem;
+              });
+              setFocusedCodeBlock((prevCodeBlock) => {
+                if (!prevCodeBlock && !newCodeBlockFocus) return null;
+                if (!prevCodeBlock || !newCodeBlockFocus) return newCodeBlockFocus;
+                if (
+                  prevCodeBlock.nodeKey !== newCodeBlockFocus.nodeKey ||
+                  prevCodeBlock.fenceType !== newCodeBlockFocus.fenceType
+                )
+                  return newCodeBlockFocus;
+                return prevCodeBlock;
+              });
+              return; // Don't change inline reveal state
+            }
           }
+
+          // Cursor left the revealed node; clear state so it can reformat
+          revealedNodeStateRef.current = null;
         }
 
         // Update heading focus state
@@ -835,6 +907,35 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
 
           // No change
           return prevHeading;
+        });
+
+        // Update link focus state
+        setFocusedLink((prevLink) => {
+          if (!prevLink && !newLinkFocus) {
+            return null;
+          }
+
+          if (!prevLink || !newLinkFocus) {
+            if (newLinkFocus) {
+              log.debug('Focusing link', {
+                nodeKey: newLinkFocus.nodeKey,
+                url: newLinkFocus.url,
+              });
+            } else {
+              log.debug('Unfocusing link');
+            }
+            return newLinkFocus;
+          }
+
+          if (prevLink.nodeKey !== newLinkFocus.nodeKey) {
+            log.debug('Link focus changed', {
+              from: prevLink.nodeKey,
+              to: newLinkFocus.nodeKey,
+            });
+            return newLinkFocus;
+          }
+
+          return prevLink;
         });
 
         // Update blockquote focus state
@@ -995,10 +1096,10 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     editor,
     detectFormattedRegion,
     detectHeadingFocus,
+    detectLinkFocus,
     detectBlockquoteFocus,
     detectListItemFocus,
     detectCodeBlockFocus,
-    getAdjacentRevealNodeKey,
   ]);
 
   /**
@@ -1050,7 +1151,7 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
 
   /**
    * Reveals markdown syntax for a formatted text node.
-   * Replaces the TextNode with a MarkdownRevealNode showing raw markdown.
+   * Replaces the formatted TextNode with raw markdown text so users can edit it.
    *
    * @param nodeKey - The key of the TextNode to reveal
    */
@@ -1075,7 +1176,6 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
             return;
           }
 
-          const text = textNode.getTextContent();
           const format = textNode.getFormat();
 
           // Double-check this is a format we handle
@@ -1085,29 +1185,47 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
             return;
           }
 
-          // Create the reveal node
-          const revealNode = $createMarkdownRevealNode(text, format);
+          const selection = $getSelection();
+          const selectionOffset =
+            $isRangeSelection(selection) &&
+            selection.isCollapsed() &&
+            selection.anchor.getNode().getKey() === nodeKey
+              ? selection.anchor.offset
+              : null;
 
-          // Replace the text node with reveal node
+          const { open, close } = getInlineDelimiters(format);
+          const text = textNode.getTextContent();
+          const markdownText = `${open}${text}${close}`;
+
+          const revealNode = $createTextNode(markdownText);
+          revealNode.setStyle(textNode.getStyle());
+          revealNode.setDetail(textNode.getDetail());
+          revealNode.setMode(textNode.getMode());
+
           textNode.replace(revealNode);
 
-          // Store state for restoration
           revealedNodeStateRef.current = {
             revealNodeKey: revealNode.getKey(),
-            text,
             format,
           };
 
+          if (selectionOffset !== null) {
+            const nextOffset = Math.min(open.length + selectionOffset, markdownText.length);
+            revealNode.select(nextOffset, nextOffset);
+          }
+
           log.debug('Revealed markdown', {
             nodeKey: revealNode.getKey(),
-            text,
+            text: markdownText,
             format,
           });
 
-          // Clear the guard after a microtask to allow the DOM to settle
-          queueMicrotask(() => {
+          // Clear the guard after a delay longer than the debounce period (16ms)
+          // to ensure selection change events triggered by the node replacement
+          // don't cause an immediate hide. This prevents the reveal/hide loop.
+          setTimeout(() => {
             isRevealOperationInProgressRef.current = false;
-          });
+          }, CURSOR_DEBOUNCE_MS + 10);
         },
         {
           // Use discrete to prevent this from being added to undo history
@@ -1121,126 +1239,32 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   );
 
   /**
-   * Hides the revealed markdown and restores the original TextNode.
-   * Called when cursor exits the revealed region.
-   */
-  const hideRevealedMarkdown = useCallback(() => {
-    const state = revealedNodeStateRef.current;
-    if (!state) {
-      return;
-    }
-
-    // Guard against re-entrant calls
-    if (isRevealOperationInProgressRef.current) {
-      log.debug('Reveal operation already in progress, skipping hide');
-      return;
-    }
-
-    isRevealOperationInProgressRef.current = true;
-
-    editor.update(
-      () => {
-        const revealNode = $getNodeByKey(state.revealNodeKey);
-
-        // Verify it's still a MarkdownRevealNode
-        if (!$isMarkdownRevealNode(revealNode)) {
-          log.debug('Node is no longer a MarkdownRevealNode, skipping hide', {
-            nodeKey: state.revealNodeKey,
-          });
-          revealedNodeStateRef.current = null;
-          isRevealOperationInProgressRef.current = false;
-          return;
-        }
-
-        // Create a new TextNode with the original text and format
-        const textNode = $createTextNode(state.text);
-        textNode.setFormat(state.format);
-
-        // Replace the reveal node with the text node
-        revealNode.replace(textNode);
-
-        log.debug('Hid markdown', {
-          nodeKey: textNode.getKey(),
-          text: state.text,
-          format: state.format,
-        });
-
-        // Clear the stored state
-        revealedNodeStateRef.current = null;
-
-        // Clear the guard after a microtask to allow the DOM to settle
-        queueMicrotask(() => {
-          isRevealOperationInProgressRef.current = false;
-        });
-      },
-      {
-        // Use discrete to prevent this from being added to undo history
-        discrete: true,
-        // Tag this update so we can skip it in the update listener
-        tag: MARKDOWN_REVEAL_TAG,
-      }
-    );
-  }, [editor]);
-
-  /**
-   * Effect that triggers reveal/hide based on revealedRegion changes.
-   * This is the main coordination point between cursor tracking and node replacement.
-   *
-   * Handles three scenarios:
-   * 1. revealedRegion goes from null to a region → reveal that region
-   * 2. revealedRegion goes from a region to null → hide current reveal
-   * 3. revealedRegion changes to a different region → hide current, reveal new
-   *
-   * Uses queueMicrotask to defer editor updates out of React's render cycle,
-   * avoiding flushSync conflicts when other plugins (like MarkdownShortcutPlugin)
-   * also update the editor state.
+   * Effect that triggers inline markdown reveal when entering a formatted region.
+   * Raw markdown is inserted for editing, and formatting is restored by the
+   * auto-format plugin once the cursor leaves the region.
    */
   useEffect(() => {
-    const currentState = revealedNodeStateRef.current;
-
-    // Case 1 & 3: If revealedRegion is null, hide any current reveal
     if (!revealedRegion) {
-      if (currentState) {
-        // Defer to avoid flushSync conflict
-        queueMicrotask(() => {
-          hideRevealedMarkdown();
-        });
-      }
       return;
     }
 
-    // Case 2: revealedRegion is set, check if we need to reveal
-    // If we already have a reveal for a different node, hide it first
-    if (currentState) {
-      // We already have a reveal - this might be a transition to a new region
-      // The handleSelectionChange logic should prevent this from running
-      // when we're still adjacent to the current reveal, but just in case:
-      // Defer to avoid flushSync conflict
-      queueMicrotask(() => {
-        hideRevealedMarkdown();
-        // Now reveal the new region after hiding
-        revealFormattedText(revealedRegion.nodeKey);
-      });
+    if (revealedNodeStateRef.current) {
       return;
     }
 
-    // Now reveal the new region - defer to avoid flushSync conflict
     queueMicrotask(() => {
       revealFormattedText(revealedRegion.nodeKey);
     });
-  }, [revealedRegion, hideRevealedMarkdown, revealFormattedText]);
+  }, [revealedRegion, revealFormattedText]);
 
   /**
    * Cleanup: ensure we restore any revealed nodes when the plugin unmounts.
    */
   useEffect(() => {
     return () => {
-      // On unmount, restore any revealed markdown
-      if (revealedNodeStateRef.current) {
-        hideRevealedMarkdown();
-      }
+      revealedNodeStateRef.current = null;
     };
-  }, [hideRevealedMarkdown]);
+  }, []);
 
   /**
    * Gets the markdown prefix for a heading tag.
@@ -1253,64 +1277,117 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
-   * Effect that manages the heading prefix reveal via DOM manipulation.
-   * When cursor is on a heading line, shows the markdown prefix (e.g., "## ").
-   * When cursor exits the heading, removes the prefix.
-   *
-   * Uses requestAnimationFrame to schedule DOM updates for optimal performance.
+   * Effect that reveals editable markdown for headings.
+   * When cursor enters a heading line, replaces it with a paragraph containing
+   * the markdown prefix so users can edit or delete the "#" markers.
    */
   useEffect(() => {
-    // Remove any existing prefix first (synchronous for cleanup)
-    if (headingPrefixRef.current) {
-      headingPrefixRef.current.remove();
-      headingPrefixRef.current = null;
-    }
-
-    // If no heading is focused, we're done
     if (!focusedHeading) {
       return;
     }
 
-    // Schedule DOM update in next animation frame for optimal performance
-    const rafId = requestAnimationFrame(() => {
-      // Get the DOM element for the heading
-      const headingElement = editor.getElementByKey(focusedHeading.nodeKey);
-      if (!headingElement) {
-        log.debug('Could not find heading element', { nodeKey: focusedHeading.nodeKey });
-        return;
+    if (isRevealOperationInProgressRef.current) {
+      return;
+    }
+
+    isRevealOperationInProgressRef.current = true;
+
+    editor.update(
+      () => {
+        const headingNode = $getNodeByKey(focusedHeading.nodeKey);
+        if (!$isCollapsibleHeadingNode(headingNode) && !$isHeadingNode(headingNode)) {
+          isRevealOperationInProgressRef.current = false;
+          return;
+        }
+
+        const selection = $getSelection();
+        const selectionInfo =
+          $isRangeSelection(selection) && selection.isCollapsed() ? selection : null;
+
+        const { text, selectionOffset } = serializeNodeToMarkdown(headingNode, selectionInfo);
+        const prefix = getHeadingPrefix(focusedHeading.tag);
+        const markdownText = `${prefix}${text}`;
+
+        const paragraphNode = $createParagraphNode();
+        const textNode = $createTextNode(markdownText);
+        paragraphNode.append(textNode);
+        headingNode.replace(paragraphNode);
+
+        if (selectionOffset !== null) {
+          const nextOffset = Math.min(prefix.length + selectionOffset, markdownText.length);
+          textNode.select(nextOffset, nextOffset);
+        }
+
+        log.debug('Revealed heading markdown', {
+          nodeKey: paragraphNode.getKey(),
+          tag: focusedHeading.tag,
+          prefix,
+        });
+      },
+      {
+        discrete: true,
+        tag: MARKDOWN_REVEAL_TAG,
       }
+    );
 
-      // Create the prefix span element
-      const prefix = getHeadingPrefix(focusedHeading.tag);
-      const prefixSpan = document.createElement('span');
-      prefixSpan.className = 'heading-reveal-prefix';
-      prefixSpan.textContent = prefix;
-      // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
-      // The prefix is read-only for now. Users can change heading level via:
-      // - The formatting toolbar
-      // - Markdown shortcuts (e.g., typing "## " at the start of a new line)
-      // Future enhancement: implement editable prefix that updates heading level.
-
-      // Insert at the start of the heading
-      headingElement.insertBefore(prefixSpan, headingElement.firstChild);
-      headingPrefixRef.current = prefixSpan;
-
-      log.debug('Revealed heading prefix', {
-        nodeKey: focusedHeading.nodeKey,
-        tag: focusedHeading.tag,
-        prefix,
-      });
-    });
-
-    // Cleanup function: cancel pending RAF and remove the prefix
-    return () => {
-      cancelAnimationFrame(rafId);
-      if (headingPrefixRef.current) {
-        headingPrefixRef.current.remove();
-        headingPrefixRef.current = null;
-      }
-    };
+    setTimeout(() => {
+      isRevealOperationInProgressRef.current = false;
+    }, CURSOR_DEBOUNCE_MS + 10);
   }, [editor, focusedHeading, getHeadingPrefix]);
+
+  /**
+   * Effect that reveals editable markdown for links.
+   * When cursor enters a link, replaces it with markdown text so users can edit it.
+   */
+  useEffect(() => {
+    if (!focusedLink) {
+      return;
+    }
+
+    if (isRevealOperationInProgressRef.current) {
+      return;
+    }
+
+    isRevealOperationInProgressRef.current = true;
+
+    editor.update(
+      () => {
+        const linkNode = $getNodeByKey(focusedLink.nodeKey);
+        if (!$isLinkNode(linkNode)) {
+          isRevealOperationInProgressRef.current = false;
+          return;
+        }
+
+        const selection = $getSelection();
+        const selectionInfo =
+          $isRangeSelection(selection) && selection.isCollapsed() ? selection : null;
+
+        const { text, selectionOffset } = serializeNodeToMarkdown(linkNode, selectionInfo);
+        const markdownText = `[${text}](${focusedLink.url})`;
+
+        const textNode = $createTextNode(markdownText);
+        linkNode.replace(textNode);
+
+        if (selectionOffset !== null) {
+          const nextOffset = Math.min(1 + selectionOffset, markdownText.length);
+          textNode.select(nextOffset, nextOffset);
+        }
+
+        log.debug('Revealed link markdown', {
+          nodeKey: textNode.getKey(),
+          url: focusedLink.url,
+        });
+      },
+      {
+        discrete: true,
+        tag: MARKDOWN_REVEAL_TAG,
+      }
+    );
+
+    setTimeout(() => {
+      isRevealOperationInProgressRef.current = false;
+    }, CURSOR_DEBOUNCE_MS + 10);
+  }, [editor, focusedLink]);
 
   /**
    * Gets the markdown prefix for a blockquote based on nesting level.
@@ -1324,63 +1401,62 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
   }, []);
 
   /**
-   * Effect that manages the blockquote prefix reveal via DOM manipulation.
-   * When cursor is in a blockquote, shows the markdown prefix (e.g., "> ").
-   * For nested blockquotes, shows multiple prefixes (e.g., ">> ").
-   * When cursor exits the blockquote, removes the prefix.
-   *
-   * Uses requestAnimationFrame to schedule DOM updates for optimal performance.
+   * Effect that reveals editable markdown for blockquotes.
+   * When cursor enters a blockquote, replaces it with a paragraph containing
+   * the markdown prefix so users can edit or delete the ">" markers.
    */
   useEffect(() => {
-    // Remove any existing prefix first (synchronous for cleanup)
-    if (blockquotePrefixRef.current) {
-      blockquotePrefixRef.current.remove();
-      blockquotePrefixRef.current = null;
-    }
-
-    // If no blockquote is focused, we're done
     if (!focusedBlockquote) {
       return;
     }
 
-    // Schedule DOM update in next animation frame for optimal performance
-    const rafId = requestAnimationFrame(() => {
-      // Get the DOM element for the blockquote
-      const blockquoteElement = editor.getElementByKey(focusedBlockquote.nodeKey);
-      if (!blockquoteElement) {
-        log.debug('Could not find blockquote element', { nodeKey: focusedBlockquote.nodeKey });
-        return;
+    if (isRevealOperationInProgressRef.current) {
+      return;
+    }
+
+    isRevealOperationInProgressRef.current = true;
+
+    editor.update(
+      () => {
+        const blockquoteNode = $getNodeByKey(focusedBlockquote.nodeKey);
+        if (!$isQuoteNode(blockquoteNode)) {
+          isRevealOperationInProgressRef.current = false;
+          return;
+        }
+
+        const selection = $getSelection();
+        const selectionInfo =
+          $isRangeSelection(selection) && selection.isCollapsed() ? selection : null;
+
+        const { text, selectionOffset } = serializeNodeToMarkdown(blockquoteNode, selectionInfo);
+        const prefix = getBlockquotePrefix(focusedBlockquote.nestingLevel);
+        const markdownText = `${prefix}${text}`;
+
+        const paragraphNode = $createParagraphNode();
+        const textNode = $createTextNode(markdownText);
+        paragraphNode.append(textNode);
+        blockquoteNode.replace(paragraphNode);
+
+        if (selectionOffset !== null) {
+          const nextOffset = Math.min(prefix.length + selectionOffset, markdownText.length);
+          textNode.select(nextOffset, nextOffset);
+        }
+
+        log.debug('Revealed blockquote markdown', {
+          nodeKey: paragraphNode.getKey(),
+          nestingLevel: focusedBlockquote.nestingLevel,
+          prefix,
+        });
+      },
+      {
+        discrete: true,
+        tag: MARKDOWN_REVEAL_TAG,
       }
+    );
 
-      // Create the prefix span element
-      const prefix = getBlockquotePrefix(focusedBlockquote.nestingLevel);
-      const prefixSpan = document.createElement('span');
-      prefixSpan.className = 'blockquote-reveal-prefix';
-      prefixSpan.textContent = prefix;
-      // Note: contentEditable is NOT set to avoid conflicts with Lexical's DOM management.
-      // The prefix is read-only. Users can create blockquotes via:
-      // - The formatting toolbar
-      // - Markdown shortcuts (e.g., typing "> " at the start of a new line)
-
-      // Insert at the start of the blockquote
-      blockquoteElement.insertBefore(prefixSpan, blockquoteElement.firstChild);
-      blockquotePrefixRef.current = prefixSpan;
-
-      log.debug('Revealed blockquote prefix', {
-        nodeKey: focusedBlockquote.nodeKey,
-        nestingLevel: focusedBlockquote.nestingLevel,
-        prefix,
-      });
-    });
-
-    // Cleanup function: cancel pending RAF and remove the prefix
-    return () => {
-      cancelAnimationFrame(rafId);
-      if (blockquotePrefixRef.current) {
-        blockquotePrefixRef.current.remove();
-        blockquotePrefixRef.current = null;
-      }
-    };
+    setTimeout(() => {
+      isRevealOperationInProgressRef.current = false;
+    }, CURSOR_DEBOUNCE_MS + 10);
   }, [editor, focusedBlockquote, getBlockquotePrefix]);
 
   /**

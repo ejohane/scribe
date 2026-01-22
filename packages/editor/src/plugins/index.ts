@@ -7,6 +7,7 @@
  */
 
 // Markdown reveal plugin and components
+export { MarkdownAutoFormatPlugin } from './MarkdownAutoFormatPlugin.js';
 export { MarkdownRevealPlugin } from './MarkdownRevealPlugin.js';
 export {
   MarkdownRevealNode,

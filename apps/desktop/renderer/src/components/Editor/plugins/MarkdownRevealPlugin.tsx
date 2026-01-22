@@ -36,6 +36,7 @@ import {
   $createTextNode,
   SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_LOW,
+  type LexicalNode,
 } from 'lexical';
 import { createLogger } from '@scribe/shared';
 import { $createMarkdownRevealNode, $isMarkdownRevealNode } from './MarkdownRevealNode';
@@ -47,7 +48,7 @@ import {
   BLOCK_PREFIXES,
 } from './markdownReconstruction';
 import { $isCollapsibleHeadingNode } from './CollapsibleHeadingNode';
-import { $isQuoteNode } from '@lexical/rich-text';
+import { $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
 import { $isListItemNode, $isListNode } from '@lexical/list';
 import { $isCodeNode, $isCodeHighlightNode } from '@lexical/code';
 import type { HeadingTagType } from '@lexical/rich-text';
@@ -415,24 +416,27 @@ export function MarkdownRevealPlugin(): JSX.Element | null {
     const anchor = selection.anchor;
     const anchorNode = anchor.getNode();
 
-    // Check if the anchor node's parent is a CollapsibleHeadingNode
-    const parent = anchorNode.getParent();
-    if ($isCollapsibleHeadingNode(parent)) {
-      return {
-        nodeKey: parent.getKey(),
-        tag: parent.getTag(),
-      };
+    const getHeadingFocus = (node: LexicalNode | null): FocusedHeading | null => {
+      if (!node) {
+        return null;
+      }
+
+      if ($isCollapsibleHeadingNode(node) || $isHeadingNode(node)) {
+        return {
+          nodeKey: node.getKey(),
+          tag: node.getTag(),
+        };
+      }
+
+      return null;
+    };
+
+    const parentHeading = getHeadingFocus(anchorNode.getParent());
+    if (parentHeading) {
+      return parentHeading;
     }
 
-    // Check if the anchor node itself is a CollapsibleHeadingNode (empty heading case)
-    if ($isCollapsibleHeadingNode(anchorNode)) {
-      return {
-        nodeKey: anchorNode.getKey(),
-        tag: anchorNode.getTag(),
-      };
-    }
-
-    return null;
+    return getHeadingFocus(anchorNode);
   }, []);
 
   /**
