@@ -326,3 +326,84 @@ body {
   background: var(--background);
   overflow: auto;
 }
+
+/* === Markdown Reveal Styles (Typora-style hybrid editing) === */
+
+/* Inline format delimiter reveal - shows markdown syntax around formatted text
+   Uses CSS pseudo-elements to avoid interfering with Lexical's DOM management */
+.inline-reveal-active::before {
+  content: attr(data-delimiter-open);
+  opacity: 0.4;
+  color: oklch(0.5 0 0);
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.85em;
+  margin-right: 1px;
+}
+
+.inline-reveal-active::after {
+  content: attr(data-delimiter-close);
+  opacity: 0.4;
+  color: oklch(0.5 0 0);
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.85em;
+  margin-left: 1px;
+}
+
+/* Heading prefix reveal - shows # prefix when cursor is on heading */
+.heading-reveal-prefix {
+  opacity: 0.4;
+  color: oklch(0.5 0 0);
+  font-weight: normal;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.7em;
+  margin-right: 4px;
+  white-space: pre;
+}
+
+/* Blockquote prefix reveal - shows > prefix when cursor is in blockquote */
+.blockquote-reveal-prefix {
+  opacity: 0.4;
+  color: oklch(0.5 0 0);
+  font-style: normal;
+  font-weight: normal;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  margin-right: 4px;
+  white-space: pre;
+}
+
+/* List item prefix reveal - shows - or 1. prefix when cursor is on list item */
+.listitem-reveal-prefix {
+  opacity: 0.4;
+  color: oklch(0.5 0 0);
+  font-weight: normal;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  margin-right: 4px;
+  white-space: pre;
+  position: absolute;
+  left: -2em;
+}
+
+/* Code block fence reveal - shows ``` when cursor is on first/last line */
+.codeblock-reveal-fence {
+  opacity: 0.4;
+  color: oklch(0.5 0 0);
+  font-weight: normal;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.85em;
+  display: block;
+  white-space: pre;
+}
+
+.codeblock-reveal-fence-open {
+  margin-bottom: 4px;
+}
+
+.codeblock-reveal-fence-close {
+  margin-top: 4px;
+}

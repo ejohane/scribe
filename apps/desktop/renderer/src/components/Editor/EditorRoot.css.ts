@@ -511,3 +511,188 @@ globalStyle('.collapsed-content', {
 globalStyle('.collapsible-heading', {
   position: 'relative',
 });
+
+// === Markdown Reveal styles ===
+// These styles are used by MarkdownRevealNode to visually distinguish
+// revealed markdown syntax, making delimiters appear muted while keeping content readable.
+
+/**
+ * Container for the entire revealed markdown.
+ * Ensures inline display to flow with surrounding text.
+ */
+export const markdownReveal = style({
+  display: 'inline',
+});
+
+/**
+ * Styles for markdown delimiter characters (**, *, ~~, `, etc.).
+ * Uses muted opacity to create visual distinction from content.
+ * The delimiter is visible but de-emphasized, showing "these are syntax markers."
+ */
+export const markdownDelimiter = style({
+  opacity: 0.5,
+  transition: 'opacity 100ms ease-in-out',
+});
+
+/**
+ * Styles for the actual text content between delimiters.
+ * Inherits normal text styling - content should look the same as regular text.
+ */
+export const markdownContent = style({
+  // Inherits normal text styling
+});
+
+// Global styles for markdown reveal - using globalStyle because MarkdownRevealNode uses hardcoded class names
+// Container style for the reveal node
+globalStyle(`${editorInput} .markdown-reveal`, {
+  display: 'inline',
+});
+
+// Content wrapper style - the entire revealed markdown string
+globalStyle(`${editorInput} .markdown-reveal-content`, {
+  display: 'inline',
+});
+
+// Delimiter style - applied to syntax characters when parsed
+globalStyle(`${editorInput} .markdown-reveal-delimiter`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  transition: 'opacity 100ms ease-in-out',
+});
+
+// Text content style - inherits normal text styling
+globalStyle(`${editorInput} .markdown-reveal-text`, {
+  // Inherits normal text styling - no special styles needed
+});
+
+// Inline code reveal styles - monospace font for code content
+// When a markdown-reveal node has data-format-code="true", apply monospace to the content
+globalStyle(`${editorInput} .markdown-reveal[data-format-code="true"] .markdown-reveal-text`, {
+  fontFamily: vars.typography.fontFamily.mono,
+  fontSize: vars.typography.size.sm,
+});
+
+// Also style the delimiters (backticks) for code - keep them slightly smaller to not be too prominent
+globalStyle(`${editorInput} .markdown-reveal[data-format-code="true"] .markdown-reveal-delimiter`, {
+  fontFamily: vars.typography.fontFamily.mono,
+  fontSize: vars.typography.size.sm,
+});
+
+// Strikethrough reveal styles - preserve line-through on content when revealed
+// When a markdown-reveal node has data-format-strikethrough="true", apply strikethrough to the content
+// The delimiters (~~) appear muted but the text content keeps its strikethrough styling
+globalStyle(
+  `${editorInput} .markdown-reveal[data-format-strikethrough="true"] .markdown-reveal-text`,
+  {
+    textDecoration: 'line-through',
+  }
+);
+
+// === Heading Reveal styles ===
+// These styles are used for the heading prefix reveal feature.
+// When cursor is on a heading line, the markdown prefix (e.g., "## ") is shown.
+
+/**
+ * Heading reveal prefix - shown at the start of the heading when focused.
+ * Styled muted to indicate it's syntax, not content.
+ */
+globalStyle(`${editorInput} .heading-reveal-prefix`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Don't inherit heading font size for the prefix - keep it proportional
+  // but not as large as the actual heading text
+  fontSize: '0.7em',
+  // Use monospace font for the hash marks to look more like markdown
+  fontFamily: vars.typography.fontFamily.mono,
+  // Add small margin to separate from heading text
+  marginRight: vars.spacing['1'],
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+});
+
+// === Blockquote Reveal styles ===
+// These styles are used for the blockquote prefix reveal feature.
+// When cursor is in a blockquote, the markdown prefix (e.g., "> ") is shown.
+
+/**
+ * Blockquote reveal prefix - shown at the start of the blockquote when focused.
+ * Styled muted to indicate it's syntax, not content.
+ * Similar styling to heading prefix but without font size reduction.
+ */
+globalStyle(`${editorInput} .blockquote-reveal-prefix`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontStyle: 'normal', // Override blockquote's italic style for the prefix
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Use monospace font for the > character to look more like markdown
+  fontFamily: vars.typography.fontFamily.mono,
+  // Add small margin to separate from blockquote text
+  marginRight: vars.spacing['1'],
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+});
+
+// === List Item Reveal styles ===
+// These styles are used for the list item prefix reveal feature.
+// When cursor is on a list item, the markdown prefix (e.g., "- " or "1. ") is shown.
+
+/**
+ * List item reveal prefix - shown at the start of the list item when focused.
+ * Styled muted to indicate it's syntax, not content.
+ */
+globalStyle(`${editorInput} .listitem-reveal-prefix`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Use monospace font for the marker to look more like markdown
+  fontFamily: vars.typography.fontFamily.mono,
+  // Add small margin to separate from list item text
+  marginRight: vars.spacing['1'],
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+  // Preserve whitespace for proper indentation display
+  whiteSpace: 'pre',
+});
+
+// === Code Block Fence Reveal styles ===
+// These styles are used for the code block fence reveal feature.
+// When cursor is on the first line of a code block, the opening fence (```lang) is shown.
+// When cursor is on the last line, the closing fence (```) is shown.
+
+/**
+ * Base style for code block fence reveal - shared by opening and closing fences.
+ * Styled muted to indicate it's syntax, not content.
+ */
+globalStyle(`${editorInput} .codeblock-reveal-fence`, {
+  opacity: 0.5,
+  color: vars.color.foregroundMuted,
+  fontWeight: 'normal',
+  transition: 'opacity 100ms ease-in-out',
+  // Use monospace font to match code block styling
+  fontFamily: vars.typography.fontFamily.mono,
+  fontSize: vars.typography.size.sm,
+  // Make it non-selectable to prevent accidental selection
+  userSelect: 'none',
+  // Display as block for proper positioning
+  display: 'block',
+});
+
+/**
+ * Opening fence style - shown at the start of the code block.
+ * Includes margin bottom to separate from code content.
+ */
+globalStyle(`${editorInput} .codeblock-reveal-fence-open`, {
+  marginBottom: vars.spacing['1'],
+});
+
+/**
+ * Closing fence style - shown at the end of the code block.
+ * Includes margin top to separate from code content.
+ */
+globalStyle(`${editorInput} .codeblock-reveal-fence-close`, {
+  marginTop: vars.spacing['1'],
+});

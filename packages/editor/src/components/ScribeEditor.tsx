@@ -16,6 +16,8 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
+import { TRANSFORMERS } from '@lexical/markdown';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
@@ -26,6 +28,10 @@ import type * as Y from 'yjs';
 import { editorTheme } from '../theme.js';
 import { EditorToolbar } from './EditorToolbar.js';
 import { EditorErrorBoundary } from './EditorErrorBoundary.js';
+import { MarkdownAutoFormatPlugin } from '../plugins/MarkdownAutoFormatPlugin.js';
+import { MarkdownRevealPlugin } from '../plugins/MarkdownRevealPlugin.js';
+import { MarkdownRevealNode } from '../plugins/MarkdownRevealNode.js';
+import { CollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode.js';
 
 /**
  * Editor content type - serialized Lexical state.
@@ -44,6 +50,9 @@ const EDITOR_NODES: Klass<LexicalNode>[] = [
   AutoLinkNode,
   CodeNode,
   CodeHighlightNode,
+  // Hybrid markdown editing nodes
+  MarkdownRevealNode,
+  CollapsibleHeadingNode,
 ];
 
 /**
@@ -183,6 +192,9 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
           <ListPlugin />
           <LinkPlugin />
           <HistoryPlugin />
+          <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          <MarkdownAutoFormatPlugin />
+          <MarkdownRevealPlugin />
 
           {autoFocus && !readOnly && <AutoFocusPlugin />}
 

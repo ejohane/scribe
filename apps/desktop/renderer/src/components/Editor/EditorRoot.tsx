@@ -47,6 +47,8 @@ import { CollapsibleHeadingNode } from './plugins/CollapsibleHeadingNode';
 import { CollapsibleHeadingPlugin } from './plugins/CollapsibleHeadingPlugin';
 import { ImageNode } from './plugins/ImageNode';
 import { ImagePlugin } from './plugins/ImagePlugin';
+import { MarkdownRevealNode } from './plugins/MarkdownRevealNode';
+import { MarkdownRevealPlugin } from './plugins/MarkdownRevealPlugin';
 import { SelectionToolbarPlugin } from './SelectionToolbar';
 import { SlashMenuPlugin } from './SlashMenu';
 import { FindReplacePlugin } from './FindReplace';
@@ -149,6 +151,7 @@ const editorConfig = {
     TableCellNode,
     MarkNode,
     ImageNode,
+    MarkdownRevealNode,
   ],
 };
 
@@ -219,6 +222,7 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           <CheckListShortcutPlugin />
           <TabIndentationPlugin />
           <CollapsibleHeadingPlugin />
+          <MarkdownRevealPlugin />
           <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
           <HorizontalRulePlugin />
           <TablePlugin />
