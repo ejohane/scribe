@@ -18,6 +18,7 @@ import {
   sidebarPanelCapabilitySchema,
   slashCommandCapabilitySchema,
   commandPaletteCommandCapabilitySchema,
+  editorExtensionCapabilitySchema,
   validateManifest,
   safeValidateManifest,
   validateCapability,
@@ -92,6 +93,12 @@ const validCommandPaletteCommandCapabilityFull = {
   shortcut: '⌘T',
   category: 'Tasks',
   priority: 10,
+};
+
+const validEditorExtensionCapability = {
+  type: 'editor-extension',
+  nodes: ['task-node'],
+  plugins: ['task-plugin'],
 };
 
 const validManifestFull = {
@@ -187,12 +194,13 @@ describe('pluginManifestSchema - valid manifests', () => {
         validSidebarPanelCapability,
         validSlashCommandCapability,
         validCommandPaletteCommandCapability,
+        validEditorExtensionCapability,
       ],
     };
     const result = pluginManifestSchema.safeParse(manifest);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.capabilities).toHaveLength(6);
+      expect(result.data.capabilities).toHaveLength(7);
     }
   });
 });
@@ -668,6 +676,41 @@ describe('commandPaletteCommandCapabilitySchema', () => {
 });
 
 // ============================================================================
+// Capability Schema Tests - editor-extension
+// ============================================================================
+
+describe('editorExtensionCapabilitySchema', () => {
+  it('accepts editor extension with nodes and plugins', () => {
+    const result = editorExtensionCapabilitySchema.safeParse(validEditorExtensionCapability);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts editor extension with only nodes', () => {
+    const cap = { type: 'editor-extension', nodes: ['task-node'] };
+    const result = editorExtensionCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts editor extension with only plugins', () => {
+    const cap = { type: 'editor-extension', plugins: ['task-plugin'] };
+    const result = editorExtensionCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects empty node IDs', () => {
+    const cap = { type: 'editor-extension', nodes: [''] };
+    const result = editorExtensionCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects empty plugin IDs', () => {
+    const cap = { type: 'editor-extension', plugins: [''] };
+    const result = editorExtensionCapabilitySchema.safeParse(cap);
+    expect(result.success).toBe(false);
+  });
+});
+
+// ============================================================================
 // Discriminated Union Tests
 // ============================================================================
 
@@ -717,6 +760,14 @@ describe('pluginCapabilitySchema - discriminated union', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.type).toBe('command-palette-command');
+    }
+  });
+
+  it('correctly identifies editor-extension type', () => {
+    const result = pluginCapabilitySchema.safeParse(validEditorExtensionCapability);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe('editor-extension');
     }
   });
 
@@ -878,13 +929,14 @@ describe('Type compatibility with plugin-types.ts', () => {
         { type: 'sidebar-panel', id: 'p1', label: 'Panel', icon: 'Icon' },
         { type: 'slash-command', command: 'cmd', label: 'Cmd' },
         { type: 'command-palette-command', id: 'test.cmd', label: 'Test Command' },
+        { type: 'editor-extension', nodes: ['note-header'], plugins: ['note-header-plugin'] },
       ],
     });
 
-    expect(manifest.capabilities).toHaveLength(6);
+    expect(manifest.capabilities).toHaveLength(7);
 
     // Verify each capability has the expected structure
-    const [trpc, storage, event, panel, cmd, paletteCmd] = manifest.capabilities;
+    const [trpc, storage, event, panel, cmd, paletteCmd, editorExtension] = manifest.capabilities;
 
     expect(trpc.type).toBe('trpc-router');
     expect(storage.type).toBe('storage');
@@ -892,6 +944,7 @@ describe('Type compatibility with plugin-types.ts', () => {
     expect(panel.type).toBe('sidebar-panel');
     expect(cmd.type).toBe('slash-command');
     expect(paletteCmd.type).toBe('command-palette-command');
+    expect(editorExtension.type).toBe('editor-extension');
   });
 });
 

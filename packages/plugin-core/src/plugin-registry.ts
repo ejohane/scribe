@@ -16,6 +16,8 @@ import type {
   ClientPlugin,
   SlashCommandHandler,
   CommandPaletteCommandHandler,
+  EditorExtensionNode,
+  EditorExtensionPlugin,
 } from './plugin-types.js';
 
 // ============================================================================
@@ -133,6 +135,31 @@ export interface CommandPaletteCommandEntry {
 }
 
 /**
+ * Entry for a Lexical node extension.
+ */
+export interface EditorExtensionNodeEntry {
+  id: string;
+  node?: EditorExtensionNode;
+}
+
+/**
+ * Entry for a React editor plugin extension.
+ */
+export interface EditorExtensionPluginEntry {
+  id: string;
+  plugin?: EditorExtensionPlugin;
+}
+
+/**
+ * Entry for an editor extension capability.
+ */
+export interface EditorExtensionEntry {
+  pluginId: string;
+  nodes: EditorExtensionNodeEntry[];
+  plugins: EditorExtensionPluginEntry[];
+}
+
+/**
  * Union type for all capability entries.
  */
 export type CapabilityEntry =
@@ -141,7 +168,8 @@ export type CapabilityEntry =
   | EventHookEntry
   | SidebarPanelEntry
   | SlashCommandEntry
-  | CommandPaletteCommandEntry;
+  | CommandPaletteCommandEntry
+  | EditorExtensionEntry;
 
 /**
  * Map from capability type to its entry type.
@@ -153,6 +181,7 @@ export interface CapabilityTypeMap {
   'sidebar-panel': SidebarPanelEntry;
   'slash-command': SlashCommandEntry;
   'command-palette-command': CommandPaletteCommandEntry;
+  'editor-extension': EditorExtensionEntry;
 }
 
 /**
@@ -165,6 +194,7 @@ export interface CapabilityIndex {
   'sidebar-panel': Map<string, SidebarPanelEntry>;
   'slash-command': Map<string, SlashCommandEntry>;
   'command-palette-command': Map<string, CommandPaletteCommandEntry>;
+  'editor-extension': Map<string, EditorExtensionEntry>;
 }
 
 // ============================================================================
@@ -205,6 +235,7 @@ export class PluginRegistry {
     'sidebar-panel': new Map(),
     'slash-command': new Map(),
     'command-palette-command': new Map(),
+    'editor-extension': new Map(),
   };
 
   /**
@@ -237,7 +268,7 @@ export class PluginRegistry {
 
     // Register each capability, warning on conflicts
     for (const capability of plugin.manifest.capabilities) {
-      const conflictId = this.getCapabilityConflictId(capability);
+      const conflictId = this.getCapabilityConflictId(capability, pluginId);
 
       if (this.hasCapabilityConflict(capability.type, conflictId)) {
         // eslint-disable-next-line no-console -- Intentional warning for plugin developers
@@ -277,7 +308,7 @@ export class PluginRegistry {
 
     // Remove all capabilities for this plugin
     for (const capability of registered.plugin.manifest.capabilities) {
-      this.removeCapabilityFromIndex(capability);
+      this.removeCapabilityFromIndex(pluginId, capability);
     }
 
     // Remove the plugin from the registry
@@ -364,7 +395,7 @@ export class PluginRegistry {
    * @param capability - The capability to get the conflict ID for
    * @returns The unique identifier used for conflict detection
    */
-  private getCapabilityConflictId(capability: PluginCapability): string {
+  private getCapabilityConflictId(capability: PluginCapability, pluginId?: string): string {
     switch (capability.type) {
       case 'trpc-router':
         return capability.namespace;
@@ -382,7 +413,29 @@ export class PluginRegistry {
         return capability.command;
       case 'command-palette-command':
         return capability.id;
+      case 'editor-extension':
+        return pluginId ?? 'editor-extension';
     }
+  }
+
+  private getEditorExtensionMap<T>(
+    pluginId: string,
+    value: unknown,
+    label: 'nodes' | 'plugins'
+  ): Record<string, T> {
+    if (!value) {
+      return {};
+    }
+
+    if (typeof value !== 'object' || Array.isArray(value)) {
+      // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+      console.warn(
+        `[plugin-registry] Invalid editor extension ${label} for ${pluginId}; expected record.`
+      );
+      return {};
+    }
+
+    return value as Record<string, T>;
   }
 
   /**
@@ -406,14 +459,14 @@ export class PluginRegistry {
         break;
 
       case 'storage':
-        this.capabilityIndex['storage'].set(this.getCapabilityConflictId(capability), {
+        this.capabilityIndex['storage'].set(this.getCapabilityConflictId(capability, pluginId), {
           pluginId,
           keys: capability.keys,
         });
         break;
 
       case 'event-hook':
-        this.capabilityIndex['event-hook'].set(this.getCapabilityConflictId(capability), {
+        this.capabilityIndex['event-hook'].set(this.getCapabilityConflictId(capability, pluginId), {
           pluginId,
           events: capability.events,
         });
@@ -475,6 +528,41 @@ export class PluginRegistry {
         this.capabilityIndex['command-palette-command'].set(capability.id, paletteCommandEntry);
         break;
       }
+
+      case 'editor-extension': {
+        const editorExtensions = 'editorExtensions' in plugin ? plugin.editorExtensions : undefined;
+        const nodesMap = this.getEditorExtensionMap<EditorExtensionNode>(
+          pluginId,
+          editorExtensions?.nodes,
+          'nodes'
+        );
+        const pluginsMap = this.getEditorExtensionMap<EditorExtensionPlugin>(
+          pluginId,
+          editorExtensions?.plugins,
+          'plugins'
+        );
+
+        const nodeIds = capability.nodes ?? Object.keys(nodesMap);
+        const pluginIds = capability.plugins ?? Object.keys(pluginsMap);
+
+        const extensionEntry: EditorExtensionEntry = {
+          pluginId,
+          nodes: nodeIds.map((id) => ({
+            id,
+            node: nodesMap[id],
+          })),
+          plugins: pluginIds.map((id) => ({
+            id,
+            plugin: pluginsMap[id],
+          })),
+        };
+
+        this.capabilityIndex['editor-extension'].set(
+          this.getCapabilityConflictId(capability, pluginId),
+          extensionEntry
+        );
+        break;
+      }
     }
   }
 
@@ -483,8 +571,8 @@ export class PluginRegistry {
    *
    * @param capability - The capability to remove
    */
-  private removeCapabilityFromIndex(capability: PluginCapability): void {
-    const conflictId = this.getCapabilityConflictId(capability);
+  private removeCapabilityFromIndex(pluginId: string, capability: PluginCapability): void {
+    const conflictId = this.getCapabilityConflictId(capability, pluginId);
     this.capabilityIndex[capability.type].delete(conflictId);
   }
 
@@ -539,6 +627,7 @@ export class PluginRegistry {
       'sidebar-panel': new Map(),
       'slash-command': new Map(),
       'command-palette-command': new Map(),
+      'editor-extension': new Map(),
     };
   }
 }

@@ -105,7 +105,8 @@ export type PluginCapability =
   | EventHookCapability
   | SidebarPanelCapability
   | SlashCommandCapability
-  | CommandPaletteCommandCapability;
+  | CommandPaletteCommandCapability
+  | EditorExtensionCapability;
 
 /**
  * Capability for plugins that expose a tRPC router.
@@ -281,6 +282,54 @@ export interface CommandPaletteCommandCapability {
    * Default: 100
    */
   priority?: number;
+}
+
+/**
+ * Lexical editor nodes provided by plugins.
+ *
+ * We intentionally keep this type generic to avoid hard dependencies
+ * on Lexical in plugin-core.
+ */
+export type EditorExtensionNode = unknown;
+
+/**
+ * React editor plugins provided by plugins.
+ */
+export type EditorExtensionPlugin = ComponentType;
+
+/**
+ * Capability for plugins that extend the editor with nodes and React plugins.
+ */
+export interface EditorExtensionCapability {
+  /**
+   * Discriminator for TypeScript narrowing
+   */
+  type: 'editor-extension';
+
+  /**
+   * IDs of Lexical nodes this plugin provides.
+   */
+  nodes?: string[];
+
+  /**
+   * IDs of React editor plugins this plugin provides.
+   */
+  plugins?: string[];
+}
+
+/**
+ * Runtime editor extensions provided by client plugins.
+ */
+export interface EditorExtensions {
+  /**
+   * Map of node IDs to Lexical node classes.
+   */
+  nodes?: Record<string, EditorExtensionNode>;
+
+  /**
+   * Map of plugin IDs to React editor plugin components.
+   */
+  plugins?: Record<string, EditorExtensionPlugin>;
 }
 
 // ============================================================================
@@ -738,6 +787,12 @@ export interface ClientPlugin {
    * Keys must match the 'id' field from CommandPaletteCommandCapability.
    */
   commandPaletteCommands?: Record<string, CommandPaletteCommandHandler>;
+
+  /**
+   * Editor extension nodes and React plugins provided by this plugin.
+   * Keys should match the IDs declared in EditorExtensionCapability.
+   */
+  editorExtensions?: EditorExtensions;
 }
 
 // ============================================================================
@@ -820,6 +875,15 @@ export function isCommandPaletteCommandCapability(
   cap: PluginCapability
 ): cap is CommandPaletteCommandCapability {
   return cap.type === 'command-palette-command';
+}
+
+/**
+ * Type guard to check if a capability is an editor extension capability.
+ */
+export function isEditorExtensionCapability(
+  cap: PluginCapability
+): cap is EditorExtensionCapability {
+  return cap.type === 'editor-extension';
 }
 
 /**

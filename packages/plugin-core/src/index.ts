@@ -53,6 +53,10 @@ export type {
   SidebarPanelCapability,
   SlashCommandCapability,
   CommandPaletteCommandCapability,
+  EditorExtensionCapability,
+  EditorExtensionNode,
+  EditorExtensionPlugin,
+  EditorExtensions,
 } from './plugin-types.js';
 
 // ============================================================================
@@ -111,6 +115,7 @@ export {
   isSidebarPanelCapability,
   isSlashCommandCapability,
   isCommandPaletteCommandCapability,
+  isEditorExtensionCapability,
   hasCapability,
   getCapabilitiesByType,
 } from './plugin-types.js';
@@ -129,6 +134,7 @@ export {
   sidebarPanelCapabilitySchema,
   slashCommandCapabilitySchema,
   commandPaletteCommandCapabilitySchema,
+  editorExtensionCapabilitySchema,
   // Validation helpers
   validateManifest,
   safeValidateManifest,
@@ -157,6 +163,9 @@ export type {
   SidebarPanelEntry,
   SlashCommandEntry,
   CommandPaletteCommandEntry,
+  EditorExtensionEntry,
+  EditorExtensionNodeEntry,
+  EditorExtensionPluginEntry,
   CapabilityEntry,
   CapabilityTypeMap,
   CapabilityIndex,
