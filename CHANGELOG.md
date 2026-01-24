@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.44.0](https://github.com/ejohane/scribe/compare/v1.43.0...v1.44.0) (2026-01-24)
+
+### Features
+
+* **editor:** integrate daily note plugin and extensions ([004de11](https://github.com/ejohane/scribe/commit/004de1179f0aa8cb599abdb1afeafd524aa9dd66))
+* **editor:** wire desktop plugins ([c13617b](https://github.com/ejohane/scribe/commit/c13617b9b08016e6058f8e999dd213c5ccf29289))
+* **engine:** add editor extension capability ([d645d5b](https://github.com/ejohane/scribe/commit/d645d5b58b6d5b1a05038365a1124ab98a8e857c))
+
 ## [1.43.0](https://github.com/ejohane/scribe/compare/v1.42.0...v1.43.0) (2026-01-22)
 
 ### Features
