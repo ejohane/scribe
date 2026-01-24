@@ -15,6 +15,7 @@ import {
   isSidebarPanelCapability,
   isSlashCommandCapability,
   isCommandPaletteCommandCapability,
+  isEditorExtensionCapability,
   hasCapability,
   getCapabilitiesByType,
   type PluginManifest,
@@ -25,6 +26,7 @@ import {
   type SidebarPanelCapability,
   type SlashCommandCapability,
   type CommandPaletteCommandCapability,
+  type EditorExtensionCapability,
   type PluginEvent,
   type ServerPlugin,
   type ClientPlugin,
@@ -76,6 +78,12 @@ const commandPaletteCommandCapability: CommandPaletteCommandCapability = {
   priority: 10,
 };
 
+const editorExtensionCapability: EditorExtensionCapability = {
+  type: 'editor-extension',
+  nodes: ['daily-note-header'],
+  plugins: ['daily-note-header-plugin'],
+};
+
 const testManifest: PluginManifest = {
   id: '@scribe/plugin-todo',
   version: '1.0.0',
@@ -89,6 +97,7 @@ const testManifest: PluginManifest = {
     sidebarPanelCapability,
     slashCommandCapability,
     commandPaletteCommandCapability,
+    editorExtensionCapability,
   ],
   scribeVersion: '>=1.0.0',
 };
@@ -115,6 +124,8 @@ describe('Type Guards', () => {
       expect(isTrpcRouterCapability(eventHookCapability)).toBe(false);
       expect(isTrpcRouterCapability(sidebarPanelCapability)).toBe(false);
       expect(isTrpcRouterCapability(slashCommandCapability)).toBe(false);
+      expect(isTrpcRouterCapability(commandPaletteCommandCapability)).toBe(false);
+      expect(isTrpcRouterCapability(editorExtensionCapability)).toBe(false);
     });
   });
 
@@ -182,6 +193,22 @@ describe('Type Guards', () => {
       expect(isCommandPaletteCommandCapability(eventHookCapability)).toBe(false);
       expect(isCommandPaletteCommandCapability(sidebarPanelCapability)).toBe(false);
       expect(isCommandPaletteCommandCapability(slashCommandCapability)).toBe(false);
+      expect(isCommandPaletteCommandCapability(editorExtensionCapability)).toBe(false);
+    });
+  });
+
+  describe('isEditorExtensionCapability', () => {
+    it('returns true for editor-extension capability', () => {
+      expect(isEditorExtensionCapability(editorExtensionCapability)).toBe(true);
+    });
+
+    it('returns false for other capability types', () => {
+      expect(isEditorExtensionCapability(trpcCapability)).toBe(false);
+      expect(isEditorExtensionCapability(storageCapability)).toBe(false);
+      expect(isEditorExtensionCapability(eventHookCapability)).toBe(false);
+      expect(isEditorExtensionCapability(sidebarPanelCapability)).toBe(false);
+      expect(isEditorExtensionCapability(slashCommandCapability)).toBe(false);
+      expect(isEditorExtensionCapability(commandPaletteCommandCapability)).toBe(false);
     });
   });
 });
@@ -198,6 +225,7 @@ describe('hasCapability', () => {
     expect(hasCapability(testManifest, 'sidebar-panel')).toBe(true);
     expect(hasCapability(testManifest, 'slash-command')).toBe(true);
     expect(hasCapability(testManifest, 'command-palette-command')).toBe(true);
+    expect(hasCapability(testManifest, 'editor-extension')).toBe(true);
   });
 
   it('returns false when manifest does not have the capability type', () => {
@@ -207,6 +235,7 @@ describe('hasCapability', () => {
     expect(hasCapability(minimalManifest, 'sidebar-panel')).toBe(false);
     expect(hasCapability(minimalManifest, 'slash-command')).toBe(false);
     expect(hasCapability(minimalManifest, 'command-palette-command')).toBe(false);
+    expect(hasCapability(minimalManifest, 'editor-extension')).toBe(false);
   });
 });
 
@@ -223,6 +252,10 @@ describe('getCapabilitiesByType', () => {
     const sidebarCaps = getCapabilitiesByType(testManifest, 'sidebar-panel');
     expect(sidebarCaps).toHaveLength(1);
     expect(sidebarCaps[0].label).toBe('Tasks');
+
+    const editorCaps = getCapabilitiesByType(testManifest, 'editor-extension');
+    expect(editorCaps).toHaveLength(1);
+    expect(editorCaps[0].nodes).toEqual(['daily-note-header']);
   });
 
   it('returns empty array when no capabilities of type exist', () => {
@@ -347,6 +380,8 @@ describe('PluginCapability discriminated union', () => {
           return `Command: /${cap.command}`;
         case 'command-palette-command':
           return `Palette: ${cap.id}`;
+        case 'editor-extension':
+          return `Editor extension with ${cap.nodes?.length ?? 0} nodes`;
       }
     }
 
@@ -356,6 +391,7 @@ describe('PluginCapability discriminated union', () => {
     expect(describeCapability(sidebarPanelCapability)).toBe('Panel: Tasks');
     expect(describeCapability(slashCommandCapability)).toBe('Command: /task');
     expect(describeCapability(commandPaletteCommandCapability)).toBe('Palette: todo.createTask');
+    expect(describeCapability(editorExtensionCapability)).toBe('Editor extension with 1 nodes');
   });
 });
 
@@ -427,6 +463,27 @@ describe('ClientPlugin structure', () => {
     expect(plugin.slashCommands?.['task']).toBeDefined();
     expect(plugin.slashCommands?.['task'].execute).toBeInstanceOf(Function);
   });
+
+  it('accepts a client plugin with editor extensions', () => {
+    class DailyNoteHeaderNode {
+      static getType() {
+        return 'daily-note-header';
+      }
+    }
+
+    const DailyNoteHeaderPlugin = () => null;
+
+    const plugin: ClientPlugin = {
+      manifest: testManifest,
+      editorExtensions: {
+        nodes: [DailyNoteHeaderNode],
+        plugins: [DailyNoteHeaderPlugin],
+      },
+    };
+
+    expect(plugin.editorExtensions?.nodes).toContain(DailyNoteHeaderNode);
+    expect(plugin.editorExtensions?.plugins).toContain(DailyNoteHeaderPlugin);
+  });
 });
 
 // ============================================================================
@@ -472,5 +529,13 @@ describe('Optional capability fields', () => {
     expect(cap.shortcut).toBeUndefined();
     expect(cap.category).toBeUndefined();
     expect(cap.priority).toBeUndefined();
+  });
+
+  it('editor-extension nodes and plugins are optional', () => {
+    const cap: EditorExtensionCapability = {
+      type: 'editor-extension',
+    };
+    expect(cap.nodes).toBeUndefined();
+    expect(cap.plugins).toBeUndefined();
   });
 });

@@ -49,23 +49,6 @@ function toPluginLoadErrors(failures: PluginLoadFailure[]): PluginLoadError[] {
  * 1. Creates a PluginRegistry to track plugins
  * 2. Loads all installed plugins asynchronously
  * 3. Provides the plugin context to children
- *
- * @example
- * ```tsx
- * // In App.tsx
- * import { PluginProvider } from './plugins/PluginProvider';
- *
- * export function App() {
- *   return (
- *     <PluginProvider>
- *       <Layout>
- *         <Sidebar />
- *         <Editor />
- *       </Layout>
- *     </PluginProvider>
- *   );
- * }
- * ```
  */
 export function PluginProvider({ children }: PluginProviderProps) {
   const [plugins, setPlugins] = useState<ClientPlugin[]>([]);

@@ -1,9 +1,9 @@
 /**
- * Plugin System - Web Client
+ * Plugin System - Desktop Client
  *
  * This module provides React integration for the Scribe plugin system.
  * It enables plugins to contribute UI components like sidebar panels
- * and slash commands to the web application.
+ * and slash commands to the desktop application.
  *
  * @example
  * ```tsx

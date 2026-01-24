@@ -93,10 +93,10 @@ describe('filterCommands', () => {
     },
     {
       type: 'command',
-      id: 'notes.daily',
-      label: 'New Daily Note',
-      description: "Create today's daily note",
-      icon: 'Calendar',
+      id: 'notes.meeting',
+      label: 'New Meeting',
+      description: 'Create a meeting note',
+      icon: 'Users',
       category: 'Notes',
       priority: 20,
       handler: mockHandler,
@@ -119,7 +119,7 @@ describe('filterCommands', () => {
     // Should be sorted: General first (alphabetically), then Notes
     expect(result[0].id).toBe('settings.open');
     expect(result[1].id).toBe('notes.new');
-    expect(result[2].id).toBe('notes.daily');
+    expect(result[2].id).toBe('notes.meeting');
   });
 
   it('filters commands by label', () => {
@@ -129,10 +129,10 @@ describe('filterCommands', () => {
   });
 
   it('filters commands by fuzzy match', () => {
-    const result = filterCommands(mockCommands, 'dlyn');
-    // "dlyn" matches "New DaiLY Note" only (d-l-y-n sequence)
+    const result = filterCommands(mockCommands, 'mtng');
+    // "mtng" matches "New MeeTiNG" only (m-t-n-g sequence)
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('notes.daily');
+    expect(result[0].id).toBe('notes.meeting');
   });
 
   it('returns empty array when no matches', () => {
@@ -142,7 +142,7 @@ describe('filterCommands', () => {
 
   it('sorts results by score descending', () => {
     const result = filterCommands(mockCommands, 'new');
-    // "New Note" should rank higher than "New Daily Note" for "new"
+    // "New Note" should rank higher than "New Meeting" for "new"
     // because it's a closer match
     expect(result[0].label).toBe('New Note');
   });

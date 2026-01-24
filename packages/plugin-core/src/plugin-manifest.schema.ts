@@ -95,6 +95,16 @@ export const commandPaletteCommandCapabilitySchema = z.object({
 });
 
 /**
+ * Schema for editor extension capability.
+ * Validates optional node and plugin IDs.
+ */
+export const editorExtensionCapabilitySchema = z.object({
+  type: z.literal('editor-extension'),
+  nodes: z.array(z.string().min(1, 'Node ID cannot be empty')).optional(),
+  plugins: z.array(z.string().min(1, 'Plugin ID cannot be empty')).optional(),
+});
+
+/**
  * Combined capability schema using discriminated union.
  * The 'type' field determines which capability schema is applied.
  */
@@ -105,6 +115,7 @@ export const pluginCapabilitySchema = z.discriminatedUnion('type', [
   sidebarPanelCapabilitySchema,
   slashCommandCapabilitySchema,
   commandPaletteCommandCapabilitySchema,
+  editorExtensionCapabilitySchema,
 ]);
 
 // ============================================================================

@@ -20,7 +20,7 @@ import type {
   SlashCommandHandler,
   CommandPaletteCommandHandler,
 } from './plugin-types.js';
-import type { ComponentType } from 'react';
+import type { ComponentType, FC } from 'react';
 
 // ============================================================================
 // Test Fixtures
@@ -53,6 +53,9 @@ function createClientPlugin(overrides: Partial<ClientPlugin> = {}): ClientPlugin
 // Mock React component
 const MockComponent: ComponentType = () => null;
 
+const MockEditorPlugin: FC = () => null;
+MockEditorPlugin.displayName = 'task-plugin';
+
 // Mock slash command handler
 const mockHandler: SlashCommandHandler = {
   execute: () => {},
@@ -62,6 +65,16 @@ const mockHandler: SlashCommandHandler = {
 const mockPaletteHandler: CommandPaletteCommandHandler = {
   execute: () => {},
 };
+
+const createNodeClass = (type: string) =>
+  class {
+    static getType() {
+      return type;
+    }
+  };
+
+const TaskNode = createNodeClass('task-node');
+const SecondaryNode = createNodeClass('secondary-node');
 
 // ============================================================================
 // Tests
@@ -539,6 +552,119 @@ describe('PluginRegistry', () => {
       });
     });
 
+    describe('editor-extension', () => {
+      it('indexes editor-extension capabilities with runtime extensions', () => {
+        const plugin = createClientPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-editor-extension',
+            capabilities: [
+              {
+                type: 'editor-extension',
+                nodes: ['task-node'],
+                plugins: ['task-plugin'],
+              },
+            ],
+          }),
+          editorExtensions: {
+            nodes: [TaskNode],
+            plugins: [MockEditorPlugin],
+          },
+        });
+
+        registry.register(plugin);
+
+        const extensions = registry.getCapabilities('editor-extension');
+        expect(extensions).toHaveLength(1);
+        expect(extensions[0].nodes).toEqual([{ id: 'task-node', node: TaskNode }]);
+        expect(extensions[0].plugins).toEqual([
+          {
+            id: 'task-plugin',
+            plugin: MockEditorPlugin,
+          },
+        ]);
+      });
+
+      it('uses runtime extension keys when IDs are omitted', () => {
+        const plugin = createClientPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-editor-keys',
+            capabilities: [{ type: 'editor-extension' }],
+          }),
+          editorExtensions: {
+            nodes: [TaskNode, SecondaryNode],
+            plugins: [MockEditorPlugin],
+          },
+        });
+
+        registry.register(plugin);
+
+        const extensions = registry.getCapabilities('editor-extension');
+        expect(extensions[0].nodes.map((node) => node.id)).toEqual(['task-node', 'secondary-node']);
+        expect(extensions[0].plugins.map((pluginEntry) => pluginEntry.id)).toEqual(['task-plugin']);
+      });
+
+      it('warns and skips missing runtime editor extensions', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const plugin = createServerPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-editor-missing',
+            capabilities: [
+              {
+                type: 'editor-extension',
+                nodes: ['missing-node'],
+                plugins: ['missing-plugin'],
+              },
+            ],
+          }),
+        });
+
+        registry.register(plugin);
+
+        const extensions = registry.getCapabilities('editor-extension');
+        expect(extensions[0].nodes).toEqual([]);
+        expect(extensions[0].plugins).toEqual([]);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Missing editor extension node missing-node')
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Missing editor extension plugin missing-plugin')
+        );
+
+        warnSpy.mockRestore();
+      });
+
+      it('warns and skips invalid editor extension maps', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const plugin = createClientPlugin({
+          manifest: createManifest({
+            id: '@scribe/plugin-editor-invalid',
+            capabilities: [
+              {
+                type: 'editor-extension',
+                nodes: ['task-node'],
+              },
+            ],
+          }),
+          editorExtensions: {
+            nodes: ['invalid'] as unknown as NonNullable<ClientPlugin['editorExtensions']>['nodes'],
+          },
+        });
+
+        registry.register(plugin);
+
+        const extensions = registry.getCapabilities('editor-extension');
+        expect(extensions[0].nodes).toEqual([]);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Invalid editor extension nodes')
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Missing editor extension node task-node')
+        );
+
+        warnSpy.mockRestore();
+      });
+    });
+
     it('getCapabilities returns frozen array', () => {
       const plugin = createServerPlugin({
         manifest: createManifest({
@@ -908,6 +1034,7 @@ describe('PluginRegistry', () => {
             { type: 'sidebar-panel', id: 'all-panel', label: 'All', icon: 'All' },
             { type: 'slash-command', command: 'all', label: 'All Command' },
             { type: 'command-palette-command', id: 'all.command', label: 'All Palette Command' },
+            { type: 'editor-extension', nodes: ['all-node'], plugins: ['all-plugin'] },
           ],
         }),
       });
@@ -920,6 +1047,7 @@ describe('PluginRegistry', () => {
       expect(registry.getCapabilities('sidebar-panel')).toHaveLength(1);
       expect(registry.getCapabilities('slash-command')).toHaveLength(1);
       expect(registry.getCapabilities('command-palette-command')).toHaveLength(1);
+      expect(registry.getCapabilities('editor-extension')).toHaveLength(1);
     });
   });
 });

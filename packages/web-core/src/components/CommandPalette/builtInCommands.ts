@@ -42,21 +42,6 @@ export const builtInCommands: BuiltInCommand[] = [
     },
   },
   {
-    id: 'core.newDailyNote',
-    label: 'New Daily Note',
-    description: "Create today's daily note",
-    icon: 'Calendar',
-    category: BUILTIN_CATEGORIES.NOTES,
-    priority: 30,
-    execute: async (ctx) => {
-      const today = new Date().toISOString().split('T')[0];
-      const noteId = await ctx.createNote({ title: today, type: 'daily' });
-      if (noteId) {
-        ctx.navigate(`/note/${noteId}`);
-      }
-    },
-  },
-  {
     id: 'core.newMeeting',
     label: 'New Meeting',
     description: 'Create a new meeting note',

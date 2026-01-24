@@ -530,6 +530,17 @@ test.describe('Command Palette: Command Categories', () => {
 });
 
 test.describe('Command Palette: Plugin Commands', () => {
+  test('shows Open Daily Note command from daily note plugin', async ({ page }) => {
+    await page.goto('/');
+    await waitForConnection(page);
+
+    await openCommandPalette(page);
+
+    await page.keyboard.type('daily note');
+
+    await expect(page.getByText('Open Daily Note', { exact: true })).toBeVisible();
+  });
+
   test('shows Create Task command from todo plugin', async ({ page }) => {
     await page.goto('/');
     await waitForConnection(page);

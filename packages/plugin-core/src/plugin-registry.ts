@@ -16,6 +16,10 @@ import type {
   ClientPlugin,
   SlashCommandHandler,
   CommandPaletteCommandHandler,
+  EditorExtensionNode,
+  EditorExtensionPlugin,
+  EditorExtensionGuard,
+  EditorExtensions,
 } from './plugin-types.js';
 
 // ============================================================================
@@ -133,6 +137,32 @@ export interface CommandPaletteCommandEntry {
 }
 
 /**
+ * Entry for a Lexical node extension.
+ */
+export interface EditorExtensionNodeEntry {
+  id: string;
+  node?: EditorExtensionNode;
+}
+
+/**
+ * Entry for a React editor plugin extension.
+ */
+export interface EditorExtensionPluginEntry {
+  id: string;
+  plugin?: EditorExtensionPlugin;
+}
+
+/**
+ * Entry for an editor extension capability.
+ */
+export interface EditorExtensionEntry {
+  pluginId: string;
+  nodes: EditorExtensionNodeEntry[];
+  plugins: EditorExtensionPluginEntry[];
+  guards?: EditorExtensionGuard[];
+}
+
+/**
  * Union type for all capability entries.
  */
 export type CapabilityEntry =
@@ -141,7 +171,8 @@ export type CapabilityEntry =
   | EventHookEntry
   | SidebarPanelEntry
   | SlashCommandEntry
-  | CommandPaletteCommandEntry;
+  | CommandPaletteCommandEntry
+  | EditorExtensionEntry;
 
 /**
  * Map from capability type to its entry type.
@@ -153,6 +184,7 @@ export interface CapabilityTypeMap {
   'sidebar-panel': SidebarPanelEntry;
   'slash-command': SlashCommandEntry;
   'command-palette-command': CommandPaletteCommandEntry;
+  'editor-extension': EditorExtensionEntry;
 }
 
 /**
@@ -165,6 +197,7 @@ export interface CapabilityIndex {
   'sidebar-panel': Map<string, SidebarPanelEntry>;
   'slash-command': Map<string, SlashCommandEntry>;
   'command-palette-command': Map<string, CommandPaletteCommandEntry>;
+  'editor-extension': Map<string, EditorExtensionEntry>;
 }
 
 // ============================================================================
@@ -205,6 +238,7 @@ export class PluginRegistry {
     'sidebar-panel': new Map(),
     'slash-command': new Map(),
     'command-palette-command': new Map(),
+    'editor-extension': new Map(),
   };
 
   /**
@@ -237,7 +271,7 @@ export class PluginRegistry {
 
     // Register each capability, warning on conflicts
     for (const capability of plugin.manifest.capabilities) {
-      const conflictId = this.getCapabilityConflictId(capability);
+      const conflictId = this.getCapabilityConflictId(capability, pluginId);
 
       if (this.hasCapabilityConflict(capability.type, conflictId)) {
         // eslint-disable-next-line no-console -- Intentional warning for plugin developers
@@ -248,7 +282,15 @@ export class PluginRegistry {
         continue;
       }
 
-      this.indexCapability(pluginId, capability, plugin);
+      try {
+        this.indexCapability(pluginId, capability, plugin);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        // eslint-disable-next-line no-console -- Intentional warning for plugin developers
+        console.warn(
+          `[plugin-registry] Failed to index capability ${capability.type} for ${pluginId}: ${message}`
+        );
+      }
     }
 
     // Add the plugin to the registry
@@ -277,7 +319,7 @@ export class PluginRegistry {
 
     // Remove all capabilities for this plugin
     for (const capability of registered.plugin.manifest.capabilities) {
-      this.removeCapabilityFromIndex(capability);
+      this.removeCapabilityFromIndex(pluginId, capability);
     }
 
     // Remove the plugin from the registry
@@ -364,7 +406,7 @@ export class PluginRegistry {
    * @param capability - The capability to get the conflict ID for
    * @returns The unique identifier used for conflict detection
    */
-  private getCapabilityConflictId(capability: PluginCapability): string {
+  private getCapabilityConflictId(capability: PluginCapability, pluginId?: string): string {
     switch (capability.type) {
       case 'trpc-router':
         return capability.namespace;
@@ -382,7 +424,152 @@ export class PluginRegistry {
         return capability.command;
       case 'command-palette-command':
         return capability.id;
+      case 'editor-extension':
+        return pluginId ?? 'editor-extension';
     }
+  }
+
+  private getEditorExtensionNodeMap(
+    pluginId: string,
+    nodes: EditorExtensions['nodes']
+  ): Record<string, EditorExtensionNode> {
+    if (!nodes) {
+      return {};
+    }
+
+    if (Array.isArray(nodes)) {
+      const mapped: Record<string, EditorExtensionNode> = {};
+      for (const node of nodes) {
+        if (typeof node !== 'function' || typeof node.getType !== 'function') {
+          // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+          console.warn(
+            `[plugin-registry] Invalid editor extension nodes for ${pluginId}; expected Lexical node classes.`
+          );
+          continue;
+        }
+
+        let nodeId: string | undefined;
+        try {
+          nodeId = node.getType();
+        } catch (error) {
+          // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+          console.warn(
+            `[plugin-registry] Invalid editor extension nodes for ${pluginId}; failed to read node type.`
+          );
+          continue;
+        }
+
+        if (!nodeId) {
+          // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+          console.warn(
+            `[plugin-registry] Invalid editor extension nodes for ${pluginId}; missing node type.`
+          );
+          continue;
+        }
+
+        mapped[nodeId] = node;
+      }
+      return mapped;
+    }
+
+    if (typeof nodes !== 'object' || nodes === null) {
+      // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+      console.warn(
+        `[plugin-registry] Invalid editor extension nodes for ${pluginId}; expected record or array.`
+      );
+      return {};
+    }
+
+    const mapped: Record<string, EditorExtensionNode> = {};
+    for (const [nodeId, node] of Object.entries(nodes)) {
+      if (typeof node !== 'function' || typeof node.getType !== 'function') {
+        // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+        console.warn(
+          `[plugin-registry] Invalid editor extension nodes for ${pluginId}; expected Lexical node classes.`
+        );
+        continue;
+      }
+
+      let nodeType: string | undefined;
+      try {
+        nodeType = node.getType();
+      } catch (error) {
+        // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+        console.warn(
+          `[plugin-registry] Invalid editor extension nodes for ${pluginId}; failed to read node type.`
+        );
+        continue;
+      }
+
+      if (!nodeType) {
+        // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+        console.warn(
+          `[plugin-registry] Invalid editor extension nodes for ${pluginId}; missing node type.`
+        );
+        continue;
+      }
+
+      mapped[nodeId] = node;
+    }
+
+    return mapped;
+  }
+
+  private getEditorExtensionPluginMap(
+    pluginId: string,
+    plugins: EditorExtensions['plugins']
+  ): Record<string, EditorExtensionPlugin> {
+    if (!plugins) {
+      return {};
+    }
+
+    if (Array.isArray(plugins)) {
+      const mapped: Record<string, EditorExtensionPlugin> = {};
+      for (const plugin of plugins) {
+        if (typeof plugin !== 'function') {
+          // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+          console.warn(
+            `[plugin-registry] Invalid editor extension plugins for ${pluginId}; expected React components.`
+          );
+          continue;
+        }
+
+        const pluginIdFromComponent = plugin.displayName ?? plugin.name;
+        if (!pluginIdFromComponent) {
+          // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+          console.warn(
+            `[plugin-registry] Invalid editor extension plugins for ${pluginId}; missing component name.`
+          );
+          continue;
+        }
+
+        mapped[pluginIdFromComponent] = plugin;
+      }
+      return mapped;
+    }
+
+    if (typeof plugins !== 'object' || plugins === null) {
+      // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+      console.warn(
+        `[plugin-registry] Invalid editor extension plugins for ${pluginId}; expected record or array.`
+      );
+      return {};
+    }
+
+    const mapped: Record<string, EditorExtensionPlugin> = {};
+    for (const [pluginIdFromMap, plugin] of Object.entries(plugins)) {
+      if (typeof plugin !== 'function') {
+        // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+        console.warn(
+          `[plugin-registry] Invalid editor extension plugins for ${pluginId}; expected React components.`
+        );
+        continue;
+      }
+
+      mapped[pluginIdFromMap] = plugin;
+    }
+
+    return mapped;
   }
 
   /**
@@ -406,14 +593,14 @@ export class PluginRegistry {
         break;
 
       case 'storage':
-        this.capabilityIndex['storage'].set(this.getCapabilityConflictId(capability), {
+        this.capabilityIndex['storage'].set(this.getCapabilityConflictId(capability, pluginId), {
           pluginId,
           keys: capability.keys,
         });
         break;
 
       case 'event-hook':
-        this.capabilityIndex['event-hook'].set(this.getCapabilityConflictId(capability), {
+        this.capabilityIndex['event-hook'].set(this.getCapabilityConflictId(capability, pluginId), {
           pluginId,
           events: capability.events,
         });
@@ -475,6 +662,56 @@ export class PluginRegistry {
         this.capabilityIndex['command-palette-command'].set(capability.id, paletteCommandEntry);
         break;
       }
+
+      case 'editor-extension': {
+        const editorExtensions = 'editorExtensions' in plugin ? plugin.editorExtensions : undefined;
+        const nodesMap = this.getEditorExtensionNodeMap(pluginId, editorExtensions?.nodes);
+        const pluginsMap = this.getEditorExtensionPluginMap(pluginId, editorExtensions?.plugins);
+
+        const nodeIds = capability.nodes ?? Object.keys(nodesMap);
+        const pluginIds = capability.plugins ?? Object.keys(pluginsMap);
+
+        const nodes = nodeIds.reduce<EditorExtensionEntry['nodes']>((entries, id) => {
+          const node = nodesMap[id];
+          if (!node) {
+            // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+            console.warn(
+              `[plugin-registry] Missing editor extension node ${id} for ${pluginId}; skipping.`
+            );
+            return entries;
+          }
+
+          entries.push({ id, node });
+          return entries;
+        }, []);
+
+        const plugins = pluginIds.reduce<EditorExtensionEntry['plugins']>((entries, id) => {
+          const pluginEntry = pluginsMap[id];
+          if (!pluginEntry) {
+            // eslint-disable-next-line no-console -- Developer feedback for invalid plugin shape
+            console.warn(
+              `[plugin-registry] Missing editor extension plugin ${id} for ${pluginId}; skipping.`
+            );
+            return entries;
+          }
+
+          entries.push({ id, plugin: pluginEntry });
+          return entries;
+        }, []);
+
+        const extensionEntry: EditorExtensionEntry = {
+          pluginId,
+          nodes,
+          plugins,
+          guards: editorExtensions?.guards,
+        };
+
+        this.capabilityIndex['editor-extension'].set(
+          this.getCapabilityConflictId(capability, pluginId),
+          extensionEntry
+        );
+        break;
+      }
     }
   }
 
@@ -483,8 +720,8 @@ export class PluginRegistry {
    *
    * @param capability - The capability to remove
    */
-  private removeCapabilityFromIndex(capability: PluginCapability): void {
-    const conflictId = this.getCapabilityConflictId(capability);
+  private removeCapabilityFromIndex(pluginId: string, capability: PluginCapability): void {
+    const conflictId = this.getCapabilityConflictId(capability, pluginId);
     this.capabilityIndex[capability.type].delete(conflictId);
   }
 
@@ -539,6 +776,7 @@ export class PluginRegistry {
       'sidebar-panel': new Map(),
       'slash-command': new Map(),
       'command-palette-command': new Map(),
+      'editor-extension': new Map(),
     };
   }
 }

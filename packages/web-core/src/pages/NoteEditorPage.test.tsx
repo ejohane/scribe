@@ -54,7 +54,8 @@ vi.mock('@trpc/client', () => ({
 import { NoteEditorPage } from './NoteEditorPage';
 import { ScribeProvider } from '../providers/ScribeProvider';
 import { PlatformProvider } from '../providers/PlatformProvider';
-import type { EditorContent } from '@scribe/client-sdk';
+import type { CollabEditorProps } from '../components/CollaborativeEditor';
+import type { EditorContent, NoteDocument } from '@scribe/client-sdk';
 
 // Sample note data
 const mockNote = {
@@ -74,7 +75,9 @@ function renderNoteEditorPage(options?: {
   note?: typeof mockNote | null;
   renderEditor?: (
     content: EditorContent,
-    onChange: (content: EditorContent) => void
+    onChange: (content: EditorContent) => void,
+    collabProps?: CollabEditorProps,
+    note?: NoteDocument
   ) => React.ReactNode;
   renderMenuButton?: () => React.ReactNode;
   onSave?: (noteId: string, content: EditorContent) => void;

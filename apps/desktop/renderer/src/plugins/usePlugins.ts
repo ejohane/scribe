@@ -23,28 +23,6 @@ import type {
  * loading state, and convenience methods for accessing capabilities.
  *
  * @throws Error if used outside of PluginProvider
- *
- * @example
- * ```tsx
- * function PluginStatus() {
- *   const { plugins, isLoading, errors } = usePlugins();
- *
- *   if (isLoading) {
- *     return <div>Loading plugins...</div>;
- *   }
- *
- *   if (errors.length > 0) {
- *     return (
- *       <div>
- *         Plugin errors:
- *         {errors.map(e => <div key={e.pluginId}>{e.message}</div>)}
- *       </div>
- *     );
- *   }
- *
- *   return <div>Loaded {plugins.length} plugins</div>;
- * }
- * ```
  */
 export function usePlugins(): PluginContextValue {
   const context = useContext(PluginContext);
@@ -71,28 +49,6 @@ export interface UseSidebarPanelsResult {
  *
  * Returns panels sorted by priority (lower values first).
  * Includes loading state to show skeleton UI while plugins load.
- *
- * @returns Object with panels array and loading state
- *
- * @example
- * ```tsx
- * function Sidebar() {
- *   const { panels, isLoading } = useSidebarPanels();
- *
- *   if (isLoading) {
- *     return <SidebarSkeleton />;
- *   }
- *
- *   return (
- *     <aside>
- *       <NotesPanel />
- *       {panels.map(panel => (
- *         <PluginPanel key={panel.id} panel={panel} />
- *       ))}
- *     </aside>
- *   );
- * }
- * ```
  */
 export function useSidebarPanels(): UseSidebarPanelsResult {
   const { getSidebarPanels, isLoading } = usePlugins();
@@ -117,34 +73,6 @@ export interface UseSlashCommandsResult {
  * Get all slash commands provided by plugins.
  *
  * Includes loading state to handle commands not being available yet.
- *
- * @returns Object with commands array and loading state
- *
- * @example
- * ```tsx
- * function SlashCommandMenu() {
- *   const { commands, isLoading } = useSlashCommands();
- *
- *   if (isLoading) {
- *     return null; // Don't show menu until plugins loaded
- *   }
- *
- *   return (
- *     <menu>
- *       {commands.map(cmd => (
- *         <CommandItem
- *           key={cmd.command}
- *           command={cmd.command}
- *           label={cmd.label}
- *           description={cmd.description}
- *           icon={cmd.icon}
- *           onSelect={() => executeCommand(cmd)}
- *         />
- *       ))}
- *     </menu>
- *   );
- * }
- * ```
  */
 export function useSlashCommands(): UseSlashCommandsResult {
   const { getSlashCommands, isLoading } = usePlugins();
@@ -171,25 +99,6 @@ export interface UsePluginLoadingResult {
  * Get plugin loading status.
  *
  * Convenience hook for components that only need to know about loading state.
- *
- * @returns Object with loading and error status
- *
- * @example
- * ```tsx
- * function App() {
- *   const { isLoading, hasErrors } = usePluginLoading();
- *
- *   if (isLoading) {
- *     return <SplashScreen />;
- *   }
- *
- *   if (hasErrors) {
- *     return <ErrorBanner message="Some plugins failed to load" />;
- *   }
- *
- *   return <MainApp />;
- * }
- * ```
  */
 export function usePluginLoading(): UsePluginLoadingResult {
   const { isLoading, errors } = usePlugins();
@@ -216,29 +125,6 @@ export interface UseCommandPaletteCommandsResult {
  *
  * Returns commands sorted by priority (lower values first).
  * Includes loading state to handle commands not being available yet.
- *
- * @returns Object with commands array and loading state
- *
- * @example
- * ```tsx
- * function CommandPaletteWithPlugins() {
- *   const { commands, isLoading } = useCommandPaletteCommands();
- *
- *   if (isLoading) {
- *     return null; // Don't include plugin commands until loaded
- *   }
- *
- *   // Convert to CommandPaletteProvider's expected format
- *   const pluginCommands = commands.map(cmd => ({
- *     type: 'command' as const,
- *     id: cmd.id,
- *     label: cmd.label,
- *     // ...
- *   }));
- *
- *   return <CommandPaletteProvider pluginCommands={pluginCommands}>...</CommandPaletteProvider>;
- * }
- * ```
  */
 export function useCommandPaletteCommands(): UseCommandPaletteCommandsResult {
   const { getCommandPaletteCommands, isLoading } = usePlugins();
@@ -263,8 +149,6 @@ export interface UseEditorExtensionsResult {
  * Get all editor extensions provided by plugins.
  *
  * Includes loading state to handle extensions not being available yet.
- *
- * @returns Object with extensions array and loading state
  */
 export function useEditorExtensions(): UseEditorExtensionsResult {
   const { getEditorExtensions, isLoading } = usePlugins();

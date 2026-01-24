@@ -4,7 +4,7 @@
  * Tests for the default commands in the command palette.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { builtInCommands, SEARCH_NOTES_COMMAND_ID } from './builtInCommands';
 import type { CommandContext } from '@scribe/plugin-core';
 
@@ -20,22 +20,8 @@ function createMockContext(overrides: Partial<CommandContext> = {}): CommandCont
 }
 
 describe('builtInCommands', () => {
-  const originalDate = global.Date;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock Date to return a fixed time for testing
-    const mockDate = new Date('2024-01-15T10:00:00Z');
-    vi.spyOn(global, 'Date').mockImplementation((...args: unknown[]) => {
-      if (args.length === 0) {
-        return mockDate;
-      }
-      return new originalDate(...(args as ConstructorParameters<typeof Date>));
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   describe('structure', () => {
@@ -121,27 +107,6 @@ describe('builtInCommands', () => {
 
       // Should not navigate (view switch handled by provider)
       expect(ctx.navigate).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('New Daily Note command', () => {
-    it('exists with correct properties', () => {
-      const cmd = builtInCommands.find((c) => c.id === 'core.newDailyNote');
-
-      expect(cmd).toBeDefined();
-      expect(cmd?.label).toBe('New Daily Note');
-      expect(cmd?.icon).toBe('Calendar');
-      expect(cmd?.category).toBe('Notes');
-    });
-
-    it("creates a daily note with today's date and navigates to it", async () => {
-      const cmd = builtInCommands.find((c) => c.id === 'core.newDailyNote')!;
-      const ctx = createMockContext();
-
-      await cmd.execute(ctx);
-
-      expect(ctx.createNote).toHaveBeenCalledWith({ title: '2024-01-15', type: 'daily' });
-      expect(ctx.navigate).toHaveBeenCalledWith('/note/mock-note-id');
     });
   });
 

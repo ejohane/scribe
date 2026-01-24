@@ -25,6 +25,7 @@ import {
   useSlashCommands,
   usePluginLoading,
   useCommandPaletteCommands,
+  useEditorExtensions,
 } from './usePlugins';
 import { getInstalledPlugins } from './installed';
 
@@ -46,6 +47,10 @@ function createMockPluginModule(
       category?: string;
       priority?: number;
     }>;
+    editorExtensions?: {
+      nodes?: string[];
+      plugins?: string[];
+    };
     shouldFail?: boolean;
   } = {}
 ): PluginModule {
@@ -78,6 +83,15 @@ function createMockPluginModule(
         category: cmd.category,
         priority: cmd.priority,
       })) ?? []),
+      ...(options.editorExtensions
+        ? [
+            {
+              type: 'editor-extension' as const,
+              nodes: options.editorExtensions.nodes,
+              plugins: options.editorExtensions.plugins,
+            },
+          ]
+        : []),
     ],
   };
 
@@ -101,12 +115,41 @@ function createMockPluginModule(
       commandPaletteCommands[cmd.id] = { execute: () => {} };
     }
 
+    const editorExtensionNodes: Record<
+      string,
+      { getType: () => string; new (...args: unknown[]): unknown }
+    > = {};
+    for (const nodeId of options.editorExtensions?.nodes ?? []) {
+      const nodeClass = class {
+        static getType() {
+          return nodeId;
+        }
+      };
+      editorExtensionNodes[nodeId] = nodeClass;
+    }
+
+    const editorExtensionPlugins: Record<string, () => null> = {};
+    for (const pluginId of options.editorExtensions?.plugins ?? []) {
+      const plugin = () => null;
+      plugin.displayName = pluginId;
+      editorExtensionPlugins[pluginId] = plugin;
+    }
+
     return {
       manifest: ctx.manifest,
       sidebarPanels: Object.keys(sidebarPanels).length > 0 ? sidebarPanels : undefined,
       slashCommands: Object.keys(slashCommands).length > 0 ? slashCommands : undefined,
       commandPaletteCommands:
         Object.keys(commandPaletteCommands).length > 0 ? commandPaletteCommands : undefined,
+      editorExtensions:
+        options.editorExtensions &&
+        (Object.keys(editorExtensionNodes).length > 0 ||
+          Object.keys(editorExtensionPlugins).length > 0)
+          ? {
+              nodes: editorExtensionNodes,
+              plugins: editorExtensionPlugins,
+            }
+          : undefined,
     };
   };
 
@@ -151,6 +194,8 @@ describe('PluginProvider', () => {
     expect(result.current).toHaveProperty('errors');
     expect(result.current).toHaveProperty('getSidebarPanels');
     expect(result.current).toHaveProperty('getSlashCommands');
+    expect(result.current).toHaveProperty('getCommandPaletteCommands');
+    expect(result.current).toHaveProperty('getEditorExtensions');
   });
 
   it('completes loading with no plugins', async () => {
@@ -290,6 +335,8 @@ describe('usePlugins', () => {
     expect(result.current.errors).toBeDefined();
     expect(typeof result.current.getSidebarPanels).toBe('function');
     expect(typeof result.current.getSlashCommands).toBe('function');
+    expect(typeof result.current.getCommandPaletteCommands).toBe('function');
+    expect(typeof result.current.getEditorExtensions).toBe('function');
   });
 });
 
@@ -569,6 +616,85 @@ describe('getSlashCommands', () => {
       description: 'A test command',
     });
     expect(commands[0].handler).toBeDefined();
+
+    consoleLogSpy.mockRestore();
+  });
+});
+
+describe('getEditorExtensions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetInstalledPlugins.mockReturnValue([]);
+  });
+
+  it('returns editor extension entries with runtime references', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const plugin = createMockPluginModule('@test/plugin', {
+      editorExtensions: {
+        nodes: ['node-a', 'node-b'],
+        plugins: ['PluginA'],
+      },
+    });
+
+    mockGetInstalledPlugins.mockReturnValue([plugin]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => usePlugins(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const extensions = result.current.getEditorExtensions();
+    expect(extensions).toHaveLength(1);
+    expect(extensions[0].pluginId).toBe('@test/plugin');
+    expect(extensions[0].nodes.map((node) => node.id)).toEqual(
+      expect.arrayContaining(['node-a', 'node-b'])
+    );
+    expect(extensions[0].plugins.map((pluginEntry) => pluginEntry.id)).toEqual(
+      expect.arrayContaining(['PluginA'])
+    );
+    expect(extensions[0].nodes[0].node).toBeDefined();
+    expect(extensions[0].plugins[0].plugin).toBeDefined();
+
+    consoleLogSpy.mockRestore();
+  });
+});
+
+describe('useEditorExtensions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetInstalledPlugins.mockReturnValue([]);
+  });
+
+  it('returns editor extensions from plugins', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const plugin = createMockPluginModule('@test/plugin', {
+      editorExtensions: {
+        nodes: ['node-a'],
+        plugins: ['PluginA'],
+      },
+    });
+
+    mockGetInstalledPlugins.mockReturnValue([plugin]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => useEditorExtensions(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.extensions).toHaveLength(1);
+    expect(result.current.extensions[0].pluginId).toBe('@test/plugin');
 
     consoleLogSpy.mockRestore();
   });

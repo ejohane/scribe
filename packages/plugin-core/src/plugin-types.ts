@@ -8,7 +8,7 @@
  */
 
 import type { AnyRouter } from '@trpc/server';
-import type { ComponentType } from 'react';
+import type { ComponentType, FC } from 'react';
 
 // ============================================================================
 // Plugin Manifest Types
@@ -105,7 +105,8 @@ export type PluginCapability =
   | EventHookCapability
   | SidebarPanelCapability
   | SlashCommandCapability
-  | CommandPaletteCommandCapability;
+  | CommandPaletteCommandCapability
+  | EditorExtensionCapability;
 
 /**
  * Capability for plugins that expose a tRPC router.
@@ -281,6 +282,92 @@ export interface CommandPaletteCommandCapability {
    * Default: 100
    */
   priority?: number;
+}
+
+/**
+ * Lexical editor node classes provided by plugins.
+ *
+ * We intentionally keep this type generic to avoid hard dependencies
+ * on Lexical in plugin-core while preserving the minimal static shape
+ * we need to register nodes.
+ */
+export type LexicalNodeClass = {
+  getType: () => string;
+  new (...args: unknown[]): unknown;
+};
+
+/**
+ * Lexical editor nodes provided by plugins.
+ */
+export type EditorExtensionNode = LexicalNodeClass;
+
+/**
+ * React editor plugins provided by plugins.
+ */
+export type EditorExtensionPlugin = FC;
+
+/**
+ * Snapshot of runtime editor extensions for guard hooks.
+ */
+export interface EditorExtensionSnapshot {
+  nodes: EditorExtensionNode[];
+  plugins: EditorExtensionPlugin[];
+}
+
+/**
+ * Guard hook for validating editor extension invariants.
+ */
+export type EditorExtensionGuard = (extensions: EditorExtensionSnapshot) => void;
+
+/**
+ * Collection of editor extensions provided by client plugins.
+ */
+export type EditorExtensionNodeCollection =
+  | Record<string, EditorExtensionNode>
+  | EditorExtensionNode[];
+
+export type EditorExtensionPluginCollection =
+  | Record<string, EditorExtensionPlugin>
+  | EditorExtensionPlugin[];
+
+/**
+ * Capability for plugins that extend the editor with nodes and React plugins.
+ */
+export interface EditorExtensionCapability {
+  /**
+   * Discriminator for TypeScript narrowing
+   */
+  type: 'editor-extension';
+
+  /**
+   * IDs of Lexical nodes this plugin provides.
+   */
+  nodes?: string[];
+
+  /**
+   * IDs of React editor plugins this plugin provides.
+   */
+  plugins?: string[];
+}
+
+/**
+ * Runtime editor extensions provided by client plugins.
+ */
+export interface EditorExtensions {
+  /**
+   * Map or list of Lexical node classes.
+   */
+  nodes?: EditorExtensionNodeCollection;
+
+  /**
+   * Map or list of React editor plugin components.
+   */
+  plugins?: EditorExtensionPluginCollection;
+
+  /**
+   * Optional guard hooks for enforcing editor invariants.
+   */
+  guards?: EditorExtensionGuard[];
 }
 
 // ============================================================================
@@ -738,6 +825,12 @@ export interface ClientPlugin {
    * Keys must match the 'id' field from CommandPaletteCommandCapability.
    */
   commandPaletteCommands?: Record<string, CommandPaletteCommandHandler>;
+
+  /**
+   * Editor extension nodes and React plugins provided by this plugin.
+   * Keys should match the IDs declared in EditorExtensionCapability.
+   */
+  editorExtensions?: EditorExtensions;
 }
 
 // ============================================================================
@@ -820,6 +913,15 @@ export function isCommandPaletteCommandCapability(
   cap: PluginCapability
 ): cap is CommandPaletteCommandCapability {
   return cap.type === 'command-palette-command';
+}
+
+/**
+ * Type guard to check if a capability is an editor extension capability.
+ */
+export function isEditorExtensionCapability(
+  cap: PluginCapability
+): cap is EditorExtensionCapability {
+  return cap.type === 'editor-extension';
 }
 
 /**

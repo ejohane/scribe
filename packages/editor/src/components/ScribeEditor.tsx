@@ -7,7 +7,7 @@
  * @module
  */
 
-import { type FC, useCallback } from 'react';
+import { type FC, useCallback, useEffect, useMemo } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -37,6 +37,44 @@ import { CollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode.js';
  * Editor content type - serialized Lexical state.
  */
 export type EditorContent = SerializedEditorState;
+
+/**
+ * Entry for a Lexical node extension.
+ */
+export interface EditorExtensionNodeEntry {
+  id: string;
+  node: Klass<LexicalNode>;
+}
+
+/**
+ * Entry for a React editor plugin extension.
+ */
+export interface EditorExtensionPluginEntry {
+  id: string;
+  plugin: FC;
+}
+
+/**
+ * Snapshot of active editor extensions.
+ */
+export interface EditorExtensionSnapshot {
+  nodes: Klass<LexicalNode>[];
+  plugins: FC[];
+}
+
+/**
+ * Guard hook for validating editor extensions.
+ */
+export type EditorExtensionGuard = (extensions: EditorExtensionSnapshot) => void;
+
+/**
+ * Collection of editor extensions.
+ */
+export interface EditorExtensions {
+  nodes?: EditorExtensionNodeEntry[];
+  plugins?: EditorExtensionPluginEntry[];
+  guards?: EditorExtensionGuard[];
+}
 
 /**
  * Node types for rich text editing.
@@ -79,6 +117,8 @@ export interface ScribeEditorProps {
   YjsPlugin?: FC<{ doc: Y.Doc }>;
   /** Callback for editor errors */
   onError?: (error: Error) => void;
+  /** Editor extensions from plugins */
+  editorExtensions?: EditorExtensions;
 }
 
 /**
@@ -130,6 +170,7 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
   yjsDoc,
   YjsPlugin,
   onError,
+  editorExtensions,
 }) => {
   const handleError = useCallback(
     (error: Error) => {
@@ -148,14 +189,63 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
     [onChange]
   );
 
-  const initialConfig = {
-    namespace: 'ScribeEditor',
-    theme: editorTheme,
-    nodes: EDITOR_NODES,
-    editable: !readOnly,
-    onError: handleError,
-    editorState: initialContent ? JSON.stringify(initialContent) : undefined,
-  };
+  const extensionNodeEntries = useMemo(() => editorExtensions?.nodes ?? [], [editorExtensions]);
+  const extensionPluginEntries = useMemo(() => editorExtensions?.plugins ?? [], [editorExtensions]);
+  const extensionNodes = useMemo(
+    () => extensionNodeEntries.map((entry) => entry.node),
+    [extensionNodeEntries]
+  );
+  const extensionPlugins = useMemo(
+    () => extensionPluginEntries.map((entry) => entry.plugin),
+    [extensionPluginEntries]
+  );
+
+  const editorNodes = useMemo(() => {
+    const nodeMap = new Map<string, Klass<LexicalNode>>();
+
+    for (const node of [...EDITOR_NODES, ...extensionNodes]) {
+      if (!node?.getType) {
+        continue;
+      }
+      const type = node.getType();
+      if (!nodeMap.has(type)) {
+        nodeMap.set(type, node);
+      }
+    }
+
+    return Array.from(nodeMap.values());
+  }, [extensionNodes]);
+
+  useEffect(() => {
+    if (!editorExtensions?.guards?.length) {
+      return;
+    }
+
+    const snapshot: EditorExtensionSnapshot = {
+      nodes: extensionNodes,
+      plugins: extensionPlugins,
+    };
+
+    editorExtensions.guards.forEach((guard) => {
+      try {
+        guard(snapshot);
+      } catch (error) {
+        console.warn('[ScribeEditor] Editor extension guard failed', error);
+      }
+    });
+  }, [editorExtensions, extensionNodes, extensionPlugins]);
+
+  const initialConfig = useMemo(
+    () => ({
+      namespace: 'ScribeEditor',
+      theme: editorTheme,
+      nodes: editorNodes,
+      editable: !readOnly,
+      onError: handleError,
+      editorState: initialContent ? JSON.stringify(initialContent) : undefined,
+    }),
+    [editorNodes, handleError, initialContent, readOnly]
+  );
 
   const editorClassName = [
     'scribe-editor',
@@ -195,6 +285,11 @@ export const ScribeEditor: FC<ScribeEditorProps> = ({
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <MarkdownAutoFormatPlugin />
           <MarkdownRevealPlugin />
+
+          {extensionPluginEntries.map((entry) => {
+            const ExtensionPlugin = entry.plugin;
+            return <ExtensionPlugin key={entry.id} />;
+          })}
 
           {autoFocus && !readOnly && <AutoFocusPlugin />}
 

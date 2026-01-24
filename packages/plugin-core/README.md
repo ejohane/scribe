@@ -18,7 +18,7 @@ bun add @scribe/plugin-core
 
 ## Plugin Capabilities
 
-Plugins declare their capabilities in a manifest. The system supports five capability types:
+Plugins declare their capabilities in a manifest. The system supports seven capability types:
 
 | Capability | Description |
 |------------|-------------|
@@ -27,6 +27,8 @@ Plugins declare their capabilities in a manifest. The system supports five capab
 | `event-hook` | Subscribe to note lifecycle events |
 | `sidebar-panel` | Add a React component to the sidebar |
 | `slash-command` | Add a command to the editor's slash menu |
+| `command-palette-command` | Add a command to the command palette (cmd+k) |
+| `editor-extension` | Provide Lexical nodes or editor plugins |
 
 ## Creating a Plugin
 

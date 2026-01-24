@@ -36,17 +36,6 @@ export interface PluginClientInitializerProps {
  *
  * Place this component inside ScribeProvider but outside PluginProvider
  * to ensure plugins have access to the client before they're loaded.
- *
- * @example
- * ```tsx
- * <ScribeProvider daemonUrl="http://localhost:3000">
- *   <PluginClientInitializer>
- *     <PluginProvider>
- *       <App />
- *     </PluginProvider>
- *   </PluginClientInitializer>
- * </ScribeProvider>
- * ```
  */
 export const PluginClientInitializer: FC<PluginClientInitializerProps> = ({ children }) => {
   const initialized = useRef(false);
