@@ -45,12 +45,14 @@ export {
   useSlashCommands,
   usePluginLoading,
   useCommandPaletteCommands,
+  useEditorExtensions,
 } from './usePlugins';
 export type {
   UseSidebarPanelsResult,
   UseSlashCommandsResult,
   UsePluginLoadingResult,
   UseCommandPaletteCommandsResult,
+  UseEditorExtensionsResult,
 } from './usePlugins';
 
 // Installed plugins registry

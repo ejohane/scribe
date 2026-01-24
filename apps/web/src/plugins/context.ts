@@ -14,6 +14,7 @@ import type {
   SidebarPanelEntry,
   SlashCommandEntry,
   CommandPaletteCommandEntry,
+  EditorExtensionEntry,
 } from '@scribe/plugin-core';
 
 /**
@@ -69,6 +70,13 @@ export interface PluginContextValue {
    * @returns Array of command palette command entries sorted by priority
    */
   getCommandPaletteCommands(): CommandPaletteCommandEntry[];
+
+  /**
+   * Get all editor extension capabilities.
+   *
+   * @returns Array of editor extension entries
+   */
+  getEditorExtensions(): EditorExtensionEntry[];
 }
 
 /**

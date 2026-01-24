@@ -9,7 +9,15 @@ export const VERSION = '0.1.0';
 
 // Main editor component
 export { ScribeEditor } from './components/ScribeEditor.js';
-export type { ScribeEditorProps, EditorContent } from './components/ScribeEditor.js';
+export type {
+  ScribeEditorProps,
+  EditorContent,
+  EditorExtensions,
+  EditorExtensionNodeEntry,
+  EditorExtensionPluginEntry,
+  EditorExtensionGuard,
+  EditorExtensionSnapshot,
+} from './components/ScribeEditor.js';
 
 // Toolbar component (placeholder, full implementation in separate task)
 export { EditorToolbar } from './components/EditorToolbar.js';

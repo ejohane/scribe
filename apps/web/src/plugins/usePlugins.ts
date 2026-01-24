@@ -13,6 +13,7 @@ import type {
   SidebarPanelEntry,
   SlashCommandEntry,
   CommandPaletteCommandEntry,
+  EditorExtensionEntry,
 } from '@scribe/plugin-core';
 
 /**
@@ -244,6 +245,32 @@ export function useCommandPaletteCommands(): UseCommandPaletteCommandsResult {
 
   return {
     commands: getCommandPaletteCommands(),
+    isLoading,
+  };
+}
+
+/**
+ * Result from useEditorExtensions hook.
+ */
+export interface UseEditorExtensionsResult {
+  /** Editor extension entries from plugins */
+  extensions: EditorExtensionEntry[];
+  /** Whether plugins are still loading */
+  isLoading: boolean;
+}
+
+/**
+ * Get all editor extensions provided by plugins.
+ *
+ * Includes loading state to handle extensions not being available yet.
+ *
+ * @returns Object with extensions array and loading state
+ */
+export function useEditorExtensions(): UseEditorExtensionsResult {
+  const { getEditorExtensions, isLoading } = usePlugins();
+
+  return {
+    extensions: getEditorExtensions(),
     isLoading,
   };
 }

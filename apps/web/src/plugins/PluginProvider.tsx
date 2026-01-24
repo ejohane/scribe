@@ -16,6 +16,7 @@ import {
   type SidebarPanelEntry,
   type SlashCommandEntry,
   type CommandPaletteCommandEntry,
+  type EditorExtensionEntry,
   type ClientPluginContext,
   type PluginManifest,
 } from '@scribe/plugin-core';
@@ -168,6 +169,11 @@ export function PluginProvider({ children }: PluginProviderProps) {
         const commands = registry.getCapabilities('command-palette-command');
         // Sort by priority (lower values first)
         return [...commands].sort((a, b) => a.priority - b.priority);
+      },
+
+      getEditorExtensions(): EditorExtensionEntry[] {
+        const extensions = registry.getCapabilities('editor-extension');
+        return [...extensions].sort((a, b) => a.pluginId.localeCompare(b.pluginId));
       },
     }),
     [plugins, registry, isLoading, errors]

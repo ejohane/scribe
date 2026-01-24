@@ -8,7 +8,7 @@
  */
 
 import type { AnyRouter } from '@trpc/server';
-import type { ComponentType } from 'react';
+import type { ComponentType, FC } from 'react';
 
 // ============================================================================
 // Plugin Manifest Types
@@ -285,17 +285,50 @@ export interface CommandPaletteCommandCapability {
 }
 
 /**
- * Lexical editor nodes provided by plugins.
+ * Lexical editor node classes provided by plugins.
  *
  * We intentionally keep this type generic to avoid hard dependencies
- * on Lexical in plugin-core.
+ * on Lexical in plugin-core while preserving the minimal static shape
+ * we need to register nodes.
  */
-export type EditorExtensionNode = unknown;
+export type LexicalNodeClass = {
+  getType: () => string;
+  new (...args: unknown[]): unknown;
+};
+
+/**
+ * Lexical editor nodes provided by plugins.
+ */
+export type EditorExtensionNode = LexicalNodeClass;
 
 /**
  * React editor plugins provided by plugins.
  */
-export type EditorExtensionPlugin = ComponentType;
+export type EditorExtensionPlugin = FC;
+
+/**
+ * Snapshot of runtime editor extensions for guard hooks.
+ */
+export interface EditorExtensionSnapshot {
+  nodes: EditorExtensionNode[];
+  plugins: EditorExtensionPlugin[];
+}
+
+/**
+ * Guard hook for validating editor extension invariants.
+ */
+export type EditorExtensionGuard = (extensions: EditorExtensionSnapshot) => void;
+
+/**
+ * Collection of editor extensions provided by client plugins.
+ */
+export type EditorExtensionNodeCollection =
+  | Record<string, EditorExtensionNode>
+  | EditorExtensionNode[];
+
+export type EditorExtensionPluginCollection =
+  | Record<string, EditorExtensionPlugin>
+  | EditorExtensionPlugin[];
 
 /**
  * Capability for plugins that extend the editor with nodes and React plugins.
@@ -322,14 +355,19 @@ export interface EditorExtensionCapability {
  */
 export interface EditorExtensions {
   /**
-   * Map of node IDs to Lexical node classes.
+   * Map or list of Lexical node classes.
    */
-  nodes?: Record<string, EditorExtensionNode>;
+  nodes?: EditorExtensionNodeCollection;
 
   /**
-   * Map of plugin IDs to React editor plugin components.
+   * Map or list of React editor plugin components.
    */
-  plugins?: Record<string, EditorExtensionPlugin>;
+  plugins?: EditorExtensionPluginCollection;
+
+  /**
+   * Optional guard hooks for enforcing editor invariants.
+   */
+  guards?: EditorExtensionGuard[];
 }
 
 // ============================================================================

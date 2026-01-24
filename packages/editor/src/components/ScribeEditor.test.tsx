@@ -14,6 +14,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { createElement, useEffect, type ReactNode } from 'react';
+import {
+  DecoratorNode,
+  type DOMConversionMap,
+  type DOMExportOutput,
+  type EditorConfig,
+  type LexicalNode,
+  type NodeKey,
+  type SerializedLexicalNode,
+  type Spread,
+} from 'lexical';
 import { ScribeEditor, type EditorContent } from './ScribeEditor';
 
 // Mock simple initial editor state - using unknown type to avoid strict typing issues
@@ -33,6 +44,94 @@ const createInitialContent = (text: string): EditorContent =>
               version: 1,
             },
           ],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          type: 'paragraph',
+          version: 1,
+          textFormat: 0,
+          textStyle: '',
+        },
+      ],
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      type: 'root',
+      version: 1,
+    },
+  }) as unknown as EditorContent;
+
+type SerializedMockNode = Spread<
+  {
+    text: string;
+  },
+  SerializedLexicalNode
+>;
+
+class MockExtensionNode extends DecoratorNode<ReactNode> {
+  __text: string;
+
+  static getType(): string {
+    return 'MockExtensionNode';
+  }
+
+  static clone(node: MockExtensionNode): MockExtensionNode {
+    return new MockExtensionNode(node.__text, node.__key);
+  }
+
+  constructor(text = 'Mock Node', key?: NodeKey) {
+    super(key);
+    this.__text = text;
+  }
+
+  createDOM(_config: EditorConfig): HTMLElement {
+    const element = document.createElement('span');
+    element.className = 'mock-extension-node';
+    return element;
+  }
+
+  updateDOM(): false {
+    return false;
+  }
+
+  decorate(): ReactNode {
+    return createElement('span', { 'data-testid': 'mock-extension-node' }, this.__text);
+  }
+
+  exportJSON(): SerializedMockNode {
+    return {
+      type: 'MockExtensionNode',
+      version: 1,
+      text: this.__text,
+    };
+  }
+
+  static importJSON(serializedNode: SerializedMockNode): MockExtensionNode {
+    return new MockExtensionNode(serializedNode.text);
+  }
+
+  static importDOM(): DOMConversionMap | null {
+    return null;
+  }
+
+  exportDOM(): DOMExportOutput {
+    const element = document.createElement('span');
+    element.textContent = this.__text;
+    return { element };
+  }
+}
+
+const createExtensionContent = (text: string): EditorContent =>
+  ({
+    root: {
+      children: [
+        {
+          type: 'MockExtensionNode',
+          version: 1,
+          text,
+        },
+        {
+          children: [],
           direction: 'ltr',
           format: '',
           indent: 0,
@@ -97,6 +196,72 @@ describe('ScribeEditor', () => {
       const editor = screen.getByTestId('scribe-editor');
       expect(editor).toHaveClass('custom-class');
       expect(editor).toHaveClass('scribe-editor');
+    });
+  });
+
+  describe('Plugin extensions', () => {
+    it('renders editor extension plugins', async () => {
+      const ExtensionPlugin = () => <div data-testid="extension-plugin" />;
+
+      render(
+        <ScribeEditor
+          editorExtensions={{
+            plugins: [{ id: 'extension-plugin', plugin: ExtensionPlugin }],
+          }}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('extension-plugin')).toBeInTheDocument();
+      });
+    });
+
+    it('mounts extension nodes and plugins without errors', async () => {
+      const handleError = vi.fn();
+      const mountOrder: string[] = [];
+
+      const ExtensionPluginA = () => {
+        useEffect(() => {
+          mountOrder.push('PluginA');
+        }, []);
+        return <div data-testid="extension-plugin-a" />;
+      };
+
+      const ExtensionPluginB = () => {
+        useEffect(() => {
+          mountOrder.push('PluginB');
+        }, []);
+        return <div data-testid="extension-plugin-b" />;
+      };
+
+      render(
+        <ScribeEditor
+          initialContent={createExtensionContent('Extension Node')}
+          onError={handleError}
+          editorExtensions={{
+            nodes: [{ id: 'MockExtensionNode', node: MockExtensionNode }],
+            plugins: [
+              { id: 'extension-plugin-a', plugin: ExtensionPluginA },
+              { id: 'extension-plugin-b', plugin: ExtensionPluginB },
+            ],
+          }}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mock-extension-node')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('extension-plugin-a')).toBeInTheDocument();
+        expect(screen.getByTestId('extension-plugin-b')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(mountOrder).toEqual(['PluginA', 'PluginB']);
+      });
+
+      expect(handleError).not.toHaveBeenCalled();
     });
   });
 

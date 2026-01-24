@@ -25,6 +25,26 @@ function contentEquals(a: EditorContent | null, b: EditorContent | null): boolea
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+function stripDailyHeader(content: EditorContent): EditorContent {
+  const root = content?.root;
+  if (!root?.children?.length) {
+    return content;
+  }
+
+  const filteredChildren = root.children.filter((child) => child?.type !== 'DailyHeaderNode');
+  if (filteredChildren.length === root.children.length) {
+    return content;
+  }
+
+  return {
+    ...content,
+    root: {
+      ...root,
+      children: filteredChildren,
+    },
+  };
+}
+
 /** Auto-save debounce delay in milliseconds */
 const AUTO_SAVE_DELAY = 1000;
 
@@ -42,7 +62,8 @@ export interface NoteEditorPageProps {
   renderEditor?: (
     content: EditorContent,
     onChange: (content: EditorContent) => void,
-    collabProps?: CollabEditorProps
+    collabProps?: CollabEditorProps,
+    note?: NoteDocument
   ) => React.ReactNode;
   /** Render prop for the menu button in upper left */
   renderMenuButton?: () => React.ReactNode;
@@ -105,9 +126,13 @@ export function NoteEditorPage({
       if (!result) {
         setError('Note not found');
       } else {
-        setNote(result);
+        const normalizedContent =
+          result.type === 'daily' ? result.content : stripDailyHeader(result.content);
+        const normalizedNote =
+          normalizedContent === result.content ? result : { ...result, content: normalizedContent };
+        setNote(normalizedNote);
         // Track initial content to detect Yjs sync overwrites
-        initialContentRef.current = result.content;
+        initialContentRef.current = normalizedContent;
         hasUserEditedRef.current = false;
 
         // Mark note as accessed (fire-and-forget, don't block rendering)
@@ -364,10 +389,10 @@ export function NoteEditorPage({
         {renderEditor ? (
           collaborative && id ? (
             <CollaborativeEditor noteId={id}>
-              {(collabProps) => renderEditor(note.content, handleContentChange, collabProps)}
+              {(collabProps) => renderEditor(note.content, handleContentChange, collabProps, note)}
             </CollaborativeEditor>
           ) : (
-            renderEditor(note.content, handleContentChange)
+            renderEditor(note.content, handleContentChange, undefined, note)
           )
         ) : (
           <div

@@ -54,8 +54,13 @@ export type {
   SlashCommandCapability,
   CommandPaletteCommandCapability,
   EditorExtensionCapability,
+  LexicalNodeClass,
   EditorExtensionNode,
   EditorExtensionPlugin,
+  EditorExtensionSnapshot,
+  EditorExtensionGuard,
+  EditorExtensionNodeCollection,
+  EditorExtensionPluginCollection,
   EditorExtensions,
 } from './plugin-types.js';
 

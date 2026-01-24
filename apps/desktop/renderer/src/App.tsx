@@ -139,7 +139,8 @@ export function App() {
   function renderEditor(
     content: EditorContent,
     onChange: (content: EditorContent) => void,
-    collabProps?: CollabEditorProps
+    collabProps?: CollabEditorProps,
+    _note?: { type?: string }
   ) {
     return (
       <ScribeEditor

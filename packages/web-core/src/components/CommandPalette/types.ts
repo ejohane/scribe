@@ -204,7 +204,6 @@ export const BUILTIN_CATEGORIES = {
 export const BUILTIN_COMMAND_IDS = {
   NEW_NOTE: 'core.newNote',
   SEARCH_NOTES: 'core.searchNotes',
-  NEW_DAILY_NOTE: 'core.newDailyNote',
   NEW_MEETING: 'core.newMeeting',
   SETTINGS: 'core.settings',
 } as const;

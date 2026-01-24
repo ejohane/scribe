@@ -465,22 +465,24 @@ describe('ClientPlugin structure', () => {
   });
 
   it('accepts a client plugin with editor extensions', () => {
+    class DailyNoteHeaderNode {
+      static getType() {
+        return 'daily-note-header';
+      }
+    }
+
+    const DailyNoteHeaderPlugin = () => null;
+
     const plugin: ClientPlugin = {
       manifest: testManifest,
       editorExtensions: {
-        nodes: {
-          'daily-note-header': { type: 'daily-note-header' },
-        },
-        plugins: {
-          'daily-note-header-plugin': () => null,
-        },
+        nodes: [DailyNoteHeaderNode],
+        plugins: [DailyNoteHeaderPlugin],
       },
     };
 
-    expect(plugin.editorExtensions?.nodes?.['daily-note-header']).toEqual({
-      type: 'daily-note-header',
-    });
-    expect(plugin.editorExtensions?.plugins?.['daily-note-header-plugin']).toBeInstanceOf(Function);
+    expect(plugin.editorExtensions?.nodes).toContain(DailyNoteHeaderNode);
+    expect(plugin.editorExtensions?.plugins).toContain(DailyNoteHeaderPlugin);
   });
 });
 

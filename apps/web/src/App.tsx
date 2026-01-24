@@ -5,7 +5,7 @@
  * Minimal design: full-screen editor with push-out notes sidebar.
  */
 
-import { useState, useEffect, useMemo, type FC, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useCallback, type FC, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import {
   ScribeProvider,
@@ -17,38 +17,27 @@ import {
   CommandPalette,
   type CollabEditorProps,
 } from '@scribe/web-core';
-import { ScribeEditor, type EditorContent as ScribeEditorContent } from '@scribe/editor';
-import type { EditorContent } from '@scribe/client-sdk';
+import {
+  ScribeEditor,
+  type EditorContent as ScribeEditorContent,
+  type EditorExtensions,
+  type EditorExtensionNodeEntry,
+  type EditorExtensionPluginEntry,
+  type EditorExtensionGuard,
+} from '@scribe/editor';
+import type { EditorContent, NoteDocument } from '@scribe/client-sdk';
 import { Button } from './components/ui/button';
 import { Menu } from 'lucide-react';
-import { PluginProvider, PluginClientInitializer, useCommandPaletteCommands } from './plugins';
+import {
+  PluginProvider,
+  PluginClientInitializer,
+  useCommandPaletteCommands,
+  useEditorExtensions,
+} from './plugins';
 import type { CommandItem } from '@scribe/web-core';
 import { DAEMON_PORT, DAEMON_HOST } from './config';
 
 const DAEMON_URL = `http://${DAEMON_HOST}:${DAEMON_PORT}`;
-
-/**
- * Render function for the editor component.
- * Minimal mode - no toolbar, just the text and cursor.
- * Supports collaborative editing when collabProps are provided.
- */
-function renderEditor(
-  content: EditorContent,
-  onChange: (content: EditorContent) => void,
-  collabProps?: CollabEditorProps
-) {
-  return (
-    <ScribeEditor
-      initialContent={content as ScribeEditorContent}
-      onChange={onChange as (content: ScribeEditorContent) => void}
-      autoFocus
-      showToolbar={false}
-      placeholder=""
-      yjsDoc={collabProps?.yjsDoc}
-      YjsPlugin={collabProps?.YjsPlugin}
-    />
-  );
-}
 
 /**
  * Main editor layout with push-style sidebar.
@@ -58,6 +47,97 @@ function EditorLayout() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { extensions, isLoading: extensionsLoading } = useEditorExtensions();
+
+  const editorExtensions = useMemo<EditorExtensions | undefined>(() => {
+    if (extensions.length === 0) {
+      return undefined;
+    }
+
+    const nodes: EditorExtensionNodeEntry[] = [];
+    const plugins: EditorExtensionPluginEntry[] = [];
+    const guards: EditorExtensionGuard[] = [];
+
+    extensions.forEach((extension) => {
+      extension.nodes.forEach((nodeEntry) => {
+        if (!nodeEntry.node) {
+          return;
+        }
+
+        nodes.push({
+          id: `${extension.pluginId}:${nodeEntry.id}`,
+          node: nodeEntry.node as EditorExtensionNodeEntry['node'],
+        });
+      });
+
+      extension.plugins.forEach((pluginEntry) => {
+        if (!pluginEntry.plugin) {
+          return;
+        }
+
+        plugins.push({
+          id: `${extension.pluginId}:${pluginEntry.id}`,
+          plugin: pluginEntry.plugin as EditorExtensionPluginEntry['plugin'],
+        });
+      });
+
+      if (extension.guards?.length) {
+        guards.push(...(extension.guards as EditorExtensionGuard[]));
+      }
+    });
+
+    if (nodes.length === 0 && plugins.length === 0 && guards.length === 0) {
+      return undefined;
+    }
+
+    return { nodes, plugins, guards };
+  }, [extensions]);
+
+  const renderEditor = useCallback(
+    (
+      content: EditorContent,
+      onChange: (content: EditorContent) => void,
+      collabProps?: CollabEditorProps,
+      note?: NoteDocument
+    ) => {
+      if (extensionsLoading) {
+        return <div className="editor-loading">Loading editor extensions...</div>;
+      }
+
+      const dailyNotePrefix = '@scribe/plugin-daily-note:';
+      const shouldShowDailyHeader = note?.type === 'daily';
+      const filteredExtensions = editorExtensions
+        ? {
+            ...editorExtensions,
+            nodes: shouldShowDailyHeader
+              ? editorExtensions.nodes
+              : editorExtensions.nodes?.filter((entry) => !entry.id.startsWith(dailyNotePrefix)),
+            plugins: shouldShowDailyHeader
+              ? editorExtensions.plugins
+              : editorExtensions.plugins?.filter((entry) => !entry.id.startsWith(dailyNotePrefix)),
+          }
+        : undefined;
+      const hasExtensions =
+        !!filteredExtensions &&
+        ((filteredExtensions.nodes?.length ?? 0) > 0 ||
+          (filteredExtensions.plugins?.length ?? 0) > 0 ||
+          (filteredExtensions.guards?.length ?? 0) > 0);
+
+      return (
+        <ScribeEditor
+          initialContent={content as ScribeEditorContent}
+          onChange={onChange as (content: ScribeEditorContent) => void}
+          autoFocus
+          showToolbar={false}
+          placeholder=""
+          yjsDoc={collabProps?.yjsDoc}
+          YjsPlugin={collabProps?.YjsPlugin}
+          editorExtensions={hasExtensions ? filteredExtensions : undefined}
+        />
+      );
+    },
+    [editorExtensions, extensionsLoading]
+  );
 
   const handleNoteSelect = (noteId: string) => {
     navigate(`/note/${noteId}`);

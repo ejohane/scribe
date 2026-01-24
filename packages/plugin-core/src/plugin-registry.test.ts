@@ -20,7 +20,7 @@ import type {
   SlashCommandHandler,
   CommandPaletteCommandHandler,
 } from './plugin-types.js';
-import type { ComponentType } from 'react';
+import type { ComponentType, FC } from 'react';
 
 // ============================================================================
 // Test Fixtures
@@ -53,6 +53,9 @@ function createClientPlugin(overrides: Partial<ClientPlugin> = {}): ClientPlugin
 // Mock React component
 const MockComponent: ComponentType = () => null;
 
+const MockEditorPlugin: FC = () => null;
+MockEditorPlugin.displayName = 'task-plugin';
+
 // Mock slash command handler
 const mockHandler: SlashCommandHandler = {
   execute: () => {},
@@ -63,7 +66,15 @@ const mockPaletteHandler: CommandPaletteCommandHandler = {
   execute: () => {},
 };
 
-const mockNode = { type: 'mock-node' };
+const createNodeClass = (type: string) =>
+  class {
+    static getType() {
+      return type;
+    }
+  };
+
+const TaskNode = createNodeClass('task-node');
+const SecondaryNode = createNodeClass('secondary-node');
 
 // ============================================================================
 // Tests
@@ -555,12 +566,8 @@ describe('PluginRegistry', () => {
             ],
           }),
           editorExtensions: {
-            nodes: {
-              'task-node': mockNode,
-            },
-            plugins: {
-              'task-plugin': MockComponent,
-            },
+            nodes: [TaskNode],
+            plugins: [MockEditorPlugin],
           },
         });
 
@@ -568,8 +575,13 @@ describe('PluginRegistry', () => {
 
         const extensions = registry.getCapabilities('editor-extension');
         expect(extensions).toHaveLength(1);
-        expect(extensions[0].nodes).toEqual([{ id: 'task-node', node: mockNode }]);
-        expect(extensions[0].plugins).toEqual([{ id: 'task-plugin', plugin: MockComponent }]);
+        expect(extensions[0].nodes).toEqual([{ id: 'task-node', node: TaskNode }]);
+        expect(extensions[0].plugins).toEqual([
+          {
+            id: 'task-plugin',
+            plugin: MockEditorPlugin,
+          },
+        ]);
       });
 
       it('uses runtime extension keys when IDs are omitted', () => {
@@ -579,13 +591,8 @@ describe('PluginRegistry', () => {
             capabilities: [{ type: 'editor-extension' }],
           }),
           editorExtensions: {
-            nodes: {
-              'task-node': mockNode,
-              'secondary-node': { type: 'secondary-node' },
-            },
-            plugins: {
-              'task-plugin': MockComponent,
-            },
+            nodes: [TaskNode, SecondaryNode],
+            plugins: [MockEditorPlugin],
           },
         });
 
@@ -596,7 +603,8 @@ describe('PluginRegistry', () => {
         expect(extensions[0].plugins.map((pluginEntry) => pluginEntry.id)).toEqual(['task-plugin']);
       });
 
-      it('registers manifest IDs even when runtime extensions are missing', () => {
+      it('warns and skips missing runtime editor extensions', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const plugin = createServerPlugin({
           manifest: createManifest({
             id: '@scribe/plugin-editor-missing',
@@ -613,8 +621,16 @@ describe('PluginRegistry', () => {
         registry.register(plugin);
 
         const extensions = registry.getCapabilities('editor-extension');
-        expect(extensions[0].nodes).toEqual([{ id: 'missing-node', node: undefined }]);
-        expect(extensions[0].plugins).toEqual([{ id: 'missing-plugin', plugin: undefined }]);
+        expect(extensions[0].nodes).toEqual([]);
+        expect(extensions[0].plugins).toEqual([]);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Missing editor extension node missing-node')
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Missing editor extension plugin missing-plugin')
+        );
+
+        warnSpy.mockRestore();
       });
 
       it('warns and skips invalid editor extension maps', () => {
@@ -637,9 +653,12 @@ describe('PluginRegistry', () => {
         registry.register(plugin);
 
         const extensions = registry.getCapabilities('editor-extension');
-        expect(extensions[0].nodes).toEqual([{ id: 'task-node', node: undefined }]);
+        expect(extensions[0].nodes).toEqual([]);
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('Invalid editor extension nodes')
+        );
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Missing editor extension node task-node')
         );
 
         warnSpy.mockRestore();
