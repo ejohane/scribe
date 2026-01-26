@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import {
   ScribeProvider,
   PlatformProvider,
@@ -17,9 +17,12 @@ import {
   CommandPaletteProvider,
   CommandPalette,
   type CommandItem,
+  type NoteEditorPageProps,
 } from '@scribe/web-core';
+import { Menu } from 'lucide-react';
 import type { PlatformCapabilities, UpdateInfo, CollabEditorProps } from '@scribe/web-core';
 import type { EditorContent, NoteDocument } from '@scribe/client-sdk';
+import { computeTextHash } from '@scribe/shared';
 import {
   ScribeEditor,
   type EditorContent as ScribeEditorContent,
@@ -33,6 +36,7 @@ import {
   PluginClientInitializer,
   useCommandPaletteCommands,
   useEditorExtensions,
+  usePluginSettings,
 } from './plugins';
 
 /**
@@ -55,6 +59,42 @@ function NotesPage() {
   return (
     <div className="h-screen w-screen bg-background">
       <NoteListPage />
+    </div>
+  );
+}
+
+function EditorLayout({
+  renderEditor,
+}: {
+  renderEditor: NonNullable<NoteEditorPageProps['renderEditor']>;
+}) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleNoteSelect = (noteId: string) => {
+    navigate(`/note/${noteId}`);
+  };
+
+  const menuButton = () => (
+    <button
+      type="button"
+      className="sidebar-toggle-button"
+      onClick={() => setSidebarOpen((open) => !open)}
+      aria-label="Toggle sidebar"
+    >
+      <Menu size={16} />
+    </button>
+  );
+
+  return (
+    <div className="editor-layout" data-sidebar-open={sidebarOpen}>
+      <aside className="editor-sidebar">
+        <NoteListPage onNoteSelect={handleNoteSelect} selectedNoteId={id} />
+      </aside>
+      <div className="editor-canvas">
+        <NoteEditorPage renderEditor={renderEditor} renderMenuButton={menuButton} />
+      </div>
     </div>
   );
 }
@@ -96,6 +136,11 @@ function CommandPaletteWithPlugins({ children }: { children: ReactNode }) {
  */
 function AppRoutes() {
   const { extensions, isLoading: extensionsLoading } = useEditorExtensions();
+  const { enabledPluginIds } = usePluginSettings();
+  const enabledPluginsKey = useMemo(
+    () => computeTextHash([...enabledPluginIds].sort().join('|')),
+    [enabledPluginIds]
+  );
 
   const editorExtensions = useMemo<EditorExtensions | undefined>(() => {
     if (extensions.length === 0) {
@@ -173,6 +218,7 @@ function AppRoutes() {
 
       return (
         <ScribeEditor
+          key={`editor-${enabledPluginsKey}`}
           initialContent={content as ScribeEditorContent}
           onChange={onChange as (content: ScribeEditorContent) => void}
           autoFocus
@@ -184,7 +230,7 @@ function AppRoutes() {
         />
       );
     },
-    [editorExtensions, extensionsLoading]
+    [editorExtensions, extensionsLoading, enabledPluginsKey]
   );
 
   return (
@@ -192,7 +238,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/notes" element={<NotesPage />} />
-        <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
+        <Route path="/note/:id" element={<EditorLayout renderEditor={renderEditor} />} />
       </Routes>
     </CommandPaletteWithPlugins>
   );

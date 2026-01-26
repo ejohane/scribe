@@ -55,6 +55,9 @@ export type {
   UseEditorExtensionsResult,
 } from './usePlugins';
 
+export { usePluginSettings } from './usePluginSettings';
+export type { PluginSettingsResult } from './usePluginSettings';
+
 // Installed plugins registry
 export { getInstalledPlugins } from './installed';
 

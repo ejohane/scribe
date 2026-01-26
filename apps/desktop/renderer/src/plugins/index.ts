@@ -47,6 +47,8 @@ export {
   useCommandPaletteCommands,
   useEditorExtensions,
 } from './usePlugins';
+export { usePluginSettings } from './usePluginSettings';
+export type { PluginSettingsResult } from './usePluginSettings';
 export type {
   UseSidebarPanelsResult,
   UseSlashCommandsResult,

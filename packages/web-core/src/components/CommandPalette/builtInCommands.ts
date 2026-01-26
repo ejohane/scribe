@@ -64,8 +64,7 @@ export const builtInCommands: BuiltInCommand[] = [
     category: BUILTIN_CATEGORIES.GENERAL,
     priority: 100,
     execute: (ctx) => {
-      // Settings page doesn't exist yet - show a toast instead
-      ctx.toast('Settings coming soon!', 'info');
+      ctx.navigate('/settings');
     },
   },
 ];

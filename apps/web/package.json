@@ -23,6 +23,7 @@
     "@scribe/editor": "workspace:*",
     "@scribe/plugin-core": "workspace:*",
     "@scribe/plugin-daily-note": "workspace:*",
+    "@scribe/shared": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
     "@trpc/client": "^10.0.0",
     "class-variance-authority": "^0.7.1",

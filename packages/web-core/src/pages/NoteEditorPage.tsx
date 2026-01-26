@@ -97,6 +97,13 @@ export function NoteEditorPage({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const menuButtonContainerStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: isElectron ? 'calc(40px + 1rem)' : '1rem',
+    left: '1rem',
+    zIndex: 50,
+  };
+
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const pendingContentRef = useRef<EditorContent | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -284,7 +291,7 @@ export function NoteEditorPage({
           />
         )}
         {renderMenuButton && (
-          <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 50 }}>
+          <div className="note-editor-menu-button" style={menuButtonContainerStyle}>
             {renderMenuButton()}
           </div>
         )}
@@ -313,7 +320,7 @@ export function NoteEditorPage({
           />
         )}
         {renderMenuButton && (
-          <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 50 }}>
+          <div className="note-editor-menu-button" style={menuButtonContainerStyle}>
             {renderMenuButton()}
           </div>
         )}
@@ -361,7 +368,7 @@ export function NoteEditorPage({
       )}
       {/* Menu button - upper left corner */}
       {renderMenuButton && (
-        <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 50 }}>
+        <div className="note-editor-menu-button" style={menuButtonContainerStyle}>
           {renderMenuButton()}
         </div>
       )}

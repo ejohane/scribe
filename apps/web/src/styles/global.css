@@ -128,7 +128,7 @@ body {
 }
 
 /* Menu button - subtle, fades in on hover */
-[data-testid='note-editor-page'] > div:first-child {
+.note-editor-menu-button {
   position: absolute;
   top: 1rem;
   left: 1rem;
@@ -138,8 +138,8 @@ body {
 }
 
 /* Show chrome on hover, but not when typing */
-[data-testid='note-editor-page']:hover:not([data-typing='true']) > div:first-child,
-[data-testid='note-editor-page'] > div:first-child:focus-within {
+[data-testid='note-editor-page']:hover:not([data-typing='true']) .note-editor-menu-button,
+.note-editor-menu-button:focus-within {
   opacity: 1;
 }
 

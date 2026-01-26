@@ -31,6 +31,30 @@ import { getInstalledPlugins } from './installed';
 
 // Helper to get mocked function
 const mockGetInstalledPlugins = getInstalledPlugins as Mock;
+const STORAGE_KEY = 'scribe:plugin-settings';
+
+function createLocalStorageMock() {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+}
+
+beforeEach(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: createLocalStorageMock(),
+    configurable: true,
+  });
+});
 
 // Helper to create a mock plugin module
 function createMockPluginModule(
@@ -300,6 +324,74 @@ describe('PluginProvider', () => {
     consoleSpy.mockRestore();
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
+  });
+
+  it('filters capability outputs by enabled plugin ids', async () => {
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const enabledPlugin = createMockPluginModule('@test/enabled', {
+      sidebarPanels: [{ id: 'enabled-panel', label: 'Enabled Panel', icon: 'Icon' }],
+      slashCommands: [{ command: 'enabled', label: 'Enabled Command' }],
+      commandPaletteCommands: [
+        {
+          id: 'enabled.command',
+          label: 'Enabled Palette',
+          category: 'Test',
+          priority: 1,
+        },
+      ],
+      editorExtensions: {
+        nodes: ['EnabledNode'],
+        plugins: ['EnabledPlugin'],
+      },
+    });
+    const disabledPlugin = createMockPluginModule('@test/disabled', {
+      sidebarPanels: [{ id: 'disabled-panel', label: 'Disabled Panel', icon: 'Icon' }],
+      slashCommands: [{ command: 'disabled', label: 'Disabled Command' }],
+      commandPaletteCommands: [
+        {
+          id: 'disabled.command',
+          label: 'Disabled Palette',
+          category: 'Test',
+          priority: 2,
+        },
+      ],
+      editorExtensions: {
+        nodes: ['DisabledNode'],
+        plugins: ['DisabledPlugin'],
+      },
+    });
+
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ enabled: { '@test/disabled': false } })
+    );
+
+    mockGetInstalledPlugins.mockReturnValue([enabledPlugin, disabledPlugin]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <PluginProvider>{children}</PluginProvider>
+    );
+
+    const { result } = renderHook(() => usePlugins(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.getSidebarPanels()).toHaveLength(1);
+    expect(result.current.getSidebarPanels()[0].pluginId).toBe('@test/enabled');
+
+    expect(result.current.getSlashCommands()).toHaveLength(1);
+    expect(result.current.getSlashCommands()[0].pluginId).toBe('@test/enabled');
+
+    expect(result.current.getCommandPaletteCommands()).toHaveLength(1);
+    expect(result.current.getCommandPaletteCommands()[0].pluginId).toBe('@test/enabled');
+
+    expect(result.current.getEditorExtensions()).toHaveLength(1);
+    expect(result.current.getEditorExtensions()[0].pluginId).toBe('@test/enabled');
+
+    consoleLogSpy.mockRestore();
   });
 });
 
