@@ -100,16 +100,15 @@ globalStyle('.editor-layout', {
   height: '100vh',
   width: '100vw',
   overflow: 'hidden',
-  backgroundColor: vars.color.backgroundAlt,
+  backgroundColor: 'oklch(0.08 0 0)',
 });
 
 globalStyle('.editor-sidebar', {
   width: 0,
   minWidth: 0,
   overflow: 'hidden',
-  transition: 'width 0.25s ease, min-width 0.25s ease',
-  backgroundColor: vars.color.surface,
-  borderRight: `1px solid ${vars.color.border}`,
+  transition: 'width 0.3s ease, min-width 0.3s ease',
+  backgroundColor: 'oklch(0.22 0 0)',
   flexShrink: 0,
 });
 
