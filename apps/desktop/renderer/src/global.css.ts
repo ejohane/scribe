@@ -66,6 +66,18 @@ globalStyle('[data-testid="note-editor-page"]', {
   alignItems: 'center',
 });
 
+globalStyle('.note-editor-menu-button', {
+  opacity: 0.15,
+  transition: 'opacity 0.2s ease',
+});
+
+globalStyle(
+  "[data-testid='note-editor-page']:hover:not([data-typing='true']) .note-editor-menu-button, .note-editor-menu-button:focus-within",
+  {
+    opacity: 1,
+  }
+);
+
 // Note editor content - centered with max width, responsive padding
 globalStyle('[data-testid="note-editor-content"]', {
   width: '100%',
@@ -80,4 +92,60 @@ globalStyle('[data-testid="note-editor-content"]', {
       paddingRight: '1.5rem',
     },
   },
+});
+
+// Push-style sidebar layout for editor
+globalStyle('.editor-layout', {
+  display: 'flex',
+  height: '100vh',
+  width: '100vw',
+  overflow: 'hidden',
+  backgroundColor: vars.color.backgroundAlt,
+});
+
+globalStyle('.editor-sidebar', {
+  width: 0,
+  minWidth: 0,
+  overflow: 'hidden',
+  transition: 'width 0.25s ease, min-width 0.25s ease',
+  backgroundColor: vars.color.surface,
+  borderRight: `1px solid ${vars.color.border}`,
+  flexShrink: 0,
+});
+
+globalStyle(".editor-layout[data-sidebar-open='true'] .editor-sidebar", {
+  width: '280px',
+  minWidth: '280px',
+});
+
+globalStyle('.editor-canvas', {
+  flex: 1,
+  minWidth: 0,
+  position: 'relative',
+  zIndex: 10,
+  backgroundColor: vars.color.background,
+  overflow: 'auto',
+});
+
+globalStyle('.sidebar-toggle-button', {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '32px',
+  width: '32px',
+  borderRadius: vars.radius.md,
+  border: `1px solid color-mix(in srgb, ${vars.color.border} 30%, transparent)`,
+  backgroundColor: `color-mix(in srgb, ${vars.color.background} 90%, transparent)`,
+  color: `color-mix(in srgb, ${vars.color.foreground} 60%, transparent)`,
+  boxShadow: `0 1px 2px color-mix(in srgb, ${vars.color.background} 60%, transparent)`,
+  backdropFilter: 'blur(6px)',
+  WebkitBackdropFilter: 'blur(6px)',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease',
+});
+
+globalStyle('.sidebar-toggle-button:hover', {
+  color: vars.color.foreground,
+  backgroundColor: vars.color.background,
+  borderColor: `color-mix(in srgb, ${vars.color.border} 60%, transparent)`,
 });
