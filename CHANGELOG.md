@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.45.0](https://github.com/ejohane/scribe/compare/v1.44.0...v1.45.0) (2026-01-26)
+
+### Features
+
+* **ui:** add plugin settings page ([b86929f](https://github.com/ejohane/scribe/commit/b86929f24c729491542982976e0a199b25c3fd01))
+* **ui:** add settings toggles for plugins ([2053e2d](https://github.com/ejohane/scribe/commit/2053e2dda0f6af06e51340955ffc6c39d9383f0b))
+
 ## [1.44.0](https://github.com/ejohane/scribe/compare/v1.43.0...v1.44.0) (2026-01-24)
 
 ### Features
