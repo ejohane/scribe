@@ -15,6 +15,7 @@ import {
 } from '@scribe/plugin-daily-note/client';
 import { initializeClientPlugin as initTodoPlugin } from '@scribe/plugin-todo/client';
 import { useTrpc } from '@scribe/web-core';
+import { usePluginSettings } from './usePluginSettings';
 
 let hasEnsuredDailyNote = false;
 
@@ -40,6 +41,8 @@ export interface PluginClientInitializerProps {
 export const PluginClientInitializer: FC<PluginClientInitializerProps> = ({ children }) => {
   const initialized = useRef(false);
   const trpc = useTrpc();
+  const { enabledPluginIds } = usePluginSettings();
+  const isDailyNoteEnabled = enabledPluginIds.has('@scribe/plugin-daily-note');
 
   useEffect(() => {
     if (trpc && !initialized.current) {
@@ -55,15 +58,17 @@ export const PluginClientInitializer: FC<PluginClientInitializerProps> = ({ chil
       console.log('[PluginClientInitializer] Plugins initialized with tRPC client');
     }
 
-    if (trpc && !hasEnsuredDailyNote) {
-      hasEnsuredDailyNote = true;
-      void ensureDailyNoteToday().catch((error) => {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        // eslint-disable-next-line no-console -- Intentional logging for initialization failure
-        console.error(`[PluginClientInitializer] Failed to ensure daily note: ${message}`);
-      });
+    if (!trpc || hasEnsuredDailyNote || !isDailyNoteEnabled) {
+      return;
     }
-  }, [trpc]);
+
+    hasEnsuredDailyNote = true;
+    void ensureDailyNoteToday().catch((error) => {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      // eslint-disable-next-line no-console -- Intentional logging for initialization failure
+      console.error(`[PluginClientInitializer] Failed to ensure daily note: ${message}`);
+    });
+  }, [trpc, isDailyNoteEnabled]);
 
   return <>{children}</>;
 };

@@ -21,6 +21,7 @@ import {
   type PluginManifest,
 } from '@scribe/plugin-core';
 import { getInstalledPlugins } from './installed';
+import { usePluginSettings } from './usePluginSettings';
 import { PluginContext, type PluginContextValue, type PluginLoadError } from './context';
 
 /**
@@ -71,6 +72,7 @@ export function PluginProvider({ children }: PluginProviderProps) {
   const [plugins, setPlugins] = useState<ClientPlugin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<PluginLoadError[]>([]);
+  const { enabledPluginIds } = usePluginSettings();
 
   // Create registry once - it persists across renders
   const registry = useMemo(() => new PluginRegistry(), []);
@@ -156,27 +158,35 @@ export function PluginProvider({ children }: PluginProviderProps) {
       errors,
 
       getSidebarPanels(): SidebarPanelEntry[] {
-        const panels = registry.getCapabilities('sidebar-panel');
+        const panels = registry
+          .getCapabilities('sidebar-panel')
+          .filter((panel) => enabledPluginIds.has(panel.pluginId));
         // Sort by priority (lower values first)
         return [...panels].sort((a, b) => a.priority - b.priority);
       },
 
       getSlashCommands(): SlashCommandEntry[] {
-        return [...registry.getCapabilities('slash-command')];
+        return registry
+          .getCapabilities('slash-command')
+          .filter((command) => enabledPluginIds.has(command.pluginId));
       },
 
       getCommandPaletteCommands(): CommandPaletteCommandEntry[] {
-        const commands = registry.getCapabilities('command-palette-command');
+        const commands = registry
+          .getCapabilities('command-palette-command')
+          .filter((command) => enabledPluginIds.has(command.pluginId));
         // Sort by priority (lower values first)
         return [...commands].sort((a, b) => a.priority - b.priority);
       },
 
       getEditorExtensions(): EditorExtensionEntry[] {
-        const extensions = registry.getCapabilities('editor-extension');
+        const extensions = registry
+          .getCapabilities('editor-extension')
+          .filter((extension) => enabledPluginIds.has(extension.pluginId));
         return [...extensions].sort((a, b) => a.pluginId.localeCompare(b.pluginId));
       },
     }),
-    [plugins, registry, isLoading, errors]
+    [plugins, registry, isLoading, errors, enabledPluginIds]
   );
 
   return <PluginContext.Provider value={value}>{children}</PluginContext.Provider>;

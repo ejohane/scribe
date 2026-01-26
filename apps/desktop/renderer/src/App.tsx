@@ -20,6 +20,7 @@ import {
 } from '@scribe/web-core';
 import type { PlatformCapabilities, UpdateInfo, CollabEditorProps } from '@scribe/web-core';
 import type { EditorContent, NoteDocument } from '@scribe/client-sdk';
+import { computeTextHash } from '@scribe/shared';
 import {
   ScribeEditor,
   type EditorContent as ScribeEditorContent,
@@ -33,6 +34,7 @@ import {
   PluginClientInitializer,
   useCommandPaletteCommands,
   useEditorExtensions,
+  usePluginSettings,
 } from './plugins';
 
 /**
@@ -96,6 +98,11 @@ function CommandPaletteWithPlugins({ children }: { children: ReactNode }) {
  */
 function AppRoutes() {
   const { extensions, isLoading: extensionsLoading } = useEditorExtensions();
+  const { enabledPluginIds } = usePluginSettings();
+  const enabledPluginsKey = useMemo(
+    () => computeTextHash([...enabledPluginIds].sort().join('|')),
+    [enabledPluginIds]
+  );
 
   const editorExtensions = useMemo<EditorExtensions | undefined>(() => {
     if (extensions.length === 0) {
@@ -173,6 +180,7 @@ function AppRoutes() {
 
       return (
         <ScribeEditor
+          key={`editor-${enabledPluginsKey}`}
           initialContent={content as ScribeEditorContent}
           onChange={onChange as (content: ScribeEditorContent) => void}
           autoFocus
@@ -184,7 +192,7 @@ function AppRoutes() {
         />
       );
     },
-    [editorExtensions, extensionsLoading]
+    [editorExtensions, extensionsLoading, enabledPluginsKey]
   );
 
   return (

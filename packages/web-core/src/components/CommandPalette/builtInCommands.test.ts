@@ -142,14 +142,14 @@ describe('builtInCommands', () => {
       expect(cmd?.shortcut).toBe('⌘,');
     });
 
-    it('shows a toast that settings is coming soon', () => {
+    it('navigates to settings', () => {
       const cmd = builtInCommands.find((c) => c.id === 'core.settings')!;
       const ctx = createMockContext();
 
       cmd.execute(ctx);
 
-      expect(ctx.toast).toHaveBeenCalledWith('Settings coming soon!', 'info');
-      expect(ctx.navigate).not.toHaveBeenCalled();
+      expect(ctx.navigate).toHaveBeenCalledWith('/settings');
+      expect(ctx.toast).not.toHaveBeenCalled();
     });
   });
 
