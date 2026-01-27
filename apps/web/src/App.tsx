@@ -5,7 +5,7 @@
  * Minimal design: full-screen editor with push-out notes sidebar.
  */
 
-import { useState, useEffect, useMemo, useCallback, type FC, type ReactNode } from 'react';
+import { useEffect, useMemo, useCallback, type FC, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import {
   ScribeProvider,
@@ -15,6 +15,7 @@ import {
   NoteEditorPage,
   CommandPaletteProvider,
   CommandPalette,
+  EditorShell,
   type CollabEditorProps,
 } from '@scribe/web-core';
 import {
@@ -49,7 +50,6 @@ const DAEMON_URL = `http://${DAEMON_HOST}:${DAEMON_PORT}`;
 function EditorLayout() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { extensions, isLoading: extensionsLoading } = useEditorExtensions();
   const { enabledPluginIds } = usePluginSettings();
   const enabledPluginsKey = useMemo(
@@ -156,41 +156,40 @@ function EditorLayout() {
     navigate('/settings');
   };
 
-  const menuButton = () => (
+  const menuButton = ({ toggle }: { isOpen: boolean; toggle: () => void }) => (
     <Button
       variant="ghost"
       size="icon"
       className="bg-background/90 backdrop-blur-sm text-foreground/60 hover:text-foreground hover:bg-background border border-border/30 shadow-sm"
-      onClick={() => setSidebarOpen(!sidebarOpen)}
+      onClick={toggle}
     >
       <Menu className="h-4 w-4" />
     </Button>
   );
 
-  return (
-    <div className="editor-layout" data-sidebar-open={sidebarOpen}>
-      {/* Sidebar - pushes content, appears behind canvas */}
-      <aside className="editor-sidebar">
-        <div className="relative h-full">
-          <NoteListPage onNoteSelect={handleNoteSelect} selectedNoteId={id} className="pb-14" />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="absolute bottom-3 left-3 text-foreground/60 hover:text-foreground"
-            onClick={handleSettingsOpen}
-            title="Settings"
-            aria-label="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </aside>
+  const settingsButton = ({ onOpen }: { onOpen: () => void }) => (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="absolute bottom-3 left-3 text-foreground/60 hover:text-foreground"
+      onClick={onOpen}
+      title="Settings"
+      aria-label="Settings"
+    >
+      <Settings className="h-4 w-4" />
+    </Button>
+  );
 
-      {/* Main canvas - elevated above sidebar */}
-      <div className="editor-canvas">
-        <NoteEditorPage renderEditor={renderEditor} renderMenuButton={menuButton} />
-      </div>
-    </div>
+  return (
+    <EditorShell
+      noteId={id ?? null}
+      onNoteSelect={handleNoteSelect}
+      onSettingsOpen={handleSettingsOpen}
+      renderMenuButton={menuButton}
+      renderSettingsButton={settingsButton}
+    >
+      <NoteEditorPage renderEditor={renderEditor} />
+    </EditorShell>
   );
 }
 

@@ -67,6 +67,8 @@ export interface NoteEditorPageProps {
   ) => React.ReactNode;
   /** Render prop for the menu button in upper left */
   renderMenuButton?: () => React.ReactNode;
+  /** Render prop for platform titlebar drag region */
+  renderTitlebarDragRegion?: () => React.ReactNode;
   /** Callback when note is saved */
   onSave?: (noteId: string, content: EditorContent) => void;
   /** Callback when an error occurs */
@@ -82,6 +84,7 @@ export function NoteEditorPage({
   collaborative = true,
   renderEditor,
   renderMenuButton,
+  renderTitlebarDragRegion,
   onSave,
   onError,
 }: NoteEditorPageProps) {
@@ -103,6 +106,26 @@ export function NoteEditorPage({
     left: '1rem',
     zIndex: 50,
   };
+
+  const defaultTitlebarDragRegion = isElectron ? (
+    <div
+      style={
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '40px',
+          WebkitAppRegion: 'drag',
+          zIndex: 40,
+        } as React.CSSProperties
+      }
+      data-testid="titlebar-drag-region"
+    />
+  ) : null;
+  const resolvedTitlebarDragRegion = renderTitlebarDragRegion
+    ? renderTitlebarDragRegion()
+    : defaultTitlebarDragRegion;
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const pendingContentRef = useRef<EditorContent | null>(null);
@@ -274,22 +297,7 @@ export function NoteEditorPage({
   if (isLoading) {
     return (
       <div className={className} data-testid="note-editor-page" data-typing={isTyping}>
-        {isElectron && (
-          <div
-            style={
-              {
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '40px',
-                WebkitAppRegion: 'drag',
-                zIndex: 40,
-              } as React.CSSProperties
-            }
-            data-testid="titlebar-drag-region"
-          />
-        )}
+        {resolvedTitlebarDragRegion}
         {renderMenuButton && (
           <div className="note-editor-menu-button" style={menuButtonContainerStyle}>
             {renderMenuButton()}
@@ -303,22 +311,7 @@ export function NoteEditorPage({
   if (error || !note) {
     return (
       <div className={className} data-testid="note-editor-page" data-typing={isTyping}>
-        {isElectron && (
-          <div
-            style={
-              {
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: '40px',
-                WebkitAppRegion: 'drag',
-                zIndex: 40,
-              } as React.CSSProperties
-            }
-            data-testid="titlebar-drag-region"
-          />
-        )}
+        {resolvedTitlebarDragRegion}
         {renderMenuButton && (
           <div className="note-editor-menu-button" style={menuButtonContainerStyle}>
             {renderMenuButton()}
@@ -349,23 +342,8 @@ export function NoteEditorPage({
 
   return (
     <div className={className} data-testid="note-editor-page" data-typing={isTyping}>
-      {/* Titlebar drag region for Electron - clears macOS traffic lights */}
-      {isElectron && (
-        <div
-          style={
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '40px',
-              WebkitAppRegion: 'drag',
-              zIndex: 40,
-            } as React.CSSProperties
-          }
-          data-testid="titlebar-drag-region"
-        />
-      )}
+      {/* Titlebar drag region for Electron or injected slot */}
+      {resolvedTitlebarDragRegion}
       {/* Menu button - upper left corner */}
       {renderMenuButton && (
         <div className="note-editor-menu-button" style={menuButtonContainerStyle}>

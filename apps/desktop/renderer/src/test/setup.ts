@@ -3,6 +3,53 @@ import { afterEach, beforeAll, afterAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => (key in store ? store[key] : null),
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+})();
+
+if (typeof window !== 'undefined') {
+  const storage = window.localStorage as Storage | undefined;
+  if (!storage || typeof storage.getItem !== 'function') {
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+    });
+  }
+}
+
+const isIgnorableMessage = (message: string) => {
+  if (message.includes('TableObserver')) {
+    return true;
+  }
+  if (message.includes("Cannot assign to read only property 'format'")) {
+    return true;
+  }
+  if (message.includes('WebSocket connection failed') || message.includes('ECONNREFUSED')) {
+    return true;
+  }
+  return false;
+};
+
+const isIgnorableAggregate = (error: AggregateError) => {
+  const errors = Array.isArray(error.errors) ? error.errors : [];
+  return errors.some((entry) => {
+    const message = entry instanceof Error ? entry.message : String(entry ?? '');
+    return isIgnorableMessage(message);
+  });
+};
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();
@@ -27,20 +74,11 @@ afterAll(() => {
 
 // Also handle uncaught errors at the process level
 process.on('uncaughtException', (error) => {
-  if (error.message?.includes('TableObserver')) {
-    // Silently ignore TableObserver cleanup errors
+  const message = error?.message ?? '';
+  if (isIgnorableMessage(message)) {
     return;
   }
-  // Ignore Lexical selection errors that occur due to happy-dom compatibility issues
-  // This happens when Lexical tries to modify a RangeSelection that happy-dom has frozen
-  if (error.message?.includes("Cannot assign to read only property 'format'")) {
-    return;
-  }
-  // Ignore WebSocket connection errors during tests (no daemon running)
-  if (
-    error.message?.includes('WebSocket connection failed') ||
-    error.message?.includes('ECONNREFUSED')
-  ) {
+  if (error instanceof AggregateError && isIgnorableAggregate(error)) {
     return;
   }
   throw error;
@@ -48,13 +86,11 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason) => {
-  const message = reason instanceof Error ? reason.message : String(reason);
-  // Ignore WebSocket connection errors during tests
-  if (message?.includes('WebSocket connection failed') || message?.includes('ECONNREFUSED')) {
+  if (reason instanceof AggregateError && isIgnorableAggregate(reason)) {
     return;
   }
-  // Ignore Lexical selection errors
-  if (message?.includes("Cannot assign to read only property 'format'")) {
+  const message = reason instanceof Error ? reason.message : String(reason ?? '');
+  if (isIgnorableMessage(message)) {
     return;
   }
   throw reason;

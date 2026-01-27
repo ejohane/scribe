@@ -1,6 +1,9 @@
 export { CollaborativeEditor } from './CollaborativeEditor';
 export type { CollaborativeEditorProps, CollabEditorProps } from './CollaborativeEditor';
 
+export { EditorShell } from './EditorShell';
+export type { EditorShellProps } from './EditorShell';
+
 // Command Palette - Components
 export {
   CommandPalette,

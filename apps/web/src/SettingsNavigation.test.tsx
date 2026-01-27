@@ -32,6 +32,31 @@ vi.mock('@scribe/web-core', () => ({
   NoteEditorPage: ({ renderMenuButton }: { renderMenuButton?: () => ReactNode }) => (
     <div data-testid="note-editor-page">{renderMenuButton ? renderMenuButton() : null}</div>
   ),
+  EditorShell: ({
+    children,
+    renderMenuButton,
+    renderSettingsButton,
+    onSettingsOpen,
+  }: {
+    children: ReactNode;
+    renderMenuButton?: (args: { isOpen: boolean; toggle: () => void }) => ReactNode;
+    renderSettingsButton?: (args: { onOpen: () => void }) => ReactNode;
+    onSettingsOpen?: () => void;
+  }) => {
+    const menuButton = renderMenuButton
+      ? renderMenuButton({ isOpen: false, toggle: () => {} })
+      : null;
+    const settingsButton = renderSettingsButton
+      ? renderSettingsButton({ onOpen: onSettingsOpen ?? (() => {}) })
+      : null;
+    return (
+      <div>
+        {menuButton}
+        {settingsButton}
+        {children}
+      </div>
+    );
+  },
   CommandPaletteProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   CommandPalette: () => <div data-testid="command-palette" />,
 }));

@@ -6,7 +6,14 @@
  * Uses app-shell providers for platform-agnostic functionality.
  */
 
-import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  type ReactNode,
+  type CSSProperties,
+} from 'react';
 import { HashRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import {
   ScribeProvider,
@@ -14,6 +21,7 @@ import {
   CollabProvider,
   NoteListPage,
   NoteEditorPage,
+  EditorShell,
   CommandPaletteProvider,
   CommandPalette,
   type CommandItem,
@@ -63,39 +71,55 @@ function NotesPage() {
   );
 }
 
-function EditorLayout({
+function EditorShellPage({
   renderEditor,
 }: {
   renderEditor: NonNullable<NoteEditorPageProps['renderEditor']>;
 }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNoteSelect = (noteId: string) => {
     navigate(`/note/${noteId}`);
   };
 
-  const menuButton = () => (
+  const menuButton = ({ toggle }: { isOpen: boolean; toggle: () => void }) => (
     <button
       type="button"
       className="sidebar-toggle-button"
-      onClick={() => setSidebarOpen((open) => !open)}
+      onClick={toggle}
       aria-label="Toggle sidebar"
     >
       <Menu size={16} />
     </button>
   );
 
+  const titlebarDragRegion = () => (
+    <div
+      style={
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '40px',
+          WebkitAppRegion: 'drag',
+          zIndex: 40,
+        } as CSSProperties
+      }
+      data-testid="titlebar-drag-region"
+    />
+  );
+
   return (
-    <div className="editor-layout" data-sidebar-open={sidebarOpen}>
-      <aside className="editor-sidebar">
-        <NoteListPage onNoteSelect={handleNoteSelect} selectedNoteId={id} />
-      </aside>
-      <div className="editor-canvas">
-        <NoteEditorPage renderEditor={renderEditor} renderMenuButton={menuButton} />
-      </div>
-    </div>
+    <EditorShell
+      noteId={id ?? null}
+      onNoteSelect={handleNoteSelect}
+      renderMenuButton={menuButton}
+      renderTitlebarDragRegion={titlebarDragRegion}
+    >
+      <NoteEditorPage renderEditor={renderEditor} />
+    </EditorShell>
   );
 }
 
@@ -238,7 +262,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/notes" element={<NotesPage />} />
-        <Route path="/note/:id" element={<EditorLayout renderEditor={renderEditor} />} />
+        <Route path="/note/:id" element={<EditorShellPage renderEditor={renderEditor} />} />
       </Routes>
     </CommandPaletteWithPlugins>
   );

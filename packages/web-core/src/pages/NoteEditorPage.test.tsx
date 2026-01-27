@@ -80,6 +80,7 @@ function renderNoteEditorPage(options?: {
     note?: NoteDocument
   ) => React.ReactNode;
   renderMenuButton?: () => React.ReactNode;
+  renderTitlebarDragRegion?: () => React.ReactNode;
   onSave?: (noteId: string, content: EditorContent) => void;
   onError?: (error: Error) => void;
   skipMockSetup?: boolean;
@@ -90,6 +91,7 @@ function renderNoteEditorPage(options?: {
     note = mockNote,
     renderEditor,
     renderMenuButton,
+    renderTitlebarDragRegion,
     onSave,
     onError,
     skipMockSetup = false,
@@ -117,6 +119,7 @@ function renderNoteEditorPage(options?: {
                   collaborative={collaborative}
                   renderEditor={renderEditor}
                   renderMenuButton={renderMenuButton}
+                  renderTitlebarDragRegion={renderTitlebarDragRegion}
                   onSave={onSave}
                   onError={onError}
                 />
@@ -166,6 +169,16 @@ describe('NoteEditorPage', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('no-editor-provided')).toBeInTheDocument();
+      });
+    });
+
+    it('renders injected titlebar drag region when provided', async () => {
+      renderNoteEditorPage({
+        renderTitlebarDragRegion: () => <div data-testid="custom-titlebar" />,
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('custom-titlebar')).toBeInTheDocument();
       });
     });
   });
