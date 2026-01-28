@@ -20,6 +20,17 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.46.0
+
+## [1.46.0](https://github.com/ejohane/scribe/compare/v1.45.0...v1.46.0) (2026-01-28)
+
+### Features
+
+* **ui:** unify editor shell layout ([c765e42](https://github.com/ejohane/scribe/commit/c765e425d8431ff6067aac439e94665c6edc8670))
+
 ---
 
 # What's New in v1.45.0

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.46.0](https://github.com/ejohane/scribe/compare/v1.45.0...v1.46.0) (2026-01-28)
+
+### Features
+
+* **ui:** unify editor shell layout ([c765e42](https://github.com/ejohane/scribe/commit/c765e425d8431ff6067aac439e94665c6edc8670))
+
 ## [1.45.0](https://github.com/ejohane/scribe/compare/v1.44.0...v1.45.0) (2026-01-26)
 
 ### Features
