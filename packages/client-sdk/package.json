@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@scribe/server-core": "workspace:*",
-    "@trpc/client": "^10.45.4",
+    "@trpc/client": "^11.8.1",
     "ws": "^8.18.0",
     "yjs": "^13.6.29"
   },
