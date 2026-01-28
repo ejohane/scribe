@@ -24,7 +24,7 @@
     "@scribe/storage-fs": "workspace:*",
     "@scribe/tsconfig": "workspace:*",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
     "@scribe/engine-graph": "workspace:*",
