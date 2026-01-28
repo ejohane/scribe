@@ -67,6 +67,10 @@ globalStyle('[data-testid="note-editor-page"]', {
 });
 
 globalStyle('.note-editor-menu-button', {
+  position: 'absolute',
+  top: '1rem',
+  left: '1rem',
+  zIndex: 50,
   opacity: 0.15,
   transition: 'opacity 0.2s ease',
 });

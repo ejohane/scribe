@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import type { ScribeAPI } from '@scribe/shared';
 import type { NoteMetadata, NoteDocument } from '@scribe/server-core';
 
@@ -59,16 +59,49 @@ const mockTrpc = {
 };
 
 // Mock @tanstack/react-query
-vi.mock('@tanstack/react-query', () => ({
-  QueryClient: vi.fn().mockImplementation(() => ({})),
-  QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
+vi.mock('@tanstack/react-query', () => {
+  class MockQueryClient {}
+  const mockQueryClient = {
+    invalidateQueries: () => undefined,
+  };
+
+  return {
+    QueryClient: MockQueryClient,
+    QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+    useQueryClient: () => mockQueryClient,
+    useQuery: () => ({
+      data: [],
+      isLoading: false,
+      error: null,
+    }),
+  };
+});
 
 // Mock @trpc/client to provide our mock tRPC
 vi.mock('@trpc/client', () => ({
   createTRPCProxyClient: () => mockTrpc,
   httpBatchLink: () => ({}),
 }));
+
+vi.mock('@scribe/client-sdk', async (importActual) => {
+  const actual = await importActual<typeof import('@scribe/client-sdk')>();
+
+  class MockCollabClient {
+    on() {}
+    off() {}
+    connect() {
+      return Promise.resolve();
+    }
+    disconnect() {
+      return Promise.resolve();
+    }
+  }
+
+  return {
+    ...actual,
+    CollabClient: MockCollabClient,
+  };
+});
 
 // Create mock Electron API
 const mockElectron = {
@@ -223,6 +256,27 @@ describe('App routing', () => {
     await waitFor(() => {
       expect(screen.getByTestId('note-list-page')).toBeInTheDocument();
     });
+  });
+
+  it('renders editor shell wiring for note routes', async () => {
+    window.location.hash = '#/note/note-1';
+    render(<App />);
+
+    const menuButton = await screen.findByLabelText('Toggle sidebar');
+    const editorPage = await screen.findByTestId('note-editor-page');
+    const dragRegion = within(editorPage).getByTestId('titlebar-drag-region');
+    const layout = document.querySelector('.editor-layout');
+
+    expect(layout).toBeInTheDocument();
+    expect(layout?.getAttribute('data-sidebar-open')).toBe('false');
+    expect(dragRegion).toBeInTheDocument();
+
+    fireEvent.click(menuButton);
+    await waitFor(() => {
+      expect(layout?.getAttribute('data-sidebar-open')).toBe('true');
+    });
+
+    window.location.hash = '#/';
   });
 });
 
