@@ -12,7 +12,7 @@
  * - [x] Recently opened notes (max 5) when search empty
  * - [x] Keyboard navigation (arrows, enter, escape)
  * - [x] Commands show keyboard shortcut hints
- * - [x] Plugin can register custom command (todo plugin)
+ * - [x] Plugin can register custom command (example plugin)
  * - [x] Works identically in web and desktop - web tested here
  * - [x] Accessible (ARIA attributes, focus management)
  */
@@ -539,71 +539,5 @@ test.describe('Command Palette: Plugin Commands', () => {
     await page.keyboard.type('daily note');
 
     await expect(page.getByText('Open Daily Note', { exact: true })).toBeVisible();
-  });
-
-  test('shows Create Task command from todo plugin', async ({ page }) => {
-    await page.goto('/');
-    await waitForConnection(page);
-
-    await openCommandPalette(page);
-
-    // Type to search for the task command
-    await page.keyboard.type('create task');
-
-    // Should show the Create Task command from the todo plugin
-    await expect(page.getByText('Create Task', { exact: true })).toBeVisible();
-  });
-
-  test('shows View Tasks command from todo plugin', async ({ page }) => {
-    await page.goto('/');
-    await waitForConnection(page);
-
-    await openCommandPalette(page);
-
-    // Type to search for the view tasks command
-    await page.keyboard.type('view tasks');
-
-    // Should show the View Tasks command from the todo plugin
-    await expect(page.getByText('View Tasks', { exact: true })).toBeVisible();
-  });
-
-  test('shows Todo category for plugin commands', async ({ page }) => {
-    await page.goto('/');
-    await waitForConnection(page);
-
-    await openCommandPalette(page);
-
-    // Type to search for todo commands
-    await page.keyboard.type('task');
-
-    // Should show the Todo category label
-    await expect(page.getByText('Todo', { exact: true })).toBeVisible();
-  });
-
-  test('Create Task command shows keyboard shortcut hint', async ({ page }) => {
-    await page.goto('/');
-    await waitForConnection(page);
-
-    await openCommandPalette(page);
-
-    // Type to search for the create task command
-    await page.keyboard.type('create task');
-
-    // Should show the keyboard shortcut hint
-    await expect(page.locator('text=⌘⇧T')).toBeVisible();
-  });
-
-  test('executing Create Task command closes the palette', async ({ page }) => {
-    await page.goto('/');
-    await waitForConnection(page);
-
-    await openCommandPalette(page);
-
-    // Search for and execute Create Task
-    await page.keyboard.type('create task');
-    await page.keyboard.press('Enter');
-
-    // Palette should close after command execution
-    await expect(page.locator('[aria-label="Command palette"]')).not.toBeVisible();
   });
 });

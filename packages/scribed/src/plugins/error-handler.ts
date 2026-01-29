@@ -165,7 +165,7 @@ export async function withTimeout<T>(operation: Promise<T>, options: TimeoutOpti
  * ```typescript
  * logPluginError({
  *   timestamp: new Date(),
- *   pluginId: '@scribe/plugin-todo',
+ *   pluginId: '@scribe/plugin-example',
  *   errorType: 'event',
  *   eventType: 'note:created',
  *   error: { message: 'Failed to process note' },
@@ -218,7 +218,7 @@ export function logPluginError(log: PluginErrorLog): void {
  * const wrappedHandler = wrapEventHandler(
  *   plugin.eventHandlers['note:created'],
  *   {
- *     pluginId: '@scribe/plugin-todo',
+ *     pluginId: '@scribe/plugin-example',
  *     lifecycle: lifecycleManager,
  *     timeout: 5000,
  *   }
@@ -320,7 +320,7 @@ export interface WrapLifecycleHookOptions {
  * const wrappedActivate = wrapLifecycleHook(
  *   plugin.onActivate,
  *   {
- *     pluginId: '@scribe/plugin-todo',
+ *     pluginId: '@scribe/plugin-example',
  *     hookType: 'onActivate',
  *     timeout: 30000,
  *   }
@@ -387,7 +387,7 @@ export function wrapLifecycleHook(
  * try {
  *   await pluginProcedure();
  * } catch (error) {
- *   await handleRouterError('@scribe/plugin-todo', error, lifecycle, 'getTodos');
+ *   await handleRouterError('@scribe/plugin-example', error, lifecycle, 'getWidgets');
  *   throw error;
  * }
  * ```
@@ -441,7 +441,7 @@ export async function handleRouterError(
  * const result = await safePluginOperation(
  *   () => plugin.router.someMethod(),
  *   {
- *     pluginId: '@scribe/plugin-todo',
+ *     pluginId: '@scribe/plugin-example',
  *     lifecycle: lifecycleManager,
  *     timeout: 5000,
  *     errorType: 'router',

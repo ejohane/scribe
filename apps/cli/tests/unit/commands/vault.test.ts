@@ -48,30 +48,18 @@ function createMockGraphEngine(tagCount: number) {
 }
 
 /**
- * Create a mock task index
- */
-function createMockTaskIndex(tasks: Array<{ completed: boolean }>) {
-  return {
-    list: vi.fn().mockReturnValue({ tasks }),
-  };
-}
-
-/**
  * Create a mock context
  */
 function createMockContext(
   notes: Note[],
   options?: {
     tagCount?: number;
-    tasks?: Array<{ completed: boolean }>;
   }
 ) {
   return {
     vault: createMockVault(notes),
     vaultPath: '/test/vault',
     graphEngine: createMockGraphEngine(options?.tagCount ?? 0),
-    taskIndex: createMockTaskIndex(options?.tasks ?? []),
-    ensureTaskIndexLoaded: vi.fn(),
   };
 }
 
@@ -147,21 +135,6 @@ describe('vault commands', () => {
       expect(outputData.stats.noteCount).toBe(3);
     });
 
-    it('includes task count', async () => {
-      const notes = [createMockNote({ id: 'note-1', title: 'Note 1' })];
-      const tasks = [{ completed: false }, { completed: true }, { completed: false }];
-
-      const ctx = createMockContext(notes, { tasks });
-      mockInitializeContext.mockResolvedValue(ctx);
-
-      registerVaultCommands(program);
-      await program.parseAsync(['node', 'test', 'vault', 'info']);
-
-      const outputData = mockOutput.mock.calls[0][0];
-      expect(outputData.stats.taskCount).toBe(3);
-      expect(outputData.stats.openTaskCount).toBe(2);
-    });
-
     it('outputs JSON format correctly', async () => {
       const notes = [
         createMockNote({
@@ -185,8 +158,6 @@ describe('vault commands', () => {
       expect(outputData).toHaveProperty('stats');
       expect(outputData.stats).toHaveProperty('noteCount');
       expect(outputData.stats).toHaveProperty('tagCount');
-      expect(outputData.stats).toHaveProperty('taskCount');
-      expect(outputData.stats).toHaveProperty('openTaskCount');
       expect(outputData.stats).toHaveProperty('personCount');
       expect(outputData.stats).toHaveProperty('dailyNoteCount');
     });
@@ -338,17 +309,6 @@ describe('vault commands', () => {
       expect(outputData.oldestNote).toBeNull();
       expect(outputData.newestNote).toBeNull();
       expect(outputData.lastModified).toBeNull();
-    });
-
-    it('ensures task index is loaded before accessing tasks', async () => {
-      const notes = [createMockNote({ id: 'note-1', title: 'Note 1' })];
-      const ctx = createMockContext(notes);
-      mockInitializeContext.mockResolvedValue(ctx);
-
-      registerVaultCommands(program);
-      await program.parseAsync(['node', 'test', 'vault', 'info']);
-
-      expect(ctx.ensureTaskIndexLoaded).toHaveBeenCalled();
     });
   });
 });

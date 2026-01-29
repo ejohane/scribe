@@ -9,7 +9,6 @@ The Scribe CLI provides:
 - **Note Operations**: List, create, read, update, delete notes
 - **Search**: Full-text search across vault contents
 - **Graph Queries**: Backlinks, outlinks, tag lookups
-- **Task Management**: List and filter tasks from notes
 - **Daily Notes**: Create and access daily journal entries
 - **People**: Browse and search person notes
 - **Shell Completion**: Bash/Zsh/Fish autocompletion
@@ -109,17 +108,6 @@ scribe tags list
 scribe tags find "project"
 ```
 
-#### Tasks
-
-```bash
-# List all tasks
-scribe tasks list
-
-# Filter by status
-scribe tasks list --status open
-scribe tasks list --status completed
-```
-
 #### Daily Notes
 
 ```bash
@@ -202,7 +190,6 @@ src/
 │   ├── search.ts       # Search command
 │   ├── graph.ts        # Graph queries
 │   ├── tags.ts         # Tag operations
-│   ├── tasks.ts        # Task management
 │   ├── daily.ts        # Daily notes
 │   ├── people.ts       # People operations
 │   ├── vault.ts        # Vault management

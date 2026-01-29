@@ -91,7 +91,7 @@ describe('router-merger', () => {
 
   describe('validateNamespaceFormat', () => {
     it('accepts valid camelCase namespaces', () => {
-      expect(validateNamespaceFormat('todos')).toBe(true);
+      expect(validateNamespaceFormat('examples')).toBe(true);
       expect(validateNamespaceFormat('myPlugin')).toBe(true);
       expect(validateNamespaceFormat('myAwesomePlugin')).toBe(true);
       expect(validateNamespaceFormat('plugin123')).toBe(true);
@@ -149,7 +149,7 @@ describe('router-merger', () => {
     });
 
     it('returns false for non-reserved namespaces', () => {
-      expect(isReservedNamespace('todos')).toBe(false);
+      expect(isReservedNamespace('examples')).toBe(false);
       expect(isReservedNamespace('myPlugin')).toBe(false);
       expect(isReservedNamespace('customRouter')).toBe(false);
     });
@@ -163,7 +163,7 @@ describe('router-merger', () => {
 
   describe('validateNamespace', () => {
     it('accepts valid non-reserved namespaces', () => {
-      expect(validateNamespace('todos')).toBe(true);
+      expect(validateNamespace('examples')).toBe(true);
       expect(validateNamespace('myPlugin')).toBe(true);
     });
 
@@ -254,12 +254,12 @@ describe('router-merger', () => {
     });
 
     it('collects router from plugin with trpc-router capability', () => {
-      const mockRouter = createMockRouter('todos');
+      const mockRouter = createMockRouter('examples');
       const plugin = createServerPlugin(
         { router: mockRouter },
         {
-          id: '@scribe/plugin-todo',
-          capabilities: [{ type: 'trpc-router', namespace: 'todos' }],
+          id: '@scribe/plugin-example',
+          capabilities: [{ type: 'trpc-router', namespace: 'examples' }],
         }
       );
 
@@ -267,18 +267,18 @@ describe('router-merger', () => {
 
       const routers = collectPluginRouters(registry);
       expect(routers).toHaveLength(1);
-      expect(routers[0].pluginId).toBe('@scribe/plugin-todo');
-      expect(routers[0].namespace).toBe('todos');
+      expect(routers[0].pluginId).toBe('@scribe/plugin-example');
+      expect(routers[0].namespace).toBe('examples');
       expect(routers[0].router).toBe(mockRouter);
     });
 
     it('collects routers from multiple plugins', () => {
-      const todoRouter = createMockRouter('todos');
-      const todoPlugin = createServerPlugin(
-        { router: todoRouter },
+      const exampleRouter = createMockRouter('examples');
+      const examplePlugin = createServerPlugin(
+        { router: exampleRouter },
         {
-          id: '@scribe/plugin-todo',
-          capabilities: [{ type: 'trpc-router', namespace: 'todos' }],
+          id: '@scribe/plugin-example',
+          capabilities: [{ type: 'trpc-router', namespace: 'examples' }],
         }
       );
 
@@ -291,12 +291,12 @@ describe('router-merger', () => {
         }
       );
 
-      registry.register(todoPlugin);
+      registry.register(examplePlugin);
       registry.register(calendarPlugin);
 
       const routers = collectPluginRouters(registry);
       expect(routers).toHaveLength(2);
-      expect(routers.map((r) => r.namespace).sort()).toEqual(['calendar', 'todos']);
+      expect(routers.map((r) => r.namespace).sort()).toEqual(['calendar', 'examples']);
     });
 
     it('warns and skips when plugin has capability but no router', () => {
@@ -415,16 +415,16 @@ describe('router-merger', () => {
 
       const pluginRouters: PluginRouterEntry[] = [
         {
-          pluginId: '@scribe/plugin-todo',
-          namespace: 'todos',
-          router: createMockRouter('todos'),
+          pluginId: '@scribe/plugin-example',
+          namespace: 'examples',
+          router: createMockRouter('examples'),
         },
       ];
 
       const result = buildAppRouter(coreRouters, pluginRouters, mockRouterFactory);
 
       expect(result.merged).toHaveLength(1);
-      expect(result.merged[0].namespace).toBe('todos');
+      expect(result.merged[0].namespace).toBe('examples');
       expect(result.skipped).toEqual([]);
     });
 
@@ -485,13 +485,13 @@ describe('router-merger', () => {
       const pluginRouters: PluginRouterEntry[] = [
         {
           pluginId: '@scribe/plugin-first',
-          namespace: 'todos',
-          router: createMockRouter('todos-first'),
+          namespace: 'examples',
+          router: createMockRouter('examples-first'),
         },
         {
           pluginId: '@scribe/plugin-second',
-          namespace: 'todos', // Conflicts with first plugin
-          router: createMockRouter('todos-second'),
+          namespace: 'examples', // Conflicts with first plugin
+          router: createMockRouter('examples-second'),
         },
       ];
 
@@ -513,9 +513,9 @@ describe('router-merger', () => {
 
       const pluginRouters: PluginRouterEntry[] = [
         {
-          pluginId: '@scribe/plugin-todo',
-          namespace: 'todos',
-          router: createMockRouter('todos'),
+          pluginId: '@scribe/plugin-example',
+          namespace: 'examples',
+          router: createMockRouter('examples'),
         },
         {
           pluginId: '@scribe/plugin-calendar',
@@ -532,7 +532,11 @@ describe('router-merger', () => {
       const result = buildAppRouter(coreRouters, pluginRouters, mockRouterFactory);
 
       expect(result.merged).toHaveLength(3);
-      expect(result.merged.map((m) => m.namespace).sort()).toEqual(['calendar', 'kanban', 'todos']);
+      expect(result.merged.map((m) => m.namespace).sort()).toEqual([
+        'calendar',
+        'examples',
+        'kanban',
+      ]);
       expect(result.skipped).toEqual([]);
     });
 
@@ -580,15 +584,15 @@ describe('router-merger', () => {
 
       const pluginRouters: PluginRouterEntry[] = [
         {
-          pluginId: '@scribe/plugin-todo',
-          namespace: 'todos',
-          router: createMockRouter('todos'),
+          pluginId: '@scribe/plugin-example',
+          namespace: 'examples',
+          router: createMockRouter('examples'),
         },
       ];
 
       const namespaces = getAllNamespaces(coreRouters, pluginRouters);
 
-      expect(namespaces.sort()).toEqual(['notes', 'todos']);
+      expect(namespaces.sort()).toEqual(['notes', 'examples']);
     });
 
     it('returns sorted array', () => {
@@ -613,7 +617,7 @@ describe('router-merger', () => {
         notes: createMockRouter('notes'),
       };
 
-      expect(isNamespaceAvailable('todos', coreRouters)).toBe(true);
+      expect(isNamespaceAvailable('examples', coreRouters)).toBe(true);
     });
 
     it('returns false for invalid format', () => {
@@ -640,14 +644,14 @@ describe('router-merger', () => {
 
     it('returns false for namespace used by another plugin', () => {
       const coreRouters = {};
-      const existingPlugins = new Set(['todos']);
+      const existingPlugins = new Set(['examples']);
 
-      expect(isNamespaceAvailable('todos', coreRouters, existingPlugins)).toBe(false);
+      expect(isNamespaceAvailable('examples', coreRouters, existingPlugins)).toBe(false);
     });
 
     it('returns true when namespace not in existing plugins', () => {
       const coreRouters = {};
-      const existingPlugins = new Set(['todos']);
+      const existingPlugins = new Set(['examples']);
 
       expect(isNamespaceAvailable('calendar', coreRouters, existingPlugins)).toBe(true);
     });

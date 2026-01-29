@@ -143,7 +143,6 @@ Embeds daemon in main process:
 | **@scribe/server-core** | Business logic services (Document, Graph, Search) | tRPC server, Zod |
 | **@scribe/server-db** | SQLite database layer with FTS5 search | better-sqlite3 |
 | **@scribe/plugin-core** | Plugin framework: types, registry, storage, events | - |
-| **@scribe/plugin-todo** | Reference plugin: task management for notes | - |
 
 ### Client Packages
 

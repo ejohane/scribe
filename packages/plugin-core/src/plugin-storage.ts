@@ -74,7 +74,7 @@ interface PluginStorageRow {
  *
  * @example
  * ```typescript
- * const storage = new SQLitePluginStorage(db, 'scribe_plugin_todo');
+ * const storage = new SQLitePluginStorage(db, 'scribe_plugin_example');
  *
  * // Store a value
  * await storage.set('settings', { theme: 'dark' });
@@ -212,10 +212,10 @@ export class SQLitePluginStorage implements PluginStorage {
  * const factory = new PluginStorageFactory(db);
  *
  * // Create storage for a plugin
- * const storage = factory.createForPlugin('@scribe/plugin-todo');
+ * const storage = factory.createForPlugin('@scribe/plugin-example');
  *
- * // The namespace will be sanitized: 'scribe_plugin_todo'
- * await storage.set('tasks', [{ id: 1, title: 'Buy milk' }]);
+ * // The namespace will be sanitized: 'scribe_plugin_example'
+ * await storage.set('snippets', [{ id: 1, title: 'Example snippet' }]);
  * ```
  */
 export class PluginStorageFactory {
@@ -229,7 +229,7 @@ export class PluginStorageFactory {
   /**
    * Create a storage instance for a specific plugin.
    *
-   * @param pluginId - The plugin's unique identifier (e.g., '@scribe/plugin-todo')
+   * @param pluginId - The plugin's unique identifier (e.g., '@scribe/plugin-example')
    * @returns A PluginStorage instance scoped to the plugin's namespace
    */
   createForPlugin(pluginId: string): PluginStorage {
@@ -241,7 +241,7 @@ export class PluginStorageFactory {
    * Sanitize a plugin ID to create a safe namespace.
    *
    * Converts npm-style scoped packages to valid namespace strings:
-   * - '@scribe/plugin-todo' -> 'scribe_plugin_todo'
+   * - '@scribe/plugin-example' -> 'scribe_plugin_example'
    * - 'my-plugin' -> 'my_plugin'
    *
    * @param pluginId - The plugin ID to sanitize

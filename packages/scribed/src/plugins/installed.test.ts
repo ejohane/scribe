@@ -49,7 +49,7 @@ describe('installed', () => {
       expect(() => {
         discoverPlugins({
           patterns: ['@scribe/plugin-*'],
-          packages: ['@scribe/plugin-todo'],
+          packages: ['@scribe/plugin-example'],
           scanNodeModules: true,
         });
       }).not.toThrow();

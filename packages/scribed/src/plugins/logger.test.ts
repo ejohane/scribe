@@ -34,41 +34,41 @@ describe('logger', () => {
     });
 
     it('prefixes debug messages with plugin ID', () => {
-      const logger = createPluginLogger('@scribe/plugin-todo');
+      const logger = createPluginLogger('@scribe/plugin-example');
       logger.debug('Test debug message');
 
       expect(consoleDebugSpy).toHaveBeenCalledWith(
-        '[plugin:@scribe/plugin-todo]',
+        '[plugin:@scribe/plugin-example]',
         'Test debug message'
       );
     });
 
     it('prefixes info messages with plugin ID', () => {
-      const logger = createPluginLogger('@scribe/plugin-todo');
+      const logger = createPluginLogger('@scribe/plugin-example');
       logger.info('Test info message');
 
       expect(consoleInfoSpy).toHaveBeenCalledWith(
-        '[plugin:@scribe/plugin-todo]',
+        '[plugin:@scribe/plugin-example]',
         'Test info message'
       );
     });
 
     it('prefixes warn messages with plugin ID', () => {
-      const logger = createPluginLogger('@scribe/plugin-todo');
+      const logger = createPluginLogger('@scribe/plugin-example');
       logger.warn('Test warning message');
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[plugin:@scribe/plugin-todo]',
+        '[plugin:@scribe/plugin-example]',
         'Test warning message'
       );
     });
 
     it('prefixes error messages with plugin ID', () => {
-      const logger = createPluginLogger('@scribe/plugin-todo');
+      const logger = createPluginLogger('@scribe/plugin-example');
       logger.error('Test error message');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[plugin:@scribe/plugin-todo]',
+        '[plugin:@scribe/plugin-example]',
         'Test error message'
       );
     });

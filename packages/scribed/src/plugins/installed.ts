@@ -24,12 +24,12 @@ import type { PluginModule } from '@scribe/plugin-core';
  * @example
  * ```typescript
  * // When plugins are installed:
- * import * as todoPlugin from '@scribe/plugin-todo';
+ * import * as examplePlugin from '@scribe/plugin-example';
  * import * as calendarPlugin from '@scribe/plugin-calendar';
  *
  * export function getInstalledPlugins(): PluginModule[] {
  *   return [
- *     todoPlugin,
+ *     examplePlugin,
  *     calendarPlugin,
  *   ];
  * }
@@ -40,8 +40,8 @@ export function getInstalledPlugins(): PluginModule[] {
   // To add plugins, import them and add to this array.
   //
   // Example:
-  // import * as todoPlugin from '@scribe/plugin-todo';
-  // return [todoPlugin];
+  // import * as examplePlugin from '@scribe/plugin-example';
+  // return [examplePlugin];
 
   return [];
 }

@@ -21,8 +21,8 @@ import type { PluginLogger } from '@scribe/plugin-core';
  *
  * @example
  * ```typescript
- * const logger = createPluginLogger('@scribe/plugin-todo');
- * logger.info('Plugin initialized'); // [plugin:@scribe/plugin-todo] Plugin initialized
+ * const logger = createPluginLogger('@scribe/plugin-example');
+ * logger.info('Plugin initialized'); // [plugin:@scribe/plugin-example] Plugin initialized
  * ```
  */
 export function createPluginLogger(pluginId: string): PluginLogger {

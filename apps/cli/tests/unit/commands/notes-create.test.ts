@@ -1,7 +1,7 @@
 /**
  * Unit tests for notes-create.ts command module
  *
- * Tests note management CLI commands: create, append, and add-task.
+ * Tests note management CLI commands: create and append.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -39,29 +39,22 @@ vi.mock('../../../src/input.js', () => ({
 }));
 
 // Mock the node-builder module
-const {
-  mockCreateInitialContent,
-  mockCreateEmptyContent,
-  mockAppendParagraphToContent,
-  mockAppendTaskToContent,
-} = vi.hoisted(() => ({
-  mockCreateInitialContent: vi.fn(),
-  mockCreateEmptyContent: vi.fn(),
-  mockAppendParagraphToContent: vi.fn(),
-  mockAppendTaskToContent: vi.fn(),
-}));
+const { mockCreateInitialContent, mockCreateEmptyContent, mockAppendParagraphToContent } =
+  vi.hoisted(() => ({
+    mockCreateInitialContent: vi.fn(),
+    mockCreateEmptyContent: vi.fn(),
+    mockAppendParagraphToContent: vi.fn(),
+  }));
 
 vi.mock('../../../src/node-builder.js', () => ({
   createInitialContent: mockCreateInitialContent,
   createEmptyContent: mockCreateEmptyContent,
   appendParagraphToContent: mockAppendParagraphToContent,
-  appendTaskToContent: mockAppendTaskToContent,
 }));
 
 import {
   registerNotesCreateCommand,
   registerNotesAppendCommand,
-  registerNotesAddTaskCommand,
 } from '../../../src/commands/notes-create';
 import { initializeContext } from '../../../src/context.js';
 import { output } from '../../../src/output.js';
@@ -111,11 +104,6 @@ describe('notes-create commands', () => {
       ...content,
       root: { ...content.root, children: [...content.root.children, { type: 'paragraph' }] },
     }));
-    mockAppendTaskToContent.mockImplementation((content, _text: string) => ({
-      ...content,
-      root: { ...content.root, children: [...content.root.children, { type: 'task' }] },
-    }));
-
     // Set up commander program
     program = new Command();
     program.option('--format <format>', 'output format', 'json');
@@ -125,7 +113,6 @@ describe('notes-create commands', () => {
     notesCommand = program.command('notes');
     registerNotesCreateCommand(notesCommand, program);
     registerNotesAppendCommand(notesCommand, program);
-    registerNotesAddTaskCommand(notesCommand, program);
   });
 
   afterEach(() => {
@@ -478,130 +465,6 @@ describe('notes-create commands', () => {
     });
   });
 
-  describe('notes add-task', () => {
-    it('adds a task to an existing note', async () => {
-      const existingNote = createMockNote({ id: 'note-xyz', title: 'Project Tasks' });
-      mockVault.read.mockReturnValue(existingNote);
-
-      await program.parseAsync([
-        'node',
-        'test',
-        'notes',
-        'add-task',
-        'note-xyz',
-        'Complete the tests',
-      ]);
-
-      expect(mockVault.read).toHaveBeenCalledWith('note-xyz');
-      expect(mockAppendTaskToContent).toHaveBeenCalledWith(
-        existingNote.content,
-        'Complete the tests'
-      );
-      expect(mockVault.save).toHaveBeenCalled();
-      expect(output).toHaveBeenCalledWith(
-        expect.objectContaining({
-          success: true,
-          task: expect.objectContaining({
-            text: 'Complete the tests',
-            completed: false,
-            noteId: 'note-xyz',
-            noteTitle: 'Project Tasks',
-          }),
-        }),
-        expect.anything()
-      );
-    });
-
-    it('throws noteNotFound error when note does not exist', async () => {
-      mockVault.read.mockImplementation(() => {
-        throw new Error('not found');
-      });
-
-      await expect(
-        program.parseAsync(['node', 'test', 'notes', 'add-task', 'nonexistent', 'Some task'])
-      ).rejects.toThrow(CLIError);
-
-      await expect(
-        program.parseAsync(['node', 'test', 'notes', 'add-task', 'nonexistent', 'Some task'])
-      ).rejects.toMatchObject({
-        code: ErrorCode.NOTE_NOT_FOUND,
-      });
-    });
-
-    it('generates task ID from note ID and task text', async () => {
-      const existingNote = createMockNote({ id: 'note-123', title: 'Tasks' });
-      mockVault.read.mockReturnValue(existingNote);
-
-      await program.parseAsync(['node', 'test', 'notes', 'add-task', 'note-123', 'Buy groceries']);
-
-      expect(output).toHaveBeenCalledWith(
-        expect.objectContaining({
-          task: expect.objectContaining({
-            id: 'note-123:task:Buygroc',
-          }),
-        }),
-        expect.anything()
-      );
-    });
-
-    it('handles task text with spaces in ID generation', async () => {
-      const existingNote = createMockNote({ id: 'note-123', title: 'Tasks' });
-      mockVault.read.mockReturnValue(existingNote);
-
-      await program.parseAsync([
-        'node',
-        'test',
-        'notes',
-        'add-task',
-        'note-123',
-        'A B C D E F G H I',
-      ]);
-
-      // First 8 chars "A B C D " then spaces removed = "ABCD"
-      expect(output).toHaveBeenCalledWith(
-        expect.objectContaining({
-          task: expect.objectContaining({
-            id: 'note-123:task:ABCD',
-          }),
-        }),
-        expect.anything()
-      );
-    });
-
-    it('handles short task text in ID generation', async () => {
-      const existingNote = createMockNote({ id: 'note-123', title: 'Tasks' });
-      mockVault.read.mockReturnValue(existingNote);
-
-      await program.parseAsync(['node', 'test', 'notes', 'add-task', 'note-123', 'Go']);
-
-      // Short text uses what's available
-      expect(output).toHaveBeenCalledWith(
-        expect.objectContaining({
-          task: expect.objectContaining({
-            id: 'note-123:task:Go',
-          }),
-        }),
-        expect.anything()
-      );
-    });
-
-    it('always sets completed to false for new tasks', async () => {
-      const existingNote = createMockNote({ id: 'note-abc' });
-      mockVault.read.mockReturnValue(existingNote);
-
-      await program.parseAsync(['node', 'test', 'notes', 'add-task', 'note-abc', 'New task']);
-
-      expect(output).toHaveBeenCalledWith(
-        expect.objectContaining({
-          task: expect.objectContaining({
-            completed: false,
-          }),
-        }),
-        expect.anything()
-      );
-    });
-  });
-
   describe('error handling', () => {
     it('notes append propagates CLIError with correct code', async () => {
       mockVault.read.mockImplementation(() => {
@@ -610,21 +473,6 @@ describe('notes-create commands', () => {
 
       try {
         await program.parseAsync(['node', 'test', 'notes', 'append', 'bad-id', 'text']);
-        expect.fail('Should have thrown');
-      } catch (err) {
-        expect(err).toBeInstanceOf(CLIError);
-        expect((err as CLIError).code).toBe(ErrorCode.NOTE_NOT_FOUND);
-        expect((err as CLIError).details).toEqual({ id: 'bad-id' });
-      }
-    });
-
-    it('notes add-task propagates CLIError with correct code', async () => {
-      mockVault.read.mockImplementation(() => {
-        throw new Error('Database error');
-      });
-
-      try {
-        await program.parseAsync(['node', 'test', 'notes', 'add-task', 'bad-id', 'task']);
         expect.fail('Should have thrown');
       } catch (err) {
         expect(err).toBeInstanceOf(CLIError);

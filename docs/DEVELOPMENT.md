@@ -24,7 +24,6 @@ scribe/
 │   ├── engine-search/         # Search indexing
 │   ├── engine-sync/           # Sync engine
 │   ├── plugin-core/           # Plugin framework
-│   ├── plugin-todo/           # Todo plugin reference implementation
 │   ├── scribed/               # Daemon server
 │   ├── server-core/           # Server business logic
 │   ├── server-db/             # SQLite database layer
@@ -127,7 +126,7 @@ bun run dev
 
 ### Adding a Plugin
 
-See [plugin-core](../packages/plugin-core/README.md) for the plugin framework and [plugin-todo](../packages/plugin-todo/README.md) for a reference implementation.
+See [plugin-core](../packages/plugin-core/README.md) for the plugin framework.
 
 ## Testing Approach
 

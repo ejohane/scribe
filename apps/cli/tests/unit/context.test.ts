@@ -21,10 +21,6 @@ vi.mock('@scribe/engine-search', () => ({
   SearchEngine: vi.fn(),
 }));
 
-vi.mock('@scribe/engine-core/node', () => ({
-  TaskIndex: vi.fn(),
-}));
-
 vi.mock('../../src/vault-resolver.js', () => ({
   resolveVaultPath: vi.fn(),
   validateVaultPath: vi.fn(),
@@ -38,12 +34,10 @@ vi.mock('@scribe/shared', () => ({
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import { TaskIndex } from '@scribe/engine-core/node';
 import { resolveVaultPath, validateVaultPath } from '../../src/vault-resolver.js';
 import {
   LazyContext,
   initializeContext,
-  initializeTaskOnlyContext,
   initializeFullContext,
   cleanupContext,
   type GlobalOptions,
@@ -60,10 +54,6 @@ describe('context', () => {
   };
   let mockSearchEngineInstance: {
     indexNote: Mock;
-  };
-  let mockTaskIndexInstance: {
-    load: Mock;
-    flush: Mock;
   };
 
   const defaultOptions: GlobalOptions = {
@@ -92,16 +82,10 @@ describe('context', () => {
       indexNote: vi.fn(),
     };
 
-    mockTaskIndexInstance = {
-      load: vi.fn().mockResolvedValue(undefined),
-      flush: vi.fn().mockResolvedValue(undefined),
-    };
-
     // Setup constructor mocks
     (FileSystemVault as Mock).mockImplementation(() => mockVaultInstance);
     (GraphEngine as Mock).mockImplementation(() => mockGraphEngineInstance);
     (SearchEngine as Mock).mockImplementation(() => mockSearchEngineInstance);
-    (TaskIndex as Mock).mockImplementation(() => mockTaskIndexInstance);
 
     // Setup vault resolver mocks
     (resolveVaultPath as Mock).mockReturnValue({
@@ -130,7 +114,6 @@ describe('context', () => {
         expect(FileSystemVault).not.toHaveBeenCalled();
         expect(GraphEngine).not.toHaveBeenCalled();
         expect(SearchEngine).not.toHaveBeenCalled();
-        expect(TaskIndex).not.toHaveBeenCalled();
       });
     });
 
@@ -275,66 +258,6 @@ describe('context', () => {
       });
     });
 
-    describe('taskIndex', () => {
-      it('should create task index on first access', () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-        const taskIndex = ctx.taskIndex;
-
-        expect(TaskIndex).toHaveBeenCalledTimes(1);
-        expect(taskIndex).toBe(mockTaskIndexInstance);
-      });
-
-      it('should create task index with derived path', () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-        ctx.taskIndex;
-
-        // Should be vaultPath + '/derived'
-        expect(TaskIndex).toHaveBeenCalledWith(`${testVaultPath}/derived`);
-      });
-
-      it('should reuse task index on subsequent access', () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-        const taskIndex1 = ctx.taskIndex;
-        const taskIndex2 = ctx.taskIndex;
-
-        expect(TaskIndex).toHaveBeenCalledTimes(1);
-        expect(taskIndex1).toBe(taskIndex2);
-      });
-    });
-
-    describe('ensureTaskIndexLoaded', () => {
-      it('should load task index on first call', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-        await ctx.ensureTaskIndexLoaded();
-
-        expect(mockTaskIndexInstance.load).toHaveBeenCalledTimes(1);
-      });
-
-      it('should skip load if already loaded', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-        await ctx.ensureTaskIndexLoaded();
-        await ctx.ensureTaskIndexLoaded();
-        await ctx.ensureTaskIndexLoaded();
-
-        expect(mockTaskIndexInstance.load).toHaveBeenCalledTimes(1);
-      });
-
-      it('should set isTaskIndexLoaded to true after loading', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-        expect(ctx.isTaskIndexLoaded).toBe(false);
-
-        await ctx.ensureTaskIndexLoaded();
-
-        expect(ctx.isTaskIndexLoaded).toBe(true);
-      });
-    });
-
     describe('isVaultLoaded', () => {
       it('should return false initially', () => {
         const ctx = new LazyContext(testVaultPath, defaultOptions);
@@ -345,19 +268,6 @@ describe('context', () => {
         const ctx = new LazyContext(testVaultPath, defaultOptions);
         await ctx.ensureVaultLoaded();
         expect(ctx.isVaultLoaded).toBe(true);
-      });
-    });
-
-    describe('isTaskIndexLoaded', () => {
-      it('should return false initially', () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-        expect(ctx.isTaskIndexLoaded).toBe(false);
-      });
-
-      it('should return true after ensureTaskIndexLoaded', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-        await ctx.ensureTaskIndexLoaded();
-        expect(ctx.isTaskIndexLoaded).toBe(true);
       });
     });
 
@@ -420,24 +330,6 @@ describe('context', () => {
         const calls = consoleErrorSpy.mock.calls.map((c) => c[0] as string);
         expect(calls.some((c) => c.includes('search engine index'))).toBe(true);
       });
-
-      it('should log task index instantiate timing when debug is enabled', () => {
-        const ctx = new LazyContext(testVaultPath, { ...defaultOptions, debug: true });
-
-        ctx.taskIndex;
-
-        const calls = consoleErrorSpy.mock.calls.map((c) => c[0] as string);
-        expect(calls.some((c) => c.includes('task index instantiate'))).toBe(true);
-      });
-
-      it('should log task index load timing when debug is enabled', async () => {
-        const ctx = new LazyContext(testVaultPath, { ...defaultOptions, debug: true });
-
-        await ctx.ensureTaskIndexLoaded();
-
-        const calls = consoleErrorSpy.mock.calls.map((c) => c[0] as string);
-        expect(calls.some((c) => c.includes('task index load'))).toBe(true);
-      });
     });
   });
 
@@ -481,13 +373,6 @@ describe('context', () => {
       expect(ctx.isVaultLoaded).toBe(true);
     });
 
-    it('should not load task index', async () => {
-      const ctx = await initializeContext(defaultOptions);
-
-      expect(ctx.isTaskIndexLoaded).toBe(false);
-      expect(mockTaskIndexInstance.load).not.toHaveBeenCalled();
-    });
-
     it('should propagate validation errors', async () => {
       const validationError = new Error('Vault not found');
       (validateVaultPath as Mock).mockImplementation(() => {
@@ -495,41 +380,6 @@ describe('context', () => {
       });
 
       await expect(initializeContext(defaultOptions)).rejects.toThrow(validationError);
-    });
-  });
-
-  describe('initializeTaskOnlyContext', () => {
-    it('should resolve and validate vault path', async () => {
-      await initializeTaskOnlyContext(defaultOptions);
-
-      expect(resolveVaultPath).toHaveBeenCalledWith(undefined);
-      expect(validateVaultPath).toHaveBeenCalledWith(testVaultPath);
-    });
-
-    it('should create lazy context', async () => {
-      const ctx = await initializeTaskOnlyContext(defaultOptions);
-
-      expect(ctx).toBeInstanceOf(LazyContext);
-      expect(ctx.vaultPath).toBe(testVaultPath);
-    });
-
-    it('should load task index', async () => {
-      await initializeTaskOnlyContext(defaultOptions);
-
-      expect(mockTaskIndexInstance.load).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not load vault', async () => {
-      const ctx = await initializeTaskOnlyContext(defaultOptions);
-
-      expect(ctx.isVaultLoaded).toBe(false);
-      expect(mockVaultInstance.load).not.toHaveBeenCalled();
-    });
-
-    it('should return context with task index loaded', async () => {
-      const ctx = await initializeTaskOnlyContext(defaultOptions);
-
-      expect(ctx.isTaskIndexLoaded).toBe(true);
     });
   });
 
@@ -554,12 +404,6 @@ describe('context', () => {
       expect(mockVaultInstance.load).toHaveBeenCalledTimes(1);
     });
 
-    it('should load task index', async () => {
-      await initializeFullContext(defaultOptions);
-
-      expect(mockTaskIndexInstance.load).toHaveBeenCalledTimes(1);
-    });
-
     it('should initialize graph engine', async () => {
       await initializeFullContext(defaultOptions);
 
@@ -576,75 +420,14 @@ describe('context', () => {
       const ctx = await initializeFullContext(defaultOptions);
 
       expect(ctx.isVaultLoaded).toBe(true);
-      expect(ctx.isTaskIndexLoaded).toBe(true);
     });
   });
 
   describe('cleanupContext', () => {
-    describe('with LazyContext', () => {
-      it('should flush task index if loaded', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-        await ctx.ensureTaskIndexLoaded();
+    it('should resolve without error', async () => {
+      const ctx = new LazyContext(testVaultPath, defaultOptions);
 
-        await cleanupContext(ctx);
-
-        expect(mockTaskIndexInstance.flush).toHaveBeenCalledTimes(1);
-      });
-
-      it('should not flush task index if not loaded', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-        // Don't load task index
-
-        await cleanupContext(ctx);
-
-        expect(mockTaskIndexInstance.flush).not.toHaveBeenCalled();
-      });
-
-      it('should handle context with only vault loaded', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-        await ctx.ensureVaultLoaded();
-        // Don't load task index
-
-        await cleanupContext(ctx);
-
-        // Should not throw and should not try to flush
-        expect(mockTaskIndexInstance.flush).not.toHaveBeenCalled();
-      });
-
-      it('should handle fully loaded context', async () => {
-        const ctx = new LazyContext(testVaultPath, defaultOptions);
-        await ctx.ensureVaultLoaded();
-        await ctx.ensureTaskIndexLoaded();
-        // Access engines
-        ctx.graphEngine;
-        ctx.searchEngine;
-
-        await cleanupContext(ctx);
-
-        expect(mockTaskIndexInstance.flush).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    describe('with legacy CLIContext', () => {
-      it('should always flush task index for legacy context', async () => {
-        // Create a mock legacy context (plain object with taskIndex)
-        // Cast to CLIContext to simulate the legacy interface
-        const legacyContext = {
-          vault: mockVaultInstance as unknown as import('@scribe/storage-fs').FileSystemVault,
-          vaultPath: testVaultPath,
-          graphEngine:
-            mockGraphEngineInstance as unknown as import('@scribe/engine-graph').GraphEngine,
-          searchEngine:
-            mockSearchEngineInstance as unknown as import('@scribe/engine-search').SearchEngine,
-          taskIndex:
-            mockTaskIndexInstance as unknown as import('@scribe/engine-core/node').TaskIndex,
-          options: defaultOptions,
-        };
-
-        await cleanupContext(legacyContext);
-
-        expect(mockTaskIndexInstance.flush).toHaveBeenCalledTimes(1);
-      });
+      await cleanupContext(ctx);
     });
   });
 
@@ -717,25 +500,6 @@ describe('context', () => {
       const ctx = new LazyContext(testVaultPath, defaultOptions);
 
       await expect(ctx.ensureVaultLoaded()).rejects.toThrow(loadError);
-    });
-
-    it('should handle task index load failure', async () => {
-      const loadError = new Error('Failed to load task index');
-      mockTaskIndexInstance.load.mockRejectedValue(loadError);
-
-      const ctx = new LazyContext(testVaultPath, defaultOptions);
-
-      await expect(ctx.ensureTaskIndexLoaded()).rejects.toThrow(loadError);
-    });
-
-    it('should handle flush failure gracefully', async () => {
-      const flushError = new Error('Failed to flush');
-      mockTaskIndexInstance.flush.mockRejectedValue(flushError);
-
-      const ctx = new LazyContext(testVaultPath, defaultOptions);
-      await ctx.ensureTaskIndexLoaded();
-
-      await expect(cleanupContext(ctx)).rejects.toThrow(flushError);
     });
   });
 });

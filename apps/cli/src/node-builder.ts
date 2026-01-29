@@ -39,23 +39,6 @@ export function createParagraphNode(text: string): EditorNode {
 }
 
 /**
- * Create a checklist item (task) node.
- * Checklist items are list items with a checkbox.
- */
-export function createChecklistItemNode(text: string, checked = false): EditorNode {
-  return {
-    type: 'listitem',
-    format: '',
-    indent: 0,
-    direction: null,
-    value: 1,
-    listType: 'check',
-    checked,
-    children: text.length > 0 ? [createTextNode(text)] : [],
-  };
-}
-
-/**
  * Create a heading node with the given level (1-6).
  */
 export function createHeadingNode(text: string, level: 1 | 2 | 3 | 4 | 5 | 6 = 1): EditorNode {
@@ -71,11 +54,11 @@ export function createHeadingNode(text: string, level: 1 | 2 | 3 | 4 | 5 | 6 = 1
 
 /**
  * Create a list node that wraps list items.
- * @param listType - 'bullet', 'number', or 'check'
+ * @param listType - 'bullet' or 'number'
  */
 export function createListNode(
   items: EditorNode[],
-  listType: 'bullet' | 'number' | 'check' = 'bullet'
+  listType: 'bullet' | 'number' = 'bullet'
 ): EditorNode {
   return {
     type: 'list',
@@ -97,23 +80,6 @@ export function appendParagraphToContent(content: EditorContent, text: string): 
   const newNode = createParagraphNode(text);
 
   // Deep clone to avoid mutating original
-  const updated = deepClone(content);
-
-  if (!updated.root.children) {
-    updated.root.children = [];
-  }
-  updated.root.children.push(newNode);
-
-  return updated;
-}
-
-/**
- * Append a task (checklist item) to existing content.
- * Deep clones the content to avoid mutating the original.
- */
-export function appendTaskToContent(content: EditorContent, text: string): EditorContent {
-  const newNode = createChecklistItemNode(text, false);
-
   const updated = deepClone(content);
 
   if (!updated.root.children) {

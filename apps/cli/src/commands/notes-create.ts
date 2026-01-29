@@ -13,7 +13,6 @@ import { noteNotFound } from '../errors.js';
 import { resolveContentInput } from '../input.js';
 import {
   appendParagraphToContent,
-  appendTaskToContent,
   createInitialContent,
   createEmptyContent,
 } from '../node-builder.js';
@@ -114,53 +113,6 @@ export function registerNotesAppendCommand(notes: Command, program: Command): vo
             title: note.title,
             updatedAt: new Date().toISOString(),
             url: getNoteUrl(note.id),
-          },
-        },
-        globalOpts
-      );
-    });
-}
-
-/**
- * Register the notes add-task subcommand
- */
-export function registerNotesAddTaskCommand(notes: Command, program: Command): void {
-  notes
-    .command('add-task')
-    .description('Add a task to a note')
-    .argument('<id>', 'Note ID')
-    .argument('<text>', 'Task text')
-    .action(async (id: string, text: string) => {
-      const globalOpts = program.opts() as GlobalOptions;
-      const ctx = await initializeContext(globalOpts);
-
-      let note;
-      try {
-        note = ctx.vault.read(createNoteId(id));
-      } catch {
-        throw noteNotFound(id);
-      }
-
-      // Append task
-      const updatedContent = appendTaskToContent(note.content, text);
-
-      // Save note
-      await ctx.vault.save({ ...note, content: updatedContent });
-
-      // Generate task ID (noteId:nodeKey:hash)
-      const hash = text.slice(0, 8).replace(/\s/g, '');
-      const taskId = `${id}:task:${hash}`;
-
-      output(
-        {
-          success: true,
-          task: {
-            id: taskId,
-            text,
-            completed: false,
-            noteId: id,
-            noteTitle: note.title,
-            noteUrl: getNoteUrl(id),
           },
         },
         globalOpts

@@ -457,7 +457,7 @@ describe('SlashMenuPlugin', () => {
         expect(screen.getByText('Heading 2')).toBeInTheDocument();
         expect(screen.getByText('Heading 3')).toBeInTheDocument();
         expect(screen.getByText('Bullet List')).toBeInTheDocument();
-        expect(screen.getByText('Add Task')).toBeInTheDocument();
+        expect(screen.getByText('Image')).toBeInTheDocument();
         expect(screen.getByText('Quote')).toBeInTheDocument();
         expect(screen.getByText('Table')).toBeInTheDocument();
       });

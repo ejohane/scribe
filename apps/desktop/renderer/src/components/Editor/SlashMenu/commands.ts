@@ -10,7 +10,7 @@ import { $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical'
 import { $setBlocksType } from '@lexical/selection';
 import { $createQuoteNode } from '@lexical/rich-text';
 import { $createCollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode';
-import { INSERT_UNORDERED_LIST_COMMAND, INSERT_CHECK_LIST_COMMAND } from '@lexical/list';
+import { INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
 import { INSERT_IMAGE_COMMAND } from '../plugins/ImagePlugin';
 
@@ -96,16 +96,6 @@ export const slashCommands: SlashCommand[] = [
     section: 'formatting',
     execute: (editor) => {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
-    },
-  },
-  {
-    id: 'task',
-    label: 'Add Task',
-    description: 'Track tasks with checkboxes',
-    keywords: ['task', 'todo', 'checkbox', '[]', 'check', 'checklist'],
-    section: 'formatting',
-    execute: (editor) => {
-      editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined);
     },
   },
   {

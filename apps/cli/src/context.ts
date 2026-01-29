@@ -7,18 +7,16 @@
  *
  * Performance Optimization:
  * - `notes list` doesn't need SearchEngine or GraphEngine
- * - `search` doesn't need GraphEngine or TaskIndex
+ * - `search` doesn't need GraphEngine
  * - Most commands don't need all engines
  *
  * When --debug is set, timing information is output to stderr.
  */
 
-import path from 'path';
 import { createVaultPath } from '@scribe/shared';
 import { FileSystemVault } from '@scribe/storage-fs';
 import { GraphEngine } from '@scribe/engine-graph';
 import { SearchEngine } from '@scribe/engine-search';
-import { TaskIndex } from '@scribe/engine-core/node';
 import { resolveVaultPath, validateVaultPath } from './vault-resolver.js';
 
 /**
@@ -59,16 +57,13 @@ function logTiming(options: GlobalOptions, label: string, startTime: number): vo
  * - `notes list` - vault only
  * - `search` - vault + searchEngine
  * - `graph backlinks` - vault + graphEngine
- * - `tasks list` - vault + taskIndex
- * - `vault info` - vault + graphEngine + taskIndex
+ * - `vault info` - vault + graphEngine
  */
 export class LazyContext {
   private _vault?: FileSystemVault;
   private _graphEngine?: GraphEngine;
   private _searchEngine?: SearchEngine;
-  private _taskIndex?: TaskIndex;
   private _vaultLoaded = false;
-  private _taskIndexLoaded = false;
 
   constructor(
     public readonly vaultPath: string,
@@ -149,44 +144,10 @@ export class LazyContext {
   }
 
   /**
-   * Get the TaskIndex instance.
-   * This is a synchronous getter; call ensureTaskIndexLoaded() for async loading.
-   */
-  get taskIndex(): TaskIndex {
-    if (!this._taskIndex) {
-      const startTime = Date.now();
-      const derivedPath = path.join(this.vaultPath, 'derived');
-      this._taskIndex = new TaskIndex(derivedPath);
-      logTiming(this.options, 'task index instantiate', startTime);
-    }
-    return this._taskIndex;
-  }
-
-  /**
-   * Ensure task index is loaded (async operation).
-   * Must be called before accessing task data.
-   */
-  async ensureTaskIndexLoaded(): Promise<void> {
-    if (this._taskIndexLoaded) return;
-
-    const startTime = Date.now();
-    await this.taskIndex.load();
-    this._taskIndexLoaded = true;
-    logTiming(this.options, 'task index load', startTime);
-  }
-
-  /**
    * Check if vault has been loaded
    */
   get isVaultLoaded(): boolean {
     return this._vaultLoaded;
-  }
-
-  /**
-   * Check if task index has been loaded
-   */
-  get isTaskIndexLoaded(): boolean {
-    return this._taskIndexLoaded;
   }
 }
 
@@ -203,8 +164,6 @@ export interface CLIContext {
   graphEngine: GraphEngine;
   /** SearchEngine for full-text search */
   searchEngine: SearchEngine;
-  /** TaskIndex for task queries and updates */
-  taskIndex: TaskIndex;
   /** Global CLI options */
   options: GlobalOptions;
 }
@@ -213,7 +172,7 @@ export interface CLIContext {
  * Initialize the CLI context with lazy-loaded engines.
  *
  * Unlike the previous implementation, this only loads the vault by default.
- * GraphEngine, SearchEngine, and TaskIndex are loaded lazily when first accessed.
+ * GraphEngine and SearchEngine are loaded lazily when first accessed.
  *
  * This function:
  * 1. Resolves and validates the vault path
@@ -241,28 +200,6 @@ export async function initializeContext(options: GlobalOptions): Promise<LazyCon
 }
 
 /**
- * Initialize a minimal context for commands that only need TaskIndex.
- * Skips vault loading entirely for better performance.
- *
- * @param options - Global CLI options including vault path override
- * @returns LazyContext with only task index available
- */
-export async function initializeTaskOnlyContext(options: GlobalOptions): Promise<LazyContext> {
-  const totalStartTime = Date.now();
-  const { path: vaultPath } = resolveVaultPath(options.vault);
-  validateVaultPath(vaultPath);
-
-  const ctx = new LazyContext(vaultPath, options);
-
-  // Load task index only
-  await ctx.ensureTaskIndexLoaded();
-
-  logTiming(options, 'task-only context initialization total', totalStartTime);
-
-  return ctx;
-}
-
-/**
  * Initialize a full context with all engines pre-loaded.
  * Use this when you know you'll need multiple engines.
  *
@@ -278,8 +215,6 @@ export async function initializeFullContext(options: GlobalOptions): Promise<Laz
 
   // Load everything in parallel where possible
   await ctx.ensureVaultLoaded();
-  await ctx.ensureTaskIndexLoaded();
-
   // Force initialization of graph and search engines by accessing the lazy getters.
   // This pattern intentionally uses property access without assignment to trigger
   // lazy initialization during startup rather than on first command use.
@@ -294,18 +229,6 @@ export async function initializeFullContext(options: GlobalOptions): Promise<Laz
 /**
  * Cleanup function to flush any pending changes.
  *
- * Call this before exiting to ensure task index changes are persisted.
- *
  * @param context - The CLI context to cleanup
  */
-export async function cleanupContext(context: LazyContext | CLIContext): Promise<void> {
-  // Only flush if task index was loaded
-  if (context instanceof LazyContext) {
-    if (context.isTaskIndexLoaded) {
-      await context.taskIndex.flush();
-    }
-  } else {
-    // Legacy CLIContext - always has taskIndex
-    await context.taskIndex.flush();
-  }
-}
+export async function cleanupContext(_context: LazyContext | CLIContext): Promise<void> {}

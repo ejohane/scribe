@@ -32,7 +32,7 @@ _scribe_completions() {
   local prev="\${COMP_WORDS[COMP_CWORD-1]}"
   
   # Top-level commands
-  local commands="notes search graph tags people tasks daily vault completion"
+  local commands="notes search graph tags people daily vault completion"
   
   # Global options
   local global_opts="--vault --format --include-raw --quiet --verbose --debug --help --version"
@@ -42,7 +42,7 @@ _scribe_completions() {
       COMPREPLY=($(compgen -W "\${commands} \${global_opts}" -- "\${cur}"))
       ;;
     notes)
-      COMPREPLY=($(compgen -W "list show find create append add-task update delete" -- "\${cur}"))
+      COMPREPLY=($(compgen -W "list show find create append update delete" -- "\${cur}"))
       ;;
     graph)
       COMPREPLY=($(compgen -W "backlinks outlinks neighbors stats" -- "\${cur}"))
@@ -52,9 +52,6 @@ _scribe_completions() {
       ;;
     people)
       COMPREPLY=($(compgen -W "list mentions" -- "\${cur}"))
-      ;;
-    tasks)
-      COMPREPLY=($(compgen -W "list toggle set-priority" -- "\${cur}"))
       ;;
     daily)
       COMPREPLY=($(compgen -W "show create" -- "\${cur}"))
@@ -88,7 +85,6 @@ _scribe() {
     'graph:Graph operations'
     'tags:Tag operations'
     'people:People operations'
-    'tasks:Task operations'
     'daily:Daily note operations'
     'vault:Vault operations'
     'completion:Generate shell completion'
@@ -113,7 +109,7 @@ _scribe() {
     args)
       case $words[1] in
         notes)
-          _values 'subcommand' list show find create append add-task update delete
+          _values 'subcommand' list show find create append update delete
           ;;
         graph)
           _values 'subcommand' backlinks outlinks neighbors stats
@@ -148,7 +144,6 @@ complete -c scribe -n "__fish_use_subcommand" -a search -d 'Full-text search'
 complete -c scribe -n "__fish_use_subcommand" -a graph -d 'Graph operations'
 complete -c scribe -n "__fish_use_subcommand" -a tags -d 'Tag operations'
 complete -c scribe -n "__fish_use_subcommand" -a people -d 'People operations'
-complete -c scribe -n "__fish_use_subcommand" -a tasks -d 'Task operations'
 complete -c scribe -n "__fish_use_subcommand" -a daily -d 'Daily note operations'
 complete -c scribe -n "__fish_use_subcommand" -a vault -d 'Vault operations'
 complete -c scribe -n "__fish_use_subcommand" -a completion -d 'Generate shell completion'

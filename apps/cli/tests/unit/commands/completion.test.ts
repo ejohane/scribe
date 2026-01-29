@@ -83,7 +83,6 @@ describe('completion commands', () => {
       expect(output).toContain('graph');
       expect(output).toContain('tags');
       expect(output).toContain('people');
-      expect(output).toContain('tasks');
       expect(output).toContain('daily');
       expect(output).toContain('vault');
       expect(output).toContain('completion');
@@ -100,7 +99,6 @@ describe('completion commands', () => {
       expect(output).toContain('find');
       expect(output).toContain('create');
       expect(output).toContain('append');
-      expect(output).toContain('add-task');
       expect(output).toContain('update');
       expect(output).toContain('delete');
     });
@@ -172,7 +170,7 @@ describe('completion commands', () => {
 
       // Check notes subcommands
       expect(output).toContain('notes)');
-      expect(output).toContain('list show find create append add-task update delete');
+      expect(output).toContain('list show find create append update delete');
 
       // Check graph subcommands
       expect(output).toContain('graph)');

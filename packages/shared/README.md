@@ -6,7 +6,7 @@ Core type definitions and shared utilities for Scribe. This is the foundational 
 
 This package provides:
 
-- **Type Definitions**: Core types for notes, tasks, graphs, and search
+- **Type Definitions**: Core types for notes, graphs, and search
 - **Error System**: Structured error types with error codes
 - **AST Utilities**: Lexical editor state traversal and manipulation
 - **IPC Contract**: Type-safe API definitions for Electron IPC
@@ -68,19 +68,6 @@ import type {
   LexicalState,   // Lexical-specific (deprecated alias)
   LexicalNode,    // Lexical-specific (deprecated alias)
 } from '@scribe/shared';
-```
-
-### Task Types
-
-```typescript
-import type {
-  TaskId,
-  Task,
-  TaskFilter,
-  TaskChangeEvent,
-} from '@scribe/shared';
-
-import { serializeTaskId, parseTaskId } from '@scribe/shared';
 ```
 
 ### Graph & Search Types
@@ -153,7 +140,6 @@ import type {
   PeopleAPI,
   DailyAPI,
   MeetingAPI,
-  TasksAPI,
   UpdateAPI,
   ExportAPI,
   ScribeAPI,

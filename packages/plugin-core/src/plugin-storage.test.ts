@@ -381,7 +381,7 @@ describe('PluginStorageFactory', () => {
 
   describe('createForPlugin', () => {
     it('creates storage instance for a plugin', async () => {
-      const storage = factory.createForPlugin('@scribe/plugin-todo');
+      const storage = factory.createForPlugin('@scribe/plugin-example');
 
       await storage.set('test', 'value');
       expect(await storage.get<string>('test')).toBe('value');
@@ -401,12 +401,12 @@ describe('PluginStorageFactory', () => {
 
   describe('namespace sanitization', () => {
     it('sanitizes scoped package names', async () => {
-      const storage = factory.createForPlugin('@scribe/plugin-todo');
+      const storage = factory.createForPlugin('@scribe/plugin-example');
       await storage.set('test', 'value');
 
       // Check that the key is stored with sanitized namespace
       const row = db.prepare('SELECT key FROM plugin_storage').get() as { key: string };
-      expect(row.key).toBe('scribe_plugin_todo:test');
+      expect(row.key).toBe('scribe_plugin_example:test');
     });
 
     it('removes @ symbol from scope', async () => {

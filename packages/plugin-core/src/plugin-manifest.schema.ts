@@ -84,7 +84,7 @@ export const commandPaletteCommandCapabilitySchema = z.object({
     .min(1, 'Command ID cannot be empty')
     .regex(
       /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*$/,
-      'Command ID must use dot notation (e.g., "todo.createTask")'
+      'Command ID must use dot notation (e.g., "example.createWidget")'
     ),
   label: z.string().min(1, 'Command label cannot be empty'),
   description: z.string().optional(),
@@ -148,7 +148,7 @@ export const pluginManifestSchema = z.object({
     .min(1, 'Plugin ID cannot be empty')
     .regex(
       npmPackageNamePattern,
-      'Plugin ID must be a valid npm package name (e.g., "@scribe/plugin-todo" or "my-plugin")'
+      'Plugin ID must be a valid npm package name (e.g., "@scribe/plugin-example" or "my-plugin")'
     ),
   version: z
     .string()

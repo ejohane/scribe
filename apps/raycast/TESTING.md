@@ -65,36 +65,9 @@ Before testing, ensure you have:
 
 ---
 
-### 2. Quick Task Command
+### 2. Search Notes Command
 
-#### 2.1 Basic Task Addition
-
-1. Open Raycast
-2. Search for "Quick Task"
-3. Type: `Follow up with team`
-4. Press Enter
-
-**Expected:**
-- [ ] Success toast appears
-- [ ] Task is added to daily note
-
-**Verify:** In Scribe, task appears with `- [ ]` checkbox syntax.
-
-#### 2.2 Task with Syntax
-
-1. Open Raycast > Quick Task
-2. Type: `Review @Sarah's PR for [[Feature X]]`
-3. Press Enter
-
-**Expected:**
-- [ ] Success toast appears
-- [ ] Syntax is preserved in the task
-
----
-
-### 3. Search Notes Command
-
-#### 3.1 Basic Search
+#### 2.1 Basic Search
 
 1. Open Raycast
 2. Search for "Search Notes"
@@ -105,7 +78,7 @@ Before testing, ensure you have:
 - [ ] Results show note titles
 - [ ] Results show snippets with matches highlighted
 
-#### 3.2 Search with Preview
+#### 2.2 Search with Preview
 
 1. Perform a search with results
 2. Arrow down to select a result
@@ -115,7 +88,7 @@ Before testing, ensure you have:
 - [ ] Preview shows note content
 - [ ] Preview shows metadata (path, modified date)
 
-#### 3.3 Open Search Result
+#### 2.3 Open Search Result
 
 1. Search and select a result
 2. Press Enter
@@ -124,7 +97,7 @@ Before testing, ensure you have:
 - [ ] Scribe desktop opens
 - [ ] The selected note is displayed
 
-#### 3.4 Empty Search Results
+#### 2.4 Empty Search Results
 
 1. Search for gibberish: `xyzabc123nonsense`
 
@@ -132,7 +105,7 @@ Before testing, ensure you have:
 - [ ] Empty state is shown
 - [ ] Message indicates no results found
 
-#### 3.5 Search Debouncing
+#### 2.5 Search Debouncing
 
 1. Type quickly: `test`
 2. Observe network/CLI activity

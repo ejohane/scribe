@@ -32,12 +32,12 @@ import {
 
 const validTrpcCapability = {
   type: 'trpc-router',
-  namespace: 'todos',
+  namespace: 'examples',
 };
 
 const validStorageCapability = {
   type: 'storage',
-  keys: ['tasks', 'settings'],
+  keys: ['snippets', 'settings'],
 };
 
 const validStorageCapabilityNoKeys = {
@@ -51,61 +51,61 @@ const validEventHookCapability = {
 
 const validSidebarPanelCapability = {
   type: 'sidebar-panel',
-  id: 'todo-panel',
-  label: 'Tasks',
+  id: 'example-panel',
+  label: 'Examples',
   icon: 'CheckSquare',
 };
 
 const validSidebarPanelCapabilityWithPriority = {
   type: 'sidebar-panel',
-  id: 'todo-panel',
-  label: 'Tasks',
+  id: 'example-panel',
+  label: 'Examples',
   icon: 'CheckSquare',
   priority: 10,
 };
 
 const validSlashCommandCapability = {
   type: 'slash-command',
-  command: 'task',
-  label: 'Add Task',
+  command: 'snippet',
+  label: 'Insert Snippet',
 };
 
 const validSlashCommandCapabilityFull = {
   type: 'slash-command',
-  command: 'my-task',
-  label: 'Add Task',
-  description: 'Adds a new task to the note',
+  command: 'my-snippet',
+  label: 'Insert Snippet',
+  description: 'Adds a new snippet to the note',
   icon: 'Plus',
 };
 
 const validCommandPaletteCommandCapability = {
   type: 'command-palette-command',
-  id: 'todo.createTask',
-  label: 'Create Task',
+  id: 'example.createSnippet',
+  label: 'Create Snippet',
 };
 
 const validCommandPaletteCommandCapabilityFull = {
   type: 'command-palette-command',
-  id: 'todo.createTask',
-  label: 'Create Task',
-  description: 'Create a new task in the current note',
+  id: 'example.createSnippet',
+  label: 'Create Snippet',
+  description: 'Create a new snippet in the current note',
   icon: 'CheckSquare',
   shortcut: '⌘T',
-  category: 'Tasks',
+  category: 'Examples',
   priority: 10,
 };
 
 const validEditorExtensionCapability = {
   type: 'editor-extension',
-  nodes: ['task-node'],
-  plugins: ['task-plugin'],
+  nodes: ['example-node'],
+  plugins: ['example-plugin'],
 };
 
 const validManifestFull = {
-  id: '@scribe/plugin-todo',
+  id: '@scribe/plugin-example',
   version: '1.0.0',
-  name: 'Todo Plugin',
-  description: 'Task management for Scribe',
+  name: 'Example Plugin',
+  description: 'Example capabilities for Scribe',
   author: 'Scribe Team',
   capabilities: [validTrpcCapability],
   scribeVersion: '>=1.0.0',
@@ -127,7 +127,7 @@ describe('pluginManifestSchema - valid manifests', () => {
     const result = pluginManifestSchema.safeParse(validManifestFull);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.id).toBe('@scribe/plugin-todo');
+      expect(result.data.id).toBe('@scribe/plugin-example');
       expect(result.data.version).toBe('1.0.0');
       expect(result.data.name).toBe('Todo Plugin');
       expect(result.data.description).toBe('Task management for Scribe');
@@ -360,7 +360,7 @@ describe('trpcRouterCapabilitySchema', () => {
   });
 
   it('accepts camelCase namespaces', () => {
-    const validNamespaces = ['todos', 'myTodos', 'myLongNamespace123'];
+    const validNamespaces = ['examples', 'myExamples', 'myLongNamespace123'];
     for (const namespace of validNamespaces) {
       const cap = { type: 'trpc-router', namespace };
       const result = trpcRouterCapabilitySchema.safeParse(cap);
@@ -378,13 +378,13 @@ describe('trpcRouterCapabilitySchema', () => {
   });
 
   it('rejects namespace with hyphens', () => {
-    const cap = { type: 'trpc-router', namespace: 'my-todos' };
+    const cap = { type: 'trpc-router', namespace: 'my-examples' };
     const result = trpcRouterCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
 
   it('rejects namespace with spaces', () => {
-    const cap = { type: 'trpc-router', namespace: 'my todos' };
+    const cap = { type: 'trpc-router', namespace: 'my examples' };
     const result = trpcRouterCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
@@ -519,13 +519,13 @@ describe('slashCommandCapabilitySchema', () => {
     const result = slashCommandCapabilitySchema.safeParse(validSlashCommandCapabilityFull);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.description).toBe('Adds a new task to the note');
+      expect(result.data.description).toBe('Adds a new snippet to the note');
       expect(result.data.icon).toBe('Plus');
     }
   });
 
   it('accepts valid command formats', () => {
-    const validCommands = ['task', 'my-task', 'task123', 'my-long-command-name'];
+    const validCommands = ['snippet', 'my-snippet', 'snippet123', 'my-long-command-name'];
     for (const command of validCommands) {
       const cap = { ...validSlashCommandCapability, command };
       const result = slashCommandCapabilitySchema.safeParse(cap);
@@ -543,13 +543,13 @@ describe('slashCommandCapabilitySchema', () => {
   });
 
   it('rejects command with spaces', () => {
-    const cap = { ...validSlashCommandCapability, command: 'my task' };
+    const cap = { ...validSlashCommandCapability, command: 'my snippet' };
     const result = slashCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
 
   it('rejects command with underscores', () => {
-    const cap = { ...validSlashCommandCapability, command: 'my_task' };
+    const cap = { ...validSlashCommandCapability, command: 'my_snippet' };
     const result = slashCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
@@ -567,7 +567,7 @@ describe('slashCommandCapabilitySchema', () => {
   });
 
   it('rejects command starting with number', () => {
-    const cap = { ...validSlashCommandCapability, command: '123task' };
+    const cap = { ...validSlashCommandCapability, command: '123snippet' };
     const result = slashCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
@@ -591,7 +591,7 @@ describe('commandPaletteCommandCapabilitySchema', () => {
     );
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.description).toBe('Create a new task in the current note');
+      expect(result.data.description).toBe('Create a new snippet in the current note');
       expect(result.data.icon).toBe('CheckSquare');
       expect(result.data.shortcut).toBe('⌘T');
       expect(result.data.category).toBe('Tasks');
@@ -600,7 +600,7 @@ describe('commandPaletteCommandCapabilitySchema', () => {
   });
 
   it('accepts valid command ID formats (dot notation)', () => {
-    const validIds = ['todo.createTask', 'notes.archive', 'app.settings.open', 'search'];
+    const validIds = ['example.createSnippet', 'notes.archive', 'app.settings.open', 'search'];
     for (const id of validIds) {
       const cap = { ...validCommandPaletteCommandCapability, id };
       const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
@@ -618,19 +618,19 @@ describe('commandPaletteCommandCapabilitySchema', () => {
   });
 
   it('rejects ID with hyphens', () => {
-    const cap = { ...validCommandPaletteCommandCapability, id: 'todo-create-task' };
+    const cap = { ...validCommandPaletteCommandCapability, id: 'example-create-snippet' };
     const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
 
   it('rejects ID with spaces', () => {
-    const cap = { ...validCommandPaletteCommandCapability, id: 'todo create task' };
+    const cap = { ...validCommandPaletteCommandCapability, id: 'example create snippet' };
     const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
 
   it('rejects ID with underscores', () => {
-    const cap = { ...validCommandPaletteCommandCapability, id: 'todo_create_task' };
+    const cap = { ...validCommandPaletteCommandCapability, id: 'example_create_snippet' };
     const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
@@ -648,13 +648,13 @@ describe('commandPaletteCommandCapabilitySchema', () => {
   });
 
   it('rejects ID starting with number', () => {
-    const cap = { ...validCommandPaletteCommandCapability, id: '123todo.create' };
+    const cap = { ...validCommandPaletteCommandCapability, id: '123example.create' };
     const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
 
   it('rejects ID with segment starting with number', () => {
-    const cap = { ...validCommandPaletteCommandCapability, id: 'todo.123create' };
+    const cap = { ...validCommandPaletteCommandCapability, id: 'example.123create' };
     const result = commandPaletteCommandCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(false);
   });
@@ -686,13 +686,13 @@ describe('editorExtensionCapabilitySchema', () => {
   });
 
   it('accepts editor extension with only nodes', () => {
-    const cap = { type: 'editor-extension', nodes: ['task-node'] };
+    const cap = { type: 'editor-extension', nodes: ['example-node'] };
     const result = editorExtensionCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(true);
   });
 
   it('accepts editor extension with only plugins', () => {
-    const cap = { type: 'editor-extension', plugins: ['task-plugin'] };
+    const cap = { type: 'editor-extension', plugins: ['example-plugin'] };
     const result = editorExtensionCapabilitySchema.safeParse(cap);
     expect(result.success).toBe(true);
   });
@@ -791,7 +791,7 @@ describe('pluginCapabilitySchema - discriminated union', () => {
 describe('validateManifest', () => {
   it('returns validated manifest for valid input', () => {
     const manifest = validateManifest(validManifestFull);
-    expect(manifest.id).toBe('@scribe/plugin-todo');
+    expect(manifest.id).toBe('@scribe/plugin-example');
     expect(manifest.name).toBe('Todo Plugin');
   });
 

@@ -148,18 +148,8 @@ export interface NoteMetadata {
  * instead of the standard note editor. These notes don't have content files
  * in the vault - they are virtual notes handled specially by the UI.
  *
- * @example
- * ```typescript
- * // Navigate to the tasks screen
- * navigateToNote(SYSTEM_NOTE_IDS.TASKS);
- * ```
- *
  * @since 1.0.0
  */
-export const SYSTEM_NOTE_IDS = {
-  /** Virtual note ID for the Tasks management screen */
-  TASKS: 'system:tasks',
-} as const;
 
 /**
  * Check if a note ID is a system note
@@ -172,9 +162,9 @@ export const SYSTEM_NOTE_IDS = {
  *
  * @example
  * ```typescript
- * isSystemNoteId('system:tasks');  // true
- * isSystemNoteId('abc-123');        // false
- * isSystemNoteId(null);             // false
+ * isSystemNoteId('system:settings'); // true
+ * isSystemNoteId('abc-123');         // false
+ * isSystemNoteId(null);              // false
  * ```
  *
  * @since 1.0.0
@@ -385,7 +375,7 @@ export interface TemplateNote extends BaseNote {
  * System notes are virtual notes that don't have content files.
  * They represent special screens or functionality in the app.
  *
- * @see SYSTEM_NOTE_IDS for predefined system note identifiers
+ * @see isSystemNoteId for detecting system note IDs
  * @since 1.0.0
  */
 export interface SystemNote extends BaseNote {

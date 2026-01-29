@@ -79,7 +79,7 @@ interface PluginErrorBoundaryState {
  *
  * @example
  * ```tsx
- * <PluginErrorBoundary pluginId="@scribe/plugin-todo">
+ * <PluginErrorBoundary pluginId="@scribe/plugin-example">
  *   <TodoPanel />
  * </PluginErrorBoundary>
  * ```
@@ -209,7 +209,7 @@ export interface PluginErrorFallbackProps {
  * @example
  * ```tsx
  * <PluginErrorFallback
- *   pluginId="@scribe/plugin-todo"
+ *   pluginId="@scribe/plugin-example"
  *   error={new Error('Something went wrong')}
  *   onRetry={() => setHasError(false)}
  * />

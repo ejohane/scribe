@@ -16,18 +16,18 @@
  * } from '@scribe/plugin-core';
  *
  * const manifest: PluginManifest = {
- *   id: '@scribe/plugin-todo',
+ *   id: '@scribe/plugin-example',
  *   version: '1.0.0',
  *   name: 'Todo Plugin',
  *   capabilities: [
- *     { type: 'trpc-router', namespace: 'todos' },
+ *     { type: 'trpc-router', namespace: 'example' },
  *   ],
  * };
  *
  * export function createPlugin(ctx: ServerPluginContext): ServerPlugin {
  *   return {
  *     manifest,
- *     router: todosRouter,
+ *     router: exampleRouter,
  *   };
  * }
  * ```

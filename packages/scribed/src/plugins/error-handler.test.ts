@@ -182,8 +182,8 @@ describe('error-handler', () => {
         timestamp: new Date(),
         pluginId: '@scribe/plugin-test',
         errorType: 'router',
-        procedure: 'getTodos',
-        error: { message: 'Failed to get todos' },
+        procedure: 'getSnippets',
+        error: { message: 'Failed to get snippets' },
         consecutiveErrors: 1,
         action: 'logged',
       };
@@ -194,7 +194,7 @@ describe('error-handler', () => {
         expect.any(String),
         expect.any(String),
         expect.objectContaining({
-          procedure: 'getTodos',
+          procedure: 'getSnippets',
         })
       );
     });

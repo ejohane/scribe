@@ -540,8 +540,8 @@ describe('useSlashCommands', () => {
 
     const plugin = createMockPluginModule('@test/plugin', {
       slashCommands: [
-        { command: 'task', label: 'Create Task', description: 'Add a task' },
         { command: 'date', label: 'Insert Date', icon: 'Calendar' },
+        { command: 'mention', label: 'Mention Person', description: 'Add a person mention' },
       ],
     });
 
@@ -558,8 +558,8 @@ describe('useSlashCommands', () => {
     });
 
     expect(result.current.commands).toHaveLength(2);
-    expect(result.current.commands.map((c) => c.command)).toContain('task');
     expect(result.current.commands.map((c) => c.command)).toContain('date');
+    expect(result.current.commands.map((c) => c.command)).toContain('mention');
 
     consoleLogSpy.mockRestore();
   });
@@ -820,7 +820,7 @@ describe('useCommandPaletteCommands', () => {
         {
           id: 'test.viewTasks',
           label: 'View Tasks',
-          description: 'Open tasks panel',
+          description: 'Open sidebar panel',
           icon: 'CheckSquare',
           category: 'Tasks',
           priority: 10,

@@ -67,8 +67,8 @@ function PanelLoadingSkeleton() {
  * @example
  * ```tsx
  * <PluginPanelSlot
- *   pluginId="@scribe/plugin-todo"
- *   component={TodoPanel}
+ *   pluginId="@scribe/plugin-example"
+ *   component={ExamplePanel}
  *   onCloseSidebar={() => setSheetOpen(false)}
  * />
  * ```
