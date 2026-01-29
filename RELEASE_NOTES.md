@@ -21,6 +21,18 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.46.1
+
+## [1.46.1](https://github.com/ejohane/scribe/compare/v1.46.0...v1.46.1) (2026-01-29)
+
+### Bug Fixes
+
+* **engine:** align plugin test fixtures ([f74acb7](https://github.com/ejohane/scribe/commit/f74acb79cec26d1207fdb98fb41a318078600bdf))
+* **engine:** stabilize collab client tests ([3ee514e](https://github.com/ejohane/scribe/commit/3ee514e32765bdcf8b601b03d464e7f0b40951cc))
+
 ---
 
 # What's New in v1.46.0
