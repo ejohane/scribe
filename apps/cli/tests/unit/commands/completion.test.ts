@@ -219,7 +219,6 @@ describe('completion commands', () => {
       expect(output).toContain("-a graph -d 'Graph operations'");
       expect(output).toContain("-a tags -d 'Tag operations'");
       expect(output).toContain("-a people -d 'People operations'");
-      expect(output).toContain("-a tasks -d 'Task operations'");
       expect(output).toContain("-a daily -d 'Daily note operations'");
       expect(output).toContain("-a vault -d 'Vault operations'");
       expect(output).toContain("-a completion -d 'Generate shell completion'");

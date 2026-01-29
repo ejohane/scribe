@@ -129,8 +129,8 @@ describe('pluginManifestSchema - valid manifests', () => {
     if (result.success) {
       expect(result.data.id).toBe('@scribe/plugin-example');
       expect(result.data.version).toBe('1.0.0');
-      expect(result.data.name).toBe('Todo Plugin');
-      expect(result.data.description).toBe('Task management for Scribe');
+      expect(result.data.name).toBe('Example Plugin');
+      expect(result.data.description).toBe('Example capabilities for Scribe');
       expect(result.data.author).toBe('Scribe Team');
       expect(result.data.capabilities).toHaveLength(1);
       expect(result.data.scribeVersion).toBe('>=1.0.0');
@@ -594,7 +594,7 @@ describe('commandPaletteCommandCapabilitySchema', () => {
       expect(result.data.description).toBe('Create a new snippet in the current note');
       expect(result.data.icon).toBe('CheckSquare');
       expect(result.data.shortcut).toBe('⌘T');
-      expect(result.data.category).toBe('Tasks');
+      expect(result.data.category).toBe('Examples');
       expect(result.data.priority).toBe(10);
     }
   });
@@ -792,7 +792,7 @@ describe('validateManifest', () => {
   it('returns validated manifest for valid input', () => {
     const manifest = validateManifest(validManifestFull);
     expect(manifest.id).toBe('@scribe/plugin-example');
-    expect(manifest.name).toBe('Todo Plugin');
+    expect(manifest.name).toBe('Example Plugin');
   });
 
   it('throws PluginManifestError for invalid input', () => {

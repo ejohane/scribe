@@ -243,7 +243,7 @@ describe('getCapabilitiesByType', () => {
   it('returns all capabilities of the specified type', () => {
     const trpcCaps = getCapabilitiesByType(testManifest, 'trpc-router');
     expect(trpcCaps).toHaveLength(1);
-    expect(trpcCaps[0].namespace).toBe('examples');
+    expect(trpcCaps[0].namespace).toBe('example');
 
     const storageCaps = getCapabilitiesByType(testManifest, 'storage');
     expect(storageCaps).toHaveLength(1);
@@ -251,7 +251,7 @@ describe('getCapabilitiesByType', () => {
 
     const sidebarCaps = getCapabilitiesByType(testManifest, 'sidebar-panel');
     expect(sidebarCaps).toHaveLength(1);
-    expect(sidebarCaps[0].label).toBe('Tasks');
+    expect(sidebarCaps[0].label).toBe('Examples');
 
     const editorCaps = getCapabilitiesByType(testManifest, 'editor-extension');
     expect(editorCaps).toHaveLength(1);
@@ -385,7 +385,7 @@ describe('PluginCapability discriminated union', () => {
       }
     }
 
-    expect(describeCapability(trpcCapability)).toBe('Router at examples');
+    expect(describeCapability(trpcCapability)).toBe('Router at example');
     expect(describeCapability(storageCapability)).toBe('Storage with 2 keys');
     expect(describeCapability(eventHookCapability)).toBe('Hooks for note:created, note:updated');
     expect(describeCapability(sidebarPanelCapability)).toBe('Panel: Examples');

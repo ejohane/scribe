@@ -592,7 +592,7 @@ describe('router-merger', () => {
 
       const namespaces = getAllNamespaces(coreRouters, pluginRouters);
 
-      expect(namespaces.sort()).toEqual(['notes', 'examples']);
+      expect(namespaces.sort()).toEqual(['examples', 'notes']);
     });
 
     it('returns sorted array', () => {
