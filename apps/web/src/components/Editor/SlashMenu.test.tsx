@@ -59,11 +59,11 @@ const mockCoreCommands: CoreSlashCommand[] = [
 // Mock plugin commands
 const mockPluginCommands: SlashCommandEntry[] = [
   {
-    pluginId: '@scribe/plugin-todo',
-    command: 'task',
-    label: 'Add Task',
-    description: 'Create a new task',
-    icon: 'check-square',
+    pluginId: '@scribe/plugin-mentions',
+    command: 'mention',
+    label: 'Mention Person',
+    description: 'Insert a person mention',
+    icon: 'user',
     handler: {
       execute: vi.fn(),
     },
@@ -142,7 +142,7 @@ describe('SlashMenu', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('Add Task')).toBeInTheDocument();
+      expect(screen.getByText('Mention Person')).toBeInTheDocument();
       expect(screen.getByText('Add Event')).toBeInTheDocument();
     });
 
@@ -248,11 +248,11 @@ describe('SlashMenu', () => {
     it('filters plugin commands by label', () => {
       render(
         <TestWrapper>
-          <SlashMenu {...defaultProps} query="task" />
+          <SlashMenu {...defaultProps} query="mention" />
         </TestWrapper>
       );
 
-      expect(screen.getByText('Add Task')).toBeInTheDocument();
+      expect(screen.getByText('Mention Person')).toBeInTheDocument();
       expect(screen.queryByText('Add Event')).not.toBeInTheDocument();
     });
 
@@ -303,7 +303,7 @@ describe('SlashMenu', () => {
       // The 4th item (index 3) is the first plugin command
       const options = screen.getAllByRole('option');
       expect(options[3]).toHaveAttribute('aria-selected', 'true');
-      expect(options[3]).toHaveTextContent('Add Task');
+      expect(options[3]).toHaveTextContent('Mention Person');
     });
   });
 
@@ -350,7 +350,7 @@ describe('SlashMenu', () => {
       );
 
       // Hover over first plugin command (index 3)
-      fireEvent.mouseEnter(screen.getByText('Add Task').closest('[role="option"]')!);
+      fireEvent.mouseEnter(screen.getByText('Mention Person').closest('[role="option"]')!);
 
       expect(onHover).toHaveBeenCalledWith(3);
     });
@@ -359,11 +359,11 @@ describe('SlashMenu', () => {
 
 describe('PluginCommandItem', () => {
   const mockCommand: SlashCommandEntry = {
-    pluginId: '@scribe/plugin-todo',
-    command: 'task',
-    label: 'Add Task',
-    description: 'Create a new task',
-    icon: 'check-square',
+    pluginId: '@scribe/plugin-mentions',
+    command: 'mention',
+    label: 'Mention Person',
+    description: 'Insert a person mention',
+    icon: 'user',
     handler: {
       execute: vi.fn(),
     },
@@ -388,8 +388,8 @@ describe('PluginCommandItem', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText('Add Task')).toBeInTheDocument();
-      expect(screen.getByText('Create a new task')).toBeInTheDocument();
+      expect(screen.getByText('Mention Person')).toBeInTheDocument();
+      expect(screen.getByText('Insert a person mention')).toBeInTheDocument();
     });
 
     it('renders with role="option"', () => {
@@ -547,7 +547,7 @@ describe('PluginCommandItem', () => {
       fireEvent.click(screen.getByRole('option'));
 
       await vi.waitFor(() => {
-        expect(showToast).toHaveBeenCalledWith('Command "task" has no handler', 'error');
+        expect(showToast).toHaveBeenCalledWith('Command "mention" has no handler', 'error');
       });
     });
   });
@@ -588,7 +588,7 @@ describe('helper functions', () => {
     });
 
     it('handles filtered results', () => {
-      const result = getCommandByIndex(mockCoreCommands, mockPluginCommands, 'task', 0);
+      const result = getCommandByIndex(mockCoreCommands, mockPluginCommands, 'mention', 0);
       expect(result).toEqual({ type: 'plugin', command: mockPluginCommands[0] });
     });
   });

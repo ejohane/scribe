@@ -16,7 +16,6 @@ describe('slashCommands', () => {
     expect(formattingIds).toContain('heading2');
     expect(formattingIds).toContain('heading3');
     expect(formattingIds).toContain('bullet');
-    expect(formattingIds).toContain('task');
     expect(formattingIds).toContain('quote');
     expect(formattingIds).toContain('table');
   });
@@ -130,11 +129,6 @@ describe('filterCommands', () => {
     it('finds bullet command by "-" keyword', () => {
       const result = filterCommands('-');
       expect(result.some((c) => c.id === 'bullet')).toBe(true);
-    });
-
-    it('finds task command by "todo" keyword', () => {
-      const result = filterCommands('todo');
-      expect(result.some((c) => c.id === 'task')).toBe(true);
     });
 
     it('finds quote command by ">" keyword', () => {

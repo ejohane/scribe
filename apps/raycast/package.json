@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "scribe",
   "title": "Scribe",
-  "description": "Quick capture to Scribe notes - add notes, tasks, search, and more",
+  "description": "Quick capture to Scribe notes - add notes, search, and more",
   "icon": "icon.png",
   "author": "scribe",
   "categories": [
@@ -33,13 +33,6 @@
       "title": "Quick Note",
       "subtitle": "Scribe",
       "description": "Append text to today's daily note",
-      "mode": "view"
-    },
-    {
-      "name": "quick-task",
-      "title": "Quick Task",
-      "subtitle": "Scribe",
-      "description": "Add a task to today's daily note",
       "mode": "view"
     },
     {

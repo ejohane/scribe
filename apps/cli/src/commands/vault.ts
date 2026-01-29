@@ -33,14 +33,6 @@ export function registerVaultCommands(program: Command): void {
       const personCount = notes.filter((n) => n.type === 'person').length;
       const dailyNoteCount = notes.filter((n) => n.type === 'daily').length;
 
-      // Ensure task index is loaded for task stats
-      await ctx.ensureTaskIndexLoaded();
-
-      // Get all tasks
-      const taskResult = ctx.taskIndex.list({});
-      const allTasks = taskResult.tasks;
-      const openTaskCount = allTasks.filter((t) => !t.completed).length;
-
       // Find date range
       const dates = notes.map((n) => new Date(n.createdAt).getTime());
       const oldestNote = dates.length ? new Date(Math.min(...dates)).toISOString() : null;
@@ -57,8 +49,6 @@ export function registerVaultCommands(program: Command): void {
           stats: {
             noteCount: notes.length,
             tagCount: graphStats.tags,
-            taskCount: taskResult.tasks.length,
-            openTaskCount,
             personCount,
             dailyNoteCount,
           },

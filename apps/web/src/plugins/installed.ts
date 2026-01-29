@@ -10,7 +10,6 @@
 import type { PluginModule } from '@scribe/plugin-core';
 // Import from /client to avoid pulling in server-side code (@trpc/server)
 import * as dailyNotePlugin from '@scribe/plugin-daily-note/client';
-import * as todoPlugin from '@scribe/plugin-todo/client';
 
 /**
  * Get all installed plugins.
@@ -24,12 +23,8 @@ import * as todoPlugin from '@scribe/plugin-todo/client';
  *
  * @example
  * ```typescript
- * // After installing @scribe/plugin-todo:
- * import * as todoPlugin from '@scribe/plugin-todo';
- *
  * export function getInstalledPlugins(): PluginModule[] {
  *   return [
- *     todoPlugin,
  *     // Add more plugins here
  *   ];
  * }
@@ -40,7 +35,6 @@ import * as todoPlugin from '@scribe/plugin-todo/client';
 export function getInstalledPlugins(): PluginModule[] {
   return [
     dailyNotePlugin,
-    todoPlugin,
     // Add more plugins here
   ];
 }

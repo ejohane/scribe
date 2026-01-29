@@ -54,13 +54,8 @@ describe('daily commands', () => {
     read: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
-  let mockTaskIndex: {
-    list: ReturnType<typeof vi.fn>;
-  };
   let mockContext: {
     vault: typeof mockVault;
-    taskIndex: typeof mockTaskIndex;
-    ensureTaskIndexLoaded: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -73,16 +68,9 @@ describe('daily commands', () => {
       create: vi.fn(),
     };
 
-    // Set up mock task index
-    mockTaskIndex = {
-      list: vi.fn(() => ({ tasks: [] })),
-    };
-
     // Set up mock context
     mockContext = {
       vault: mockVault,
-      taskIndex: mockTaskIndex,
-      ensureTaskIndexLoaded: vi.fn(),
     };
 
     vi.mocked(initializeContext).mockResolvedValue(
@@ -118,10 +106,17 @@ describe('daily commands', () => {
           children: [],
         },
       },
+      metadata: {
+        title: null,
+        tags: [],
+        links: [],
+        mentions: [],
+        type: 'daily',
+      },
       daily: {
         date,
       },
-    } as Note;
+    } as unknown as Note;
   }
 
   describe('daily show', () => {
@@ -187,33 +182,6 @@ describe('daily commands', () => {
         expect.objectContaining({
           date: targetDate,
           found: true,
-        }),
-        expect.anything()
-      );
-    });
-
-    it('includes tasks from the daily note', async () => {
-      const targetDate = '2025-01-15';
-      const mockNote = createMockDailyNote(targetDate);
-      mockVault.list.mockReturnValue([mockNote]);
-
-      const mockTasks = [
-        { text: 'Task 1', completed: false },
-        { text: 'Task 2', completed: true },
-      ];
-      mockTaskIndex.list.mockReturnValue({ tasks: mockTasks });
-
-      await program.parseAsync(['node', 'test', 'daily', 'show', targetDate]);
-
-      expect(mockContext.ensureTaskIndexLoaded).toHaveBeenCalled();
-      expect(output).toHaveBeenCalledWith(
-        expect.objectContaining({
-          note: expect.objectContaining({
-            tasks: expect.arrayContaining([
-              expect.objectContaining({ text: 'Task 1', completed: false }),
-              expect.objectContaining({ text: 'Task 2', completed: true }),
-            ]),
-          }),
         }),
         expect.anything()
       );
@@ -407,7 +375,14 @@ describe('daily commands', () => {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         content: { root: { type: 'root', children: [] } },
-      } as Note;
+        metadata: {
+          title: null,
+          tags: [],
+          links: [],
+          mentions: [],
+          type: undefined,
+        },
+      } as unknown as Note;
       mockVault.list.mockReturnValue([regularNote]);
 
       await program.parseAsync(['node', 'test', 'daily', 'show', targetDate]);

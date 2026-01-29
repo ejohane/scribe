@@ -7,11 +7,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   createParagraphNode,
-  createChecklistItemNode,
   createHeadingNode,
   createListNode,
   appendParagraphToContent,
-  appendTaskToContent,
   appendHeadingToContent,
   createEmptyContent,
   createInitialContent,
@@ -54,35 +52,6 @@ describe('node-builder', () => {
     });
   });
 
-  describe('createChecklistItemNode', () => {
-    it('should create unchecked checklist item by default', () => {
-      const node = createChecklistItemNode('Buy groceries');
-
-      expect(node.type).toBe('listitem');
-      expect(node.listType).toBe('check');
-      expect(node.checked).toBe(false);
-      expect(node.children?.[0].text).toBe('Buy groceries');
-    });
-
-    it('should create checked checklist item when specified', () => {
-      const node = createChecklistItemNode('Done task', true);
-
-      expect(node.checked).toBe(true);
-    });
-
-    it('should set value property for list ordering', () => {
-      const node = createChecklistItemNode('Task');
-
-      expect(node.value).toBe(1);
-    });
-
-    it('should create empty children for empty text', () => {
-      const node = createChecklistItemNode('');
-
-      expect(node.children).toHaveLength(0);
-    });
-  });
-
   describe('createHeadingNode', () => {
     it('should create h1 heading by default', () => {
       const node = createHeadingNode('Main Title');
@@ -115,7 +84,7 @@ describe('node-builder', () => {
 
   describe('createListNode', () => {
     it('should create bullet list by default', () => {
-      const items = [createChecklistItemNode('Item 1'), createChecklistItemNode('Item 2')];
+      const items = [createParagraphNode('Item 1'), createParagraphNode('Item 2')];
       const node = createListNode(items);
 
       expect(node.type).toBe('list');
@@ -130,14 +99,6 @@ describe('node-builder', () => {
 
       expect(node.listType).toBe('number');
       expect(node.tag).toBe('ol');
-    });
-
-    it('should create checklist', () => {
-      const items = [createChecklistItemNode('Task')];
-      const node = createListNode(items, 'check');
-
-      expect(node.listType).toBe('check');
-      expect(node.tag).toBe('ul');
     });
 
     it('should set start property to 1', () => {
@@ -186,28 +147,6 @@ describe('node-builder', () => {
       const updated = appendParagraphToContent(content, 'New');
 
       expect(updated.root.children).toHaveLength(1);
-    });
-  });
-
-  describe('appendTaskToContent', () => {
-    it('should append unchecked task to content', () => {
-      const content = createEmptyContent();
-      const updated = appendTaskToContent(content, 'New task');
-
-      // createEmptyContent has 1 empty paragraph, append adds task as second child
-      expect(updated.root.children).toHaveLength(2);
-      expect(updated.root.children[1].type).toBe('listitem');
-      expect(updated.root.children[1].checked).toBe(false);
-      expect(updated.root.children[1].children?.[0].text).toBe('New task');
-    });
-
-    it('should not mutate original content', () => {
-      const original = createEmptyContent();
-      const updated = appendTaskToContent(original, 'Task');
-
-      // createEmptyContent starts with 1 empty paragraph
-      expect(original.root.children).toHaveLength(1);
-      expect(updated.root.children).toHaveLength(2);
     });
   });
 

@@ -809,7 +809,7 @@ describe('integration', () => {
     const bus = new DefaultPluginEventBus(vi.fn());
 
     // Simulate plugin activation
-    const pluginEmitter = bus.createScopedEmitter('@scribe/plugin-todo');
+    const pluginEmitter = bus.createScopedEmitter('@scribe/plugin-example');
     const receivedEvents: PluginEvent[] = [];
 
     pluginEmitter.on('note:created', (event) => {
@@ -840,14 +840,14 @@ describe('integration', () => {
   it('multiple plugins working together', async () => {
     const bus = new DefaultPluginEventBus(vi.fn());
 
-    const todoPlugin = bus.createScopedEmitter('@scribe/plugin-todo');
+    const examplePlugin = bus.createScopedEmitter('@scribe/plugin-example');
     const searchPlugin = bus.createScopedEmitter('@scribe/plugin-search');
 
-    const todoEvents: PluginEvent[] = [];
+    const exampleEvents: PluginEvent[] = [];
     const searchEvents: PluginEvent[] = [];
 
-    todoPlugin.on('note:deleted', (event) => {
-      todoEvents.push(event);
+    examplePlugin.on('note:deleted', (event) => {
+      exampleEvents.push(event);
     });
 
     searchPlugin.on('note:created', (event) => {
@@ -865,22 +865,22 @@ describe('integration', () => {
     await bus.emit(createNoteUpdatedEvent('note-1'));
     await bus.emit(createNoteDeletedEvent('note-1'));
 
-    // Todo plugin only subscribed to deleted
-    expect(todoEvents).toHaveLength(1);
-    expect(todoEvents[0].type).toBe('note:deleted');
+    // Example plugin only subscribed to deleted
+    expect(exampleEvents).toHaveLength(1);
+    expect(exampleEvents[0].type).toBe('note:deleted');
 
     // Search plugin subscribed to all events
     expect(searchEvents).toHaveLength(3);
 
-    // Deactivate todo plugin
-    todoPlugin.removeAllListeners();
+    // Deactivate example plugin
+    examplePlugin.removeAllListeners();
 
     // Create another note
     await bus.emit(createNoteCreatedEvent('note-2'));
     await bus.emit(createNoteDeletedEvent('note-2'));
 
-    // Todo should not receive new events
-    expect(todoEvents).toHaveLength(1);
+    // Example should not receive new events
+    expect(exampleEvents).toHaveLength(1);
 
     // Search should continue to receive events
     expect(searchEvents).toHaveLength(5);

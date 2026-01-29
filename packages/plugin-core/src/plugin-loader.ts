@@ -73,7 +73,7 @@ export class PluginLoadError extends Error {
  *
  * @example
  * ```typescript
- * // In @scribe/plugin-todo/index.ts
+ * // In @scribe/plugin-example/index.ts
  * export const manifest: PluginManifest = { ... };
  * export const createServerPlugin: ServerPluginFactory = (ctx) => { ... };
  * export const createClientPlugin: ClientPluginFactory = (ctx) => { ... };
@@ -201,12 +201,12 @@ export function detectEnvironment(): 'server' | 'client' {
  * @example
  * ```typescript
  * import { PluginLoader, PluginRegistry } from '@scribe/plugin-core';
- * import * as todoPlugin from '@scribe/plugin-todo';
+ * import * as examplePlugin from '@scribe/plugin-example';
  *
  * const registry = new PluginRegistry();
  * const loader = new PluginLoader(registry, contextFactory);
  *
- * await loader.loadPlugins([todoPlugin]);
+ * await loader.loadPlugins([examplePlugin]);
  * ```
  */
 export class PluginLoader {
@@ -236,11 +236,11 @@ export class PluginLoader {
    *
    * @example
    * ```typescript
-   * import * as todoPlugin from '@scribe/plugin-todo';
+   * import * as examplePlugin from '@scribe/plugin-example';
    *
    * try {
-   *   await loader.loadPlugin(todoPlugin);
-   *   console.log('Todo plugin loaded successfully');
+   *   await loader.loadPlugin(examplePlugin);
+   *   console.log('Example plugin loaded successfully');
    * } catch (error) {
    *   if (error instanceof PluginLoadError) {
    *     console.error(`Load failed: ${error.message}`);
@@ -291,7 +291,7 @@ export class PluginLoader {
    * @example
    * ```typescript
    * const result = await loader.loadPlugins([
-   *   todoPlugin,
+   *   examplePlugin,
    *   calendarPlugin,
    *   notesPlugin,
    * ]);

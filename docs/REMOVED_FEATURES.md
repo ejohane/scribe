@@ -12,9 +12,8 @@ Automatic journal entries with date-based organization.
 
 ### Tasks
 Inline task management with checkboxes and due dates.
-- **Status**: Moved to plugin
-- **Reason**: Task management is now handled by the Todo plugin (`@scribe/plugin-todo`)
-- **Migration**: Use the Todo plugin for task functionality
+- **Status**: Removed
+- **Reason**: Task management is no longer supported in the current architecture
 
 ### Meetings
 Structured meeting notes with attendees and agendas.
@@ -58,13 +57,6 @@ These features were removed for several reasons:
 4. **Code Quality**: Some features had accumulated technical debt. Rather than carrying that forward, it's cleaner to remove and re-implement properly.
 
 ## Migration Guide
-
-### Tasks
-If you were using inline tasks, migrate to the Todo plugin:
-
-1. Install the plugin (bundled by default)
-2. Tasks are now managed via the sidebar panel
-3. Use `/todo` slash command to add tasks
 
 ### Daily Notes
 Until the plugin is available:

@@ -28,19 +28,11 @@ export type {
   GraphEdge,
   SearchResult,
   VaultConfig,
-  // Task types
-  TaskId,
-  Task,
-  TaskFilter,
-  TaskChangeEvent,
 } from './types.js';
 
 export {
   createNoteId,
   createVaultPath,
-  serializeTaskId,
-  parseTaskId,
-  SYSTEM_NOTE_IDS,
   isSystemNoteId,
   // Note type guards
   isRegularNote,

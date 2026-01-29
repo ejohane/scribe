@@ -23,14 +23,14 @@ import type { ComponentType, FC } from 'react';
  * @example
  * ```typescript
  * const manifest: PluginManifest = {
- *   id: '@scribe/plugin-todo',
+ *   id: '@scribe/plugin-example',
  *   version: '1.0.0',
- *   name: 'Todo Plugin',
- *   description: 'Adds task management to your notes',
+ *   name: 'Example Plugin',
+ *   description: 'Adds custom widgets to your notes',
  *   author: 'Scribe Team',
  *   capabilities: [
- *     { type: 'trpc-router', namespace: 'todos' },
- *     { type: 'sidebar-panel', id: 'todo-panel', label: 'Tasks', icon: 'CheckSquare' },
+ *     { type: 'trpc-router', namespace: 'example' },
+ *     { type: 'sidebar-panel', id: 'example-panel', label: 'Examples', icon: 'Star' },
  *   ],
  * };
  * ```
@@ -38,7 +38,7 @@ import type { ComponentType, FC } from 'react';
 export interface PluginManifest {
   /**
    * Unique plugin identifier.
-   * Convention: use npm-style scoped packages, e.g., "@scribe/plugin-todo"
+   * Convention: use npm-style scoped packages, e.g., "@scribe/plugin-example"
    */
   id: string;
 
@@ -120,7 +120,7 @@ export interface TrpcRouterCapability {
 
   /**
    * Router will be mounted at this namespace.
-   * E.g., "todos" means procedures are available as `trpc.todos.*`
+   * E.g., "example" means procedures are available as `trpc.example.*`
    */
   namespace: string;
 }
@@ -199,7 +199,7 @@ export interface SlashCommandCapability {
 
   /**
    * Command trigger text (without the slash).
-   * E.g., "task" for /task
+   * E.g., "snippet" for /snippet
    */
   command: string;
 
@@ -229,11 +229,11 @@ export interface SlashCommandCapability {
  * ```typescript
  * const capability: CommandPaletteCommandCapability = {
  *   type: 'command-palette-command',
- *   id: 'todo.createTask',
- *   label: 'Create Task',
- *   description: 'Create a new task in the current note',
- *   icon: 'CheckSquare',
- *   category: 'Tasks',
+ *   id: 'example.createWidget',
+ *   label: 'Create Widget',
+ *   description: 'Create a new widget in the current note',
+ *   icon: 'Star',
+ *   category: 'Widgets',
  *   priority: 10,
  * };
  * ```
@@ -246,7 +246,7 @@ export interface CommandPaletteCommandCapability {
 
   /**
    * Unique identifier for this command.
-   * Convention: use dot notation like "pluginName.commandName" (e.g., "todo.createTask")
+   * Convention: use dot notation like "pluginName.commandName" (e.g., "example.createWidget")
    */
   id: string;
 
@@ -602,7 +602,7 @@ export interface TRPCClientLike {
  *   return {
  *     manifest: ctx.manifest,
  *     sidebarPanels: {
- *       'todo-panel': TodoPanel,
+ *       'example-panel': ExamplePanel,
  *     },
  *   };
  * }
@@ -637,7 +637,7 @@ export interface SlashCommandHandler {
  * Arguments passed to a slash command handler.
  */
 export interface SlashCommandArgs {
-  /** The text following the command, e.g., for "/task Buy milk", this is "Buy milk" */
+  /** The text following the command, e.g., for "/widget Example", this is "Example" */
   text: string;
 
   /** The note ID where the command was invoked */
@@ -662,8 +662,8 @@ export interface SlashCommandArgs {
  *       return;
  *     }
  *     // Do something with the note
- *     ctx.toast('Task created!', 'success');
- *     ctx.navigate('/tasks');
+ *     ctx.toast('Snippet created!', 'success');
+ *     ctx.navigate('/snippets');
  *   },
  * };
  * ```
@@ -706,11 +706,11 @@ export interface CommandContext {
  *
  * @example
  * ```typescript
- * const createTaskHandler: CommandPaletteCommandHandler = {
+ * const createSnippetHandler: CommandPaletteCommandHandler = {
  *   execute(ctx) {
  *     if (ctx.noteId) {
- *       // Create task associated with current note
- *       ctx.toast('Task created!', 'success');
+ *       // Create snippet associated with current note
+ *       ctx.toast('Snippet created!', 'success');
  *     }
  *   },
  * };
@@ -734,17 +734,17 @@ export interface CommandPaletteCommandHandler {
  *
  * @example
  * ```typescript
- * export function createTodoPlugin(ctx: ServerPluginContext): ServerPlugin {
+ * export function createExamplePlugin(ctx: ServerPluginContext): ServerPlugin {
  *   return {
  *     manifest: ctx.manifest,
- *     router: createTodoRouter(ctx),
+ *     router: createExampleRouter(ctx),
  *     eventHandlers: {
  *       'note:deleted': async (event) => {
- *         // Clean up todos for deleted note
+ *         // Clean up plugin data for deleted note
  *       },
  *     },
  *     async onActivate() {
- *       ctx.logger.info('Todo plugin activated');
+ *       ctx.logger.info('Example plugin activated');
  *     },
  *   };
  * }
@@ -787,16 +787,16 @@ export interface ServerPlugin {
  *
  * @example
  * ```typescript
- * export function createTodoClientPlugin(ctx: ClientPluginContext): ClientPlugin {
+ * export function createExampleClientPlugin(ctx: ClientPluginContext): ClientPlugin {
  *   return {
  *     manifest: ctx.manifest,
  *     sidebarPanels: {
- *       'todo-panel': TodoPanel,
+ *       'example-panel': ExamplePanel,
  *     },
  *     slashCommands: {
- *       'task': {
+ *       'widget': {
  *         execute({ text, insertContent }) {
- *           insertContent({ type: 'todo', text, completed: false });
+ *           insertContent({ type: 'widget', text });
  *         },
  *       },
  *     },

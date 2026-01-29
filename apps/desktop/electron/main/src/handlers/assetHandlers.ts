@@ -11,7 +11,7 @@
  *
  * Asset handlers follow a standalone pattern (not using HandlerDependencies)
  * because AssetManager only needs the vault path and operates independently
- * from the note engines (graph, search, task index).
+ * from the note engines (graph, search).
  *
  * ## IPC Channels
  *

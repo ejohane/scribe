@@ -90,7 +90,6 @@ For detailed setup instructions, see [docs/GETTING_STARTED.md](docs/GETTING_STAR
 | Package | Description |
 |---------|-------------|
 | `@scribe/plugin-core` | Plugin framework: types, registry, storage, events |
-| `@scribe/plugin-todo` | Reference plugin: task management for notes |
 
 The plugin system enables modular extensions that can:
 - Add tRPC routers for custom APIs

@@ -7,17 +7,12 @@ import { render, waitFor } from '@testing-library/react';
 
 const mockEnsureToday = vi.fn().mockResolvedValue(undefined);
 const mockInitDailyNotePlugin = vi.fn();
-const mockInitTodoPlugin = vi.fn();
 const mockUseTrpc = vi.fn(() => ({ api: {} }));
 const mockUsePluginSettings = vi.fn();
 
 vi.mock('@scribe/plugin-daily-note/client', () => ({
   ensureToday: mockEnsureToday,
   initializeClientPlugin: mockInitDailyNotePlugin,
-}));
-
-vi.mock('@scribe/plugin-todo/client', () => ({
-  initializeClientPlugin: mockInitTodoPlugin,
 }));
 
 vi.mock('@scribe/web-core', () => ({

@@ -130,7 +130,7 @@ export type RouterFactory = (routers: Record<string, AnyRouter>) => AnyRouter;
  *
  * @example
  * ```typescript
- * validateNamespaceFormat('todos'); // true
+ * validateNamespaceFormat('examples'); // true
  * validateNamespaceFormat('myPlugin'); // true
  * validateNamespaceFormat('MyPlugin'); // throws (starts with uppercase)
  * validateNamespaceFormat('my-plugin'); // throws (contains hyphen)
@@ -158,7 +158,7 @@ export function validateNamespaceFormat(namespace: string): boolean {
  * @example
  * ```typescript
  * isReservedNamespace('notes'); // true
- * isReservedNamespace('todos'); // false
+ * isReservedNamespace('examples'); // false
  * ```
  */
 export function isReservedNamespace(namespace: string): boolean {
@@ -178,7 +178,7 @@ export function isReservedNamespace(namespace: string): boolean {
  *
  * @example
  * ```typescript
- * validateNamespace('todos'); // true
+ * validateNamespace('examples'); // true
  * validateNamespace('notes'); // throws (reserved)
  * validateNamespace('invalid-name'); // throws (invalid format)
  * ```
@@ -278,8 +278,8 @@ export function collectPluginRouters(registry: PluginRegistry): PluginRouterEntr
  * @example
  * ```typescript
  * const wrappedRouter = wrapPluginRouter(
- *   '@scribe/plugin-todo',
- *   todoRouter,
+ *   '@scribe/plugin-example',
+ *   exampleRouter,
  *   lifecycleManager
  * );
  * ```
@@ -327,7 +327,7 @@ const routerLifecycleMap = new Map<string, PluginLifecycleManager>();
  * try {
  *   await pluginProcedure();
  * } catch (error) {
- *   await handlePluginRouterError('@scribe/plugin-todo', error);
+ *   await handlePluginRouterError('@scribe/plugin-example', error);
  *   throw error;
  * }
  * ```

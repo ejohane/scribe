@@ -121,7 +121,7 @@ Describes a plugin's identity and capabilities.
 
 ```typescript
 interface PluginManifest {
-  id: string;           // Unique ID (npm-style, e.g., '@scribe/plugin-todo')
+  id: string;           // Unique ID (npm-style, e.g., '@scribe/plugin-example')
   version: string;      // SemVer version
   name: string;         // Display name
   description?: string; // What the plugin does
@@ -213,11 +213,11 @@ registry.register(myPlugin);
 const panels = registry.getCapabilities('sidebar-panel');
 
 // Get a specific plugin
-const plugin = registry.getPlugin('@scribe/plugin-todo');
+const plugin = registry.getPlugin('@scribe/plugin-example');
 
 // Check for conflicts
-if (registry.hasCapabilityConflict('trpc-router', 'todos')) {
-  console.warn('Router namespace "todos" is already taken');
+if (registry.hasCapabilityConflict('trpc-router', 'example')) {
+  console.warn('Router namespace "example" is already taken');
 }
 ```
 
@@ -231,14 +231,14 @@ import { PluginLifecycleManager } from '@scribe/plugin-core';
 const lifecycle = new PluginLifecycleManager(registry);
 
 // Activate a plugin (calls onActivate hook)
-await lifecycle.activate('@scribe/plugin-todo');
+await lifecycle.activate('@scribe/plugin-example');
 
 // Check state
-const status = lifecycle.getState('@scribe/plugin-todo');
+const status = lifecycle.getState('@scribe/plugin-example');
 // status.state: 'activated' | 'deactivated' | 'error' | ...
 
 // Deactivate (calls onDeactivate hook, preserves storage)
-await lifecycle.deactivate('@scribe/plugin-todo');
+await lifecycle.deactivate('@scribe/plugin-example');
 ```
 
 Plugins are auto-deactivated after 3 consecutive errors to prevent cascading failures.
@@ -293,4 +293,4 @@ plugin-core/
 
 ## See Also
 
-- [`@scribe/plugin-todo`](../plugin-todo/README.md) - Reference plugin implementation demonstrating all capabilities
+- `@scribe/plugin-example` - Reference plugin implementation demonstrating all capabilities

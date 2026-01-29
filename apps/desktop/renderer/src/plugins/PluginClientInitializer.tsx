@@ -13,7 +13,6 @@ import {
   ensureToday as ensureDailyNoteToday,
   initializeClientPlugin as initDailyNotePlugin,
 } from '@scribe/plugin-daily-note/client';
-import { initializeClientPlugin as initTodoPlugin } from '@scribe/plugin-todo/client';
 import { useTrpc } from '@scribe/web-core';
 import { usePluginSettings } from './usePluginSettings';
 
@@ -50,9 +49,6 @@ export const PluginClientInitializer: FC<PluginClientInitializerProps> = ({ chil
       // The plugins expect a hook that returns the API client
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initDailyNotePlugin(() => ({ api: trpc }) as any);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      initTodoPlugin(() => ({ api: trpc }) as any);
-
       initialized.current = true;
       // eslint-disable-next-line no-console -- Intentional logging for debugging
       console.log('[PluginClientInitializer] Plugins initialized with tRPC client');

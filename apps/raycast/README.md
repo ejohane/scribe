@@ -1,6 +1,6 @@
 # Scribe Raycast Extension
 
-Quick capture to your Scribe vault directly from Raycast. Add notes, tasks, search your vault, and more without leaving your current context.
+Quick capture to your Scribe vault directly from Raycast. Add notes, search your vault, and more without leaving your current context.
 
 ## Requirements
 
@@ -61,14 +61,6 @@ Append text to today's daily note.
 - Type your note and press Enter
 - Supports wiki links, mentions, and tags in the text
 
-### Quick Task
-
-Add a task to today's daily note.
-
-- **Shortcut suggestion**: `Opt + T`
-- Type your task description and press Enter
-- Task is added with checkbox syntax (`- [ ]`)
-
 ### Search Notes
 
 Full-text search across all notes in your vault.
@@ -104,7 +96,7 @@ Show recently modified notes.
 
 ## Syntax Support
 
-When entering notes and tasks, you can use Scribe's wiki syntax:
+When entering notes, you can use Scribe's wiki syntax:
 
 | Syntax | Description | Example |
 |--------|-------------|---------|
@@ -121,7 +113,6 @@ Configure shortcuts in Raycast Preferences > Extensions > Scribe:
 | Command | Suggested Shortcut |
 |---------|-------------------|
 | Quick Note | `Opt + N` |
-| Quick Task | `Opt + T` |
 | Search Notes | `Opt + S` |
 | Open Daily | `Opt + D` |
 | List People | `Opt + P` |

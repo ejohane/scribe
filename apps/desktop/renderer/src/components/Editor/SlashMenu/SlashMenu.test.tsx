@@ -115,7 +115,7 @@ describe('SlashMenuItem', () => {
       { id: 'heading2', label: 'Heading 2' },
       { id: 'heading3', label: 'Heading 3' },
       { id: 'bullet', label: 'Bullet List' },
-      { id: 'task', label: 'Add Task' },
+      { id: 'image', label: 'Image' },
       { id: 'quote', label: 'Quote' },
       { id: 'table', label: 'Table' },
     ];

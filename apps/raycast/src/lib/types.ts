@@ -20,10 +20,6 @@ export interface DailyShowResponse {
       text: string;
       format: string;
     };
-    tasks: Array<{
-      text: string;
-      completed: boolean;
-    }>;
   } | null;
   found: boolean;
 }
@@ -49,19 +45,6 @@ export interface DailyAppendResponse {
   appended: {
     text: string;
     source: string;
-  };
-}
-
-// Daily add-task response
-export interface DailyAddTaskResponse {
-  success: boolean;
-  date: string;
-  note: NoteReference;
-  created: boolean;
-  task: {
-    id: string;
-    text: string;
-    completed: boolean;
   };
 }
 

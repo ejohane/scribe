@@ -6,7 +6,6 @@
  *
  * - '@scribe/shared/types/note-types' - Note identifiers, metadata, and note variants
  * - '@scribe/shared/types/editor-types' - Editor content abstraction
- * - '@scribe/shared/types/task-types' - Task extraction and management
  * - '@scribe/shared/types/graph-types' - Knowledge graph visualization
  * - '@scribe/shared/types/search-types' - Full-text search results
  *

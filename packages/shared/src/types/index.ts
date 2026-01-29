@@ -8,7 +8,6 @@
  * Domain modules:
  * - note-types: Note identifiers, metadata, and note type variants
  * - editor-types: Editor content abstraction (currently Lexical-based)
- * - task-types: Task extraction and management types
  * - graph-types: Knowledge graph visualization types
  * - search-types: Full-text search result types
  */
@@ -28,9 +27,6 @@ export {
 
   // Note metadata
   type NoteMetadata,
-
-  // System notes
-  SYSTEM_NOTE_IDS,
   isSystemNoteId,
 
   // Note type-specific data
@@ -65,16 +61,6 @@ export {
 
 // Editor types - content abstraction layer
 export { type EditorNode, type EditorContent } from './editor-types.js';
-
-// Task types - task extraction and management
-export {
-  type TaskId,
-  serializeTaskId,
-  parseTaskId,
-  type Task,
-  type TaskFilter,
-  type TaskChangeEvent,
-} from './task-types.js';
 
 // Graph types - knowledge graph visualization
 export { type GraphNode, type GraphEdge } from './graph-types.js';

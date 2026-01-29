@@ -12,7 +12,6 @@ import { CLINotFoundError, CLITimeoutError, parseCliError, type ScribeCLIError }
 import type {
   Preferences,
   DailyAppendResponse,
-  DailyAddTaskResponse,
   SearchResponse,
   PeopleListResponse,
   NotesListResponse,
@@ -135,13 +134,6 @@ function escapeArg(arg: string): string {
  */
 export async function dailyAppend(text: string): Promise<DailyAppendResponse> {
   return scribe<DailyAppendResponse>(['daily', 'append', text]);
-}
-
-/**
- * Add a task to today's daily note
- */
-export async function dailyAddTask(text: string): Promise<DailyAddTaskResponse> {
-  return scribe<DailyAddTaskResponse>(['daily', 'add-task', text]);
 }
 
 /**

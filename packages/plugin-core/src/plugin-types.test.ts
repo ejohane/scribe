@@ -38,12 +38,12 @@ import {
 
 const trpcCapability: TrpcRouterCapability = {
   type: 'trpc-router',
-  namespace: 'todos',
+  namespace: 'example',
 };
 
 const storageCapability: StorageCapability = {
   type: 'storage',
-  keys: ['tasks', 'settings'],
+  keys: ['snippets', 'settings'],
 };
 
 const eventHookCapability: EventHookCapability = {
@@ -53,28 +53,28 @@ const eventHookCapability: EventHookCapability = {
 
 const sidebarPanelCapability: SidebarPanelCapability = {
   type: 'sidebar-panel',
-  id: 'todo-panel',
-  label: 'Tasks',
+  id: 'example-panel',
+  label: 'Examples',
   icon: 'CheckSquare',
   priority: 10,
 };
 
 const slashCommandCapability: SlashCommandCapability = {
   type: 'slash-command',
-  command: 'task',
-  label: 'Add Task',
-  description: 'Add a new task to the current note',
+  command: 'snippet',
+  label: 'Insert Snippet',
+  description: 'Insert an example snippet into the current note',
   icon: 'Plus',
 };
 
 const commandPaletteCommandCapability: CommandPaletteCommandCapability = {
   type: 'command-palette-command',
-  id: 'todo.createTask',
-  label: 'Create Task',
-  description: 'Create a new task in the current note',
+  id: 'example.createSnippet',
+  label: 'Create Snippet',
+  description: 'Create a new example snippet',
   icon: 'CheckSquare',
   shortcut: '⌘T',
-  category: 'Tasks',
+  category: 'Examples',
   priority: 10,
 };
 
@@ -85,10 +85,10 @@ const editorExtensionCapability: EditorExtensionCapability = {
 };
 
 const testManifest: PluginManifest = {
-  id: '@scribe/plugin-todo',
+  id: '@scribe/plugin-example',
   version: '1.0.0',
-  name: 'Todo Plugin',
-  description: 'Task management for Scribe',
+  name: 'Example Plugin',
+  description: 'Example capabilities for Scribe',
   author: 'Scribe Team',
   capabilities: [
     trpcCapability,
@@ -243,15 +243,15 @@ describe('getCapabilitiesByType', () => {
   it('returns all capabilities of the specified type', () => {
     const trpcCaps = getCapabilitiesByType(testManifest, 'trpc-router');
     expect(trpcCaps).toHaveLength(1);
-    expect(trpcCaps[0].namespace).toBe('todos');
+    expect(trpcCaps[0].namespace).toBe('example');
 
     const storageCaps = getCapabilitiesByType(testManifest, 'storage');
     expect(storageCaps).toHaveLength(1);
-    expect(storageCaps[0].keys).toEqual(['tasks', 'settings']);
+    expect(storageCaps[0].keys).toEqual(['snippets', 'settings']);
 
     const sidebarCaps = getCapabilitiesByType(testManifest, 'sidebar-panel');
     expect(sidebarCaps).toHaveLength(1);
-    expect(sidebarCaps[0].label).toBe('Tasks');
+    expect(sidebarCaps[0].label).toBe('Examples');
 
     const editorCaps = getCapabilitiesByType(testManifest, 'editor-extension');
     expect(editorCaps).toHaveLength(1);
@@ -385,12 +385,14 @@ describe('PluginCapability discriminated union', () => {
       }
     }
 
-    expect(describeCapability(trpcCapability)).toBe('Router at todos');
+    expect(describeCapability(trpcCapability)).toBe('Router at example');
     expect(describeCapability(storageCapability)).toBe('Storage with 2 keys');
     expect(describeCapability(eventHookCapability)).toBe('Hooks for note:created, note:updated');
-    expect(describeCapability(sidebarPanelCapability)).toBe('Panel: Tasks');
-    expect(describeCapability(slashCommandCapability)).toBe('Command: /task');
-    expect(describeCapability(commandPaletteCommandCapability)).toBe('Palette: todo.createTask');
+    expect(describeCapability(sidebarPanelCapability)).toBe('Panel: Examples');
+    expect(describeCapability(slashCommandCapability)).toBe('Command: /snippet');
+    expect(describeCapability(commandPaletteCommandCapability)).toBe(
+      'Palette: example.createSnippet'
+    );
     expect(describeCapability(editorExtensionCapability)).toBe('Editor extension with 1 nodes');
   });
 });
@@ -452,16 +454,16 @@ describe('ClientPlugin structure', () => {
     const plugin: ClientPlugin = {
       manifest: testManifest,
       slashCommands: {
-        task: {
+        snippet: {
           execute({ text, insertContent }) {
-            insertContent({ type: 'task', text });
+            insertContent({ type: 'snippet', text });
           },
         },
       },
     };
 
-    expect(plugin.slashCommands?.['task']).toBeDefined();
-    expect(plugin.slashCommands?.['task'].execute).toBeInstanceOf(Function);
+    expect(plugin.slashCommands?.['snippet']).toBeDefined();
+    expect(plugin.slashCommands?.['snippet'].execute).toBeInstanceOf(Function);
   });
 
   it('accepts a client plugin with editor extensions', () => {

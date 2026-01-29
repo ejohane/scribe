@@ -223,7 +223,7 @@ export interface CapabilityIndex {
  * const panels = registry.getCapabilities('sidebar-panel');
  *
  * // Get a specific plugin
- * const plugin = registry.getPlugin('@scribe/plugin-todo');
+ * const plugin = registry.getPlugin('@scribe/plugin-example');
  * ```
  */
 export class PluginRegistry {
@@ -256,8 +256,8 @@ export class PluginRegistry {
    * @example
    * ```typescript
    * registry.register({
-   *   manifest: { id: '@scribe/plugin-todo', ... },
-   *   router: todoRouter,
+   *   manifest: { id: '@scribe/plugin-example', ... },
+   *   router: exampleRouter,
    * });
    * ```
    */
@@ -308,7 +308,7 @@ export class PluginRegistry {
    *
    * @example
    * ```typescript
-   * const wasRemoved = registry.unregister('@scribe/plugin-todo');
+   * const wasRemoved = registry.unregister('@scribe/plugin-example');
    * ```
    */
   unregister(pluginId: string): boolean {
@@ -335,7 +335,7 @@ export class PluginRegistry {
    *
    * @example
    * ```typescript
-   * const plugin = registry.getPlugin('@scribe/plugin-todo');
+   * const plugin = registry.getPlugin('@scribe/plugin-example');
    * if (plugin) {
    *   console.log(`Status: ${plugin.status}`);
    * }
@@ -390,8 +390,8 @@ export class PluginRegistry {
    *
    * @example
    * ```typescript
-   * if (registry.hasCapabilityConflict('trpc-router', 'todos')) {
-   *   console.warn('Router namespace "todos" is already taken');
+   * if (registry.hasCapabilityConflict('trpc-router', 'examples')) {
+   *   console.warn('Router namespace "examples" is already taken');
    * }
    * ```
    */

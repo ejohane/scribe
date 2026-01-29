@@ -14,7 +14,6 @@ import {
   Heading2Icon,
   Heading3Icon,
   ListIcon,
-  CheckboxIcon,
   QuoteIcon,
   SparklesIcon,
 } from '@scribe/design-system';
@@ -85,8 +84,6 @@ function CommandIcon({ commandId }: CommandIconProps) {
       return <Heading3Icon />;
     case 'bullet':
       return <ListIcon />;
-    case 'todo':
-      return <CheckboxIcon />;
     case 'quote':
       return <QuoteIcon />;
     case 'ai-continue':

@@ -8,11 +8,7 @@
 import { Command } from 'commander';
 import { registerNotesListCommand } from './notes-list.js';
 import { registerNotesShowCommand } from './notes-show.js';
-import {
-  registerNotesCreateCommand,
-  registerNotesAppendCommand,
-  registerNotesAddTaskCommand,
-} from './notes-create.js';
+import { registerNotesCreateCommand, registerNotesAppendCommand } from './notes-create.js';
 import { registerNotesUpdateCommand } from './notes-update.js';
 import { registerNotesDeleteCommand } from './notes-delete.js';
 import { registerNotesFindCommand } from './notes-find.js';
@@ -37,7 +33,6 @@ export function registerNotesCommands(program: Command): void {
   registerNotesShowCommand(notes, program);
   registerNotesCreateCommand(notes, program);
   registerNotesAppendCommand(notes, program);
-  registerNotesAddTaskCommand(notes, program);
   registerNotesUpdateCommand(notes, program);
   registerNotesFindCommand(notes, program);
   registerNotesDeleteCommand(notes, program);

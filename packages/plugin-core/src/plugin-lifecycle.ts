@@ -109,21 +109,21 @@ const ERROR_THRESHOLD = 3;
  * const lifecycle = new PluginLifecycleManager(registry);
  *
  * // Activate a plugin
- * await lifecycle.activate('@scribe/plugin-todo');
+ * await lifecycle.activate('@scribe/plugin-example');
  *
  * // Check state
- * const status = lifecycle.getState('@scribe/plugin-todo');
+ * const status = lifecycle.getState('@scribe/plugin-example');
  * console.log(status?.state); // 'activated'
  *
  * // Handle errors during operation
  * try {
  *   await pluginHandler();
  * } catch (error) {
- *   await lifecycle.handlePluginError('@scribe/plugin-todo', error);
+ *   await lifecycle.handlePluginError('@scribe/plugin-example', error);
  * }
  *
  * // Deactivate
- * await lifecycle.deactivate('@scribe/plugin-todo');
+ * await lifecycle.deactivate('@scribe/plugin-example');
  * ```
  */
 export class PluginLifecycleManager {
@@ -150,7 +150,7 @@ export class PluginLifecycleManager {
    *
    * @example
    * ```typescript
-   * await lifecycle.activate('@scribe/plugin-todo');
+   * await lifecycle.activate('@scribe/plugin-example');
    * // Plugin is now active and handling events
    * ```
    */
@@ -218,7 +218,7 @@ export class PluginLifecycleManager {
    *
    * @example
    * ```typescript
-   * await lifecycle.deactivate('@scribe/plugin-todo');
+   * await lifecycle.deactivate('@scribe/plugin-example');
    * // Plugin is now inactive but storage is preserved
    * ```
    */
@@ -275,7 +275,7 @@ export class PluginLifecycleManager {
    *
    * @example
    * ```typescript
-   * const status = lifecycle.getState('@scribe/plugin-todo');
+   * const status = lifecycle.getState('@scribe/plugin-example');
    * if (status?.state === 'activated') {
    *   console.log(`Activated at: ${status.activatedAt}`);
    * }
@@ -375,7 +375,7 @@ export class PluginLifecycleManager {
    * @example
    * ```typescript
    * // After successful event handling
-   * lifecycle.resetErrorCount('@scribe/plugin-todo');
+   * lifecycle.resetErrorCount('@scribe/plugin-example');
    * ```
    */
   resetErrorCount(pluginId: string): void {

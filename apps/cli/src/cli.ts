@@ -3,7 +3,7 @@
  *
  * This module creates and configures the main Scribe CLI application using Commander.js.
  * The CLI provides command-line access to Scribe vault operations including notes, tags,
- * people, tasks, daily notes, search, and graph queries.
+ * people, daily notes, search, and graph queries.
  *
  * @module cli
  */
@@ -17,7 +17,6 @@ import { registerOpenCommand } from './commands/open.js';
 import { registerPeopleCommands } from './commands/people.js';
 import { registerSearchCommand } from './commands/search.js';
 import { registerTagsCommands } from './commands/tags.js';
-import { registerTasksCommands } from './commands/tasks.js';
 import { registerVaultCommands } from './commands/vault.js';
 
 /**
@@ -46,7 +45,6 @@ import { registerVaultCommands } from './commands/vault.js';
  * | `notes` | Note CRUD operations (list, read, create, update, delete) |
  * | `tags` | Tag operations (list, rename, merge) |
  * | `people` | People operations (list, create, mentions) |
- * | `tasks` | Task operations (list, toggle, filter) |
  * | `daily` | Daily note operations (create, navigate) |
  * | `vault` | Vault operations (init, status, info) |
  * | `search` | Full-text search |
@@ -99,7 +97,6 @@ export function createCLI(): Command {
   program.command('notes').description('Note operations');
   program.command('tags').description('Tag operations');
   program.command('people').description('People operations');
-  program.command('tasks').description('Task operations');
   program.command('daily').description('Daily note operations');
   program.command('vault').description('Vault operations');
 
@@ -112,7 +109,6 @@ export function createCLI(): Command {
   registerCompletionCommand(program);
   registerDailyCommands(program);
   registerTagsCommands(program);
-  registerTasksCommands(program);
   registerVaultCommands(program);
 
   return program;

@@ -54,7 +54,7 @@ function createClientPlugin(overrides: Partial<ClientPlugin> = {}): ClientPlugin
 const MockComponent: ComponentType = () => null;
 
 const MockEditorPlugin: FC = () => null;
-MockEditorPlugin.displayName = 'task-plugin';
+MockEditorPlugin.displayName = 'example-plugin';
 
 // Mock slash command handler
 const mockHandler: SlashCommandHandler = {
@@ -73,7 +73,7 @@ const createNodeClass = (type: string) =>
     }
   };
 
-const TaskNode = createNodeClass('task-node');
+const ExampleNode = createNodeClass('example-node');
 const SecondaryNode = createNodeClass('secondary-node');
 
 // ============================================================================
@@ -264,7 +264,7 @@ describe('PluginRegistry', () => {
         const plugin = createServerPlugin({
           manifest: createManifest({
             id: '@scribe/plugin-router',
-            capabilities: [{ type: 'trpc-router', namespace: 'todos' }],
+            capabilities: [{ type: 'trpc-router', namespace: 'examples' }],
           }),
         });
 
@@ -272,7 +272,7 @@ describe('PluginRegistry', () => {
 
         const routers = registry.getCapabilities('trpc-router');
         expect(routers).toHaveLength(1);
-        expect(routers[0].namespace).toBe('todos');
+        expect(routers[0].namespace).toBe('examples');
         expect(routers[0].pluginId).toBe('@scribe/plugin-router');
       });
     });
@@ -282,7 +282,7 @@ describe('PluginRegistry', () => {
         const plugin = createServerPlugin({
           manifest: createManifest({
             id: '@scribe/plugin-storage',
-            capabilities: [{ type: 'storage', keys: ['tasks', 'settings'] }],
+            capabilities: [{ type: 'storage', keys: ['snippets', 'settings'] }],
           }),
         });
 
@@ -290,7 +290,7 @@ describe('PluginRegistry', () => {
 
         const storage = registry.getCapabilities('storage');
         expect(storage).toHaveLength(1);
-        expect(storage[0].keys).toEqual(['tasks', 'settings']);
+        expect(storage[0].keys).toEqual(['snippets', 'settings']);
         expect(storage[0].pluginId).toBe('@scribe/plugin-storage');
       });
 
@@ -336,8 +336,8 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'sidebar-panel',
-                id: 'tasks-panel',
-                label: 'Tasks',
+                id: 'examples-panel',
+                label: 'Examples',
                 icon: 'CheckSquare',
                 priority: 10,
               },
@@ -349,8 +349,8 @@ describe('PluginRegistry', () => {
 
         const panels = registry.getCapabilities('sidebar-panel');
         expect(panels).toHaveLength(1);
-        expect(panels[0].id).toBe('tasks-panel');
-        expect(panels[0].label).toBe('Tasks');
+        expect(panels[0].id).toBe('examples-panel');
+        expect(panels[0].label).toBe('Examples');
         expect(panels[0].icon).toBe('CheckSquare');
         expect(panels[0].priority).toBe(10);
         expect(panels[0].pluginId).toBe('@scribe/plugin-panel');
@@ -410,9 +410,9 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'slash-command',
-                command: 'task',
-                label: 'Add Task',
-                description: 'Add a new task',
+                command: 'snippet',
+                label: 'Insert Snippet',
+                description: 'Add a new snippet',
                 icon: 'Plus',
               },
             ],
@@ -423,9 +423,9 @@ describe('PluginRegistry', () => {
 
         const commands = registry.getCapabilities('slash-command');
         expect(commands).toHaveLength(1);
-        expect(commands[0].command).toBe('task');
-        expect(commands[0].label).toBe('Add Task');
-        expect(commands[0].description).toBe('Add a new task');
+        expect(commands[0].command).toBe('snippet');
+        expect(commands[0].label).toBe('Insert Snippet');
+        expect(commands[0].description).toBe('Add a new snippet');
         expect(commands[0].icon).toBe('Plus');
         expect(commands[0].pluginId).toBe('@scribe/plugin-command');
       });
@@ -437,13 +437,13 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'slash-command',
-                command: 'mytask',
-                label: 'My Task',
+                command: 'mysnippet',
+                label: 'My Snippet',
               },
             ],
           }),
           slashCommands: {
-            mytask: mockHandler,
+            mysnippet: mockHandler,
           },
         });
 
@@ -462,12 +462,12 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'command-palette-command',
-                id: 'todo.createTask',
-                label: 'Create Task',
-                description: 'Create a new task',
+                id: 'example.createSnippet',
+                label: 'Create Snippet',
+                description: 'Create a new snippet',
                 icon: 'CheckSquare',
                 shortcut: '⌘T',
-                category: 'Tasks',
+                category: 'Examples',
                 priority: 10,
               },
             ],
@@ -478,12 +478,12 @@ describe('PluginRegistry', () => {
 
         const paletteCommands = registry.getCapabilities('command-palette-command');
         expect(paletteCommands).toHaveLength(1);
-        expect(paletteCommands[0].id).toBe('todo.createTask');
-        expect(paletteCommands[0].label).toBe('Create Task');
-        expect(paletteCommands[0].description).toBe('Create a new task');
+        expect(paletteCommands[0].id).toBe('example.createSnippet');
+        expect(paletteCommands[0].label).toBe('Create Snippet');
+        expect(paletteCommands[0].description).toBe('Create a new snippet');
         expect(paletteCommands[0].icon).toBe('CheckSquare');
         expect(paletteCommands[0].shortcut).toBe('⌘T');
-        expect(paletteCommands[0].category).toBe('Tasks');
+        expect(paletteCommands[0].category).toBe('Examples');
         expect(paletteCommands[0].priority).toBe(10);
         expect(paletteCommands[0].pluginId).toBe('@scribe/plugin-palette');
       });
@@ -535,13 +535,13 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'command-palette-command',
-                id: 'todo.createTask',
-                label: 'Create Task',
+                id: 'example.createSnippet',
+                label: 'Create Snippet',
               },
             ],
           }),
           commandPaletteCommands: {
-            'todo.createTask': mockPaletteHandler,
+            'example.createSnippet': mockPaletteHandler,
           },
         });
 
@@ -560,13 +560,13 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'editor-extension',
-                nodes: ['task-node'],
-                plugins: ['task-plugin'],
+                nodes: ['example-node'],
+                plugins: ['example-plugin'],
               },
             ],
           }),
           editorExtensions: {
-            nodes: [TaskNode],
+            nodes: [ExampleNode],
             plugins: [MockEditorPlugin],
           },
         });
@@ -575,10 +575,10 @@ describe('PluginRegistry', () => {
 
         const extensions = registry.getCapabilities('editor-extension');
         expect(extensions).toHaveLength(1);
-        expect(extensions[0].nodes).toEqual([{ id: 'task-node', node: TaskNode }]);
+        expect(extensions[0].nodes).toEqual([{ id: 'example-node', node: ExampleNode }]);
         expect(extensions[0].plugins).toEqual([
           {
-            id: 'task-plugin',
+            id: 'example-plugin',
             plugin: MockEditorPlugin,
           },
         ]);
@@ -591,7 +591,7 @@ describe('PluginRegistry', () => {
             capabilities: [{ type: 'editor-extension' }],
           }),
           editorExtensions: {
-            nodes: [TaskNode, SecondaryNode],
+            nodes: [ExampleNode, SecondaryNode],
             plugins: [MockEditorPlugin],
           },
         });
@@ -599,8 +599,13 @@ describe('PluginRegistry', () => {
         registry.register(plugin);
 
         const extensions = registry.getCapabilities('editor-extension');
-        expect(extensions[0].nodes.map((node) => node.id)).toEqual(['task-node', 'secondary-node']);
-        expect(extensions[0].plugins.map((pluginEntry) => pluginEntry.id)).toEqual(['task-plugin']);
+        expect(extensions[0].nodes.map((node) => node.id)).toEqual([
+          'example-node',
+          'secondary-node',
+        ]);
+        expect(extensions[0].plugins.map((pluginEntry) => pluginEntry.id)).toEqual([
+          'example-plugin',
+        ]);
       });
 
       it('warns and skips missing runtime editor extensions', () => {
@@ -641,7 +646,7 @@ describe('PluginRegistry', () => {
             capabilities: [
               {
                 type: 'editor-extension',
-                nodes: ['task-node'],
+                nodes: ['example-node'],
               },
             ],
           }),
@@ -658,7 +663,7 @@ describe('PluginRegistry', () => {
           expect.stringContaining('Invalid editor extension nodes')
         );
         expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Missing editor extension node task-node')
+          expect.stringContaining('Missing editor extension node example-node')
         );
 
         warnSpy.mockRestore();
@@ -786,14 +791,14 @@ describe('PluginRegistry', () => {
       const pluginA = createServerPlugin({
         manifest: createManifest({
           id: '@scribe/plugin-a',
-          capabilities: [{ type: 'slash-command', command: 'task', label: 'Task A' }],
+          capabilities: [{ type: 'slash-command', command: 'snippet', label: 'Snippet A' }],
         }),
       });
 
       const pluginB = createServerPlugin({
         manifest: createManifest({
           id: '@scribe/plugin-b',
-          capabilities: [{ type: 'slash-command', command: 'task', label: 'Task B' }],
+          capabilities: [{ type: 'slash-command', command: 'snippet', label: 'Snippet B' }],
         }),
       });
 
@@ -802,10 +807,10 @@ describe('PluginRegistry', () => {
 
       const commands = registry.getCapabilities('slash-command');
       expect(commands).toHaveLength(1);
-      expect(commands[0].label).toBe('Task A'); // First registration wins
+      expect(commands[0].label).toBe('Snippet A'); // First registration wins
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Capability conflict: slash-command:task')
+        expect.stringContaining('Capability conflict: slash-command:snippet')
       );
 
       warnSpy.mockRestore();
@@ -818,7 +823,11 @@ describe('PluginRegistry', () => {
         manifest: createManifest({
           id: '@scribe/plugin-a',
           capabilities: [
-            { type: 'command-palette-command', id: 'todo.createTask', label: 'Create Task A' },
+            {
+              type: 'command-palette-command',
+              id: 'example.createSnippet',
+              label: 'Create Snippet A',
+            },
           ],
         }),
       });
@@ -827,7 +836,11 @@ describe('PluginRegistry', () => {
         manifest: createManifest({
           id: '@scribe/plugin-b',
           capabilities: [
-            { type: 'command-palette-command', id: 'todo.createTask', label: 'Create Task B' },
+            {
+              type: 'command-palette-command',
+              id: 'example.createSnippet',
+              label: 'Create Snippet B',
+            },
           ],
         }),
       });
@@ -837,10 +850,12 @@ describe('PluginRegistry', () => {
 
       const paletteCommands = registry.getCapabilities('command-palette-command');
       expect(paletteCommands).toHaveLength(1);
-      expect(paletteCommands[0].label).toBe('Create Task A'); // First registration wins
+      expect(paletteCommands[0].label).toBe('Create Snippet A'); // First registration wins
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Capability conflict: command-palette-command:todo.createTask')
+        expect.stringContaining(
+          'Capability conflict: command-palette-command:example.createSnippet'
+        )
       );
 
       warnSpy.mockRestore();
