@@ -365,24 +365,29 @@ describe('CollabClient', () => {
     it('should leave a document and clean up', async () => {
       const noteId = 'test-note';
 
-      // Join first
-      setTimeout(() => {
-        const joinMsg = server.messages.find((m) => (m.data as { type: string }).type === 'join');
-        if (joinMsg) {
-          server.sendToClient(joinMsg.client, {
-            type: 'joined',
-            noteId,
-            stateVector: encodeBytes(new Uint8Array([0])),
-          });
-          server.sendToClient(joinMsg.client, {
-            type: 'sync-state',
-            noteId,
-            state: encodeBytes(Y.encodeStateAsUpdate(new Y.Doc())),
-          });
-        }
-      }, 10);
+      const respondToJoin = new Promise<void>((resolve) => {
+        const checkMessages = setInterval(() => {
+          const joinMsg = server.messages.find((m) => (m.data as { type: string }).type === 'join');
+          if (joinMsg) {
+            clearInterval(checkMessages);
+            server.sendToClient(joinMsg.client, {
+              type: 'joined',
+              noteId,
+              stateVector: encodeBytes(new Uint8Array([0])),
+            });
+            server.sendToClient(joinMsg.client, {
+              type: 'sync-state',
+              noteId,
+              state: encodeBytes(Y.encodeStateAsUpdate(new Y.Doc())),
+            });
+            resolve();
+          }
+        }, 10);
+      });
 
-      await client.joinDocument(noteId);
+      const joinPromise = client.joinDocument(noteId);
+      await respondToJoin;
+      await joinPromise;
       expect(client.getJoinedDocuments()).toContain(noteId);
 
       // Leave
@@ -401,23 +406,29 @@ describe('CollabClient', () => {
     it('should allow destroy() on session', async () => {
       const noteId = 'test-note';
 
-      setTimeout(() => {
-        const joinMsg = server.messages.find((m) => (m.data as { type: string }).type === 'join');
-        if (joinMsg) {
-          server.sendToClient(joinMsg.client, {
-            type: 'joined',
-            noteId,
-            stateVector: encodeBytes(new Uint8Array([0])),
-          });
-          server.sendToClient(joinMsg.client, {
-            type: 'sync-state',
-            noteId,
-            state: encodeBytes(Y.encodeStateAsUpdate(new Y.Doc())),
-          });
-        }
-      }, 10);
+      const respondToJoin = new Promise<void>((resolve) => {
+        const checkMessages = setInterval(() => {
+          const joinMsg = server.messages.find((m) => (m.data as { type: string }).type === 'join');
+          if (joinMsg) {
+            clearInterval(checkMessages);
+            server.sendToClient(joinMsg.client, {
+              type: 'joined',
+              noteId,
+              stateVector: encodeBytes(new Uint8Array([0])),
+            });
+            server.sendToClient(joinMsg.client, {
+              type: 'sync-state',
+              noteId,
+              state: encodeBytes(Y.encodeStateAsUpdate(new Y.Doc())),
+            });
+            resolve();
+          }
+        }, 10);
+      });
 
-      const session = await client.joinDocument(noteId);
+      const sessionPromise = client.joinDocument(noteId);
+      await respondToJoin;
+      const session = await sessionPromise;
 
       // Destroy via session
       session.destroy();
