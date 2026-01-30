@@ -587,7 +587,8 @@ export function SlashMenuPlugin({
     <SlashCommandProvider
       config={{
         editor,
-        showToast: (message, type = 'success') => showToast(message, type),
+        showToast: (message: string, type: 'info' | 'success' | 'error' = 'success') =>
+          showToast(message, type),
         closeMenu: handleClose,
         noteId,
       }}
