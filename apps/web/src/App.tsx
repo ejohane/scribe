@@ -5,7 +5,7 @@
  * Minimal design: full-screen editor with push-out notes sidebar.
  */
 
-import { useEffect, useMemo, useCallback, type FC, type ReactNode } from 'react';
+import { useEffect, useMemo, useCallback, useRef, type FC, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import {
   ScribeProvider,
@@ -40,6 +40,7 @@ import {
 } from './plugins';
 import type { CommandItem } from '@scribe/web-core';
 import { DAEMON_PORT, DAEMON_HOST } from './config';
+import { SlashMenuPlugin } from './components/Editor/SlashMenuPlugin';
 
 const DAEMON_URL = `http://${DAEMON_HOST}:${DAEMON_PORT}`;
 
@@ -52,6 +53,11 @@ function EditorLayout() {
   const { id } = useParams<{ id: string }>();
   const { extensions, isLoading: extensionsLoading } = useEditorExtensions();
   const { enabledPluginIds } = usePluginSettings();
+  const slashMenuNoteIdRef = useRef<string | undefined>(undefined);
+  const SlashMenuExtension = useCallback(
+    () => <SlashMenuPlugin noteId={slashMenuNoteIdRef.current} />,
+    []
+  );
   const enabledPluginsKey = useMemo(
     () => computeTextHash([...enabledPluginIds].sort().join('|')),
     [enabledPluginIds]
@@ -112,6 +118,8 @@ function EditorLayout() {
         return <div className="editor-loading">Loading editor extensions...</div>;
       }
 
+      slashMenuNoteIdRef.current = note?.id;
+
       const dailyNotePrefix = '@scribe/plugin-daily-note:';
       const shouldShowDailyHeader = note?.type === 'daily';
       const filteredExtensions = editorExtensions
@@ -125,11 +133,19 @@ function EditorLayout() {
               : editorExtensions.plugins?.filter((entry) => !entry.id.startsWith(dailyNotePrefix)),
           }
         : undefined;
+      const slashMenuPluginEntry: EditorExtensionPluginEntry = {
+        id: 'core:slash-menu',
+        plugin: SlashMenuExtension,
+      };
+      const combinedExtensions: EditorExtensions = {
+        nodes: filteredExtensions?.nodes,
+        plugins: [...(filteredExtensions?.plugins ?? []), slashMenuPluginEntry],
+        guards: filteredExtensions?.guards,
+      };
       const hasExtensions =
-        !!filteredExtensions &&
-        ((filteredExtensions.nodes?.length ?? 0) > 0 ||
-          (filteredExtensions.plugins?.length ?? 0) > 0 ||
-          (filteredExtensions.guards?.length ?? 0) > 0);
+        (combinedExtensions.nodes?.length ?? 0) > 0 ||
+        (combinedExtensions.plugins?.length ?? 0) > 0 ||
+        (combinedExtensions.guards?.length ?? 0) > 0;
 
       return (
         <ScribeEditor
@@ -141,11 +157,11 @@ function EditorLayout() {
           placeholder=""
           yjsDoc={collabProps?.yjsDoc}
           YjsPlugin={collabProps?.YjsPlugin}
-          editorExtensions={hasExtensions ? filteredExtensions : undefined}
+          editorExtensions={hasExtensions ? combinedExtensions : undefined}
         />
       );
     },
-    [editorExtensions, extensionsLoading, enabledPluginsKey]
+    [editorExtensions, enabledPluginsKey, extensionsLoading]
   );
 
   const handleNoteSelect = (noteId: string) => {
