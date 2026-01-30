@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.46.2](https://github.com/ejohane/scribe/compare/v1.46.1...v1.46.2) (2026-01-30)
+
+### Bug Fixes
+
+* **editor:** add missing slash menu modules ([aec1782](https://github.com/ejohane/scribe/commit/aec1782a6c103575c4bb6ce8fb82e5ae8dd6cdba))
+* **editor:** export slash menu API ([0ef2309](https://github.com/ejohane/scribe/commit/0ef2309fab04a67061d2fc5ff7df14287fe7d960))
+* **editor:** keep slash menu open ([fae95d2](https://github.com/ejohane/scribe/commit/fae95d28f80f0a315285771ff03e0d774b0b06f9))
+
 ## [1.46.1](https://github.com/ejohane/scribe/compare/v1.46.0...v1.46.1) (2026-01-29)
 
 ### Bug Fixes
