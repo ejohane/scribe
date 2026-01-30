@@ -27,6 +27,28 @@ export type { EditorToolbarProps } from './components/EditorToolbar.js';
 export { EditorErrorBoundary, EditorErrorFallback } from './components/EditorErrorBoundary.js';
 export type { EditorErrorBoundaryProps } from './components/EditorErrorBoundary.js';
 
+// Slash menu components
+export {
+  SlashMenu,
+  getFilteredCommandCount,
+  getCommandByIndex,
+  PluginCommandItem,
+  SlashCommandProvider,
+  useSlashCommandContext,
+  SlashMenuPlugin,
+} from './components/SlashMenu/index.js';
+export type {
+  SlashMenuProps,
+  CoreSlashCommand,
+  SlashMenuCommand,
+  PluginCommandItemProps,
+  SlashCommandContext,
+  SlashCommandProviderConfig,
+  SlashCommandProviderProps,
+  SlashMenuPluginProps,
+  SlashMenuCommandDefinition,
+} from './components/SlashMenu/index.js';
+
 // Theme
 export { editorTheme } from './theme.js';
 
