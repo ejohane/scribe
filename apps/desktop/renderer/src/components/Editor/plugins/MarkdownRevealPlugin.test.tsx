@@ -751,6 +751,8 @@ describe('MarkdownRevealPlugin', () => {
 
       const editor = editorRef.current!;
 
+      const selectionSpy = vi.spyOn(document, 'getSelection').mockReturnValue(null);
+
       // Create paragraph with bold text and select a range
       await act(async () => {
         editor.update(() => {
@@ -764,11 +766,12 @@ describe('MarkdownRevealPlugin', () => {
 
           // Create a non-collapsed selection (range)
           const selection = $createRangeSelection();
-          selection.anchor.set(textNode.getKey(), 0, 'text');
-          selection.focus.set(textNode.getKey(), 4, 'text');
+          selection.setTextNodeRange(textNode, 0, textNode, 4);
           $setSelection(selection);
         });
       });
+
+      selectionSpy.mockRestore();
 
       // Plugin should not reveal for range selections
       editor.getEditorState().read(() => {
