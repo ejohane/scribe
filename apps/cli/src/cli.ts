@@ -18,6 +18,7 @@ import { registerPeopleCommands } from './commands/people.js';
 import { registerSearchCommand } from './commands/search.js';
 import { registerTagsCommands } from './commands/tags.js';
 import { registerVaultCommands } from './commands/vault.js';
+import { registerWebCommand } from './commands/web.js';
 
 /**
  * Creates and configures the Scribe CLI application.
@@ -110,6 +111,7 @@ export function createCLI(): Command {
   registerDailyCommands(program);
   registerTagsCommands(program);
   registerVaultCommands(program);
+  registerWebCommand(program);
 
   return program;
 }

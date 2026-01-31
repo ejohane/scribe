@@ -132,6 +132,11 @@ jobs:
           fi
           bun run dist:mac
 
+      - name: Build local daemon + web bundle
+        run: |
+          bun run dist:local:mac
+          ditto -c -k --sequesterRsrc --keepParent dist/local-mac dist/scribe-local-mac.zip
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -140,6 +145,7 @@ jobs:
             apps/desktop/dist/*.dmg
             apps/desktop/dist/*.zip
             apps/desktop/dist/latest-mac.yml
+            dist/scribe-local-mac.zip
 
   publish-release:
     name: Publish Release
@@ -163,6 +169,7 @@ jobs:
           gh release upload "$RELEASE_TAG" \
             artifacts/macos-artifacts/*.dmg \
             artifacts/macos-artifacts/*.zip \
-            artifacts/macos-artifacts/latest-mac.yml
+            artifacts/macos-artifacts/latest-mac.yml \
+            artifacts/macos-artifacts/scribe-local-mac.zip
 
           gh release edit "$RELEASE_TAG" --draft=false

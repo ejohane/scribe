@@ -337,6 +337,31 @@ export function SlashMenuPlugin({
           }
         }
 
+        if (
+          currentTriggerState?.isActive &&
+          anchorNode.getKey() !== currentTriggerState.anchorKey
+        ) {
+          const slashIndex = text.lastIndexOf('/', offset - 1);
+          const charBeforeSlash = slashIndex > 0 ? text[slashIndex - 1] : null;
+          const isValidTrigger =
+            slashIndex >= 0 &&
+            (charBeforeSlash === null || charBeforeSlash === ' ' || charBeforeSlash === '\n');
+
+          if (isValidTrigger) {
+            const newQuery = text.slice(slashIndex + 1, offset);
+            setTriggerState({
+              isActive: true,
+              startOffset: slashIndex,
+              anchorKey: anchorNode.getKey(),
+              query: newQuery,
+            });
+            setQuery(newQuery);
+          } else {
+            handleClose();
+          }
+          return;
+        }
+
         if (currentTriggerState?.isActive) {
           const triggerNode = $getNodeByKey(currentTriggerState.anchorKey);
           const triggerText = triggerNode instanceof TextNode ? triggerNode.getTextContent() : '';

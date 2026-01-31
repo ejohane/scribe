@@ -14,6 +14,9 @@
   "scripts": {
     "build": "tsup src/cli.ts --format esm",
     "dev": "tsup src/cli.ts --format esm --watch",
+    "build:binary": "bun build ./src/cli.ts --compile --outfile dist/scribed",
+    "build:binary:darwin-arm64": "bun build ./src/cli.ts --compile --target=bun-darwin-arm64 --outfile dist/scribed-darwin-arm64",
+    "build:binary:darwin-x64": "bun build ./src/cli.ts --compile --target=bun-darwin-x64 --outfile dist/scribed-darwin-x64",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",

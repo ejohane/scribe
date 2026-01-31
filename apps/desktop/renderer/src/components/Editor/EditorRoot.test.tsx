@@ -7,6 +7,10 @@ import * as styles from './EditorRoot.css';
 import { WikiLinkProvider } from './plugins/WikiLinkContext';
 import { PersonMentionProvider } from './plugins/PersonMentionContext';
 
+vi.mock('../../plugins/index.js', () => ({
+  useSlashCommands: () => ({ commands: [], isLoading: false }),
+}));
+
 // Mock note state hook return value
 const createMockNoteState = (note: Note | null = null) => ({
   currentNote: note,

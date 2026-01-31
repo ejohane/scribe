@@ -21,6 +21,24 @@ bun install
 bun run build
 ```
 
+## Install from GitHub Releases (macOS)
+
+### Desktop app (DMG)
+
+1) Download the latest `.dmg` from GitHub Releases.
+2) Drag Scribe to Applications.
+
+### Local daemon + web app
+
+1) Download `scribe-local-mac.zip` from GitHub Releases.
+2) Unzip it and run:
+
+```bash
+./local-mac/bin/scribe web
+```
+
+This starts the local daemon and serves the web app at `http://127.0.0.1:5173`.
+
 ## Running the Web App
 
 The web app requires a running daemon.

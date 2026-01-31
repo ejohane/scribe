@@ -19,3 +19,6 @@ export type {
   SlashCommandProviderConfig,
   SlashCommandProviderProps,
 } from './SlashCommandContext';
+
+export { SlashMenuPlugin } from './SlashMenuPlugin';
+export type { SlashMenuPluginProps } from './SlashMenuPlugin';

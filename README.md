@@ -65,6 +65,13 @@ bun run --cwd apps/desktop dev
 
 For detailed setup instructions, see [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
 
+## Distribution (macOS)
+
+Scribe ships two macOS install options via GitHub Releases:
+
+- **Desktop app**: download the `.dmg` and install like any mac app.
+- **Local web app**: download `scribe-local-mac.zip`, unzip, then run `./local-mac/bin/scribe web`.
+
 ## Packages
 
 ### Applications

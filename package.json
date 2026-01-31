@@ -25,6 +25,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
+    "dist:local:mac": "bun run scripts/dist-local-mac.ts",
     "prepare": "husky",
     "release": "bun run scripts/release.ts"
   },
