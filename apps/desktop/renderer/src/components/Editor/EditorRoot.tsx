@@ -252,7 +252,7 @@ export function EditorRoot({ noteState }: EditorRootProps) {
           {/* Floating toolbar for text selection formatting */}
           <SelectionToolbarPlugin />
           {/* Slash command menu */}
-          <SlashMenuPlugin />
+          <SlashMenuPlugin noteId={currentNoteId ?? undefined} />
           {/* Image paste/drop support */}
           <ImagePlugin />
         </div>

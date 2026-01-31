@@ -20,6 +20,9 @@ const path = require('path');
 
 const RELEASE_NOTES_PATH = 'RELEASE_NOTES.md';
 const GEMINI_MODEL = 'gemini-1.5-flash';
+const INSTALL_NOTES = `## Install
+- Desktop app: download the macOS DMG.
+- Local web app: download scribe-local-mac.zip and run ./local-mac/bin/scribe web.`;
 
 /**
  * Verify plugin configuration
@@ -59,6 +62,8 @@ async function prepare(pluginConfig, context) {
     logger.log('No GEMINI_API_KEY, using formatted raw notes');
     enhanced = formatRawNotes(notes, version);
   }
+
+  enhanced = appendInstallNotes(enhanced);
 
   // Update RELEASE_NOTES.md (will be committed by @semantic-release/git)
   logger.log('Updating RELEASE_NOTES.md...');
@@ -146,6 +151,13 @@ EXAMPLES OF BAD TL;DR (never do this):
 
 function formatRawNotes(rawChangelog, version) {
   return `# What's New in v${version}\n\n${rawChangelog}`;
+}
+
+function appendInstallNotes(notes) {
+  if (notes.includes('## Install')) {
+    return notes;
+  }
+  return `${notes.trim()}\n\n${INSTALL_NOTES}\n`;
 }
 
 async function prependToReleaseNotes(enhanced) {

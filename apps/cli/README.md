@@ -141,6 +141,23 @@ scribe vault info
 scribe vault init /path/to/vault
 ```
 
+#### Web
+
+```bash
+# Start local daemon and serve the web app
+scribe web
+
+# Override web root or ports
+scribe web --web-root /path/to/apps/web/dist --web-port 5173 --port 47832
+```
+
+The command looks for built assets in these locations (first match wins):
+- `--web-root <path>`
+- `SCRIBE_WEB_ROOT` env var
+- `../web` relative to the CLI binary
+- `../share/scribe/web` relative to the CLI binary
+- `apps/web/dist` relative to the current working directory
+
 #### Completion
 
 ```bash

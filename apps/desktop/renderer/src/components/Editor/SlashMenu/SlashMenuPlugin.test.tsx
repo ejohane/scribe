@@ -35,6 +35,10 @@ import { SlashMenuPlugin } from './SlashMenuPlugin';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
+vi.mock('../../../plugins/index.js', () => ({
+  useSlashCommands: () => ({ commands: [], isLoading: false }),
+}));
+
 // Mock scrollIntoView since it's not implemented in happy-dom
 Element.prototype.scrollIntoView = vi.fn();
 

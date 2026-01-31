@@ -6,6 +6,7 @@
  */
 
 import type { LexicalEditor } from 'lexical';
+import type { ReactNode } from 'react';
 import { $getSelection, $isRangeSelection, $createParagraphNode } from 'lexical';
 import { $setBlocksType } from '@lexical/selection';
 import { $createQuoteNode } from '@lexical/rich-text';
@@ -13,6 +14,14 @@ import { $createCollapsibleHeadingNode } from '../plugins/CollapsibleHeadingNode
 import { INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
 import { INSERT_TABLE_COMMAND } from '@lexical/table';
 import { INSERT_IMAGE_COMMAND } from '../plugins/ImagePlugin';
+import {
+  TextIcon,
+  Heading1Icon,
+  Heading2Icon,
+  Heading3Icon,
+  ListIcon,
+  QuoteIcon,
+} from '@scribe/design-system';
 
 export interface SlashCommand {
   id: string;
@@ -20,6 +29,7 @@ export interface SlashCommand {
   description: string;
   keywords: string[];
   section: 'formatting' | 'ai';
+  icon?: ReactNode;
   execute: (editor: LexicalEditor) => void;
 }
 
@@ -34,6 +44,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Just start writing with plain text',
     keywords: ['text', 'paragraph', 'plain', 'p'],
     section: 'formatting',
+    icon: <TextIcon />,
     execute: (editor) => {
       editor.update(() => {
         const selection = $getSelection();
@@ -49,6 +60,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Big section heading',
     keywords: ['heading', 'h1', 'title', '#', 'large'],
     section: 'formatting',
+    icon: <Heading1Icon />,
     execute: (editor) => {
       editor.update(() => {
         const selection = $getSelection();
@@ -64,6 +76,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Medium section heading',
     keywords: ['heading', 'h2', 'subtitle', '##', 'medium'],
     section: 'formatting',
+    icon: <Heading2Icon />,
     execute: (editor) => {
       editor.update(() => {
         const selection = $getSelection();
@@ -79,6 +92,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Small section heading',
     keywords: ['heading', 'h3', '###', 'small'],
     section: 'formatting',
+    icon: <Heading3Icon />,
     execute: (editor) => {
       editor.update(() => {
         const selection = $getSelection();
@@ -94,6 +108,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Create a bulleted list',
     keywords: ['bullet', 'list', 'unordered', '-', 'ul'],
     section: 'formatting',
+    icon: <ListIcon />,
     execute: (editor) => {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     },
@@ -104,6 +119,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Capture a quote',
     keywords: ['quote', 'blockquote', '>', 'citation'],
     section: 'formatting',
+    icon: <QuoteIcon />,
     execute: (editor) => {
       editor.update(() => {
         const selection = $getSelection();
@@ -119,6 +135,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Insert a table',
     keywords: ['table', 'grid', 'rows', 'columns'],
     section: 'formatting',
+    icon: <TextIcon />,
     execute: (editor) => {
       // Insert a 2x2 table with header row
       editor.dispatchCommand(INSERT_TABLE_COMMAND, {
@@ -134,6 +151,7 @@ export const slashCommands: SlashCommand[] = [
     description: 'Insert an image from file',
     keywords: ['image', 'picture', 'photo', 'screenshot', 'img'],
     section: 'formatting',
+    icon: <TextIcon />,
     execute: (editor) => {
       editor.dispatchCommand(INSERT_IMAGE_COMMAND, undefined);
     },
