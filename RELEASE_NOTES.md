@@ -23,6 +23,26 @@ This document contains user-friendly release notes for each version of Scribe.
 
 
 
+
+---
+
+# What's New in v1.47.0
+
+## [1.47.0](https://github.com/ejohane/scribe/compare/v1.46.2...v1.47.0) (2026-01-31)
+
+### Features
+
+* ship local web bundle and shared slash menu ([f960199](https://github.com/ejohane/scribe/commit/f960199166e241371e78a22429891b13b06df5e9))
+
+### Bug Fixes
+
+* **editor:** close slash menu on selection change ([2a32083](https://github.com/ejohane/scribe/commit/2a32083d27a5dac70f3e335a3f25a8f8d44be4d2))
+* **editor:** stabilize markdown reveal selection test ([b5b2a1f](https://github.com/ejohane/scribe/commit/b5b2a1fc8ff403e47617a3648e6cfc46891eac35))
+
+## Install
+- Desktop app: download the macOS DMG.
+- Local web app: download scribe-local-mac.zip and run ./local-mac/bin/scribe web.
+
 ---
 
 # What's New in v1.46.2
