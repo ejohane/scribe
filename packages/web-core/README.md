@@ -33,7 +33,7 @@ function App() {
   return (
     <BrowserRouter>
       <PlatformProvider platform="web" capabilities={{}}>
-        <ScribeProvider daemonUrl="http://localhost:3001">
+        <ScribeProvider daemonUrl="http://localhost:47900">
           <Routes>
             <Route path="/" element={<NoteListPage />} />
             <Route path="/note/:id" element={<NoteEditorPage renderEditor={renderEditor} />} />
@@ -95,7 +95,7 @@ function App() {
 Sets up tRPC client and React Query for data fetching.
 
 ```tsx
-<ScribeProvider daemonUrl="http://localhost:3001">
+<ScribeProvider daemonUrl="http://localhost:47900">
   {children}
 </ScribeProvider>
 ```

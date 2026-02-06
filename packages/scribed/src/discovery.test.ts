@@ -142,7 +142,7 @@ describe.sequential('discoverDaemon', () => {
 describe('URL helpers', () => {
   const testInfo: DaemonInfo = {
     pid: 12345,
-    port: 47832,
+    port: 47900,
     vaultPath: '/test/vault',
     startedAt: '2024-01-15T10:30:00Z',
     version: '1.0.0',
@@ -151,21 +151,21 @@ describe('URL helpers', () => {
   describe('getTrpcUrl', () => {
     it('should return correct tRPC URL', () => {
       const url = getTrpcUrl(testInfo);
-      expect(url).toBe('http://127.0.0.1:47832/trpc');
+      expect(url).toBe('http://127.0.0.1:47900/trpc');
     });
   });
 
   describe('getWebSocketUrl', () => {
     it('should return correct WebSocket URL', () => {
       const url = getWebSocketUrl(testInfo);
-      expect(url).toBe('ws://127.0.0.1:47832/ws');
+      expect(url).toBe('ws://127.0.0.1:47900/ws');
     });
   });
 
   describe('getHealthUrl', () => {
     it('should return correct health URL', () => {
       const url = getHealthUrl(testInfo);
-      expect(url).toBe('http://127.0.0.1:47832/health');
+      expect(url).toBe('http://127.0.0.1:47900/health');
     });
   });
 });

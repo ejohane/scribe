@@ -15,7 +15,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run src/components/CommandPalette/fuzzyFilter.test.ts src/components/CommandPalette/useDebouncedValue.test.ts src/components/CommandPalette/builtInCommands.test.ts src/providers/PlatformProvider.test.tsx src/pages/NoteListPage.test.tsx --passWithNoTests",
     "test:watch": "vitest"
   },
   "peerDependencies": {

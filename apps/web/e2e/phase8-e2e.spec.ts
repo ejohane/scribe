@@ -5,7 +5,7 @@
  * They require a running daemon with test vault at /tmp/test-vault.
  *
  * Setup:
- *   npx tsx packages/scribed/src/cli.ts start --vault /tmp/test-vault --port 47832
+ *   npx tsx packages/scribed/src/cli.ts start --vault /tmp/test-vault --port 47900
  *
  * Run:
  *   cd apps/web && bun run test:e2e

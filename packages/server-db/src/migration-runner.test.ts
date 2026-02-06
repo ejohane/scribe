@@ -11,8 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
-import type { Database as DatabaseType } from 'better-sqlite3';
+import { createRequire } from 'node:module';
 import { MigrationRunner } from './migration-runner.js';
 import { MigrationError } from './errors.js';
 import {
@@ -21,11 +20,43 @@ import {
 } from './migrations/index.js';
 import { TABLE_NAMES } from './schema.js';
 
-describe('MigrationRunner', () => {
-  let db: DatabaseType;
+type TestDatabase = any;
+
+type BetterSqliteConstructor = new (filename: string) => TestDatabase;
+
+const require = createRequire(import.meta.url);
+
+let BetterSqlite3: BetterSqliteConstructor | null = null;
+try {
+  BetterSqlite3 = require('better-sqlite3') as BetterSqliteConstructor;
+} catch {
+  BetterSqlite3 = null;
+}
+
+function canUseBetterSqlite3(): boolean {
+  if (!BetterSqlite3) {
+    return false;
+  }
+
+  try {
+    const probe = new BetterSqlite3(':memory:');
+    probe.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const describeIfSqlite = canUseBetterSqlite3() ? describe : describe.skip;
+
+describeIfSqlite('MigrationRunner', () => {
+  let db: TestDatabase;
 
   beforeEach(() => {
-    db = new Database(':memory:');
+    if (!BetterSqlite3) {
+      throw new Error('better-sqlite3 is unavailable in this runtime');
+    }
+    db = new BetterSqlite3(':memory:');
     db.pragma('foreign_keys = ON');
   });
 

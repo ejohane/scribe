@@ -8,7 +8,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 // Mock the config
 vi.mock('./config', () => ({
-  DAEMON_PORT: 47832,
+  DAEMON_PORT: 47900,
   DAEMON_HOST: '127.0.0.1',
 }));
 
@@ -97,7 +97,7 @@ function renderApp(initialRoute = '/') {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <PlatformProvider platform="web" capabilities={{}}>
-        <ScribeProvider daemonUrl="http://127.0.0.1:47832">
+        <ScribeProvider daemonUrl="http://127.0.0.1:47900">
           <Routes>
             <Route path="/" element={<NoteListPage />} />
             <Route path="/note/:id" element={<NoteEditorPage />} />

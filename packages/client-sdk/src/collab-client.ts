@@ -88,7 +88,7 @@ type WebSocketLike = WebSocket | NodeWebSocket;
  *
  * @example
  * ```typescript
- * const collab = new CollabClient({ port: 47832 });
+ * const collab = new CollabClient({ port: 47900 });
  * await collab.connect();
  *
  * // Join a document for editing
@@ -151,7 +151,7 @@ export class CollabClient {
    *
    * @example
    * ```typescript
-   * const collab = new CollabClient({ port: 47832 });
+   * const collab = new CollabClient({ port: 47900 });
    * await collab.connect();
    * console.log('Connected!');
    * ```

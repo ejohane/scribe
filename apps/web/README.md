@@ -56,7 +56,7 @@ bun run daemon
 bun run dev
 ```
 
-The web app will be available at `http://localhost:5173`.
+The web app will be available at `http://localhost:5175`.
 
 ## Configuration
 
@@ -64,7 +64,7 @@ The web app will be available at `http://localhost:5173`.
 
 The app connects to the daemon using environment variables:
 - `VITE_DAEMON_HOST` - Daemon host (default: `localhost`)
-- `VITE_DAEMON_PORT` - Daemon port (default: `3001`)
+- `VITE_DAEMON_PORT` - Daemon port (default: `47900`)
 
 ### Environment Files
 

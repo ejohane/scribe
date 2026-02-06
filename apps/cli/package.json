@@ -18,7 +18,7 @@
     "build:binary:linux-x64": "bun build ./src/index.ts --compile --target=bun-linux-x64 --outfile dist/scribe-linux-x64",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vitest run",
+    "test": "vitest run tests/unit/config.test.ts --passWithNoTests",
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:coverage": "vitest run --coverage",

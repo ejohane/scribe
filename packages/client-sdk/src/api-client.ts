@@ -30,7 +30,7 @@ export interface ApiClientOptions {
  *
  * @example
  * ```typescript
- * const client: ApiClient = createApiClient({ port: 47832 });
+ * const client: ApiClient = createApiClient({ port: 47900 });
  *
  * // All methods are typed
  * const notes = await client.notes.list.query();
@@ -54,7 +54,7 @@ export type ApiClient = ReturnType<typeof createTRPCProxyClient<AppRouter>>;
  * @example
  * ```typescript
  * // Create client
- * const api = createApiClient({ port: 47832 });
+ * const api = createApiClient({ port: 47900 });
  *
  * // Notes operations
  * const notes = await api.notes.list.query({ limit: 10 });

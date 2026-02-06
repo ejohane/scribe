@@ -37,7 +37,7 @@ bun run build
 ./local-mac/bin/scribe web
 ```
 
-This starts the local daemon and serves the web app at `http://127.0.0.1:5173`.
+This starts the local daemon and serves the web app at `http://127.0.0.1:5175`.
 
 ## Running the Web App
 
@@ -60,7 +60,7 @@ bun run dev
 bun run dev:server
 ```
 
-The web app will be available at `http://localhost:5173`.
+The web app will be available at `http://localhost:5175`.
 
 ## Running the Electron App
 
@@ -80,7 +80,7 @@ This starts:
 
 ### Web App
 The web app connects to a standalone daemon via HTTP/WebSocket:
-1. Daemon runs on a configured port (default: 3001)
+1. Daemon runs on a configured port (default: 47900)
 2. Web app reads the port from config
 3. Connects via tRPC over HTTP and WebSocket for real-time sync
 

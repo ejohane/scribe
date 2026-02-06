@@ -18,7 +18,7 @@
  * function App() {
  *   return (
  *     <PlatformProvider platform="web" capabilities={{}}>
- *       <ScribeProvider daemonUrl="http://localhost:3001">
+ *       <ScribeProvider daemonUrl="http://localhost:47900">
  *         <NoteListPage />
  *       </ScribeProvider>
  *     </PlatformProvider>

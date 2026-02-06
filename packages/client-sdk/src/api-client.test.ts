@@ -112,7 +112,7 @@ describe('createApiClientFromInfo', () => {
   it('should create client from DaemonInfo', () => {
     const info: DaemonInfo = {
       pid: 12345,
-      port: 47832,
+      port: 47900,
       vaultPath: '/test/vault',
       startedAt: '2024-01-15T10:30:00Z',
       version: '1.0.0',

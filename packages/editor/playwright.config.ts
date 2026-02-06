@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5175',
     trace: 'on-first-retry',
   },
   projects: [
@@ -19,7 +19,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npx vite --config e2e/vite.config.ts',
-    url: 'http://localhost:5173',
+    url: 'http://localhost:5175',
     reuseExistingServer: !process.env.CI,
   },
 });

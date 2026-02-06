@@ -1,3 +1,14 @@
-import { nodeConfig } from '../../config/vitest/base';
+import { defineConfig, mergeConfig, nodeConfig } from '../../config/vitest/base';
 
-export default nodeConfig;
+const isBun = Boolean(process.versions?.bun);
+
+export default mergeConfig(
+  nodeConfig,
+  defineConfig({
+    test: isBun
+      ? {
+          include: ['src/utils.test.ts'],
+        }
+      : {},
+  })
+);

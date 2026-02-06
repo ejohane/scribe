@@ -8,7 +8,9 @@
  * @module
  */
 
-import { z } from 'zod';
+import * as zod from 'zod';
+
+const z = ('z' in zod ? zod.z : zod) as typeof zod;
 
 // ============================================================================
 // Capability Schemas
@@ -173,12 +175,12 @@ export const pluginManifestSchema = z.object({
  * Inferred type from the plugin manifest Zod schema.
  * This should match the PluginManifest interface from plugin-types.ts.
  */
-export type PluginManifestFromSchema = z.infer<typeof pluginManifestSchema>;
+export type PluginManifestFromSchema = zod.infer<typeof pluginManifestSchema>;
 
 /**
  * Inferred type from the plugin capability Zod schema.
  */
-export type PluginCapabilityFromSchema = z.infer<typeof pluginCapabilitySchema>;
+export type PluginCapabilityFromSchema = zod.infer<typeof pluginCapabilitySchema>;
 
 // ============================================================================
 // Error Class
@@ -190,9 +192,9 @@ export type PluginCapabilityFromSchema = z.infer<typeof pluginCapabilitySchema>;
  */
 export class PluginManifestError extends Error {
   /** The raw Zod errors for programmatic access */
-  public readonly errors: z.ZodError['errors'];
+  public readonly errors: zod.ZodError['errors'];
 
-  constructor(message: string, zodError?: z.ZodError) {
+  constructor(message: string, zodError?: zod.ZodError) {
     super(message);
     this.name = 'PluginManifestError';
     this.errors = zodError?.errors ?? [];
@@ -264,7 +266,7 @@ export function validateManifest(manifest: unknown): PluginManifestFromSchema {
  */
 export function safeValidateManifest(
   manifest: unknown
-): z.SafeParseReturnType<unknown, PluginManifestFromSchema> {
+): zod.SafeParseReturnType<unknown, PluginManifestFromSchema> {
   return pluginManifestSchema.safeParse(manifest);
 }
 
