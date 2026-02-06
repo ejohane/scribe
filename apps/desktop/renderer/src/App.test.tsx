@@ -154,7 +154,7 @@ const mockElectron = {
     reportCurrentNote: vi.fn().mockResolvedValue({ success: true }),
   },
   scribe: {
-    getDaemonPort: vi.fn().mockResolvedValue(47832),
+    getDaemonPort: vi.fn().mockResolvedValue(47900),
   },
 } as unknown as ScribeAPI;
 
@@ -172,7 +172,7 @@ describe('App', () => {
       title: 'Untitled',
       type: 'note',
     });
-    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47832);
+    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47900);
     // Mock window.scribe for Electron API
     Object.defineProperty(window, 'scribe', {
       value: mockElectron,
@@ -230,7 +230,7 @@ describe('App routing', () => {
       title: 'Untitled',
       type: 'note',
     });
-    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47832);
+    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47900);
     Object.defineProperty(window, 'scribe', {
       value: mockElectron,
       writable: true,
@@ -291,7 +291,7 @@ describe('App provider hierarchy', () => {
       title: 'Untitled',
       type: 'note',
     });
-    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47832);
+    mockElectron.scribe.getDaemonPort = vi.fn().mockResolvedValue(47900);
     Object.defineProperty(window, 'scribe', {
       value: mockElectron,
       writable: true,

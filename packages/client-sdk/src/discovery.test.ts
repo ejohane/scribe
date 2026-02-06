@@ -314,9 +314,9 @@ describe.sequential('waitForDaemon', () => {
 
 describe('createManualDaemonInfo', () => {
   it('should create daemon info from port only', () => {
-    const info = createManualDaemonInfo({ port: 47832 });
+    const info = createManualDaemonInfo({ port: 47900 });
 
-    expect(info.port).toBe(47832);
+    expect(info.port).toBe(47900);
     expect(info.pid).toBe(0);
     expect(info.vaultPath).toBe('');
     expect(info.startedAt).toBe('');
@@ -334,7 +334,7 @@ describe('createManualDaemonInfo', () => {
 describe('URL helpers', () => {
   const testInfo: DaemonInfo = {
     pid: 12345,
-    port: 47832,
+    port: 47900,
     vaultPath: '/test/vault',
     startedAt: '2024-01-15T10:30:00Z',
     version: '1.0.0',
@@ -343,7 +343,7 @@ describe('URL helpers', () => {
   describe('getTrpcUrl', () => {
     it('should return correct tRPC URL from DaemonInfo', () => {
       const url = getTrpcUrl(testInfo);
-      expect(url).toBe('http://127.0.0.1:47832/trpc');
+      expect(url).toBe('http://127.0.0.1:47900/trpc');
     });
 
     it('should return correct tRPC URL from port object', () => {
@@ -355,7 +355,7 @@ describe('URL helpers', () => {
   describe('getWebSocketUrl', () => {
     it('should return correct WebSocket URL', () => {
       const url = getWebSocketUrl(testInfo);
-      expect(url).toBe('ws://127.0.0.1:47832/ws');
+      expect(url).toBe('ws://127.0.0.1:47900/ws');
     });
 
     it('should return correct WebSocket URL from port object', () => {
@@ -367,7 +367,7 @@ describe('URL helpers', () => {
   describe('getHealthUrl', () => {
     it('should return correct health URL', () => {
       const url = getHealthUrl(testInfo);
-      expect(url).toBe('http://127.0.0.1:47832/health');
+      expect(url).toBe('http://127.0.0.1:47900/health');
     });
 
     it('should return correct health URL from port object', () => {

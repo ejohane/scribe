@@ -22,7 +22,7 @@ scribed start
 scribed start --vault /path/to/vault
 
 # Start on specific port
-scribed start --vault /path/to/vault --port 3000
+scribed start --vault /path/to/vault --port 47900
 
 # Check daemon status
 scribed status
@@ -167,7 +167,7 @@ The daemon exposes a WebSocket endpoint at `/ws` for Yjs collaboration:
 ## Health Check
 
 ```bash
-curl http://localhost:3001/health
+curl http://localhost:47900/health
 # { "status": "ok", "version": "0.1.0" }
 ```
 
@@ -180,7 +180,7 @@ The daemon writes connection info to `~/.scribe/daemon.json`:
 ```json
 {
   "pid": 12345,
-  "port": 47832,
+  "port": 47900,
   "vaultPath": "/Users/me/Documents/vault",
   "startedAt": "2024-01-15T10:30:00Z",
   "version": "0.1.0"

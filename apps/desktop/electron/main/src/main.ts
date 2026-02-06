@@ -110,7 +110,7 @@ app.whenReady().then(async () => {
     isDev,
     preloadPath: path.join(__dirname, '../../preload/dist/preload.js'),
     rendererPath: path.join(__dirname, '../../../renderer/dist/index.html'),
-    devServerUrl: 'http://localhost:5173',
+    devServerUrl: 'http://localhost:5175',
   });
   setWindowManager(deps.windowManager);
 

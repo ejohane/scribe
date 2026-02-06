@@ -32,7 +32,7 @@ export default defineConfig({
     minify: 'esbuild',
   },
   server: {
-    port: 5173,
+    port: 5175,
     strictPort: true,
   },
   // Electron renderer environment

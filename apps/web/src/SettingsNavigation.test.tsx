@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { App } from './App';
 
 vi.mock('./config', () => ({
-  DAEMON_PORT: 47832,
+  DAEMON_PORT: 47900,
   DAEMON_HOST: '127.0.0.1',
 }));
 

@@ -12,13 +12,52 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { createRequire } from 'node:module';
 import {
   SQLitePluginStorage,
   PluginStorageFactory,
   PLUGIN_STORAGE_SCHEMA,
 } from './plugin-storage.js';
 import type { PluginStorageDatabase } from './plugin-storage.js';
+
+type BetterSqliteDatabase = {
+  exec(sql: string): void;
+  close(): void;
+  prepare<T = unknown>(
+    sql: string
+  ): {
+    get(...params: unknown[]): T | undefined;
+    all(...params: unknown[]): T[];
+    run(...params: unknown[]): { changes: number; lastInsertRowid: number | bigint };
+  };
+};
+
+type BetterSqliteConstructor = new (filename: string) => BetterSqliteDatabase;
+
+const require = createRequire(import.meta.url);
+
+let BetterSqlite3: BetterSqliteConstructor | null = null;
+try {
+  BetterSqlite3 = require('better-sqlite3') as BetterSqliteConstructor;
+} catch {
+  BetterSqlite3 = null;
+}
+
+function canUseBetterSqlite3(): boolean {
+  if (!BetterSqlite3) {
+    return false;
+  }
+
+  try {
+    const probe = new BetterSqlite3(':memory:');
+    probe.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const describeIfSqlite = canUseBetterSqlite3() ? describe : describe.skip;
 
 // ============================================================================
 // Test Setup
@@ -27,8 +66,12 @@ import type { PluginStorageDatabase } from './plugin-storage.js';
 /**
  * Create an in-memory SQLite database with the plugin_storage table.
  */
-function createTestDatabase(): Database.Database {
-  const db = new Database(':memory:');
+function createTestDatabase(): BetterSqliteDatabase {
+  if (!BetterSqlite3) {
+    throw new Error('better-sqlite3 is unavailable in this runtime');
+  }
+
+  const db = new BetterSqlite3(':memory:');
   db.exec(PLUGIN_STORAGE_SCHEMA);
   return db;
 }
@@ -37,8 +80,8 @@ function createTestDatabase(): Database.Database {
 // SQLitePluginStorage Tests
 // ============================================================================
 
-describe('SQLitePluginStorage', () => {
-  let db: Database.Database;
+describeIfSqlite('SQLitePluginStorage', () => {
+  let db: BetterSqliteDatabase;
   let storage: SQLitePluginStorage;
 
   beforeEach(() => {
@@ -366,8 +409,8 @@ describe('SQLitePluginStorage', () => {
 // PluginStorageFactory Tests
 // ============================================================================
 
-describe('PluginStorageFactory', () => {
-  let db: Database.Database;
+describeIfSqlite('PluginStorageFactory', () => {
+  let db: BetterSqliteDatabase;
   let factory: PluginStorageFactory;
 
   beforeEach(() => {
@@ -455,11 +498,14 @@ describe('PluginStorageFactory', () => {
 // Schema Tests
 // ============================================================================
 
-describe('PLUGIN_STORAGE_SCHEMA', () => {
-  let db: Database.Database;
+describeIfSqlite('PLUGIN_STORAGE_SCHEMA', () => {
+  let db: BetterSqliteDatabase;
 
   beforeEach(() => {
-    db = new Database(':memory:');
+    if (!BetterSqlite3) {
+      throw new Error('better-sqlite3 is unavailable in this runtime');
+    }
+    db = new BetterSqlite3(':memory:');
   });
 
   afterEach(() => {

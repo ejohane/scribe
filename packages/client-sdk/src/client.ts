@@ -103,7 +103,7 @@ type EventListener<T extends unknown[]> = (...args: T) => void;
  * const client = new ScribeClient({
  *   autoDiscover: false,
  *   host: '127.0.0.1',
- *   port: 47832,
+ *   port: 47900,
  *   autoConnect: false,
  * });
  *
@@ -114,7 +114,7 @@ type EventListener<T extends unknown[]> = (...args: T) => void;
  * @example
  * ```typescript
  * // Real-time collaboration
- * const client = new ScribeClient({ port: 47832, autoConnect: false });
+ * const client = new ScribeClient({ port: 47900, autoConnect: false });
  * await client.connect();
  *
  * const session = await client.collab.joinDocument('my-note');

@@ -347,7 +347,7 @@ claude mcp add chrome-devtools -- npx chrome-devtools-mcp@latest --browserUrl ws
 
 ### Example Prompts
 
-- "Navigate to localhost:5173 and check for console errors"
+- "Navigate to localhost:5175 and check for console errors"
 - "Take a screenshot of the login page"
 - "Run a performance trace and identify bottlenecks"
 - "Check what network requests are failing"

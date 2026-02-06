@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), vanillaExtractPlugin()],
   server: {
     host: process.env.TAILWIND_IP ? '0.0.0.0' : 'localhost',
-    port: 5173,
+    port: 5175,
   },
   resolve: {
     alias: {

@@ -256,15 +256,15 @@ describe('AC2: Manual Configuration (Browser Support)', () => {
   it('should generate correct URLs from daemon info', () => {
     const info: DaemonInfo = {
       pid: 1234,
-      port: 47832,
+      port: 47900,
       vaultPath: '/test/vault',
       startedAt: new Date().toISOString(),
       version: '1.0.0',
     };
 
-    expect(getTrpcUrl(info)).toBe('http://127.0.0.1:47832/trpc');
-    expect(getWebSocketUrl(info)).toBe('ws://127.0.0.1:47832/ws');
-    expect(getHealthUrl(info)).toBe('http://127.0.0.1:47832/health');
+    expect(getTrpcUrl(info)).toBe('http://127.0.0.1:47900/trpc');
+    expect(getWebSocketUrl(info)).toBe('ws://127.0.0.1:47900/ws');
+    expect(getHealthUrl(info)).toBe('http://127.0.0.1:47900/health');
   });
 });
 

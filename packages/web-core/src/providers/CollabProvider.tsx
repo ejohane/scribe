@@ -28,7 +28,7 @@ const CollabContext = createContext<CollabContextValue | null>(null);
  * Props for CollabProvider component.
  */
 export interface CollabProviderProps {
-  /** The daemon URL (e.g., http://localhost:47832) */
+  /** The daemon URL (e.g., http://localhost:47900) */
   daemonUrl: string;
   /** Children to render within the provider */
   children: ReactNode;
@@ -46,7 +46,7 @@ export interface CollabProviderProps {
  * ```tsx
  * function App() {
  *   return (
- *     <CollabProvider daemonUrl="http://localhost:47832">
+ *     <CollabProvider daemonUrl="http://localhost:47900">
  *       <NoteEditor />
  *     </CollabProvider>
  *   );

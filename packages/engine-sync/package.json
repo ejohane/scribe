@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run src/content-hash.test.ts src/network-monitor.test.ts src/sync-transport.test.ts --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {

@@ -32,8 +32,8 @@ type DaemonInfo = {
   version: string;
 };
 
-const DEFAULT_DAEMON_PORT = 47832;
-const DEFAULT_WEB_PORT = 5173;
+const DEFAULT_DAEMON_PORT = 47900;
+const DEFAULT_WEB_PORT = 5175;
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

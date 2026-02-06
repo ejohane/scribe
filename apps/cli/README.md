@@ -148,7 +148,7 @@ scribe vault init /path/to/vault
 scribe web
 
 # Override web root or ports
-scribe web --web-root /path/to/apps/web/dist --web-port 5173 --port 47832
+scribe web --web-root /path/to/apps/web/dist --web-port 5175 --port 47900
 ```
 
 The command looks for built assets in these locations (first match wins):

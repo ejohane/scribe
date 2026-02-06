@@ -15,9 +15,9 @@
  *
  * Set via VITE_DAEMON_PORT environment variable.
  *
- * @default 47832 - The default Scribe daemon port
+ * @default 47900 - The default Scribe daemon port
  */
-export const DAEMON_PORT = parseInt(import.meta.env.VITE_DAEMON_PORT ?? '47832', 10);
+export const DAEMON_PORT = parseInt(import.meta.env.VITE_DAEMON_PORT ?? '47900', 10);
 
 /**
  * Host for connecting to the Scribe daemon.

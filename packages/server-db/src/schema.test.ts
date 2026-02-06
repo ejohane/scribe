@@ -9,17 +9,57 @@
  * 5. FTS5 virtual table is functional
  */
 
-import Database from 'better-sqlite3';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createRequire } from 'node:module';
 import { PRAGMAS, FULL_SCHEMA, TABLE_NAMES, ALL_TABLES } from './schema.js';
 import type { Note, Tag, NoteTag, Snapshot } from './types.js';
 
-describe('SQLite Schema', () => {
-  let db: Database.Database;
+type TestDatabase = {
+  exec(sql: string): void;
+  close(): void;
+  prepare(sql: string): {
+    run(...params: unknown[]): unknown;
+    get(...params: unknown[]): unknown;
+    all(...params: unknown[]): unknown[];
+  };
+};
+
+type BetterSqliteConstructor = new (filename: string) => TestDatabase;
+
+const require = createRequire(import.meta.url);
+
+let BetterSqlite3: BetterSqliteConstructor | null = null;
+try {
+  BetterSqlite3 = require('better-sqlite3') as BetterSqliteConstructor;
+} catch {
+  BetterSqlite3 = null;
+}
+
+function canUseBetterSqlite3(): boolean {
+  if (!BetterSqlite3) {
+    return false;
+  }
+
+  try {
+    const probe = new BetterSqlite3(':memory:');
+    probe.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const describeIfSqlite = canUseBetterSqlite3() ? describe : describe.skip;
+
+describeIfSqlite('SQLite Schema', () => {
+  let db: TestDatabase;
 
   beforeEach(() => {
     // Create in-memory database for testing
-    db = new Database(':memory:');
+    if (!BetterSqlite3) {
+      throw new Error('better-sqlite3 is unavailable in this runtime');
+    }
+    db = new BetterSqlite3(':memory:');
 
     // Apply pragmas
     const pragmaStatements = PRAGMAS.split(';').filter((s) => s.trim());

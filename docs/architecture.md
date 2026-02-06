@@ -278,7 +278,7 @@ scribed start
 scribed start --vault /path/to/vault
 
 # Start on specific port
-scribed start --vault /path/to/vault --port 3000
+scribed start --vault /path/to/vault --port 47900
 ```
 
 ### Check Daemon Status
@@ -288,7 +288,7 @@ scribed status
 # Output:
 # Status: Running
 #   PID:       12345
-#   Port:      47832
+#   Port:      47900
 #   Vault:     /path/to/vault
 #   Started:   2024-01-15T10:30:00Z
 #   Uptime:    2h 15m
@@ -306,7 +306,7 @@ scribed stop
 ```bash
 cd apps/web
 bun run dev
-# Opens http://localhost:5173
+# Opens http://localhost:5175
 ```
 
 ## Configuration
@@ -318,7 +318,7 @@ The daemon writes connection info to `~/.scribe/daemon.json`:
 ```json
 {
   "pid": 12345,
-  "port": 47832,
+  "port": 47900,
   "vaultPath": "/Users/me/Documents/vault",
   "startedAt": "2024-01-15T10:30:00Z",
   "version": "0.1.0"

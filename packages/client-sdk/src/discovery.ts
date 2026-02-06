@@ -206,7 +206,7 @@ export interface ManualDaemonConfig {
  * @example
  * ```typescript
  * // Browser usage - user provides port from daemon CLI output
- * const info = createManualDaemonInfo({ port: 47832 });
+ * const info = createManualDaemonInfo({ port: 47900 });
  * const trpcUrl = `http://${info.host ?? '127.0.0.1'}:${info.port}/trpc`;
  * ```
  */
@@ -235,7 +235,7 @@ export function createManualDaemonInfo(config: ManualDaemonConfig): DaemonInfo {
  * const info = await discoverDaemon();
  * if (info) {
  *   const url = getTrpcUrl(info);
- *   // url: 'http://127.0.0.1:47832/trpc'
+ *   // url: 'http://127.0.0.1:47900/trpc'
  * }
  * ```
  */
