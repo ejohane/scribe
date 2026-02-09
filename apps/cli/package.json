@@ -30,7 +30,7 @@
     "@scribe/engine-search": "workspace:*",
     "@scribe/shared": "workspace:*",
     "@scribe/storage-fs": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^14.0.3"
   },
   "devDependencies": {
     "@scribe/eslint-config": "workspace:*",
